@@ -3,70 +3,67 @@ export type Session = {
   listKey: string
   data: {
     name: string
-    role: {
+    email?: string
+    role?: {
       id: string
       name: string
-      canCreateTodos: boolean
-      canManageAllTodos: boolean
+      canAccessDashboard: boolean
+      canReadOrders: boolean
+      canManageOrders: boolean
+      canReadPayments: boolean
+      canManagePayments: boolean
+      canReadProducts: boolean
+      canManageProducts: boolean
+      canReadInventory: boolean
+      canManageInventory: boolean
+      canReadLoyalty: boolean
+      canManageLoyalty: boolean
       canSeeOtherPeople: boolean
       canEditOtherPeople: boolean
       canManagePeople: boolean
       canManageRoles: boolean
-      canAccessDashboard: boolean
+      canManageSettings: boolean
+      canManageOnboarding: boolean
     }
   }
 }
 
-type AccessArgs = {
-  session?: Session
-}
+type AccessArgs = { session?: Session }
 
 export function isSignedIn({ session }: AccessArgs) {
   return Boolean(session)
 }
 
+const hasRoleFlag = (session: Session | undefined, flag: keyof NonNullable<Session['data']['role']>) =>
+  Boolean(session?.data?.role?.[flag])
+
 export const permissions = {
-  canCreateTodos: ({ session }: AccessArgs) => session?.data.role?.canCreateTodos ?? false,
-  canManageAllTodos: ({ session }: AccessArgs) => session?.data.role?.canManageAllTodos ?? false,
-  canManagePeople: ({ session }: AccessArgs) => session?.data.role?.canManagePeople ?? false,
-  canManageRoles: ({ session }: AccessArgs) => session?.data.role?.canManageRoles ?? false,
+  canAccessDashboard: ({ session }: AccessArgs) => hasRoleFlag(session, 'canAccessDashboard'),
+  canReadOrders: ({ session }: AccessArgs) => hasRoleFlag(session, 'canReadOrders') || hasRoleFlag(session, 'canManageOrders'),
+  canManageOrders: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManageOrders'),
+  canReadPayments: ({ session }: AccessArgs) => hasRoleFlag(session, 'canReadPayments') || hasRoleFlag(session, 'canManagePayments'),
+  canManagePayments: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManagePayments'),
+  canReadProducts: ({ session }: AccessArgs) => hasRoleFlag(session, 'canReadProducts') || hasRoleFlag(session, 'canManageProducts'),
+  canManageProducts: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManageProducts'),
+  canReadInventory: ({ session }: AccessArgs) => hasRoleFlag(session, 'canReadInventory') || hasRoleFlag(session, 'canManageInventory'),
+  canManageInventory: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManageInventory'),
+  canReadLoyalty: ({ session }: AccessArgs) => hasRoleFlag(session, 'canReadLoyalty') || hasRoleFlag(session, 'canManageLoyalty'),
+  canManageLoyalty: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManageLoyalty'),
+  canManagePeople: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManagePeople'),
+  canManageRoles: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManageRoles'),
+  canManageSettings: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManageSettings'),
+  canManageOnboarding: ({ session }: AccessArgs) => hasRoleFlag(session, 'canManageOnboarding'),
 }
 
 export const rules = {
-  canReadTodos: ({ session }: AccessArgs) => {
+  canReadPeople({ session }: AccessArgs) {
     if (!session) return false
-
-    if (session.data.role?.canManageAllTodos) {
-      return {
-        OR: [
-          { assignedTo: { id: { equals: session.itemId } } },
-          { assignedTo: null, isPrivate: { equals: true } },
-          { NOT: { isPrivate: { equals: true } } },
-        ],
-      }
-    }
-
-    return { assignedTo: { id: { equals: session.itemId } } }
-  },
-  canManageTodos: ({ session }: AccessArgs) => {
-    if (!session) return false
-
-    if (session.data.role?.canManageAllTodos) return true
-
-    return { assignedTo: { id: { equals: session.itemId } } }
-  },
-  canReadPeople: ({ session }: AccessArgs) => {
-    if (!session) return false
-
-    if (session.data.role?.canSeeOtherPeople) return true
-
+    if (session.data.role?.canSeeOtherPeople || session.data.role?.canManagePeople) return true
     return { id: { equals: session.itemId } }
   },
-  canUpdatePeople: ({ session }: AccessArgs) => {
+  canUpdatePeople({ session }: AccessArgs) {
     if (!session) return false
-
-    if (session.data.role?.canEditOtherPeople) return true
-
+    if (session.data.role?.canEditOtherPeople || session.data.role?.canManagePeople) return true
     return { id: { equals: session.itemId } }
   },
 }

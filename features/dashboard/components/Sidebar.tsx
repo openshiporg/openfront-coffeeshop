@@ -36,24 +36,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AdminMeta } from '../hooks/useAdminMeta'
-import { Home, Database, ChevronRight, Package } from 'lucide-react'
+import { Home, ChevronRight, Package } from 'lucide-react'
 import { Logo, LogoIcon } from '@/features/dashboard/components/Logo'
 import { UserProfileClient } from './UserProfileClient'
+import { getPlatformNavItemsWithBasePath, platformNavGroups, platformStandaloneItems } from '@/features/platform/lib/navigation'
+import { OnboardingCards } from '@/features/platform/onboarding/components/OnboardingCards'
+import { dismissOnboarding } from '@/features/platform/onboarding/actions/onboarding'
+import { useDashboard } from '../context/DashboardProvider'
 
 interface User {
   id: string;
   email: string;
   name?: string;
+  onboardingStatus?: string;
+  role?: {
+    canManageOnboarding?: boolean;
+  };
 }
 
 interface SidebarProps {
   adminMeta: AdminMeta | null
   user?: User | null
+  onOpenDialog?: () => void
 }
 
-export function Sidebar({ adminMeta, user }: SidebarProps) {
+export function Sidebar({ adminMeta, user, onOpenDialog }: SidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar()
   const pathname = usePathname()
+  const { basePath } = useDashboard()
 
   const lists = adminMeta?.lists || {}
   const listsArray = Object.values(lists)
@@ -84,8 +94,21 @@ export function Sidebar({ adminMeta, user }: SidebarProps) {
     href: `/dashboard/${list.path}`
   }))
 
-  // Dashboard items for the collapsible menu
+  const platformItemsWithBasePath = getPlatformNavItemsWithBasePath(basePath)
+
   const dashboardItems = [
+    ...platformNavGroups.map((group) => ({
+      title: group.title,
+      items: platformItemsWithBasePath.filter((item) => item.group === group.id),
+      isActive: platformItemsWithBasePath.filter((item) => item.group === group.id).some((item) => isLinkActive(item.href)),
+      icon: group.icon || Package,
+    })),
+    ...platformStandaloneItems.map((item) => ({
+      title: item.title,
+      items: [{ ...item, href: `${basePath}${item.href}` }],
+      isActive: isLinkActive(`${basePath}${item.href}`),
+      icon: item.icon || Package,
+    })),
     {
       title: "Models",
       items: sidebarLinks,
@@ -220,6 +243,18 @@ export function Sidebar({ adminMeta, user }: SidebarProps) {
       </SidebarContent>
       
       <SidebarFooter>
+        <OnboardingCards
+          onboardingStatus={user?.onboardingStatus}
+          userRole={user?.role}
+          onOpenDialog={onOpenDialog}
+          onDismiss={async () => {
+            try {
+              await dismissOnboarding();
+            } catch (error) {
+              console.error('Error dismissing onboarding:', error);
+            }
+          }}
+        />
         {user && <UserProfileClient user={user} />}
       </SidebarFooter>
       

@@ -12,69 +12,294 @@ generator client {
 }
 
 model User {
-  id                      String    @id @default(cuid())
-  name                    String    @default("")
-  email                   String    @unique @default("")
-  password                String
-  role                    Role?     @relation("User_role", fields: [roleId], references: [id])
-  roleId                  String?   @map("role")
-  tasks                   Todo[]    @relation("Todo_assignedTo")
-  passwordResetToken      String?
-  passwordResetIssuedAt   DateTime?
-  passwordResetRedeemedAt DateTime?
+  id                           String          @id @default(cuid())
+  name                         String          @default("")
+  email                        String          @unique @default("")
+  phone                        String          @default("")
+  password                     String
+  onboardingStatus             String?         @default("not_started")
+  role                         Role?           @relation("User_role", fields: [roleId], references: [id])
+  roleId                       String?         @map("role")
+  cafeOrders                   CafeOrder[]     @relation("CafeOrder_customer")
+  payments                     Payment[]       @relation("Payment_customer")
+  loyaltyAccount               LoyaltyAccount? @relation("LoyaltyAccount_customer")
+  createdAt                    DateTime        @default(now())
+  updatedAt                    DateTime        @default(now()) @updatedAt
+  passwordResetToken           String?
+  passwordResetIssuedAt        DateTime?
+  passwordResetRedeemedAt      DateTime?
+  from_StockMovement_createdBy StockMovement[] @relation("StockMovement_createdBy")
+  from_LoyaltyEvent_createdBy  LoyaltyEvent[]  @relation("LoyaltyEvent_createdBy")
 
   @@index([roleId])
 }
 
 model Role {
-  id                 String  @id @default(cuid())
-  name               String  @default("")
-  canCreateTodos     Boolean @default(false)
-  canManageAllTodos  Boolean @default(false)
-  canSeeOtherPeople  Boolean @default(false)
-  canEditOtherPeople Boolean @default(false)
-  canManagePeople    Boolean @default(false)
-  canManageRoles     Boolean @default(false)
-  canAccessDashboard Boolean @default(false)
-  assignedTo         User[]  @relation("User_role")
+  id                  String   @id @default(cuid())
+  name                String   @default("")
+  canAccessDashboard  Boolean  @default(false)
+  canReadOrders       Boolean  @default(false)
+  canManageOrders     Boolean  @default(false)
+  canReadPayments     Boolean  @default(false)
+  canManagePayments   Boolean  @default(false)
+  canReadProducts     Boolean  @default(false)
+  canManageProducts   Boolean  @default(false)
+  canReadInventory    Boolean  @default(false)
+  canManageInventory  Boolean  @default(false)
+  canReadLoyalty      Boolean  @default(false)
+  canManageLoyalty    Boolean  @default(false)
+  canSeeOtherPeople   Boolean  @default(false)
+  canEditOtherPeople  Boolean  @default(false)
+  canManagePeople     Boolean  @default(false)
+  canManageRoles      Boolean  @default(false)
+  canManageSettings   Boolean  @default(false)
+  canManageOnboarding Boolean  @default(true)
+  assignedTo          User[]   @relation("User_role")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now()) @updatedAt
 }
 
-model Todo {
-  id                   String      @id @default(cuid())
-  label                String      @default("")
-  description          Json        @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  isComplete           Boolean     @default(false)
-  status               String?     @default("todo")
-  priority             Int?        @default(1)
-  tags                 Json        @default("[]")
-  dueDate              DateTime?
-  weight               Float?      @default(1)
-  budget               Decimal?    @default("0.00") @postgresql.Decimal(10, 2)
-  isPrivate            Boolean     @default(false)
-  largeNumber          BigInt?
-  metadata             Json?
-  secretNote           String?
-  coverImage_id        String?
-  coverImage_filesize  Int?
-  coverImage_width     Int?
-  coverImage_height    Int?
-  coverImage_extension String?
-  todoImages           TodoImage[] @relation("Todo_todoImages")
-  assignedTo           User?       @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
-  assignedToId         String?     @map("assignedTo")
-
-  @@index([assignedToId])
+model MenuCategory {
+  id          String     @id @default(cuid())
+  name        String     @default("")
+  description String     @default("")
+  active      Boolean    @default(true)
+  sortOrder   Int?       @default(0)
+  menuItems   MenuItem[] @relation("MenuItem_category")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now()) @updatedAt
 }
 
-model TodoImage {
-  id              String  @id @default(cuid())
-  image_id        String?
-  image_filesize  Int?
-  image_width     Int?
-  image_height    Int?
-  image_extension String?
-  imagePath       String  @default("")
-  altText         String  @default("")
-  todos           Todo[]  @relation("Todo_todoImages")
-  metadata        Json?
+model MenuItem {
+  id                 String             @id @default(cuid())
+  name               String             @default("")
+  description        Json               @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
+  shortDescription   String             @default("")
+  price              Int
+  available          Boolean            @default(true)
+  featured           Boolean            @default(false)
+  popular            Boolean            @default(false)
+  imageUrl           String?
+  prepTimeMinutes    Int?               @default(5)
+  caffeineMg         Int?
+  calories           Int?
+  barStation         String?            @default("espresso_bar")
+  temperatureOptions Json               @default("[\"hot\"]")
+  dietaryFlags       Json               @default("[]")
+  serviceWindows     Json               @default("[\"all_day\"]")
+  category           MenuCategory?      @relation("MenuItem_category", fields: [categoryId], references: [id])
+  categoryId         String?            @map("category")
+  modifiers          MenuItemModifier[] @relation("MenuItemModifier_menuItem")
+  orderItems         OrderItem[]        @relation("OrderItem_menuItem")
+  inventoryItem      InventoryItem?     @relation("MenuItem_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId    String?            @map("inventoryItem")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @default(now()) @updatedAt
+
+  @@index([categoryId])
+  @@index([inventoryItemId])
+}
+
+model MenuItemModifier {
+  id                              String      @id @default(cuid())
+  name                            String      @default("")
+  modifierGroup                   String?     @default("milk")
+  modifierGroupLabel              String      @default("")
+  required                        Boolean     @default(false)
+  minSelections                   Int?        @default(0)
+  maxSelections                   Int?        @default(1)
+  priceAdjustment                 Int?        @default(0)
+  defaultSelected                 Boolean     @default(false)
+  inStock                         Boolean     @default(true)
+  menuItem                        MenuItem?   @relation("MenuItemModifier_menuItem", fields: [menuItemId], references: [id])
+  menuItemId                      String?     @map("menuItem")
+  createdAt                       DateTime    @default(now())
+  updatedAt                       DateTime    @default(now()) @updatedAt
+  from_OrderItem_appliedModifiers OrderItem[] @relation("OrderItem_appliedModifiers")
+
+  @@index([menuItemId])
+}
+
+model CafeOrder {
+  id                  String          @id @default(cuid())
+  orderNumber         String          @unique @default("")
+  fulfillmentType     String?         @default("pickup")
+  orderSource         String?         @default("online")
+  status              String?         @default("open")
+  customerName        String          @default("")
+  customerEmail       String          @default("")
+  customerPhone       String          @default("")
+  pickupName          String          @default("")
+  specialInstructions String          @default("")
+  subtotal            Int?            @default(0)
+  tax                 Int?            @default(0)
+  tip                 Int?            @default(0)
+  discount            Int?            @default(0)
+  total               Int?            @default(0)
+  currencyCode        String          @default("USD")
+  paidAt              DateTime?
+  promisedAt          DateTime?
+  startedAt           DateTime?
+  readyAt             DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  isRush              Boolean         @default(false)
+  handoffCode         String          @default("")
+  secretKey           String          @default("")
+  customer            User?           @relation("CafeOrder_customer", fields: [customerId], references: [id])
+  customerId          String?         @map("customer")
+  orderItems          OrderItem[]     @relation("OrderItem_order")
+  payments            Payment[]       @relation("Payment_order")
+  loyaltyAccount      LoyaltyAccount? @relation("CafeOrder_loyaltyAccount", fields: [loyaltyAccountId], references: [id])
+  loyaltyAccountId    String?         @map("loyaltyAccount")
+  loyaltyEvents       LoyaltyEvent[]  @relation("LoyaltyEvent_order")
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @default(now()) @updatedAt
+
+  @@index([customerId])
+  @@index([loyaltyAccountId])
+}
+
+model OrderItem {
+  id                    String             @id @default(cuid())
+  quantity              Int                @default(1)
+  price                 Int
+  itemNameSnapshot      String             @default("")
+  customizationsSummary String             @default("")
+  specialInstructions   String             @default("")
+  barStatus             String?            @default("new")
+  station               String?            @default("espresso_bar")
+  queuedAt              DateTime?
+  startedAt             DateTime?
+  readyAt               DateTime?
+  handedOffAt           DateTime?
+  order                 CafeOrder?         @relation("OrderItem_order", fields: [orderId], references: [id])
+  orderId               String?            @map("order")
+  menuItem              MenuItem?          @relation("OrderItem_menuItem", fields: [menuItemId], references: [id])
+  menuItemId            String?            @map("menuItem")
+  appliedModifiers      MenuItemModifier[] @relation("OrderItem_appliedModifiers")
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @default(now()) @updatedAt
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+model Payment {
+  id                String           @id @default(cuid())
+  status            String?          @default("pending")
+  method            String?          @default("card")
+  amount            Int
+  currencyCode      String           @default("USD")
+  provider          String           @default("manual")
+  providerPaymentId String           @default("")
+  failureMessage    String           @default("")
+  processedAt       DateTime?
+  order             CafeOrder?       @relation("Payment_order", fields: [orderId], references: [id])
+  orderId           String?          @map("order")
+  customer          User?            @relation("Payment_customer", fields: [customerId], references: [id])
+  customerId        String?          @map("customer")
+  paymentProvider   PaymentProvider? @relation("Payment_paymentProvider", fields: [paymentProviderId], references: [id])
+  paymentProviderId String?          @map("paymentProvider")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
+
+  @@index([orderId])
+  @@index([customerId])
+  @@index([paymentProviderId])
+}
+
+model PaymentProvider {
+  id                          String    @id @default(cuid())
+  name                        String    @default("")
+  code                        String    @unique @default("")
+  isInstalled                 Boolean   @default(true)
+  credentials                 Json?     @default("{}")
+  metadata                    Json?     @default("{}")
+  createPaymentFunction       String    @default("")
+  capturePaymentFunction      String    @default("")
+  refundPaymentFunction       String    @default("")
+  getPaymentStatusFunction    String    @default("")
+  generatePaymentLinkFunction String    @default("")
+  handleWebhookFunction       String    @default("")
+  paymentRecords              Payment[] @relation("Payment_paymentProvider")
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @default(now()) @updatedAt
+}
+
+model InventoryItem {
+  id             String          @id @default(cuid())
+  name           String          @default("")
+  category       String?         @default("coffee")
+  unit           String?         @default("each")
+  currentStock   Decimal?        @default("0") @postgresql.Decimal(18, 4)
+  reorderPoint   Decimal?        @default("0") @postgresql.Decimal(18, 4)
+  parLevel       Decimal?        @default("0") @postgresql.Decimal(18, 4)
+  costPerUnit    Int?            @default(0)
+  supplierName   String          @default("")
+  sku            String          @default("")
+  menuItems      MenuItem[]      @relation("MenuItem_inventoryItem")
+  stockMovements StockMovement[] @relation("StockMovement_inventoryItem")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+}
+
+model StockMovement {
+  id              String         @id @default(cuid())
+  type            String?        @default("adjustment")
+  quantity        Decimal        @postgresql.Decimal(18, 4)
+  reason          String         @default("")
+  notes           String         @default("")
+  inventoryItem   InventoryItem? @relation("StockMovement_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId String?        @map("inventoryItem")
+  createdBy       User?          @relation("StockMovement_createdBy", fields: [createdById], references: [id])
+  createdById     String?        @map("createdBy")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+
+  @@index([inventoryItemId])
+  @@index([createdById])
+}
+
+model LoyaltyAccount {
+  id             String         @id @default(cuid())
+  customerName   String         @default("")
+  customerEmail  String         @unique @default("")
+  customerPhone  String         @default("")
+  marketingOptIn Boolean        @default(false)
+  status         String?        @default("active")
+  tier           String?        @default("regular")
+  pointsBalance  Int?           @default(0)
+  lifetimePoints Int?           @default(0)
+  drinkCredits   Int?           @default(0)
+  visits         Int?           @default(0)
+  lastVisitAt    DateTime?
+  firstVisitAt   DateTime?
+  notes          String         @default("")
+  customer       User?          @relation("LoyaltyAccount_customer", fields: [customerId], references: [id])
+  customerId     String?        @unique @map("customer")
+  orders         CafeOrder[]    @relation("CafeOrder_loyaltyAccount")
+  events         LoyaltyEvent[] @relation("LoyaltyEvent_account")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+}
+
+model LoyaltyEvent {
+  id                String          @id @default(cuid())
+  type              String?         @default("earned")
+  pointsDelta       Int?            @default(0)
+  drinkCreditsDelta Int?            @default(0)
+  note              String          @default("")
+  account           LoyaltyAccount? @relation("LoyaltyEvent_account", fields: [accountId], references: [id])
+  accountId         String?         @map("account")
+  order             CafeOrder?      @relation("LoyaltyEvent_order", fields: [orderId], references: [id])
+  orderId           String?         @map("order")
+  createdBy         User?           @relation("LoyaltyEvent_createdBy", fields: [createdById], references: [id])
+  createdById       String?         @map("createdBy")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+
+  @@index([accountId])
+  @@index([orderId])
+  @@index([createdById])
 }

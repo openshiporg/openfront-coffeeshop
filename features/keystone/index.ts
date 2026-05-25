@@ -29,16 +29,27 @@ const { withAuth } = createAuth({
   initFirstItem: {
     fields: ["name", "email", "password"],
     itemData: {
+      onboardingStatus: "not_started",
       role: {
         create: {
           name: "Admin",
-          canCreateTodos: true,
-          canManageAllTodos: true,
+          canAccessDashboard: true,
+          canReadOrders: true,
+          canManageOrders: true,
+          canReadPayments: true,
+          canManagePayments: true,
+          canReadProducts: true,
+          canManageProducts: true,
+          canReadInventory: true,
+          canManageInventory: true,
+          canReadLoyalty: true,
+          canManageLoyalty: true,
           canSeeOtherPeople: true,
           canEditOtherPeople: true,
           canManagePeople: true,
           canManageRoles: true,
-          canAccessDashboard: true,
+          canManageSettings: true,
+          canManageOnboarding: true,
         },
       },
     },
@@ -52,16 +63,27 @@ const { withAuth } = createAuth({
   sessionData: `
     name
     email
+    onboardingStatus
     role {
       id
       name
-      canCreateTodos
-      canManageAllTodos
+      canAccessDashboard
+      canReadOrders
+      canManageOrders
+      canReadPayments
+      canManagePayments
+      canReadProducts
+      canManageProducts
+      canReadInventory
+      canManageInventory
+      canReadLoyalty
+      canManageLoyalty
       canSeeOtherPeople
       canEditOtherPeople
       canManagePeople
       canManageRoles
-      canAccessDashboard
+      canManageSettings
+      canManageOnboarding
     }
   `,
 });

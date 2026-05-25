@@ -1,0 +1,432 @@
+{
+  "minimal": {
+    "storeInfo": {
+      "name": "Neighborhood Roast",
+      "tagline": "Seasonal coffee, pastries, and pantry staples.",
+      "address": "128 Market Street, Brooklyn, NY 11201",
+      "phone": "+1 (718) 555-0112",
+      "currencyCode": "USD",
+      "locale": "en-US",
+      "timezone": "America/New_York"
+    },
+    "categories": [
+      {
+        "name": "Espresso",
+        "description": "Core espresso bar drinks.",
+        "sortOrder": 1
+      },
+      {
+        "name": "Pastries",
+        "description": "Fresh bakery favorites.",
+        "sortOrder": 2
+      }
+    ],
+    "menuItems": [
+      {
+        "name": "Americano",
+        "shortDescription": "Double espresso topped with hot water.",
+        "price": 425,
+        "prepTimeMinutes": 4,
+        "barStation": "espresso_bar",
+        "featured": true,
+        "popular": true,
+        "categoryName": "Espresso"
+      },
+      {
+        "name": "Vanilla Latte",
+        "shortDescription": "Espresso, milk, and house vanilla.",
+        "price": 625,
+        "prepTimeMinutes": 5,
+        "barStation": "espresso_bar",
+        "featured": true,
+        "popular": true,
+        "categoryName": "Espresso"
+      },
+      {
+        "name": "Almond Croissant",
+        "shortDescription": "Butter croissant with almond cream.",
+        "price": 495,
+        "prepTimeMinutes": 2,
+        "barStation": "pastry_case",
+        "featured": false,
+        "popular": true,
+        "categoryName": "Pastries"
+      }
+    ],
+    "modifiers": [
+      {
+        "menuItemName": "Americano",
+        "name": "12 oz",
+        "modifierGroup": "size",
+        "modifierGroupLabel": "Size",
+        "priceAdjustment": 0,
+        "defaultSelected": true,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Americano",
+        "name": "16 oz",
+        "modifierGroup": "size",
+        "modifierGroupLabel": "Size",
+        "priceAdjustment": 75,
+        "defaultSelected": false,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Vanilla Latte",
+        "name": "Whole Milk",
+        "modifierGroup": "milk",
+        "modifierGroupLabel": "Milk",
+        "priceAdjustment": 0,
+        "defaultSelected": true,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Vanilla Latte",
+        "name": "Oat Milk",
+        "modifierGroup": "milk",
+        "modifierGroupLabel": "Milk",
+        "priceAdjustment": 80,
+        "defaultSelected": false,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      }
+    ],
+    "inventoryItems": [
+      {
+        "name": "Espresso Beans",
+        "sku": "COF-BEAN-ESP",
+        "unit": "bag",
+        "quantityOnHand": "18",
+        "parLevel": "12",
+        "reorderPoint": "8",
+        "costPerUnit": 1450,
+        "active": true
+      },
+      {
+        "name": "Whole Milk",
+        "sku": "MIL-WHOLE-GL",
+        "unit": "gallon",
+        "quantityOnHand": "10",
+        "parLevel": "8",
+        "reorderPoint": "4",
+        "costPerUnit": 480,
+        "active": true
+      },
+      {
+        "name": "Croissant Dough",
+        "sku": "PAS-CRO-TRAY",
+        "unit": "tray",
+        "quantityOnHand": "5",
+        "parLevel": "4",
+        "reorderPoint": "2",
+        "costPerUnit": 2200,
+        "active": true
+      }
+    ],
+    "paymentProviders": [
+      {
+        "name": "Stripe",
+        "code": "pp_stripe_stripe",
+        "isInstalled": true,
+        "createPaymentFunction": "stripe",
+        "capturePaymentFunction": "stripe",
+        "refundPaymentFunction": "stripe",
+        "getPaymentStatusFunction": "stripe",
+        "generatePaymentLinkFunction": "stripe",
+        "handleWebhookFunction": "stripe"
+      },
+      {
+        "name": "PayPal",
+        "code": "pp_paypal_paypal",
+        "isInstalled": true,
+        "createPaymentFunction": "paypal",
+        "capturePaymentFunction": "paypal",
+        "refundPaymentFunction": "paypal",
+        "getPaymentStatusFunction": "paypal",
+        "generatePaymentLinkFunction": "paypal",
+        "handleWebhookFunction": "paypal"
+      },
+      {
+        "name": "Manual / Cash",
+        "code": "pp_system_default",
+        "isInstalled": true,
+        "createPaymentFunction": "manual",
+        "capturePaymentFunction": "manual",
+        "refundPaymentFunction": "manual",
+        "getPaymentStatusFunction": "manual",
+        "generatePaymentLinkFunction": "manual",
+        "handleWebhookFunction": "manual"
+      }
+    ]
+  },
+  "full": {
+    "storeInfo": {
+      "name": "Neighborhood Roast",
+      "tagline": "Seasonal coffee, pastries, and pantry staples.",
+      "address": "128 Market Street, Brooklyn, NY 11201",
+      "phone": "+1 (718) 555-0112",
+      "currencyCode": "USD",
+      "locale": "en-US",
+      "timezone": "America/New_York"
+    },
+    "categories": [
+      {
+        "name": "Espresso",
+        "description": "Core espresso bar drinks.",
+        "sortOrder": 1
+      },
+      {
+        "name": "Signature Drinks",
+        "description": "Seasonal and house specials.",
+        "sortOrder": 2
+      },
+      {
+        "name": "Pastries",
+        "description": "Fresh bakery favorites.",
+        "sortOrder": 3
+      },
+      {
+        "name": "Retail Beans",
+        "description": "Whole beans and brew-at-home staples.",
+        "sortOrder": 4
+      }
+    ],
+    "menuItems": [
+      {
+        "name": "Americano",
+        "shortDescription": "Double espresso topped with hot water.",
+        "price": 425,
+        "prepTimeMinutes": 4,
+        "barStation": "espresso_bar",
+        "featured": true,
+        "popular": true,
+        "categoryName": "Espresso"
+      },
+      {
+        "name": "Vanilla Latte",
+        "shortDescription": "Espresso, milk, and house vanilla.",
+        "price": 625,
+        "prepTimeMinutes": 5,
+        "barStation": "espresso_bar",
+        "featured": true,
+        "popular": true,
+        "categoryName": "Signature Drinks"
+      },
+      {
+        "name": "Cardamom Cold Brew",
+        "shortDescription": "Slow-steeped cold brew with sweet spice.",
+        "price": 575,
+        "prepTimeMinutes": 3,
+        "barStation": "cold_bar",
+        "featured": true,
+        "popular": false,
+        "categoryName": "Signature Drinks"
+      },
+      {
+        "name": "Almond Croissant",
+        "shortDescription": "Butter croissant with almond cream.",
+        "price": 495,
+        "prepTimeMinutes": 2,
+        "barStation": "pastry_case",
+        "featured": false,
+        "popular": true,
+        "categoryName": "Pastries"
+      },
+      {
+        "name": "House Blend Beans",
+        "shortDescription": "12 oz whole-bean bag for home brew.",
+        "price": 1800,
+        "prepTimeMinutes": 1,
+        "barStation": "retail_shelf",
+        "featured": false,
+        "popular": false,
+        "categoryName": "Retail Beans"
+      }
+    ],
+    "modifiers": [
+      {
+        "menuItemName": "Americano",
+        "name": "12 oz",
+        "modifierGroup": "size",
+        "modifierGroupLabel": "Size",
+        "priceAdjustment": 0,
+        "defaultSelected": true,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Americano",
+        "name": "16 oz",
+        "modifierGroup": "size",
+        "modifierGroupLabel": "Size",
+        "priceAdjustment": 75,
+        "defaultSelected": false,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Vanilla Latte",
+        "name": "12 oz",
+        "modifierGroup": "size",
+        "modifierGroupLabel": "Size",
+        "priceAdjustment": 0,
+        "defaultSelected": true,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Vanilla Latte",
+        "name": "16 oz",
+        "modifierGroup": "size",
+        "modifierGroupLabel": "Size",
+        "priceAdjustment": 100,
+        "defaultSelected": false,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Vanilla Latte",
+        "name": "Whole Milk",
+        "modifierGroup": "milk",
+        "modifierGroupLabel": "Milk",
+        "priceAdjustment": 0,
+        "defaultSelected": true,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Vanilla Latte",
+        "name": "Oat Milk",
+        "modifierGroup": "milk",
+        "modifierGroupLabel": "Milk",
+        "priceAdjustment": 80,
+        "defaultSelected": false,
+        "required": true,
+        "minSelections": 1,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Cardamom Cold Brew",
+        "name": "Regular Ice",
+        "modifierGroup": "ice",
+        "modifierGroupLabel": "Ice",
+        "priceAdjustment": 0,
+        "defaultSelected": true,
+        "required": false,
+        "minSelections": 0,
+        "maxSelections": 1
+      },
+      {
+        "menuItemName": "Cardamom Cold Brew",
+        "name": "Light Ice",
+        "modifierGroup": "ice",
+        "modifierGroupLabel": "Ice",
+        "priceAdjustment": 0,
+        "defaultSelected": false,
+        "required": false,
+        "minSelections": 0,
+        "maxSelections": 1
+      }
+    ],
+    "inventoryItems": [
+      {
+        "name": "Espresso Beans",
+        "sku": "COF-BEAN-ESP",
+        "unit": "bag",
+        "quantityOnHand": "18",
+        "parLevel": "12",
+        "reorderPoint": "8",
+        "costPerUnit": 1450,
+        "active": true
+      },
+      {
+        "name": "Whole Milk",
+        "sku": "MIL-WHOLE-GL",
+        "unit": "gallon",
+        "quantityOnHand": "10",
+        "parLevel": "8",
+        "reorderPoint": "4",
+        "costPerUnit": 480,
+        "active": true
+      },
+      {
+        "name": "Oat Milk",
+        "sku": "MIL-OAT-CS",
+        "unit": "carton",
+        "quantityOnHand": "16",
+        "parLevel": "12",
+        "reorderPoint": "6",
+        "costPerUnit": 395,
+        "active": true
+      },
+      {
+        "name": "Vanilla Syrup",
+        "sku": "SYR-VAN-750",
+        "unit": "bottle",
+        "quantityOnHand": "6",
+        "parLevel": "4",
+        "reorderPoint": "2",
+        "costPerUnit": 925,
+        "active": true
+      },
+      {
+        "name": "Croissant Dough",
+        "sku": "PAS-CRO-TRAY",
+        "unit": "tray",
+        "quantityOnHand": "5",
+        "parLevel": "4",
+        "reorderPoint": "2",
+        "costPerUnit": 2200,
+        "active": true
+      }
+    ],
+    "paymentProviders": [
+      {
+        "name": "Stripe",
+        "code": "pp_stripe_stripe",
+        "isInstalled": true,
+        "createPaymentFunction": "stripe",
+        "capturePaymentFunction": "stripe",
+        "refundPaymentFunction": "stripe",
+        "getPaymentStatusFunction": "stripe",
+        "generatePaymentLinkFunction": "stripe",
+        "handleWebhookFunction": "stripe"
+      },
+      {
+        "name": "PayPal",
+        "code": "pp_paypal_paypal",
+        "isInstalled": true,
+        "createPaymentFunction": "paypal",
+        "capturePaymentFunction": "paypal",
+        "refundPaymentFunction": "paypal",
+        "getPaymentStatusFunction": "paypal",
+        "generatePaymentLinkFunction": "paypal",
+        "handleWebhookFunction": "paypal"
+      },
+      {
+        "name": "Manual / Cash",
+        "code": "pp_system_default",
+        "isInstalled": true,
+        "createPaymentFunction": "manual",
+        "capturePaymentFunction": "manual",
+        "refundPaymentFunction": "manual",
+        "getPaymentStatusFunction": "manual",
+        "generatePaymentLinkFunction": "manual",
+        "handleWebhookFunction": "manual"
+      }
+    ]
+  }
+}

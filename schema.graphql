@@ -5,10 +5,17 @@ type User {
   id: ID!
   name: String
   email: String
+  phone: String
   password: PasswordState
+  onboardingStatus: String
   role: Role
-  tasks(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  tasksCount(where: TodoWhereInput! = {}): Int
+  cafeOrders(where: CafeOrderWhereInput! = {}, orderBy: [CafeOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CafeOrderWhereUniqueInput): [CafeOrder!]
+  cafeOrdersCount(where: CafeOrderWhereInput! = {}): Int
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  loyaltyAccount: LoyaltyAccount
+  createdAt: DateTime
+  updatedAt: DateTime
   passwordResetToken: PasswordState
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -22,6 +29,7 @@ scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339
 
 input UserWhereUniqueInput {
   id: ID
+  loyaltyAccount: LoyaltyAccountWhereUniqueInput
 }
 
 input UserWhereInput {
@@ -30,8 +38,14 @@ input UserWhereInput {
   NOT: [UserWhereInput!]
   id: IDFilter
   name: StringFilter
+  phone: StringFilter
+  onboardingStatus: StringNullableFilter
   role: RoleWhereInput
-  tasks: TodoManyRelationFilter
+  cafeOrders: CafeOrderManyRelationFilter
+  payments: PaymentManyRelationFilter
+  loyaltyAccount: LoyaltyAccountWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
   passwordResetToken: PasswordFilter
   passwordResetIssuedAt: DateTimeNullableFilter
   passwordResetRedeemedAt: DateTimeNullableFilter
@@ -82,10 +96,42 @@ input NestedStringFilter {
   not: NestedStringFilter
 }
 
-input TodoManyRelationFilter {
-  every: TodoWhereInput
-  some: TodoWhereInput
-  none: TodoWhereInput
+input StringNullableFilter {
+  equals: String
+  in: [String!]
+  notIn: [String!]
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  contains: String
+  startsWith: String
+  endsWith: String
+  mode: QueryMode
+  not: StringNullableFilter
+}
+
+input CafeOrderManyRelationFilter {
+  every: CafeOrderWhereInput
+  some: CafeOrderWhereInput
+  none: CafeOrderWhereInput
+}
+
+input PaymentManyRelationFilter {
+  every: PaymentWhereInput
+  some: PaymentWhereInput
+  none: PaymentWhereInput
+}
+
+input DateTimeFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: DateTimeFilter
 }
 
 input PasswordFilter {
@@ -106,6 +152,10 @@ input DateTimeNullableFilter {
 input UserOrderByInput {
   id: OrderDirection
   name: OrderDirection
+  phone: OrderDirection
+  onboardingStatus: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
   passwordResetIssuedAt: OrderDirection
   passwordResetRedeemedAt: OrderDirection
 }
@@ -118,9 +168,15 @@ enum OrderDirection {
 input UserUpdateInput {
   name: String
   email: String
+  phone: String
   password: String
+  onboardingStatus: String
   role: RoleRelateToOneForUpdateInput
-  tasks: TodoRelateToManyForUpdateInput
+  cafeOrders: CafeOrderRelateToManyForUpdateInput
+  payments: PaymentRelateToManyForUpdateInput
+  loyaltyAccount: LoyaltyAccountRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -132,11 +188,24 @@ input RoleRelateToOneForUpdateInput {
   disconnect: Boolean
 }
 
-input TodoRelateToManyForUpdateInput {
-  disconnect: [TodoWhereUniqueInput!]
-  set: [TodoWhereUniqueInput!]
-  create: [TodoCreateInput!]
-  connect: [TodoWhereUniqueInput!]
+input CafeOrderRelateToManyForUpdateInput {
+  disconnect: [CafeOrderWhereUniqueInput!]
+  set: [CafeOrderWhereUniqueInput!]
+  create: [CafeOrderCreateInput!]
+  connect: [CafeOrderWhereUniqueInput!]
+}
+
+input PaymentRelateToManyForUpdateInput {
+  disconnect: [PaymentWhereUniqueInput!]
+  set: [PaymentWhereUniqueInput!]
+  create: [PaymentCreateInput!]
+  connect: [PaymentWhereUniqueInput!]
+}
+
+input LoyaltyAccountRelateToOneForUpdateInput {
+  create: LoyaltyAccountCreateInput
+  connect: LoyaltyAccountWhereUniqueInput
+  disconnect: Boolean
 }
 
 input UserUpdateArgs {
@@ -147,9 +216,15 @@ input UserUpdateArgs {
 input UserCreateInput {
   name: String
   email: String
+  phone: String
   password: String
+  onboardingStatus: String
   role: RoleRelateToOneForCreateInput
-  tasks: TodoRelateToManyForCreateInput
+  cafeOrders: CafeOrderRelateToManyForCreateInput
+  payments: PaymentRelateToManyForCreateInput
+  loyaltyAccount: LoyaltyAccountRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -160,23 +235,45 @@ input RoleRelateToOneForCreateInput {
   connect: RoleWhereUniqueInput
 }
 
-input TodoRelateToManyForCreateInput {
-  create: [TodoCreateInput!]
-  connect: [TodoWhereUniqueInput!]
+input CafeOrderRelateToManyForCreateInput {
+  create: [CafeOrderCreateInput!]
+  connect: [CafeOrderWhereUniqueInput!]
+}
+
+input PaymentRelateToManyForCreateInput {
+  create: [PaymentCreateInput!]
+  connect: [PaymentWhereUniqueInput!]
+}
+
+input LoyaltyAccountRelateToOneForCreateInput {
+  create: LoyaltyAccountCreateInput
+  connect: LoyaltyAccountWhereUniqueInput
 }
 
 type Role {
   id: ID!
   name: String
-  canCreateTodos: Boolean
-  canManageAllTodos: Boolean
+  canAccessDashboard: Boolean
+  canReadOrders: Boolean
+  canManageOrders: Boolean
+  canReadPayments: Boolean
+  canManagePayments: Boolean
+  canReadProducts: Boolean
+  canManageProducts: Boolean
+  canReadInventory: Boolean
+  canManageInventory: Boolean
+  canReadLoyalty: Boolean
+  canManageLoyalty: Boolean
   canSeeOtherPeople: Boolean
   canEditOtherPeople: Boolean
   canManagePeople: Boolean
   canManageRoles: Boolean
-  canAccessDashboard: Boolean
+  canManageSettings: Boolean
+  canManageOnboarding: Boolean
   assignedTo(where: UserWhereInput! = {}, orderBy: [UserOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: UserWhereUniqueInput): [User!]
   assignedToCount(where: UserWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input RoleWhereUniqueInput {
@@ -189,14 +286,26 @@ input RoleWhereInput {
   NOT: [RoleWhereInput!]
   id: IDFilter
   name: StringFilter
-  canCreateTodos: BooleanFilter
-  canManageAllTodos: BooleanFilter
+  canAccessDashboard: BooleanFilter
+  canReadOrders: BooleanFilter
+  canManageOrders: BooleanFilter
+  canReadPayments: BooleanFilter
+  canManagePayments: BooleanFilter
+  canReadProducts: BooleanFilter
+  canManageProducts: BooleanFilter
+  canReadInventory: BooleanFilter
+  canManageInventory: BooleanFilter
+  canReadLoyalty: BooleanFilter
+  canManageLoyalty: BooleanFilter
   canSeeOtherPeople: BooleanFilter
   canEditOtherPeople: BooleanFilter
   canManagePeople: BooleanFilter
   canManageRoles: BooleanFilter
-  canAccessDashboard: BooleanFilter
+  canManageSettings: BooleanFilter
+  canManageOnboarding: BooleanFilter
   assignedTo: UserManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
 }
 
 input BooleanFilter {
@@ -213,25 +322,49 @@ input UserManyRelationFilter {
 input RoleOrderByInput {
   id: OrderDirection
   name: OrderDirection
-  canCreateTodos: OrderDirection
-  canManageAllTodos: OrderDirection
+  canAccessDashboard: OrderDirection
+  canReadOrders: OrderDirection
+  canManageOrders: OrderDirection
+  canReadPayments: OrderDirection
+  canManagePayments: OrderDirection
+  canReadProducts: OrderDirection
+  canManageProducts: OrderDirection
+  canReadInventory: OrderDirection
+  canManageInventory: OrderDirection
+  canReadLoyalty: OrderDirection
+  canManageLoyalty: OrderDirection
   canSeeOtherPeople: OrderDirection
   canEditOtherPeople: OrderDirection
   canManagePeople: OrderDirection
   canManageRoles: OrderDirection
-  canAccessDashboard: OrderDirection
+  canManageSettings: OrderDirection
+  canManageOnboarding: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
 }
 
 input RoleUpdateInput {
   name: String
-  canCreateTodos: Boolean
-  canManageAllTodos: Boolean
+  canAccessDashboard: Boolean
+  canReadOrders: Boolean
+  canManageOrders: Boolean
+  canReadPayments: Boolean
+  canManagePayments: Boolean
+  canReadProducts: Boolean
+  canManageProducts: Boolean
+  canReadInventory: Boolean
+  canManageInventory: Boolean
+  canReadLoyalty: Boolean
+  canManageLoyalty: Boolean
   canSeeOtherPeople: Boolean
   canEditOtherPeople: Boolean
   canManagePeople: Boolean
   canManageRoles: Boolean
-  canAccessDashboard: Boolean
+  canManageSettings: Boolean
+  canManageOnboarding: Boolean
   assignedTo: UserRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input UserRelateToManyForUpdateInput {
@@ -248,14 +381,26 @@ input RoleUpdateArgs {
 
 input RoleCreateInput {
   name: String
-  canCreateTodos: Boolean
-  canManageAllTodos: Boolean
+  canAccessDashboard: Boolean
+  canReadOrders: Boolean
+  canManageOrders: Boolean
+  canReadPayments: Boolean
+  canManagePayments: Boolean
+  canReadProducts: Boolean
+  canManageProducts: Boolean
+  canReadInventory: Boolean
+  canManageInventory: Boolean
+  canReadLoyalty: Boolean
+  canManageLoyalty: Boolean
   canSeeOtherPeople: Boolean
   canEditOtherPeople: Boolean
   canManagePeople: Boolean
   canManageRoles: Boolean
-  canAccessDashboard: Boolean
+  canManageSettings: Boolean
+  canManageOnboarding: Boolean
   assignedTo: UserRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input UserRelateToManyForCreateInput {
@@ -263,87 +408,34 @@ input UserRelateToManyForCreateInput {
   connect: [UserWhereUniqueInput!]
 }
 
-type Todo {
+type MenuCategory {
   id: ID!
-  label: String
-  description: Todo_description_Document
-  isComplete: Boolean
-  status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: PasswordState
-  coverImage: ImageFieldOutput
-  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
-  todoImagesCount(where: TodoImageWhereInput! = {}): Int
-  assignedTo: User
+  name: String
+  description: String
+  active: Boolean
+  sortOrder: Int
+  menuItems(where: MenuItemWhereInput! = {}, orderBy: [MenuItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemWhereUniqueInput): [MenuItem!]
+  menuItemsCount(where: MenuItemWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
-type Todo_description_Document {
-  document(hydrateRelationships: Boolean! = false): JSON!
-}
-
-scalar Decimal
-
-scalar BigInt
-
-type ImageFieldOutput {
-  id: ID!
-  filesize: Int!
-  width: Int!
-  height: Int!
-  extension: ImageExtension!
-  url: String!
-}
-
-enum ImageExtension {
-  jpg
-  png
-  webp
-  gif
-}
-
-input TodoWhereUniqueInput {
+input MenuCategoryWhereUniqueInput {
   id: ID
 }
 
-input TodoWhereInput {
-  AND: [TodoWhereInput!]
-  OR: [TodoWhereInput!]
-  NOT: [TodoWhereInput!]
+input MenuCategoryWhereInput {
+  AND: [MenuCategoryWhereInput!]
+  OR: [MenuCategoryWhereInput!]
+  NOT: [MenuCategoryWhereInput!]
   id: IDFilter
-  label: StringFilter
-  isComplete: BooleanFilter
-  status: StringNullableFilter
-  priority: IntNullableFilter
-  dueDate: DateTimeNullableFilter
-  weight: FloatNullableFilter
-  budget: DecimalNullableFilter
-  isPrivate: BooleanFilter
-  largeNumber: BigIntNullableFilter
-  secretNote: PasswordFilter
-  todoImages: TodoImageManyRelationFilter
-  assignedTo: UserWhereInput
-}
-
-input StringNullableFilter {
-  equals: String
-  in: [String!]
-  notIn: [String!]
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  contains: String
-  startsWith: String
-  endsWith: String
-  mode: QueryMode
-  not: StringNullableFilter
+  name: StringFilter
+  description: StringFilter
+  active: BooleanFilter
+  sortOrder: IntNullableFilter
+  menuItems: MenuItemManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
 }
 
 input IntNullableFilter {
@@ -357,15 +449,935 @@ input IntNullableFilter {
   not: IntNullableFilter
 }
 
-input FloatNullableFilter {
-  equals: Float
-  in: [Float!]
-  notIn: [Float!]
-  lt: Float
-  lte: Float
-  gt: Float
-  gte: Float
-  not: FloatNullableFilter
+input MenuItemManyRelationFilter {
+  every: MenuItemWhereInput
+  some: MenuItemWhereInput
+  none: MenuItemWhereInput
+}
+
+input MenuCategoryOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  description: OrderDirection
+  active: OrderDirection
+  sortOrder: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input MenuCategoryUpdateInput {
+  name: String
+  description: String
+  active: Boolean
+  sortOrder: Int
+  menuItems: MenuItemRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuItemRelateToManyForUpdateInput {
+  disconnect: [MenuItemWhereUniqueInput!]
+  set: [MenuItemWhereUniqueInput!]
+  create: [MenuItemCreateInput!]
+  connect: [MenuItemWhereUniqueInput!]
+}
+
+input MenuCategoryUpdateArgs {
+  where: MenuCategoryWhereUniqueInput!
+  data: MenuCategoryUpdateInput!
+}
+
+input MenuCategoryCreateInput {
+  name: String
+  description: String
+  active: Boolean
+  sortOrder: Int
+  menuItems: MenuItemRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuItemRelateToManyForCreateInput {
+  create: [MenuItemCreateInput!]
+  connect: [MenuItemWhereUniqueInput!]
+}
+
+type MenuItem {
+  id: ID!
+  name: String
+  description: MenuItem_description_Document
+  shortDescription: String
+  price: Int
+  available: Boolean
+  featured: Boolean
+  popular: Boolean
+  imageUrl: String
+  prepTimeMinutes: Int
+  caffeineMg: Int
+  calories: Int
+  barStation: String
+  temperatureOptions: [String!]
+  dietaryFlags: [String!]
+  serviceWindows: [String!]
+  displayPrice: String
+  category: MenuCategory
+  modifiers(where: MenuItemModifierWhereInput! = {}, orderBy: [MenuItemModifierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemModifierWhereUniqueInput): [MenuItemModifier!]
+  modifiersCount(where: MenuItemModifierWhereInput! = {}): Int
+  orderItems(where: OrderItemWhereInput! = {}, orderBy: [OrderItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OrderItemWhereUniqueInput): [OrderItem!]
+  orderItemsCount(where: OrderItemWhereInput! = {}): Int
+  inventoryItem: InventoryItem
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type MenuItem_description_Document {
+  document(hydrateRelationships: Boolean! = false): JSON!
+}
+
+input MenuItemWhereUniqueInput {
+  id: ID
+}
+
+input MenuItemWhereInput {
+  AND: [MenuItemWhereInput!]
+  OR: [MenuItemWhereInput!]
+  NOT: [MenuItemWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  shortDescription: StringFilter
+  price: IntFilter
+  available: BooleanFilter
+  featured: BooleanFilter
+  popular: BooleanFilter
+  imageUrl: StringNullableFilter
+  prepTimeMinutes: IntNullableFilter
+  caffeineMg: IntNullableFilter
+  calories: IntNullableFilter
+  barStation: StringNullableFilter
+  category: MenuCategoryWhereInput
+  modifiers: MenuItemModifierManyRelationFilter
+  orderItems: OrderItemManyRelationFilter
+  inventoryItem: InventoryItemWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input IntFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntFilter
+}
+
+input MenuItemModifierManyRelationFilter {
+  every: MenuItemModifierWhereInput
+  some: MenuItemModifierWhereInput
+  none: MenuItemModifierWhereInput
+}
+
+input OrderItemManyRelationFilter {
+  every: OrderItemWhereInput
+  some: OrderItemWhereInput
+  none: OrderItemWhereInput
+}
+
+input MenuItemOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  shortDescription: OrderDirection
+  price: OrderDirection
+  available: OrderDirection
+  featured: OrderDirection
+  popular: OrderDirection
+  imageUrl: OrderDirection
+  prepTimeMinutes: OrderDirection
+  caffeineMg: OrderDirection
+  calories: OrderDirection
+  barStation: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input MenuItemUpdateInput {
+  name: String
+  description: JSON
+  shortDescription: String
+  price: Int
+  available: Boolean
+  featured: Boolean
+  popular: Boolean
+  imageUrl: String
+  prepTimeMinutes: Int
+  caffeineMg: Int
+  calories: Int
+  barStation: String
+  temperatureOptions: [String!]
+  dietaryFlags: [String!]
+  serviceWindows: [String!]
+  category: MenuCategoryRelateToOneForUpdateInput
+  modifiers: MenuItemModifierRelateToManyForUpdateInput
+  orderItems: OrderItemRelateToManyForUpdateInput
+  inventoryItem: InventoryItemRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuCategoryRelateToOneForUpdateInput {
+  create: MenuCategoryCreateInput
+  connect: MenuCategoryWhereUniqueInput
+  disconnect: Boolean
+}
+
+input MenuItemModifierRelateToManyForUpdateInput {
+  disconnect: [MenuItemModifierWhereUniqueInput!]
+  set: [MenuItemModifierWhereUniqueInput!]
+  create: [MenuItemModifierCreateInput!]
+  connect: [MenuItemModifierWhereUniqueInput!]
+}
+
+input OrderItemRelateToManyForUpdateInput {
+  disconnect: [OrderItemWhereUniqueInput!]
+  set: [OrderItemWhereUniqueInput!]
+  create: [OrderItemCreateInput!]
+  connect: [OrderItemWhereUniqueInput!]
+}
+
+input InventoryItemRelateToOneForUpdateInput {
+  create: InventoryItemCreateInput
+  connect: InventoryItemWhereUniqueInput
+  disconnect: Boolean
+}
+
+input MenuItemUpdateArgs {
+  where: MenuItemWhereUniqueInput!
+  data: MenuItemUpdateInput!
+}
+
+input MenuItemCreateInput {
+  name: String
+  description: JSON
+  shortDescription: String
+  price: Int
+  available: Boolean
+  featured: Boolean
+  popular: Boolean
+  imageUrl: String
+  prepTimeMinutes: Int
+  caffeineMg: Int
+  calories: Int
+  barStation: String
+  temperatureOptions: [String!]
+  dietaryFlags: [String!]
+  serviceWindows: [String!]
+  category: MenuCategoryRelateToOneForCreateInput
+  modifiers: MenuItemModifierRelateToManyForCreateInput
+  orderItems: OrderItemRelateToManyForCreateInput
+  inventoryItem: InventoryItemRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuCategoryRelateToOneForCreateInput {
+  create: MenuCategoryCreateInput
+  connect: MenuCategoryWhereUniqueInput
+}
+
+input MenuItemModifierRelateToManyForCreateInput {
+  create: [MenuItemModifierCreateInput!]
+  connect: [MenuItemModifierWhereUniqueInput!]
+}
+
+input OrderItemRelateToManyForCreateInput {
+  create: [OrderItemCreateInput!]
+  connect: [OrderItemWhereUniqueInput!]
+}
+
+input InventoryItemRelateToOneForCreateInput {
+  create: InventoryItemCreateInput
+  connect: InventoryItemWhereUniqueInput
+}
+
+type MenuItemModifier {
+  id: ID!
+  name: String
+  modifierGroup: String
+  modifierGroupLabel: String
+  required: Boolean
+  minSelections: Int
+  maxSelections: Int
+  priceAdjustment: Int
+  defaultSelected: Boolean
+  inStock: Boolean
+  menuItem: MenuItem
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuItemModifierWhereUniqueInput {
+  id: ID
+}
+
+input MenuItemModifierWhereInput {
+  AND: [MenuItemModifierWhereInput!]
+  OR: [MenuItemModifierWhereInput!]
+  NOT: [MenuItemModifierWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  modifierGroup: StringNullableFilter
+  modifierGroupLabel: StringFilter
+  required: BooleanFilter
+  minSelections: IntNullableFilter
+  maxSelections: IntNullableFilter
+  priceAdjustment: IntNullableFilter
+  defaultSelected: BooleanFilter
+  inStock: BooleanFilter
+  menuItem: MenuItemWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input MenuItemModifierOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  modifierGroup: OrderDirection
+  modifierGroupLabel: OrderDirection
+  required: OrderDirection
+  minSelections: OrderDirection
+  maxSelections: OrderDirection
+  priceAdjustment: OrderDirection
+  defaultSelected: OrderDirection
+  inStock: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input MenuItemModifierUpdateInput {
+  name: String
+  modifierGroup: String
+  modifierGroupLabel: String
+  required: Boolean
+  minSelections: Int
+  maxSelections: Int
+  priceAdjustment: Int
+  defaultSelected: Boolean
+  inStock: Boolean
+  menuItem: MenuItemRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuItemRelateToOneForUpdateInput {
+  create: MenuItemCreateInput
+  connect: MenuItemWhereUniqueInput
+  disconnect: Boolean
+}
+
+input MenuItemModifierUpdateArgs {
+  where: MenuItemModifierWhereUniqueInput!
+  data: MenuItemModifierUpdateInput!
+}
+
+input MenuItemModifierCreateInput {
+  name: String
+  modifierGroup: String
+  modifierGroupLabel: String
+  required: Boolean
+  minSelections: Int
+  maxSelections: Int
+  priceAdjustment: Int
+  defaultSelected: Boolean
+  inStock: Boolean
+  menuItem: MenuItemRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuItemRelateToOneForCreateInput {
+  create: MenuItemCreateInput
+  connect: MenuItemWhereUniqueInput
+}
+
+type CafeOrder {
+  id: ID!
+  orderNumber: String
+  fulfillmentType: String
+  orderSource: String
+  status: String
+  customerName: String
+  customerEmail: String
+  customerPhone: String
+  pickupName: String
+  specialInstructions: String
+  subtotal: Int
+  tax: Int
+  tip: Int
+  discount: Int
+  total: Int
+  currencyCode: String
+  paidAt: DateTime
+  promisedAt: DateTime
+  startedAt: DateTime
+  readyAt: DateTime
+  completedAt: DateTime
+  cancelledAt: DateTime
+  isRush: Boolean
+  handoffCode: String
+  secretKey: String
+  orderAgeMinutes: Int
+  customer: User
+  orderItems(where: OrderItemWhereInput! = {}, orderBy: [OrderItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OrderItemWhereUniqueInput): [OrderItem!]
+  orderItemsCount(where: OrderItemWhereInput! = {}): Int
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  loyaltyAccount: LoyaltyAccount
+  loyaltyEvents(where: LoyaltyEventWhereInput! = {}, orderBy: [LoyaltyEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyEventWhereUniqueInput): [LoyaltyEvent!]
+  loyaltyEventsCount(where: LoyaltyEventWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CafeOrderWhereUniqueInput {
+  id: ID
+  orderNumber: String
+}
+
+input CafeOrderWhereInput {
+  AND: [CafeOrderWhereInput!]
+  OR: [CafeOrderWhereInput!]
+  NOT: [CafeOrderWhereInput!]
+  id: IDFilter
+  orderNumber: StringFilter
+  fulfillmentType: StringNullableFilter
+  orderSource: StringNullableFilter
+  status: StringNullableFilter
+  customerName: StringFilter
+  customerEmail: StringFilter
+  customerPhone: StringFilter
+  pickupName: StringFilter
+  specialInstructions: StringFilter
+  subtotal: IntNullableFilter
+  tax: IntNullableFilter
+  tip: IntNullableFilter
+  discount: IntNullableFilter
+  total: IntNullableFilter
+  currencyCode: StringFilter
+  paidAt: DateTimeNullableFilter
+  promisedAt: DateTimeNullableFilter
+  startedAt: DateTimeNullableFilter
+  readyAt: DateTimeNullableFilter
+  completedAt: DateTimeNullableFilter
+  cancelledAt: DateTimeNullableFilter
+  isRush: BooleanFilter
+  handoffCode: StringFilter
+  secretKey: StringFilter
+  customer: UserWhereInput
+  orderItems: OrderItemManyRelationFilter
+  payments: PaymentManyRelationFilter
+  loyaltyAccount: LoyaltyAccountWhereInput
+  loyaltyEvents: LoyaltyEventManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input LoyaltyEventManyRelationFilter {
+  every: LoyaltyEventWhereInput
+  some: LoyaltyEventWhereInput
+  none: LoyaltyEventWhereInput
+}
+
+input CafeOrderOrderByInput {
+  id: OrderDirection
+  orderNumber: OrderDirection
+  fulfillmentType: OrderDirection
+  orderSource: OrderDirection
+  status: OrderDirection
+  customerName: OrderDirection
+  customerEmail: OrderDirection
+  customerPhone: OrderDirection
+  pickupName: OrderDirection
+  specialInstructions: OrderDirection
+  subtotal: OrderDirection
+  tax: OrderDirection
+  tip: OrderDirection
+  discount: OrderDirection
+  total: OrderDirection
+  currencyCode: OrderDirection
+  paidAt: OrderDirection
+  promisedAt: OrderDirection
+  startedAt: OrderDirection
+  readyAt: OrderDirection
+  completedAt: OrderDirection
+  cancelledAt: OrderDirection
+  isRush: OrderDirection
+  handoffCode: OrderDirection
+  secretKey: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CafeOrderUpdateInput {
+  orderNumber: String
+  fulfillmentType: String
+  orderSource: String
+  status: String
+  customerName: String
+  customerEmail: String
+  customerPhone: String
+  pickupName: String
+  specialInstructions: String
+  subtotal: Int
+  tax: Int
+  tip: Int
+  discount: Int
+  total: Int
+  currencyCode: String
+  paidAt: DateTime
+  promisedAt: DateTime
+  startedAt: DateTime
+  readyAt: DateTime
+  completedAt: DateTime
+  cancelledAt: DateTime
+  isRush: Boolean
+  handoffCode: String
+  secretKey: String
+  customer: UserRelateToOneForUpdateInput
+  orderItems: OrderItemRelateToManyForUpdateInput
+  payments: PaymentRelateToManyForUpdateInput
+  loyaltyAccount: LoyaltyAccountRelateToOneForUpdateInput
+  loyaltyEvents: LoyaltyEventRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input UserRelateToOneForUpdateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+  disconnect: Boolean
+}
+
+input LoyaltyEventRelateToManyForUpdateInput {
+  disconnect: [LoyaltyEventWhereUniqueInput!]
+  set: [LoyaltyEventWhereUniqueInput!]
+  create: [LoyaltyEventCreateInput!]
+  connect: [LoyaltyEventWhereUniqueInput!]
+}
+
+input CafeOrderUpdateArgs {
+  where: CafeOrderWhereUniqueInput!
+  data: CafeOrderUpdateInput!
+}
+
+input CafeOrderCreateInput {
+  orderNumber: String
+  fulfillmentType: String
+  orderSource: String
+  status: String
+  customerName: String
+  customerEmail: String
+  customerPhone: String
+  pickupName: String
+  specialInstructions: String
+  subtotal: Int
+  tax: Int
+  tip: Int
+  discount: Int
+  total: Int
+  currencyCode: String
+  paidAt: DateTime
+  promisedAt: DateTime
+  startedAt: DateTime
+  readyAt: DateTime
+  completedAt: DateTime
+  cancelledAt: DateTime
+  isRush: Boolean
+  handoffCode: String
+  secretKey: String
+  customer: UserRelateToOneForCreateInput
+  orderItems: OrderItemRelateToManyForCreateInput
+  payments: PaymentRelateToManyForCreateInput
+  loyaltyAccount: LoyaltyAccountRelateToOneForCreateInput
+  loyaltyEvents: LoyaltyEventRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input UserRelateToOneForCreateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+}
+
+input LoyaltyEventRelateToManyForCreateInput {
+  create: [LoyaltyEventCreateInput!]
+  connect: [LoyaltyEventWhereUniqueInput!]
+}
+
+type OrderItem {
+  id: ID!
+  quantity: Int
+  price: Int
+  itemNameSnapshot: String
+  customizationsSummary: String
+  specialInstructions: String
+  barStatus: String
+  station: String
+  queuedAt: DateTime
+  startedAt: DateTime
+  readyAt: DateTime
+  handedOffAt: DateTime
+  totalPrice: Int
+  order: CafeOrder
+  menuItem: MenuItem
+  appliedModifiers(where: MenuItemModifierWhereInput! = {}, orderBy: [MenuItemModifierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemModifierWhereUniqueInput): [MenuItemModifier!]
+  appliedModifiersCount(where: MenuItemModifierWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input OrderItemWhereUniqueInput {
+  id: ID
+}
+
+input OrderItemWhereInput {
+  AND: [OrderItemWhereInput!]
+  OR: [OrderItemWhereInput!]
+  NOT: [OrderItemWhereInput!]
+  id: IDFilter
+  quantity: IntFilter
+  price: IntFilter
+  itemNameSnapshot: StringFilter
+  customizationsSummary: StringFilter
+  specialInstructions: StringFilter
+  barStatus: StringNullableFilter
+  station: StringNullableFilter
+  queuedAt: DateTimeNullableFilter
+  startedAt: DateTimeNullableFilter
+  readyAt: DateTimeNullableFilter
+  handedOffAt: DateTimeNullableFilter
+  order: CafeOrderWhereInput
+  menuItem: MenuItemWhereInput
+  appliedModifiers: MenuItemModifierManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input OrderItemOrderByInput {
+  id: OrderDirection
+  quantity: OrderDirection
+  price: OrderDirection
+  itemNameSnapshot: OrderDirection
+  customizationsSummary: OrderDirection
+  specialInstructions: OrderDirection
+  barStatus: OrderDirection
+  station: OrderDirection
+  queuedAt: OrderDirection
+  startedAt: OrderDirection
+  readyAt: OrderDirection
+  handedOffAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input OrderItemUpdateInput {
+  quantity: Int
+  price: Int
+  itemNameSnapshot: String
+  customizationsSummary: String
+  specialInstructions: String
+  barStatus: String
+  station: String
+  queuedAt: DateTime
+  startedAt: DateTime
+  readyAt: DateTime
+  handedOffAt: DateTime
+  order: CafeOrderRelateToOneForUpdateInput
+  menuItem: MenuItemRelateToOneForUpdateInput
+  appliedModifiers: MenuItemModifierRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CafeOrderRelateToOneForUpdateInput {
+  create: CafeOrderCreateInput
+  connect: CafeOrderWhereUniqueInput
+  disconnect: Boolean
+}
+
+input OrderItemUpdateArgs {
+  where: OrderItemWhereUniqueInput!
+  data: OrderItemUpdateInput!
+}
+
+input OrderItemCreateInput {
+  quantity: Int
+  price: Int
+  itemNameSnapshot: String
+  customizationsSummary: String
+  specialInstructions: String
+  barStatus: String
+  station: String
+  queuedAt: DateTime
+  startedAt: DateTime
+  readyAt: DateTime
+  handedOffAt: DateTime
+  order: CafeOrderRelateToOneForCreateInput
+  menuItem: MenuItemRelateToOneForCreateInput
+  appliedModifiers: MenuItemModifierRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CafeOrderRelateToOneForCreateInput {
+  create: CafeOrderCreateInput
+  connect: CafeOrderWhereUniqueInput
+}
+
+type Payment {
+  id: ID!
+  status: String
+  method: String
+  amount: Int
+  currencyCode: String
+  provider: String
+  providerPaymentId: String
+  failureMessage: String
+  processedAt: DateTime
+  order: CafeOrder
+  customer: User
+  paymentProvider: PaymentProvider
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentWhereUniqueInput {
+  id: ID
+}
+
+input PaymentWhereInput {
+  AND: [PaymentWhereInput!]
+  OR: [PaymentWhereInput!]
+  NOT: [PaymentWhereInput!]
+  id: IDFilter
+  status: StringNullableFilter
+  method: StringNullableFilter
+  amount: IntFilter
+  currencyCode: StringFilter
+  provider: StringFilter
+  providerPaymentId: StringFilter
+  failureMessage: StringFilter
+  processedAt: DateTimeNullableFilter
+  order: CafeOrderWhereInput
+  customer: UserWhereInput
+  paymentProvider: PaymentProviderWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentOrderByInput {
+  id: OrderDirection
+  status: OrderDirection
+  method: OrderDirection
+  amount: OrderDirection
+  currencyCode: OrderDirection
+  provider: OrderDirection
+  providerPaymentId: OrderDirection
+  failureMessage: OrderDirection
+  processedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentUpdateInput {
+  status: String
+  method: String
+  amount: Int
+  currencyCode: String
+  provider: String
+  providerPaymentId: String
+  failureMessage: String
+  processedAt: DateTime
+  order: CafeOrderRelateToOneForUpdateInput
+  customer: UserRelateToOneForUpdateInput
+  paymentProvider: PaymentProviderRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderRelateToOneForUpdateInput {
+  create: PaymentProviderCreateInput
+  connect: PaymentProviderWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PaymentUpdateArgs {
+  where: PaymentWhereUniqueInput!
+  data: PaymentUpdateInput!
+}
+
+input PaymentCreateInput {
+  status: String
+  method: String
+  amount: Int
+  currencyCode: String
+  provider: String
+  providerPaymentId: String
+  failureMessage: String
+  processedAt: DateTime
+  order: CafeOrderRelateToOneForCreateInput
+  customer: UserRelateToOneForCreateInput
+  paymentProvider: PaymentProviderRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderRelateToOneForCreateInput {
+  create: PaymentProviderCreateInput
+  connect: PaymentProviderWhereUniqueInput
+}
+
+type PaymentProvider {
+  id: ID!
+  name: String
+  code: String
+  isInstalled: Boolean
+  credentials: JSON
+  metadata: JSON
+  createPaymentFunction: String
+  capturePaymentFunction: String
+  refundPaymentFunction: String
+  getPaymentStatusFunction: String
+  generatePaymentLinkFunction: String
+  handleWebhookFunction: String
+  paymentRecords(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentRecordsCount(where: PaymentWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderWhereUniqueInput {
+  id: ID
+  code: String
+}
+
+input PaymentProviderWhereInput {
+  AND: [PaymentProviderWhereInput!]
+  OR: [PaymentProviderWhereInput!]
+  NOT: [PaymentProviderWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  code: StringFilter
+  isInstalled: BooleanFilter
+  createPaymentFunction: StringFilter
+  capturePaymentFunction: StringFilter
+  refundPaymentFunction: StringFilter
+  getPaymentStatusFunction: StringFilter
+  generatePaymentLinkFunction: StringFilter
+  handleWebhookFunction: StringFilter
+  paymentRecords: PaymentManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentProviderOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  code: OrderDirection
+  isInstalled: OrderDirection
+  createPaymentFunction: OrderDirection
+  capturePaymentFunction: OrderDirection
+  refundPaymentFunction: OrderDirection
+  getPaymentStatusFunction: OrderDirection
+  generatePaymentLinkFunction: OrderDirection
+  handleWebhookFunction: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentProviderUpdateInput {
+  name: String
+  code: String
+  isInstalled: Boolean
+  credentials: JSON
+  metadata: JSON
+  createPaymentFunction: String
+  capturePaymentFunction: String
+  refundPaymentFunction: String
+  getPaymentStatusFunction: String
+  generatePaymentLinkFunction: String
+  handleWebhookFunction: String
+  paymentRecords: PaymentRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderUpdateArgs {
+  where: PaymentProviderWhereUniqueInput!
+  data: PaymentProviderUpdateInput!
+}
+
+input PaymentProviderCreateInput {
+  name: String
+  code: String
+  isInstalled: Boolean
+  credentials: JSON
+  metadata: JSON
+  createPaymentFunction: String
+  capturePaymentFunction: String
+  refundPaymentFunction: String
+  getPaymentStatusFunction: String
+  generatePaymentLinkFunction: String
+  handleWebhookFunction: String
+  paymentRecords: PaymentRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type InventoryItem {
+  id: ID!
+  name: String
+  category: String
+  unit: String
+  currentStock: Decimal
+  reorderPoint: Decimal
+  parLevel: Decimal
+  costPerUnit: Int
+  supplierName: String
+  sku: String
+  menuItems(where: MenuItemWhereInput! = {}, orderBy: [MenuItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemWhereUniqueInput): [MenuItem!]
+  menuItemsCount(where: MenuItemWhereInput! = {}): Int
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+scalar Decimal
+
+input InventoryItemWhereUniqueInput {
+  id: ID
+}
+
+input InventoryItemWhereInput {
+  AND: [InventoryItemWhereInput!]
+  OR: [InventoryItemWhereInput!]
+  NOT: [InventoryItemWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  category: StringNullableFilter
+  unit: StringNullableFilter
+  currentStock: DecimalNullableFilter
+  reorderPoint: DecimalNullableFilter
+  parLevel: DecimalNullableFilter
+  costPerUnit: IntNullableFilter
+  supplierName: StringFilter
+  sku: StringFilter
+  menuItems: MenuItemManyRelationFilter
+  stockMovements: StockMovementManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
 }
 
 input DecimalNullableFilter {
@@ -379,158 +1391,348 @@ input DecimalNullableFilter {
   not: DecimalNullableFilter
 }
 
-input BigIntNullableFilter {
-  equals: BigInt
-  in: [BigInt!]
-  notIn: [BigInt!]
-  lt: BigInt
-  lte: BigInt
-  gt: BigInt
-  gte: BigInt
-  not: BigIntNullableFilter
+input StockMovementManyRelationFilter {
+  every: StockMovementWhereInput
+  some: StockMovementWhereInput
+  none: StockMovementWhereInput
 }
 
-input TodoImageManyRelationFilter {
-  every: TodoImageWhereInput
-  some: TodoImageWhereInput
-  none: TodoImageWhereInput
-}
-
-input TodoOrderByInput {
+input InventoryItemOrderByInput {
   id: OrderDirection
-  label: OrderDirection
-  isComplete: OrderDirection
-  status: OrderDirection
-  priority: OrderDirection
-  dueDate: OrderDirection
-  weight: OrderDirection
-  budget: OrderDirection
-  isPrivate: OrderDirection
-  largeNumber: OrderDirection
+  name: OrderDirection
+  category: OrderDirection
+  unit: OrderDirection
+  currentStock: OrderDirection
+  reorderPoint: OrderDirection
+  parLevel: OrderDirection
+  costPerUnit: OrderDirection
+  supplierName: OrderDirection
+  sku: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
 }
 
-input TodoUpdateInput {
-  label: String
-  description: JSON
-  isComplete: Boolean
-  status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: String
-  coverImage: ImageFieldInput
-  todoImages: TodoImageRelateToManyForUpdateInput
-  assignedTo: UserRelateToOneForUpdateInput
+input InventoryItemUpdateInput {
+  name: String
+  category: String
+  unit: String
+  currentStock: Decimal
+  reorderPoint: Decimal
+  parLevel: Decimal
+  costPerUnit: Int
+  supplierName: String
+  sku: String
+  menuItems: MenuItemRelateToManyForUpdateInput
+  stockMovements: StockMovementRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
-input ImageFieldInput {
-  upload: Upload!
+input StockMovementRelateToManyForUpdateInput {
+  disconnect: [StockMovementWhereUniqueInput!]
+  set: [StockMovementWhereUniqueInput!]
+  create: [StockMovementCreateInput!]
+  connect: [StockMovementWhereUniqueInput!]
 }
 
-"""The `Upload` scalar type represents a file upload."""
-scalar Upload
-
-input TodoImageRelateToManyForUpdateInput {
-  disconnect: [TodoImageWhereUniqueInput!]
-  set: [TodoImageWhereUniqueInput!]
-  create: [TodoImageCreateInput!]
-  connect: [TodoImageWhereUniqueInput!]
+input InventoryItemUpdateArgs {
+  where: InventoryItemWhereUniqueInput!
+  data: InventoryItemUpdateInput!
 }
 
-input UserRelateToOneForUpdateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-  disconnect: Boolean
+input InventoryItemCreateInput {
+  name: String
+  category: String
+  unit: String
+  currentStock: Decimal
+  reorderPoint: Decimal
+  parLevel: Decimal
+  costPerUnit: Int
+  supplierName: String
+  sku: String
+  menuItems: MenuItemRelateToManyForCreateInput
+  stockMovements: StockMovementRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
-input TodoUpdateArgs {
-  where: TodoWhereUniqueInput!
-  data: TodoUpdateInput!
+input StockMovementRelateToManyForCreateInput {
+  create: [StockMovementCreateInput!]
+  connect: [StockMovementWhereUniqueInput!]
 }
 
-input TodoCreateInput {
-  label: String
-  description: JSON
-  isComplete: Boolean
-  status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: String
-  coverImage: ImageFieldInput
-  todoImages: TodoImageRelateToManyForCreateInput
-  assignedTo: UserRelateToOneForCreateInput
-}
-
-input TodoImageRelateToManyForCreateInput {
-  create: [TodoImageCreateInput!]
-  connect: [TodoImageWhereUniqueInput!]
-}
-
-input UserRelateToOneForCreateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-}
-
-type TodoImage {
+type StockMovement {
   id: ID!
-  image: ImageFieldOutput
-  imagePath: String
-  altText: String
-  todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  todosCount(where: TodoWhereInput! = {}): Int
-  metadata: JSON
+  type: String
+  quantity: Decimal
+  reason: String
+  notes: String
+  inventoryItem: InventoryItem
+  createdBy: User
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
-input TodoImageWhereUniqueInput {
+input StockMovementWhereUniqueInput {
   id: ID
 }
 
-input TodoImageWhereInput {
-  AND: [TodoImageWhereInput!]
-  OR: [TodoImageWhereInput!]
-  NOT: [TodoImageWhereInput!]
+input StockMovementWhereInput {
+  AND: [StockMovementWhereInput!]
+  OR: [StockMovementWhereInput!]
+  NOT: [StockMovementWhereInput!]
   id: IDFilter
-  imagePath: StringFilter
-  altText: StringFilter
-  todos: TodoManyRelationFilter
+  type: StringNullableFilter
+  quantity: DecimalFilter
+  reason: StringFilter
+  notes: StringFilter
+  inventoryItem: InventoryItemWhereInput
+  createdBy: UserWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
 }
 
-input TodoImageOrderByInput {
+input DecimalFilter {
+  equals: Decimal
+  in: [Decimal!]
+  notIn: [Decimal!]
+  lt: Decimal
+  lte: Decimal
+  gt: Decimal
+  gte: Decimal
+  not: DecimalFilter
+}
+
+input StockMovementOrderByInput {
   id: OrderDirection
-  imagePath: OrderDirection
-  altText: OrderDirection
+  type: OrderDirection
+  quantity: OrderDirection
+  reason: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
 }
 
-input TodoImageUpdateInput {
-  image: ImageFieldInput
-  imagePath: String
-  altText: String
-  todos: TodoRelateToManyForUpdateInput
-  metadata: JSON
+input StockMovementUpdateInput {
+  type: String
+  quantity: Decimal
+  reason: String
+  notes: String
+  inventoryItem: InventoryItemRelateToOneForUpdateInput
+  createdBy: UserRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
-input TodoImageUpdateArgs {
-  where: TodoImageWhereUniqueInput!
-  data: TodoImageUpdateInput!
+input StockMovementUpdateArgs {
+  where: StockMovementWhereUniqueInput!
+  data: StockMovementUpdateInput!
 }
 
-input TodoImageCreateInput {
-  image: ImageFieldInput
-  imagePath: String
-  altText: String
-  todos: TodoRelateToManyForCreateInput
-  metadata: JSON
+input StockMovementCreateInput {
+  type: String
+  quantity: Decimal
+  reason: String
+  notes: String
+  inventoryItem: InventoryItemRelateToOneForCreateInput
+  createdBy: UserRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type LoyaltyAccount {
+  id: ID!
+  customerName: String
+  customerEmail: String
+  customerPhone: String
+  marketingOptIn: Boolean
+  status: String
+  tier: String
+  pointsBalance: Int
+  lifetimePoints: Int
+  drinkCredits: Int
+  visits: Int
+  lastVisitAt: DateTime
+  firstVisitAt: DateTime
+  notes: String
+  customer: User
+  orders(where: CafeOrderWhereInput! = {}, orderBy: [CafeOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CafeOrderWhereUniqueInput): [CafeOrder!]
+  ordersCount(where: CafeOrderWhereInput! = {}): Int
+  events(where: LoyaltyEventWhereInput! = {}, orderBy: [LoyaltyEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyEventWhereUniqueInput): [LoyaltyEvent!]
+  eventsCount(where: LoyaltyEventWhereInput! = {}): Int
+  displayName: String
+  nextRewardProgress: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input LoyaltyAccountWhereUniqueInput {
+  id: ID
+  customerEmail: String
+  customer: UserWhereUniqueInput
+}
+
+input LoyaltyAccountWhereInput {
+  AND: [LoyaltyAccountWhereInput!]
+  OR: [LoyaltyAccountWhereInput!]
+  NOT: [LoyaltyAccountWhereInput!]
+  id: IDFilter
+  customerName: StringFilter
+  customerEmail: StringFilter
+  customerPhone: StringFilter
+  marketingOptIn: BooleanFilter
+  status: StringNullableFilter
+  tier: StringNullableFilter
+  pointsBalance: IntNullableFilter
+  lifetimePoints: IntNullableFilter
+  drinkCredits: IntNullableFilter
+  visits: IntNullableFilter
+  lastVisitAt: DateTimeNullableFilter
+  firstVisitAt: DateTimeNullableFilter
+  notes: StringFilter
+  customer: UserWhereInput
+  orders: CafeOrderManyRelationFilter
+  events: LoyaltyEventManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input LoyaltyAccountOrderByInput {
+  id: OrderDirection
+  customerName: OrderDirection
+  customerEmail: OrderDirection
+  customerPhone: OrderDirection
+  marketingOptIn: OrderDirection
+  status: OrderDirection
+  tier: OrderDirection
+  pointsBalance: OrderDirection
+  lifetimePoints: OrderDirection
+  drinkCredits: OrderDirection
+  visits: OrderDirection
+  lastVisitAt: OrderDirection
+  firstVisitAt: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input LoyaltyAccountUpdateInput {
+  customerName: String
+  customerEmail: String
+  customerPhone: String
+  marketingOptIn: Boolean
+  status: String
+  tier: String
+  pointsBalance: Int
+  lifetimePoints: Int
+  drinkCredits: Int
+  visits: Int
+  lastVisitAt: DateTime
+  firstVisitAt: DateTime
+  notes: String
+  customer: UserRelateToOneForUpdateInput
+  orders: CafeOrderRelateToManyForUpdateInput
+  events: LoyaltyEventRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input LoyaltyAccountUpdateArgs {
+  where: LoyaltyAccountWhereUniqueInput!
+  data: LoyaltyAccountUpdateInput!
+}
+
+input LoyaltyAccountCreateInput {
+  customerName: String
+  customerEmail: String
+  customerPhone: String
+  marketingOptIn: Boolean
+  status: String
+  tier: String
+  pointsBalance: Int
+  lifetimePoints: Int
+  drinkCredits: Int
+  visits: Int
+  lastVisitAt: DateTime
+  firstVisitAt: DateTime
+  notes: String
+  customer: UserRelateToOneForCreateInput
+  orders: CafeOrderRelateToManyForCreateInput
+  events: LoyaltyEventRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type LoyaltyEvent {
+  id: ID!
+  type: String
+  pointsDelta: Int
+  drinkCreditsDelta: Int
+  note: String
+  account: LoyaltyAccount
+  order: CafeOrder
+  createdBy: User
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input LoyaltyEventWhereUniqueInput {
+  id: ID
+}
+
+input LoyaltyEventWhereInput {
+  AND: [LoyaltyEventWhereInput!]
+  OR: [LoyaltyEventWhereInput!]
+  NOT: [LoyaltyEventWhereInput!]
+  id: IDFilter
+  type: StringNullableFilter
+  pointsDelta: IntNullableFilter
+  drinkCreditsDelta: IntNullableFilter
+  note: StringFilter
+  account: LoyaltyAccountWhereInput
+  order: CafeOrderWhereInput
+  createdBy: UserWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input LoyaltyEventOrderByInput {
+  id: OrderDirection
+  type: OrderDirection
+  pointsDelta: OrderDirection
+  drinkCreditsDelta: OrderDirection
+  note: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input LoyaltyEventUpdateInput {
+  type: String
+  pointsDelta: Int
+  drinkCreditsDelta: Int
+  note: String
+  account: LoyaltyAccountRelateToOneForUpdateInput
+  order: CafeOrderRelateToOneForUpdateInput
+  createdBy: UserRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input LoyaltyEventUpdateArgs {
+  where: LoyaltyEventWhereUniqueInput!
+  data: LoyaltyEventUpdateInput!
+}
+
+input LoyaltyEventCreateInput {
+  type: String
+  pointsDelta: Int
+  drinkCreditsDelta: Int
+  note: String
+  account: LoyaltyAccountRelateToOneForCreateInput
+  order: CafeOrderRelateToOneForCreateInput
+  createdBy: UserRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 """
@@ -551,23 +1753,81 @@ type Mutation {
   updateRoles(data: [RoleUpdateArgs!]!): [Role]
   deleteRole(where: RoleWhereUniqueInput!): Role
   deleteRoles(where: [RoleWhereUniqueInput!]!): [Role]
-  createTodo(data: TodoCreateInput!): Todo
-  createTodos(data: [TodoCreateInput!]!): [Todo]
-  updateTodo(where: TodoWhereUniqueInput!, data: TodoUpdateInput!): Todo
-  updateTodos(data: [TodoUpdateArgs!]!): [Todo]
-  deleteTodo(where: TodoWhereUniqueInput!): Todo
-  deleteTodos(where: [TodoWhereUniqueInput!]!): [Todo]
-  createTodoImage(data: TodoImageCreateInput!): TodoImage
-  createTodoImages(data: [TodoImageCreateInput!]!): [TodoImage]
-  updateTodoImage(where: TodoImageWhereUniqueInput!, data: TodoImageUpdateInput!): TodoImage
-  updateTodoImages(data: [TodoImageUpdateArgs!]!): [TodoImage]
-  deleteTodoImage(where: TodoImageWhereUniqueInput!): TodoImage
-  deleteTodoImages(where: [TodoImageWhereUniqueInput!]!): [TodoImage]
+  createMenuCategory(data: MenuCategoryCreateInput!): MenuCategory
+  createMenuCategories(data: [MenuCategoryCreateInput!]!): [MenuCategory]
+  updateMenuCategory(where: MenuCategoryWhereUniqueInput!, data: MenuCategoryUpdateInput!): MenuCategory
+  updateMenuCategories(data: [MenuCategoryUpdateArgs!]!): [MenuCategory]
+  deleteMenuCategory(where: MenuCategoryWhereUniqueInput!): MenuCategory
+  deleteMenuCategories(where: [MenuCategoryWhereUniqueInput!]!): [MenuCategory]
+  createMenuItem(data: MenuItemCreateInput!): MenuItem
+  createMenuItems(data: [MenuItemCreateInput!]!): [MenuItem]
+  updateMenuItem(where: MenuItemWhereUniqueInput!, data: MenuItemUpdateInput!): MenuItem
+  updateMenuItems(data: [MenuItemUpdateArgs!]!): [MenuItem]
+  deleteMenuItem(where: MenuItemWhereUniqueInput!): MenuItem
+  deleteMenuItems(where: [MenuItemWhereUniqueInput!]!): [MenuItem]
+  createMenuItemModifier(data: MenuItemModifierCreateInput!): MenuItemModifier
+  createMenuItemModifiers(data: [MenuItemModifierCreateInput!]!): [MenuItemModifier]
+  updateMenuItemModifier(where: MenuItemModifierWhereUniqueInput!, data: MenuItemModifierUpdateInput!): MenuItemModifier
+  updateMenuItemModifiers(data: [MenuItemModifierUpdateArgs!]!): [MenuItemModifier]
+  deleteMenuItemModifier(where: MenuItemModifierWhereUniqueInput!): MenuItemModifier
+  deleteMenuItemModifiers(where: [MenuItemModifierWhereUniqueInput!]!): [MenuItemModifier]
+  createCafeOrder(data: CafeOrderCreateInput!): CafeOrder
+  createCafeOrders(data: [CafeOrderCreateInput!]!): [CafeOrder]
+  updateCafeOrder(where: CafeOrderWhereUniqueInput!, data: CafeOrderUpdateInput!): CafeOrder
+  updateCafeOrders(data: [CafeOrderUpdateArgs!]!): [CafeOrder]
+  deleteCafeOrder(where: CafeOrderWhereUniqueInput!): CafeOrder
+  deleteCafeOrders(where: [CafeOrderWhereUniqueInput!]!): [CafeOrder]
+  createOrderItem(data: OrderItemCreateInput!): OrderItem
+  createOrderItems(data: [OrderItemCreateInput!]!): [OrderItem]
+  updateOrderItem(where: OrderItemWhereUniqueInput!, data: OrderItemUpdateInput!): OrderItem
+  updateOrderItems(data: [OrderItemUpdateArgs!]!): [OrderItem]
+  deleteOrderItem(where: OrderItemWhereUniqueInput!): OrderItem
+  deleteOrderItems(where: [OrderItemWhereUniqueInput!]!): [OrderItem]
+  createPayment(data: PaymentCreateInput!): Payment
+  createPayments(data: [PaymentCreateInput!]!): [Payment]
+  updatePayment(where: PaymentWhereUniqueInput!, data: PaymentUpdateInput!): Payment
+  updatePayments(data: [PaymentUpdateArgs!]!): [Payment]
+  deletePayment(where: PaymentWhereUniqueInput!): Payment
+  deletePayments(where: [PaymentWhereUniqueInput!]!): [Payment]
+  createPaymentProvider(data: PaymentProviderCreateInput!): PaymentProvider
+  createPaymentProviders(data: [PaymentProviderCreateInput!]!): [PaymentProvider]
+  updatePaymentProvider(where: PaymentProviderWhereUniqueInput!, data: PaymentProviderUpdateInput!): PaymentProvider
+  updatePaymentProviders(data: [PaymentProviderUpdateArgs!]!): [PaymentProvider]
+  deletePaymentProvider(where: PaymentProviderWhereUniqueInput!): PaymentProvider
+  deletePaymentProviders(where: [PaymentProviderWhereUniqueInput!]!): [PaymentProvider]
+  createInventoryItem(data: InventoryItemCreateInput!): InventoryItem
+  createInventoryItems(data: [InventoryItemCreateInput!]!): [InventoryItem]
+  updateInventoryItem(where: InventoryItemWhereUniqueInput!, data: InventoryItemUpdateInput!): InventoryItem
+  updateInventoryItems(data: [InventoryItemUpdateArgs!]!): [InventoryItem]
+  deleteInventoryItem(where: InventoryItemWhereUniqueInput!): InventoryItem
+  deleteInventoryItems(where: [InventoryItemWhereUniqueInput!]!): [InventoryItem]
+  createStockMovement(data: StockMovementCreateInput!): StockMovement
+  createStockMovements(data: [StockMovementCreateInput!]!): [StockMovement]
+  updateStockMovement(where: StockMovementWhereUniqueInput!, data: StockMovementUpdateInput!): StockMovement
+  updateStockMovements(data: [StockMovementUpdateArgs!]!): [StockMovement]
+  deleteStockMovement(where: StockMovementWhereUniqueInput!): StockMovement
+  deleteStockMovements(where: [StockMovementWhereUniqueInput!]!): [StockMovement]
+  createLoyaltyAccount(data: LoyaltyAccountCreateInput!): LoyaltyAccount
+  createLoyaltyAccounts(data: [LoyaltyAccountCreateInput!]!): [LoyaltyAccount]
+  updateLoyaltyAccount(where: LoyaltyAccountWhereUniqueInput!, data: LoyaltyAccountUpdateInput!): LoyaltyAccount
+  updateLoyaltyAccounts(data: [LoyaltyAccountUpdateArgs!]!): [LoyaltyAccount]
+  deleteLoyaltyAccount(where: LoyaltyAccountWhereUniqueInput!): LoyaltyAccount
+  deleteLoyaltyAccounts(where: [LoyaltyAccountWhereUniqueInput!]!): [LoyaltyAccount]
+  createLoyaltyEvent(data: LoyaltyEventCreateInput!): LoyaltyEvent
+  createLoyaltyEvents(data: [LoyaltyEventCreateInput!]!): [LoyaltyEvent]
+  updateLoyaltyEvent(where: LoyaltyEventWhereUniqueInput!, data: LoyaltyEventUpdateInput!): LoyaltyEvent
+  updateLoyaltyEvents(data: [LoyaltyEventUpdateArgs!]!): [LoyaltyEvent]
+  deleteLoyaltyEvent(where: LoyaltyEventWhereUniqueInput!): LoyaltyEvent
+  deleteLoyaltyEvents(where: [LoyaltyEventWhereUniqueInput!]!): [LoyaltyEvent]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
+  createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, items: [CafePickupOrderItemInput!]!): CafeOrder
+  updateCafeOrderStatus(orderId: ID!, status: String!): CafeOrder
+  applyCafeLoyalty(orderId: ID!, secretKey: String, customerEmail: String!, customerName: String, customerPhone: String, redeemDrinkCredit: Boolean): LoyaltyAccount
+  initiateCafePaymentSession(orderId: ID!, secretKey: String, paymentProvider: String!): CafePaymentSessionResult
 }
 
 union UserAuthenticationWithPasswordResult = UserAuthenticationWithPasswordSuccess | UserAuthenticationWithPasswordFailure
@@ -605,16 +1865,45 @@ type Query {
   role(where: RoleWhereUniqueInput!): Role
   roles(where: RoleWhereInput! = {}, orderBy: [RoleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RoleWhereUniqueInput): [Role!]
   rolesCount(where: RoleWhereInput! = {}): Int
-  todo(where: TodoWhereUniqueInput!): Todo
-  todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  todosCount(where: TodoWhereInput! = {}): Int
-  todoImage(where: TodoImageWhereUniqueInput!): TodoImage
-  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
-  todoImagesCount(where: TodoImageWhereInput! = {}): Int
+  menuCategory(where: MenuCategoryWhereUniqueInput!): MenuCategory
+  menuCategories(where: MenuCategoryWhereInput! = {}, orderBy: [MenuCategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuCategoryWhereUniqueInput): [MenuCategory!]
+  menuCategoriesCount(where: MenuCategoryWhereInput! = {}): Int
+  menuItem(where: MenuItemWhereUniqueInput!): MenuItem
+  menuItems(where: MenuItemWhereInput! = {}, orderBy: [MenuItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemWhereUniqueInput): [MenuItem!]
+  menuItemsCount(where: MenuItemWhereInput! = {}): Int
+  menuItemModifier(where: MenuItemModifierWhereUniqueInput!): MenuItemModifier
+  menuItemModifiers(where: MenuItemModifierWhereInput! = {}, orderBy: [MenuItemModifierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemModifierWhereUniqueInput): [MenuItemModifier!]
+  menuItemModifiersCount(where: MenuItemModifierWhereInput! = {}): Int
+  cafeOrder(where: CafeOrderWhereUniqueInput!): CafeOrder
+  cafeOrders(where: CafeOrderWhereInput! = {}, orderBy: [CafeOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CafeOrderWhereUniqueInput): [CafeOrder!]
+  cafeOrdersCount(where: CafeOrderWhereInput! = {}): Int
+  orderItem(where: OrderItemWhereUniqueInput!): OrderItem
+  orderItems(where: OrderItemWhereInput! = {}, orderBy: [OrderItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OrderItemWhereUniqueInput): [OrderItem!]
+  orderItemsCount(where: OrderItemWhereInput! = {}): Int
+  payment(where: PaymentWhereUniqueInput!): Payment
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  paymentProvider(where: PaymentProviderWhereUniqueInput!): PaymentProvider
+  paymentProviders(where: PaymentProviderWhereInput! = {}, orderBy: [PaymentProviderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentProviderWhereUniqueInput): [PaymentProvider!]
+  paymentProvidersCount(where: PaymentProviderWhereInput! = {}): Int
+  inventoryItem(where: InventoryItemWhereUniqueInput!): InventoryItem
+  inventoryItems(where: InventoryItemWhereInput! = {}, orderBy: [InventoryItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InventoryItemWhereUniqueInput): [InventoryItem!]
+  inventoryItemsCount(where: InventoryItemWhereInput! = {}): Int
+  stockMovement(where: StockMovementWhereUniqueInput!): StockMovement
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  loyaltyAccount(where: LoyaltyAccountWhereUniqueInput!): LoyaltyAccount
+  loyaltyAccounts(where: LoyaltyAccountWhereInput! = {}, orderBy: [LoyaltyAccountOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyAccountWhereUniqueInput): [LoyaltyAccount!]
+  loyaltyAccountsCount(where: LoyaltyAccountWhereInput! = {}): Int
+  loyaltyEvent(where: LoyaltyEventWhereUniqueInput!): LoyaltyEvent
+  loyaltyEvents(where: LoyaltyEventWhereInput! = {}, orderBy: [LoyaltyEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyEventWhereUniqueInput): [LoyaltyEvent!]
+  loyaltyEventsCount(where: LoyaltyEventWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   redirectToInit: Boolean
+  getCafeOrder(orderId: ID!, secretKey: String): JSON
+  getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): JSON
 }
 
 union AuthenticatedItem = User
@@ -753,4 +2042,22 @@ type KeystoneAdminUISort {
 enum KeystoneAdminUISortDirection {
   ASC
   DESC
+}
+
+type CafePaymentSessionResult {
+  success: Boolean!
+  paymentId: ID
+  provider: String
+  providerPaymentId: String
+  status: String
+  amount: Int
+  data: JSON
+  error: String
+}
+
+input CafePickupOrderItemInput {
+  menuItemId: ID!
+  quantity: Int!
+  modifierIds: [ID!]
+  specialInstructions: String
 }
