@@ -1,13 +1,17 @@
-import { GraphQLClient, gql } from 'graphql-request';
-import { startOnboarding, completeOnboarding } from '../actions/onboarding';
-import { TemplateType } from '../config/templates';
-import { getModifierDisplayName } from '../utils/dataUtils';
+import { useRouter } from "next/navigation";
+import { ClientError, gql, GraphQLClient } from "graphql-request";
 
-type OnboardingStep = 'template' | 'progress' | 'done';
+import type { TemplateType } from "../config/templates";
+import { getItemsFromJsonData } from "../utils/dataUtils";
+import { getOnboardingStatus, refreshAfterOnboarding, startOnboarding } from "../actions/onboarding";
+import type { OnboardingOutcome, OnboardingResult } from "./useOnboardingState";
 
+type OnboardingStep = "template" | "progress" | "done";
+type CoffeeOnboardingData = Parameters<typeof getItemsFromJsonData>[0];
 type Props = {
   selectedTemplate: TemplateType;
-  currentJsonData: any;
+  currentJsonData: CoffeeOnboardingData;
+  canSubmit: boolean;
   setProgress: (message: string) => void;
   setItemLoading: (type: string, item: string) => void;
   setItemCompleted: (type: string, item: string) => void;
@@ -15,19 +19,34 @@ type Props = {
   setStep: (step: OnboardingStep) => void;
   setError: (error: string | null) => void;
   setIsLoading: (loading: boolean) => void;
+  setResult: (result: OnboardingResult | null) => void;
+  setOutcome: (outcome: OnboardingOutcome) => void;
   resetOnboardingState: () => void;
 };
 
-const GRAPHQL_ENDPOINT = '/api/graphql';
+const GRAPHQL_ENDPOINT = "/api/graphql";
+const SECTIONS = ["storeInfo", "categories", "menuItems", "modifiers", "inventoryItems", "paymentProviders", "suppliers", "recipes", "ingredients", "purchaseOrders", "staffShifts", "loyaltyAccounts", "cateringOrders"] as const;
 
-async function findExisting(client: GraphQLClient, query: string, variables: any, path: string) {
-  const result: any = await client.request(query, variables);
-  return result?.[path]?.[0] || null;
+/**
+ * A GraphQL error from the setup mutation itself means the server rejected it
+ * and the single transaction rolled back. Timeouts, server failures and lost
+ * responses leave the outcome unknown until it is checked.
+ */
+function classify(error: unknown): { kind: "rejected"; message: string } | { kind: "unknown" } {
+  if (error instanceof ClientError) {
+    const errors = error.response.errors ?? [];
+    const timedOut = errors.some((entry) => (entry.extensions as { code?: string } | undefined)?.code === "GRAPHQL_TIMEOUT");
+    if (errors.length && !timedOut && error.response.status < 500) {
+      return { kind: "rejected", message: errors[0]?.message || "Setup was rejected" };
+    }
+  }
+  return { kind: "unknown" };
 }
 
 export function useOnboardingApi({
   selectedTemplate,
   currentJsonData,
+  canSubmit,
   setProgress,
   setItemLoading,
   setItemCompleted,
@@ -35,184 +54,98 @@ export function useOnboardingApi({
   setStep,
   setError,
   setIsLoading,
+  setResult,
+  setOutcome,
   resetOnboardingState,
 }: Props) {
-  async function runOnboarding() {
+  const router = useRouter();
+
+  const runOnboarding = async () => {
+    if (!canSubmit) return;
     setIsLoading(true);
-    setError(null);
     resetOnboardingState();
-    setStep('progress');
-    setProgress('Starting coffee shop setup...');
+    setStep("progress");
+    setProgress("Applying your coffee shop setup…");
+
+    const sectionItems = Object.fromEntries(
+      SECTIONS.map((section) => [section, getItemsFromJsonData(currentJsonData, section)]),
+    ) as Record<(typeof SECTIONS)[number], string[]>;
+    const markAll = (mark: (section: string, item: string) => void) => {
+      for (const section of SECTIONS) for (const item of sectionItems[section]) mark(section, item);
+    };
+    markAll(setItemLoading);
+
+    const started = await startOnboarding();
 
     try {
-      await startOnboarding();
+      const client = new GraphQLClient(GRAPHQL_ENDPOINT, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const response = await client.request<{ runCoffeeOnboarding: OnboardingResult }>(
+        gql`
+          mutation RunCoffeeOnboarding($template: String!, $data: JSON) {
+            runCoffeeOnboarding(template: $template, data: $data) {
+              status
+              storeSettings
+              categories
+              menuItems
+              modifiers
+              inventoryItems
+              paymentProviders
+              suppliers
+              recipes
+              ingredients
+              purchaseOrders
+              staffShifts
+              loyaltyAccounts
+              cateringOrders
+            }
+          }
+        `,
+        {
+          template: selectedTemplate,
+          data: selectedTemplate === "custom" ? currentJsonData : null,
+        },
+      );
+      if (response.runCoffeeOnboarding.status !== "completed") throw new Error("Setup did not complete");
+
+      markAll(setItemCompleted);
+      setResult(response.runCoffeeOnboarding);
+      setOutcome("completed");
+      setProgress("Setup saved.");
+      setStep("done");
+      await refreshAfterOnboarding();
+      router.refresh();
     } catch (error) {
-      console.error('Error marking onboarding started:', error);
-    }
-
-    const client = new GraphQLClient(GRAPHQL_ENDPOINT, { headers: { 'Content-Type': 'application/json' } });
-    const data = currentJsonData;
-    const categoryIds: Record<string, string> = {};
-    const menuItemIds: Record<string, string> = {};
-
-    try {
-      if (data.storeInfo) {
-        setItemLoading('storeInfo', data.storeInfo.name || 'Store information');
-        setItemCompleted('storeInfo', data.storeInfo.name || 'Store information');
+      const classified = classify(error);
+      if (classified.kind === "rejected") {
+        markAll((section, item) => setItemError(section, item, classified.message));
+        setOutcome("rejected");
+        setError(`${classified.message}. Nothing was saved; correct the setup and try again.`);
+        setProgress("Setup was not saved.");
+        setStep("template");
+        return;
       }
 
-      setProgress('Creating menu categories...');
-      for (const category of data.categories || []) {
-        setItemLoading('categories', category.name);
-        try {
-          const existing = await findExisting(
-            client,
-            gql`query CategoryByName($name: String!) { menuCategories(where: { name: { equals: $name } }, take: 1) { id name } }`,
-            { name: category.name },
-            'menuCategories'
-          );
-
-          if (existing?.id) {
-            categoryIds[category.name] = existing.id;
-          } else {
-            const result: any = await client.request(
-              gql`mutation CreateMenuCategory($data: MenuCategoryCreateInput!) { createMenuCategory(data: $data) { id name } }`,
-              { data: { name: category.name, description: category.description, sortOrder: category.sortOrder, active: true } }
-            );
-            categoryIds[category.name] = result.createMenuCategory.id;
-          }
-          setItemCompleted('categories', category.name);
-        } catch (error: any) {
-          setItemError('categories', category.name, error.message || 'Failed to create category');
-        }
+      // Outcome unknown: check the durable status the setup transaction records on commit.
+      const status = await getOnboardingStatus();
+      if (status === "completed" && started.previousStatus !== "completed") {
+        markAll(setItemCompleted);
+        setOutcome("reconciled");
+        setProgress("Setup saved.");
+        setStep("done");
+        await refreshAfterOnboarding();
+        router.refresh();
+        return;
       }
-
-      setProgress('Creating coffee menu...');
-      for (const item of data.menuItems || []) {
-        setItemLoading('menuItems', item.name);
-        try {
-          const existing = await findExisting(
-            client,
-            gql`query MenuItemByName($name: String!) { menuItems(where: { name: { equals: $name } }, take: 1) { id name } }`,
-            { name: item.name },
-            'menuItems'
-          );
-
-          let menuItemId = existing?.id;
-          if (!menuItemId) {
-            const { categoryName, ...itemData } = item;
-            const result: any = await client.request(
-              gql`mutation CreateMenuItem($data: MenuItemCreateInput!) { createMenuItem(data: $data) { id name } }`,
-              {
-                data: {
-                  ...itemData,
-                  available: true,
-                  category: categoryIds[categoryName] ? { connect: { id: categoryIds[categoryName] } } : undefined,
-                },
-              }
-            );
-            menuItemId = result.createMenuItem.id;
-          }
-
-          if (menuItemId) {
-            menuItemIds[item.name] = menuItemId;
-          }
-          setItemCompleted('menuItems', item.name);
-        } catch (error: any) {
-          setItemError('menuItems', item.name, error.message || 'Failed to create menu item');
-        }
-      }
-
-      setProgress('Creating coffee modifiers...');
-      for (const modifier of data.modifiers || []) {
-        const modifierDisplayName = getModifierDisplayName(modifier);
-        setItemLoading('modifiers', modifierDisplayName);
-        try {
-          const menuItemId = menuItemIds[modifier.menuItemName];
-          if (!menuItemId) {
-            throw new Error(`Menu item not found for modifier: ${modifier.menuItemName}`);
-          }
-
-          const existingModifier = await findExisting(
-            client,
-            gql`query ModifierByName($name: String!, $menuItemId: ID!) { menuItemModifiers(where: { name: { equals: $name }, menuItem: { id: { equals: $menuItemId } } }, take: 1) { id name } }`,
-            { name: modifier.name, menuItemId },
-            'menuItemModifiers'
-          );
-
-          if (!existingModifier?.id) {
-            await client.request(
-              gql`mutation CreateModifier($data: MenuItemModifierCreateInput!) { createMenuItemModifier(data: $data) { id name } }`,
-              {
-                data: {
-                  ...modifier,
-                  inStock: true,
-                  menuItem: { connect: { id: menuItemId } },
-                },
-              }
-            );
-          }
-          setItemCompleted('modifiers', modifierDisplayName);
-        } catch (error: any) {
-          setItemError('modifiers', modifierDisplayName, error.message || 'Failed to create modifier');
-        }
-      }
-
-      setProgress('Creating inventory par levels...');
-      for (const inventoryItem of data.inventoryItems || []) {
-        setItemLoading('inventoryItems', inventoryItem.name);
-        try {
-          const existing = await findExisting(
-            client,
-            gql`query InventoryByName($name: String!) { inventoryItems(where: { name: { equals: $name } }, take: 1) { id name } }`,
-            { name: inventoryItem.name },
-            'inventoryItems'
-          );
-          if (!existing?.id) {
-            await client.request(
-              gql`mutation CreateInventoryItem($data: InventoryItemCreateInput!) { createInventoryItem(data: $data) { id name } }`,
-              { data: inventoryItem }
-            );
-          }
-          setItemCompleted('inventoryItems', inventoryItem.name);
-        } catch (error: any) {
-          setItemError('inventoryItems', inventoryItem.name, error.message || 'Failed to create inventory item');
-        }
-      }
-
-      setProgress('Creating payment providers...');
-      for (const paymentProvider of data.paymentProviders || []) {
-        setItemLoading('paymentProviders', paymentProvider.name);
-        try {
-          const existing = await findExisting(
-            client,
-            gql`query PaymentProviderByCode($code: String!) { paymentProviders(where: { code: { equals: $code } }, take: 1) { id code } }`,
-            { code: paymentProvider.code },
-            'paymentProviders'
-          );
-
-          if (!existing?.id) {
-            await client.request(
-              gql`mutation CreatePaymentProvider($data: PaymentProviderCreateInput!) { createPaymentProvider(data: $data) { id code } }`,
-              { data: paymentProvider }
-            );
-          }
-          setItemCompleted('paymentProviders', paymentProvider.name);
-        } catch (error: any) {
-          setItemError('paymentProviders', paymentProvider.name, error.message || 'Failed to create payment provider');
-        }
-      }
-
-      setProgress('Coffee shop setup complete.');
-      await completeOnboarding();
-      setStep('done');
-    } catch (error: any) {
-      setError(error.message || 'Onboarding failed');
-      console.error('Error during onboarding:', error);
+      setOutcome("unknown");
+      setError("We couldn't confirm whether setup finished. Reload the dashboard to check before trying again — running setup again never replaces records that already exist.");
+      setProgress("Setup status unknown.");
+      setStep("template");
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return { runOnboarding };
 }

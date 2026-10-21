@@ -1,333 +1,348 @@
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { formatStoreDateTime } from "@/lib/date-time";
+import { addBusinessDays, isBusinessDate } from "../lib/businessDate";
+import { loadCoffeeReports, type ReportsProjection } from "../lib/reportResponse";
 
 const REPORTS_QUERY = `
-  query CafeReports {
-    cafeOrders(orderBy: { createdAt: desc }, take: 200) {
-      id
-      orderNumber
-      status
-      fulfillmentType
-      orderSource
-      subtotal
-      tax
-      tip
-      discount
-      total
-      createdAt
-      promisedAt
-      completedAt
-      orderItems {
-        id
-        quantity
-        price
-        itemNameSnapshot
-        station
-        menuItem { id name category { id name } }
+  query CoffeeReports($period: String, $startDate: String, $endDate: String, $lowStockPage: Int) {
+    getCoffeeReports(period: $period, startDate: $startDate, endDate: $endDate, lowStockPage: $lowStockPage) {
+      storeTimezone
+      period { period startDate endDate timezone timezoneConfigured }
+      sales {
+        orderCount completedCount cancelledCount completionRatePercent
+        grossSalesCents taxCents tipCents discountCents
+        averageFulfillmentMinutes fulfillmentSampleCount openTicketCount readyTicketCount
+        topItems { key menuItemId name quantity revenueCents }
+        topItemsTruncated
+        stationProduction { station quantity }
       }
-    }
-    inventoryItems(orderBy: { name: asc }, take: 100) {
-      id
-      name
-      category
-      unit
-      currentStock
-      reorderPoint
-      parLevel
-      costPerUnit
-      supplierName
-    }
-    loyaltyAccounts(take: 200) {
-      id
-      status
-      tier
-      pointsBalance
-      lifetimePoints
-      drinkCredits
-      visits
-      lastVisitAt
-      customer { id name email }
+      collections { currencyCode currencyMismatch paymentCount grossCollectedCents refundedCents netCollectedCents needsReviewCount }
+      lowStock { totalCount page pageSize items { id name category unit currentStock reorderPoint parLevel supplierName } }
+      loyalty {
+        accountCount totalVisits outstandingDrinkCredits
+        topAccounts { id customerName customerEmail tier lifetimePoints drinkCredits lastVisitAt }
+      }
     }
   }
 `;
 
-type Order = {
-  id: string;
-  status: string;
-  fulfillmentType?: string;
-  orderSource?: string;
-  subtotal?: number;
-  tax?: number;
-  tip?: number;
-  discount?: number;
-  total?: number;
-  createdAt?: string;
-  promisedAt?: string;
-  completedAt?: string;
-  orderItems?: Array<{
-    id: string;
-    quantity: number;
-    price: number;
-    itemNameSnapshot?: string;
-    station?: string;
-    menuItem?: { id: string; name: string; category?: { id: string; name: string } | null } | null;
-  }>;
-};
+const PERIOD_OPTIONS = [
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "custom", label: "Custom range" },
+] as const;
+const MAX_CUSTOM_DAYS = 366;
 
-type InventoryItem = {
-  id: string;
-  name: string;
-  category?: string;
-  unit?: string;
-  currentStock?: string;
-  reorderPoint?: string;
-  parLevel?: string;
-  costPerUnit?: number;
-  supplierName?: string;
-};
+type SearchParams = { period?: string | string[]; startDate?: string | string[]; endDate?: string | string[]; lowStockPage?: string | string[] };
+type PeriodInput = { period: string; startDate: string; endDate: string; lowStockPage: number };
 
-type LoyaltyAccount = {
-  id: string;
-  status: string;
-  tier?: string;
-  pointsBalance?: number;
-  lifetimePoints?: number;
-  drinkCredits?: number;
-  visits?: number;
-  lastVisitAt?: string;
-  customer?: { id: string; name?: string; email?: string } | null;
-};
-
-function money(cents = 0) {
-  return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+function single(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : "";
 }
 
-function number(value?: number | string | null) {
-  return Number(value || 0);
+function parsePeriod(params: SearchParams): { input: PeriodInput; error: string | null } {
+  const requested = single(params.period);
+  const period = PERIOD_OPTIONS.some((option) => option.value === requested) ? requested : "30d";
+  const startDate = single(params.startDate);
+  const endDate = single(params.endDate);
+  const page = Number(single(params.lowStockPage) || "0");
+  const lowStockPage = Number.isSafeInteger(page) && page >= 0 && page <= 10_000 ? page : 0;
+  const input = { period, startDate, endDate, lowStockPage };
+  if (period !== "custom") return { input, error: null };
+  if (!isBusinessDate(startDate) || !isBusinessDate(endDate)) return { input, error: "Enter both a start date and an end date for a custom range." };
+  if (startDate > endDate) return { input, error: "The start date must be on or before the end date." };
+  if (addBusinessDays(startDate, MAX_CUSTOM_DAYS - 1) < endDate) return { input, error: `Choose a custom range of ${MAX_CUSTOM_DAYS} days or fewer.` };
+  return { input, error: null };
 }
 
-function dateLabel(value?: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+function reportHref(input: PeriodInput, updates: Partial<PeriodInput>) {
+  const state = { ...input, ...updates };
+  const params = new URLSearchParams({ period: state.period });
+  if (state.period === "custom") {
+    params.set("startDate", state.startDate);
+    params.set("endDate", state.endDate);
+  }
+  if (state.lowStockPage) params.set("lowStockPage", String(state.lowStockPage));
+  return `/dashboard/platform/reports?${params.toString()}`;
 }
 
-function averageMinutes(orders: Order[]) {
-  const completed = orders
-    .filter((order) => order.createdAt && order.completedAt)
-    .map((order) => (new Date(order.completedAt!).getTime() - new Date(order.createdAt!).getTime()) / 60000)
-    .filter((minutes) => Number.isFinite(minutes) && minutes >= 0);
-  if (!completed.length) return 0;
-  return Math.round(completed.reduce((sum, minutes) => sum + minutes, 0) / completed.length);
+function money(cents: number | null | undefined, currency = "USD") {
+  if (cents == null) return "Unavailable";
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${currency}`;
+  }
 }
 
-function groupBy<T>(items: T[], getKey: (item: T) => string) {
-  return items.reduce<Record<string, T[]>>((groups, item) => {
-    const key = getKey(item) || "Unknown";
-    groups[key] = groups[key] || [];
-    groups[key].push(item);
-    return groups;
-  }, {});
+function count(value: number) {
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+function quantity(value: number) {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(value);
 }
 
 function pct(numerator: number, denominator: number) {
   if (!denominator) return "0%";
-  return `${Math.round((numerator / denominator) * 100)}%`;
+  return `${Math.min(100, Math.max(0, Math.round((numerator / denominator) * 100)))}%`;
 }
 
-export async function CafeReportsPage() {
-  const response = await keystoneClient<{
-    cafeOrders: Order[];
-    inventoryItems: InventoryItem[];
-    loyaltyAccounts: LoyaltyAccount[];
-  }>(REPORTS_QUERY, {}, { cache: "no-store" });
+function periodLabel(period: ReportsProjection["period"]) {
+  const option = PERIOD_OPTIONS.find((candidate) => candidate.value === period.period);
+  const range = period.startDate === period.endDate ? period.startDate : `${period.startDate} to ${period.endDate}`;
+  return `${option && option.value !== "custom" ? `${option.label} · ` : ""}${range} · ${period.timezoneConfigured ? `store time (${period.timezone})` : "UTC (store timezone not set)"}`;
+}
 
-  const orders = response.success ? response.data.cafeOrders || [] : [];
-  const inventoryItems = response.success ? response.data.inventoryItems || [] : [];
-  const loyaltyAccounts = response.success ? response.data.loyaltyAccounts || [] : [];
-
-  const nonCancelled = orders.filter((order) => !["cancelled", "refunded"].includes(order.status));
-  const completed = orders.filter((order) => order.status === "completed");
-  const active = orders.filter((order) => ["paid", "in_bar_queue", "preparing", "ready"].includes(order.status));
-  const revenue = nonCancelled.reduce((sum, order) => sum + number(order.total), 0);
-  const averageTicket = nonCancelled.length ? Math.round(revenue / nonCancelled.length) : 0;
-  const avgFulfillment = averageMinutes(completed);
-
-  const lineItems = orders.flatMap((order) => order.orderItems || []);
-  const itemPerformance = Object.values(groupBy(lineItems, (item) => item.itemNameSnapshot || item.menuItem?.name || "Menu item"))
-    .map((items) => ({
-      name: items[0].itemNameSnapshot || items[0].menuItem?.name || "Menu item",
-      quantity: items.reduce((sum, item) => sum + number(item.quantity), 0),
-      revenue: items.reduce((sum, item) => sum + number(item.price) * number(item.quantity), 0),
-    }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 8);
-
-  const stationLoad = Object.values(groupBy(lineItems, (item) => item.station || "unassigned"))
-    .map((items) => ({
-      station: items[0].station || "unassigned",
-      quantity: items.reduce((sum, item) => sum + number(item.quantity), 0),
-    }))
-    .sort((a, b) => b.quantity - a.quantity);
-
-  const lowStock = inventoryItems
-    .map((item) => ({
-      ...item,
-      current: number(item.currentStock),
-      reorder: number(item.reorderPoint),
-      par: number(item.parLevel),
-    }))
-    .filter((item) => item.current <= item.reorder || (item.par > 0 && item.current / item.par < 0.35))
-    .sort((a, b) => a.current - b.current)
-    .slice(0, 10);
-
-  const totalVisits = loyaltyAccounts.reduce((sum, account) => sum + number(account.visits), 0);
-  const outstandingCredits = loyaltyAccounts.reduce((sum, account) => sum + number(account.drinkCredits), 0);
-  const topLoyalty = [...loyaltyAccounts]
-    .sort((a, b) => number(b.lifetimePoints) - number(a.lifetimePoints))
-    .slice(0, 6);
-
+function PeriodForm({ input, error }: { input: PeriodInput; error: string | null }) {
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-700">Owner toolkit</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Cafe reports</h1>
-          <p className="text-muted-foreground">Daily health across sales, bar throughput, low stock, and loyalty.</p>
-        </div>
-        <div className="rounded-2xl border bg-white px-4 py-3 text-sm shadow-sm">
-          Last {orders.length} orders sampled
-        </div>
+    <form method="get" action="/dashboard/platform/reports" className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,12rem)_minmax(0,11rem)_minmax(0,11rem)_auto] lg:items-end">
+      <div className="grid gap-1.5">
+        <Label htmlFor="report-period">Period</Label>
+        <select id="report-period" name="period" defaultValue={input.period} className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground">
+          {PERIOD_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
       </div>
-
-      {!response.success && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Reports query failed: {response.error}
-        </div>
-      )}
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="Revenue" value={money(revenue)} note={`${nonCancelled.length} paid/non-cancelled orders`} />
-        <MetricCard label="Average ticket" value={money(averageTicket)} note="Before external payment fees" />
-        <MetricCard label="Active tickets" value={String(active.length)} note={`${orders.filter((order) => order.status === "ready").length} ready for pickup`} />
-        <MetricCard label="Avg fulfillment" value={`${avgFulfillment}m`} note="Created to completed" />
-        <MetricCard label="Completion rate" value={pct(completed.length, orders.length)} note={`${completed.length} completed`} />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <Panel title="Top items" description="Best sellers by gross line revenue.">
-          <div className="space-y-3">
-            {itemPerformance.map((item) => (
-              <div key={item.name} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-2xl border bg-white p-3">
-                <div className="font-medium">{item.name}</div>
-                <div className="text-sm text-muted-foreground">{item.quantity} sold</div>
-                <div className="font-semibold">{money(item.revenue)}</div>
-              </div>
-            ))}
-            {!itemPerformance.length && <EmptyLine text="No item sales yet." />}
-          </div>
-        </Panel>
-
-        <Panel title="Station load" description="Where bar work is landing.">
-          <div className="space-y-3">
-            {stationLoad.map((station) => (
-              <div key={station.station} className="rounded-2xl border bg-white p-3">
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="font-medium capitalize">{station.station.replaceAll("_", " ")}</span>
-                  <span>{station.quantity} items</span>
-                </div>
-                <div className="h-2 rounded-full bg-stone-100">
-                  <div className="h-2 rounded-full bg-amber-700" style={{ width: pct(station.quantity, Math.max(...stationLoad.map((s) => s.quantity), 1)) }} />
-                </div>
-              </div>
-            ))}
-            {!stationLoad.length && <EmptyLine text="No station activity yet." />}
-          </div>
-        </Panel>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <Panel title="Low-stock watchlist" description="Inventory at or below reorder point, or under 35% of par.">
-          <div className="space-y-3">
-            {lowStock.map((item) => (
-              <div key={item.id} className="rounded-2xl border bg-white p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="font-medium">{item.name}</div>
-                    <div className="mt-1 text-sm text-muted-foreground capitalize">{item.category} · {item.supplierName || "No supplier"}</div>
-                  </div>
-                  <div className="text-right text-sm">
-                    <div className="font-semibold">{item.current} {item.unit}</div>
-                    <div className="text-muted-foreground">reorder at {item.reorder}</div>
-                  </div>
-                </div>
-                {item.par > 0 && (
-                  <div className="mt-3 h-2 rounded-full bg-stone-100">
-                    <div className="h-2 rounded-full bg-red-500" style={{ width: pct(Math.min(item.current, item.par), item.par) }} />
-                  </div>
-                )}
-              </div>
-            ))}
-            {!lowStock.length && <EmptyLine text="No low-stock items found." />}
-          </div>
-        </Panel>
-
-        <Panel title="Loyalty pulse" description="Visits, reward liability, and top accounts.">
-          <div className="mb-4 grid grid-cols-3 gap-3">
-            <MiniMetric label="Accounts" value={String(loyaltyAccounts.length)} />
-            <MiniMetric label="Visits" value={String(totalVisits)} />
-            <MiniMetric label="Credits" value={String(outstandingCredits)} />
-          </div>
-          <div className="space-y-3">
-            {topLoyalty.map((account) => (
-              <div key={account.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-2xl border bg-white p-3">
-                <div>
-                  <div className="font-medium">{account.customer?.name || account.customer?.email || "Guest account"}</div>
-                  <div className="text-sm text-muted-foreground capitalize">{account.tier?.replaceAll("_", " ")} · last visit {dateLabel(account.lastVisitAt)}</div>
-                </div>
-                <div className="text-right text-sm">
-                  <div className="font-semibold">{account.lifetimePoints || 0} pts</div>
-                  <div className="text-muted-foreground">{account.drinkCredits || 0} credits</div>
-                </div>
-              </div>
-            ))}
-            {!topLoyalty.length && <EmptyLine text="No loyalty accounts yet." />}
-          </div>
-        </Panel>
-      </section>
-    </div>
-  );
-}
-
-function MetricCard({ label, value, note }: { label: string; value: string; note: string }) {
-  return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="mt-2 text-3xl font-semibold tracking-tight">{value}</div>
-      <div className="mt-2 text-xs text-muted-foreground">{note}</div>
-    </div>
-  );
-}
-
-function MiniMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border bg-white p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-xl font-semibold">{value}</div>
-    </div>
-  );
-}
-
-function Panel({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-[2rem] border bg-white/60 p-5 shadow-sm">
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
+      <div className="grid gap-1.5">
+        <Label htmlFor="report-start">Start date (custom)</Label>
+        <Input id="report-start" name="startDate" type="date" defaultValue={input.startDate} aria-describedby={error ? "report-period-error" : undefined} />
       </div>
-      {children}
+      <div className="grid gap-1.5">
+        <Label htmlFor="report-end">End date (custom)</Label>
+        <Input id="report-end" name="endDate" type="date" defaultValue={input.endDate} aria-describedby={error ? "report-period-error" : undefined} />
+      </div>
+      <Button type="submit">Show period</Button>
+      {error ? <p id="report-period-error" role="alert" className="text-sm text-destructive sm:col-span-2 lg:col-span-4">{error}</p> : null}
+    </form>
+  );
+}
+
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border bg-card p-4">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="mt-1 break-words text-2xl font-semibold tabular-nums text-foreground">{value}</dd>
+      {hint ? <dd className="mt-1 text-xs text-muted-foreground">{hint}</dd> : null}
     </div>
   );
 }
 
 function EmptyLine({ text }: { text: string }) {
-  return <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">{text}</div>;
+  return <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">{text}</p>;
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <PageContainer
+      title="Analytics"
+      header={<div><h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Analytics</h1><p className="text-sm text-muted-foreground">Sales, collections, stock and loyalty for a selected store business period.</p></div>}
+      breadcrumbs={[{ type: "link", label: "Dashboard", href: "/dashboard" }, { type: "page", label: "Analytics" }]}
+    >
+      <div className="space-y-6 px-4 pb-8 md:px-6">{children}</div>
+    </PageContainer>
+  );
+}
+
+export async function CafeReportsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const params = (await searchParams) ?? {};
+  const { input, error } = parsePeriod(params);
+  if (error) {
+    return <Shell><PeriodForm input={input} error={error} /></Shell>;
+  }
+  const result = await loadCoffeeReports(REPORTS_QUERY, {
+    period: input.period,
+    startDate: input.period === "custom" ? input.startDate : null,
+    endDate: input.period === "custom" ? input.endDate : null,
+    lowStockPage: input.lowStockPage,
+  }, (query, variables, options) => keystoneClient<unknown>(query, variables, options));
+
+  if (result.kind !== "ready") {
+    return (
+      <Shell>
+        <PeriodForm input={input} error={null} />
+        <div role="alert" className="rounded-lg border border-destructive/40 bg-card p-4 text-sm text-foreground">
+          Analytics are unavailable right now. No figures are shown. <Link className="font-medium underline" href={reportHref(input, {})}>Try again</Link>
+        </div>
+      </Shell>
+    );
+  }
+
+  const report = result.report;
+  const { sales, collections, lowStock, loyalty } = report;
+  const currency = collections?.currencyCode || "USD";
+  const nothingVisible = !sales && !collections && !lowStock && !loyalty;
+  const maxStation = Math.max(1, ...(sales?.stationProduction.map((station) => station.quantity) ?? []));
+
+  return (
+    <Shell>
+      <PeriodForm input={input} error={null} />
+      <p role="status" className="text-sm text-muted-foreground">{periodLabel(report.period)}</p>
+      {nothingVisible ? <EmptyLine text="Your role does not include any analytics sections." /> : null}
+
+      {sales || collections ? (
+        <section aria-labelledby="sales-heading" className="space-y-3">
+          <h2 id="sales-heading" className="text-lg font-semibold">Sales and collections</h2>
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {collections ? <>
+              <Stat label="Net collected" value={collections.currencyMismatch ? "Unavailable" : money(collections.netCollectedCents, currency)} hint="Captured payments minus refunds, by payment date" />
+              <Stat label="Collected before refunds" value={collections.currencyMismatch ? "Unavailable" : money(collections.grossCollectedCents, currency)} hint={`${count(collections.paymentCount)} payments`} />
+              <Stat label="Refunded" value={collections.currencyMismatch ? "Unavailable" : money(collections.refundedCents, currency)} />
+            </> : null}
+            {sales ? <>
+              <Stat label="Gross sales" value={money(sales.grossSalesCents, currency)} hint={`Item subtotal of ${count(sales.completedCount)} completed orders`} />
+              <Stat label="Tax" value={money(sales.taxCents, currency)} hint="On completed orders" />
+              <Stat label="Tips" value={money(sales.tipCents, currency)} hint="On completed orders" />
+              <Stat label="Discounts" value={money(sales.discountCents, currency)} hint="On completed orders" />
+              <Stat label="Orders placed" value={count(sales.orderCount)} hint={`${count(sales.cancelledCount)} cancelled`} />
+              <Stat label="Completion rate" value={`${sales.completionRatePercent}%`} />
+              <Stat label="Average fulfillment" value={sales.averageFulfillmentMinutes == null ? "No completed orders" : `${sales.averageFulfillmentMinutes} min`} hint={sales.fulfillmentSampleCount ? `Across ${count(sales.fulfillmentSampleCount)} completed orders` : undefined} />
+              <Stat label="Open tickets now" value={count(sales.openTicketCount)} hint={`${count(sales.readyTicketCount)} ready for pickup · current, not period-based`} />
+            </> : null}
+          </dl>
+          {collections?.currencyMismatch ? <p role="alert" className="text-sm text-destructive">Payments in this period use more than one currency, so collected totals cannot be combined. Review payments before relying on these figures.</p> : null}
+          {collections && collections.needsReviewCount > 0 ? <p role="status" className="text-sm text-muted-foreground">{count(collections.needsReviewCount)} payments in this period have refund details that need review; they are included as recorded.</p> : null}
+        </section>
+      ) : null}
+
+      {sales ? (
+        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
+          <Card className="min-w-0">
+            <CardHeader>
+              <CardTitle>Top items</CardTitle>
+              <CardDescription>Top {sales.topItems.length || 8} products by line sales on completed orders in this period, grouped by menu item.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {sales.topItems.length ? (
+                <div className="overflow-x-auto rounded-lg border">
+                  <Table aria-label="Top items">
+                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Sold</TableHead><TableHead className="text-right">Line sales</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {sales.topItems.map((item) => (
+                        <TableRow key={item.key}>
+                          <TableCell className="min-w-0 break-words font-medium">{item.name}</TableCell>
+                          <TableCell className="text-right tabular-nums">{count(item.quantity)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{money(item.revenueCents, currency)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : <EmptyLine text="No completed orders in this period." />}
+              {sales.topItemsTruncated ? <p role="status" className="mt-2 text-xs text-muted-foreground">This period has an unusually large number of price variants; rankings use the first 5,000.</p> : null}
+            </CardContent>
+          </Card>
+
+          <Card className="min-w-0">
+            <CardHeader>
+              <CardTitle>Items produced by station</CardTitle>
+              <CardDescription>Items on completed orders in this period. For current station work, use the KDS.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {sales.stationProduction.map((station) => (
+                <div key={station.station} className="rounded-lg border p-3">
+                  <div className="mb-2 flex flex-wrap justify-between gap-2 text-sm">
+                    <span className="font-medium capitalize">{station.station.replaceAll("_", " ")}</span>
+                    <span className="tabular-nums">{count(station.quantity)} items</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted" aria-hidden="true">
+                    <div className="h-2 rounded-full bg-primary" style={{ width: pct(station.quantity, maxStation) }} />
+                  </div>
+                </div>
+              ))}
+              {!sales.stationProduction.length ? <EmptyLine text="No completed items in this period." /> : null}
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
+
+      {lowStock || loyalty ? (
+        <section className="grid min-w-0 gap-6 xl:grid-cols-2">
+          {lowStock ? (
+            <Card className="min-w-0">
+              <CardHeader>
+                <CardTitle>Low-stock watchlist</CardTitle>
+                <CardDescription>
+                  {lowStock.totalCount
+                    ? `${count(lowStock.totalCount)} items at or below their reorder point, or under 35% of par. Lowest stock first.`
+                    : "Items at or below their reorder point, or under 35% of par."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {lowStock.items.map((item) => (
+                  <div key={item.id} className="rounded-lg border p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="break-words font-medium">{item.name}</div>
+                        <div className="mt-1 text-sm capitalize text-muted-foreground">{item.category || "Uncategorized"} · {item.supplierName || "No supplier"}</div>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="font-semibold tabular-nums">{quantity(item.currentStock)} {item.unit}</div>
+                        <div className="text-muted-foreground">reorder at {quantity(item.reorderPoint)}</div>
+                      </div>
+                    </div>
+                    {item.parLevel > 0 ? (
+                      <div className="mt-3 h-2 rounded-full bg-muted" aria-hidden="true">
+                        <div className="h-2 rounded-full bg-destructive" style={{ width: pct(Math.max(0, Math.min(item.currentStock, item.parLevel)), item.parLevel) }} />
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+                {!lowStock.items.length ? <EmptyLine text={lowStock.page > 0 ? "No more low-stock items on this page." : "No items are low on stock."} /> : null}
+                {lowStock.totalCount > lowStock.pageSize || lowStock.page > 0 ? (
+                  <nav aria-label="Low-stock pages" className="flex flex-wrap items-center gap-2">
+                    <p className="mr-auto text-sm text-muted-foreground">
+                      {lowStock.items.length ? `Showing ${count(lowStock.page * lowStock.pageSize + 1)}–${count(lowStock.page * lowStock.pageSize + lowStock.items.length)} of ${count(lowStock.totalCount)}` : `${count(lowStock.totalCount)} total`}
+                    </p>
+                    {lowStock.page > 0 ? <Button asChild size="sm" variant="outline"><Link href={reportHref(input, { lowStockPage: lowStock.page - 1 })}>Previous</Link></Button> : null}
+                    {(lowStock.page + 1) * lowStock.pageSize < lowStock.totalCount ? <Button asChild size="sm" variant="outline"><Link href={reportHref(input, { lowStockPage: lowStock.page + 1 })}>Next</Link></Button> : null}
+                  </nav>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {loyalty ? (
+            <Card className="min-w-0">
+              <CardHeader>
+                <CardTitle>Loyalty</CardTitle>
+                <CardDescription>Totals cover every store loyalty account. The six accounts with the most lifetime points are listed.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <Stat label="Accounts" value={count(loyalty.accountCount)} />
+                  <Stat label="Visits" value={count(loyalty.totalVisits)} />
+                  <Stat label="Unredeemed drink credits" value={count(loyalty.outstandingDrinkCredits)} />
+                </dl>
+                <div className="space-y-3">
+                  {loyalty.topAccounts.map((account) => (
+                    <div key={account.id} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-3">
+                      <div className="min-w-0">
+                        <div className="break-words font-medium">{account.customerName || account.customerEmail || "Guest account"}</div>
+                        <div className="text-sm capitalize text-muted-foreground">{(account.tier || "regular").replaceAll("_", " ")} · last visit {formatStoreDateTime(account.lastVisitAt, report.storeTimezone)}</div>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="font-semibold tabular-nums">{count(account.lifetimePoints || 0)} pts</div>
+                        <div className="text-muted-foreground">{count(account.drinkCredits || 0)} credits</div>
+                      </div>
+                    </div>
+                  ))}
+                  {!loyalty.topAccounts.length ? <EmptyLine text="No loyalty accounts yet." /> : null}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
+      ) : null}
+    </Shell>
+  );
 }

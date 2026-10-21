@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Clipboard } from 'lucide-react';
+import React, { useId, useState } from 'react';
+import { Clipboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DataCard } from './DataCard';
 import seedData from '@/features/platform/onboarding/lib/seed.json';
+import type { CoffeeSeedData } from '../utils/dataUtils';
+import { parseOnboardingData } from '../lib/onboardingSchema';
 
 interface CustomSetupStepsProps {
-  currentJson?: any;
-  onJsonUpdate?: (newJson: any) => void;
-  onBack?: () => void;
+  draft: string;
+  onDraftChange: (value: string) => void;
+  onJsonUpdate: (newJson: CoffeeSeedData) => void;
 }
 
 function useCopyToClipboard(): [string | null, (text: string) => Promise<boolean>] {
@@ -31,12 +33,13 @@ function useCopyToClipboard(): [string | null, (text: string) => Promise<boolean
   return [copiedText, copy];
 }
 
-export function CustomSetupSteps({ onJsonUpdate = () => {}, onBack }: CustomSetupStepsProps) {
+export function CustomSetupSteps({ draft: customJson, onDraftChange: setCustomJson, onJsonUpdate }: CustomSetupStepsProps) {
+  const fieldId = useId();
   const [, copy] = useCopyToClipboard();
   const [copiedItems, setCopiedItems] = useState<Record<string, boolean>>({});
-  const [customJson, setCustomJson] = useState('');
-  const [jsonError, setJsonError] = useState('');
-  const [jsonApplied, setJsonApplied] = useState(false);
+  const [jsonErrors, setJsonErrors] = useState<string[]>([]);
+  const [pasteMessage, setPasteMessage] = useState('');
+  const setJsonError = (message: string) => setJsonErrors(message ? [message] : []);
 
   const completeJson = seedData.full;
 
@@ -52,32 +55,28 @@ export function CustomSetupSteps({ onJsonUpdate = () => {}, onBack }: CustomSetu
   const generateAIPrompt = () => {
     return `I need help customizing my coffee shop configuration. I've pasted the base setup JSON.
 
-Start by telling me what this configuration currently contains for store info, categories, menu items, modifiers, and inventory.
-Then ask me what I want to change.
-When I'm done, return the complete updated JSON so I can paste it back into onboarding.
-Keep the same JSON shape with these top-level keys: storeInfo, categories, menuItems, modifiers, inventoryItems.`;
+Start by telling me what this configuration currently contains, then ask me what I want to change.
+Only use details I give you for my store name, address, phone, email and sales tax rate (taxRateBasisPoints, e.g. 875 = 8.75%); leave anything you don't know for me to fill in.
+When I'm done, return the complete updated JSON so I can paste it back into setup.
+Keep the same JSON shape and keys: storeInfo, categories, menuItems, modifiers, inventoryItems, paymentProviders, suppliers, recipes, ingredients, purchaseOrders, staffShifts, loyaltyAccounts, cateringOrders.`;
   };
 
   const validateAndApplyJson = () => {
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(customJson);
-      const requiredKeys = ['storeInfo', 'categories', 'menuItems', 'modifiers', 'inventoryItems'];
-      const missingKeys = requiredKeys.filter((key) => {
-        if (key === 'storeInfo') return !parsed[key] || typeof parsed[key] !== 'object';
-        return !parsed[key] || !Array.isArray(parsed[key]);
-      });
-
-      if (missingKeys.length > 0) {
-        setJsonError(`Missing required keys: ${missingKeys.join(', ')}`);
-        return;
-      }
-
-      onJsonUpdate(parsed);
-      setJsonApplied(true);
-      setJsonError('');
+      parsed = JSON.parse(customJson);
     } catch {
       setJsonError('Invalid JSON format. Please check your syntax.');
+      return;
     }
+    // Same contract the server enforces, so an applied payload is the one setup accepts.
+    const result = parseOnboardingData(parsed);
+    if (!result.success) {
+      setJsonErrors(result.errors);
+      return;
+    }
+    setJsonErrors([]);
+    onJsonUpdate(result.data as CoffeeSeedData);
   };
 
   const steps = [
@@ -112,32 +111,39 @@ Keep the same JSON shape with these top-level keys: storeInfo, categories, menuI
     {
       number: 3,
       title: 'Paste Your Custom JSON',
-      description: 'Paste the AI-generated configuration here.',
+      description: 'Paste your configuration, then review it. Confirm stays disabled until it passes validation.',
       content: (
         <div className="overflow-hidden rounded-lg border">
           <div className="flex items-center justify-between border-b bg-muted px-4 py-2">
-            <span className="text-sm font-medium text-muted-foreground">Custom Onboarding Data</span>
+            <Label htmlFor={`${fieldId}-json`} className="text-sm font-medium text-muted-foreground">Custom setup configuration</Label>
             <Button
+              type="button"
               size="sm"
               variant="ghost"
+              aria-label="Paste configuration from clipboard"
               onClick={async () => {
                 try {
                   const text = await navigator.clipboard.readText();
                   setCustomJson(text);
                   setJsonError('');
+                  setPasteMessage('');
                 } catch {
-                  // ignore
+                  setPasteMessage('Clipboard access was blocked. Paste into the box instead.');
                 }
               }}
-              className="h-6 w-6 p-0 hover:bg-background/80"
+              className="size-11 p-0 hover:bg-background/80"
             >
-              <Clipboard className="h-3 w-3 text-muted-foreground" />
+              <Clipboard className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             </Button>
           </div>
           <div className="bg-background">
             <Textarea
+              id={`${fieldId}-json`}
+              aria-describedby={`${fieldId}-json-status`}
+              aria-invalid={jsonErrors.length > 0}
               placeholder="Paste your customized JSON configuration here..."
               value={customJson}
+              spellCheck={false}
               onChange={(e) => {
                 setCustomJson(e.target.value);
                 setJsonError('');
@@ -145,16 +151,21 @@ Keep the same JSON shape with these top-level keys: storeInfo, categories, menuI
               className="min-h-[220px] resize-none rounded-none border-0 bg-transparent p-4 font-mono text-xs focus:outline-none"
             />
           </div>
-          {jsonError ? (
-            <div className="px-4 pb-4">
-              <div className="rounded-md border border-destructive/20 bg-destructive/10 p-2">
-                <p className="text-xs text-destructive">{jsonError}</p>
+          <div id={`${fieldId}-json-status`} aria-live="polite">
+            {pasteMessage ? <p className="px-4 pb-2 text-xs text-muted-foreground">{pasteMessage}</p> : null}
+            {jsonErrors.length ? (
+              <div className="px-4 pb-4">
+                <div className="rounded-md border border-destructive/20 bg-destructive/10 p-2" role="alert">
+                  <ul className="list-disc space-y-0.5 pl-4 text-xs text-destructive">
+                    {jsonErrors.map((message) => <li key={message}>{message}</li>)}
+                  </ul>
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
           <div className="flex items-center justify-end border-t bg-muted px-4 py-2">
-            <Button size="sm" onClick={validateAndApplyJson} disabled={!customJson.trim()}>
-              Apply Configuration
+            <Button type="button" size="sm" className="min-h-11" onClick={validateAndApplyJson} disabled={!customJson.trim()}>
+              Review configuration
             </Button>
           </div>
         </div>
@@ -164,27 +175,10 @@ Keep the same JSON shape with these top-level keys: storeInfo, categories, menuI
 
   return (
     <div className="space-y-6">
-      {jsonApplied && onBack ? (
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setJsonApplied(false);
-              onBack();
-            }}
-            className="h-8 px-2"
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to Custom Setup
-          </Button>
-        </div>
-      ) : null}
-
       <div className="space-y-2">
         <Label className="text-sm font-medium">Custom Setup Configuration</Label>
         <p className="text-xs text-muted-foreground">
-          Follow these steps to create a personalized coffee shop setup using AI assistance.
+          Copy the base configuration, adjust it (an AI assistant can help), then paste it back and review it before confirming.
         </p>
       </div>
 

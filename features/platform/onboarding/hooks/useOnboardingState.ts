@@ -1,10 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import seedData from '../lib/seed.json';
 import { STORE_TEMPLATES } from '../config/templates';
-import { getItemsFromJsonData, getSeedForTemplate } from '../utils/dataUtils';
+import { getItemsFromJsonData, getSeedForTemplate, type CoffeeSeedData } from '../utils/dataUtils';
 
 export type OnboardingStep = 'template' | 'progress' | 'done';
 export type TemplateType = 'full' | 'minimal' | 'custom';
+export type OnboardingOutcome = 'completed' | 'reconciled' | 'rejected' | 'unknown' | null;
+export type OnboardingResult = {
+  status: string;
+  storeSettings: number;
+  categories: number;
+  menuItems: number;
+  modifiers: number;
+  inventoryItems: number;
+  paymentProviders: number;
+  suppliers: number;
+  recipes: number;
+  ingredients: number;
+  purchaseOrders: number;
+  staffShifts: number;
+  loyaltyAccounts: number;
+  cateringOrders: number;
+};
+
+const CUSTOM_DRAFT_KEY = 'coffee-onboarding-custom-draft';
 
 const initialItemsState = {
   storeInfo: [],
@@ -17,8 +36,8 @@ const initialItemsState = {
 
 export function useOnboardingState() {
   const [step, setStep] = useState<OnboardingStep>('template');
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('full');
-  const [currentJsonData, setCurrentJsonData] = useState<any>(null);
+  const [selectedTemplate, setSelectedTemplateState] = useState<TemplateType>('full');
+  const [currentJsonData, setCurrentJsonData] = useState<CoffeeSeedData>(() => getSeedForTemplate('full', seedData as Parameters<typeof getSeedForTemplate>[1]));
   const [customJsonApplied, setCustomJsonApplied] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
   const [loadingItems, setLoadingItemsState] = useState<Record<string, string[]>>({ ...initialItemsState });
@@ -26,12 +45,33 @@ export function useOnboardingState() {
   const [itemErrors, setItemErrorsState] = useState<Record<string, Record<string, string | undefined>>>({});
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<OnboardingResult | null>(null);
+  const [outcome, setOutcome] = useState<OnboardingOutcome>(null);
+  // The custom draft survives closing the dialog or reloading the tab.
+  const [customDraft, setCustomDraftState] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    try {
+      return window.sessionStorage.getItem(CUSTOM_DRAFT_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
 
-  useEffect(() => {
-    const data = getSeedForTemplate(selectedTemplate, seedData);
-    setCurrentJsonData(data);
+  const setCustomDraft = (value: string) => {
+    setCustomDraftState(value);
+    try {
+      if (value) window.sessionStorage.setItem(CUSTOM_DRAFT_KEY, value);
+      else window.sessionStorage.removeItem(CUSTOM_DRAFT_KEY);
+    } catch {
+      // Storage unavailable; the draft lives in memory only.
+    }
+  };
+
+  const setSelectedTemplate = (template: TemplateType) => {
+    setSelectedTemplateState(template);
+    setCurrentJsonData(getSeedForTemplate(template, seedData as Parameters<typeof getSeedForTemplate>[1]));
     setCustomJsonApplied(false);
-  }, [selectedTemplate]);
+  };
 
   const setProgress = (message: string) => {
     setProgressMessage(message);
@@ -88,6 +128,8 @@ export function useOnboardingState() {
     setItemErrorsState({});
     setLoadingItemsState({ ...initialItemsState });
     setCompletedItemsState({ ...initialItemsState });
+    setResult(null);
+    setOutcome(null);
   };
 
   return {
@@ -112,7 +154,13 @@ export function useOnboardingState() {
     setError,
     setIsLoading,
     resetOnboardingState,
-    getDisplayNamesFromData: (data: any) => ({
+    result,
+    setResult,
+    outcome,
+    setOutcome,
+    customDraft,
+    setCustomDraft,
+    getDisplayNamesFromData: (data: CoffeeSeedData) => ({
       storeInfo: getItemsFromJsonData(data, 'storeInfo'),
       categories: getItemsFromJsonData(data, 'categories'),
       menuItems: getItemsFromJsonData(data, 'menuItems'),

@@ -4,6 +4,7 @@ export type CartLine = {
   cartId: string;
   menuItemId: string;
   name: string;
+  imageUrl?: string | null;
   quantity: number;
   unitPrice: number;
   basePrice: number;

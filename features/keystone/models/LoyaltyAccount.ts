@@ -1,20 +1,24 @@
 import { graphql, list } from "@keystone-6/core";
+import { denyAll } from "@keystone-6/core/access";
+import type { BaseItem } from "@keystone-6/core/types";
 import { checkbox, integer, relationship, select, text, timestamp, virtual } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
+import { requiredStoreRelationship } from "./requiredRelationship";
 import { trackingFields } from "./trackingFields";
 
 export const LoyaltyAccount = list({
   access: {
     operation: {
       query: permissions.canReadLoyalty,
-      create: permissions.canManageLoyalty,
-      update: permissions.canManageLoyalty,
-      delete: permissions.canManageLoyalty,
+      create: denyAll,
+      update: denyAll,
+      delete: denyAll,
     },
   },
-  ui: { listView: { initialColumns: ["customerName", "customerEmail", "status", "pointsBalance", "drinkCredits", "tier"] } },
+  ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["customerName", "customerEmail", "status", "pointsBalance", "drinkCredits", "tier"] } },
   fields: {
+    store: requiredStoreRelationship("StoreSetting.loyaltyAccounts"),
     customerName: text({ ui: { description: "Guest-facing name for loyalty lookup when no user account is attached" } }),
     customerEmail: text({ isIndexed: "unique", ui: { description: "Email used for pickup loyalty lookup" } }),
     customerPhone: text(),
@@ -50,16 +54,21 @@ export const LoyaltyAccount = list({
     displayName: virtual({
       field: graphql.field({
         type: graphql.String,
-        resolve(item: any) {
-          return item.customerName || item.customerEmail || "Guest account";
+        resolve(item: BaseItem) {
+          return typeof item.customerName === "string" && item.customerName
+            ? item.customerName
+            : typeof item.customerEmail === "string" && item.customerEmail
+              ? item.customerEmail
+              : "Guest account";
         },
       }),
     }),
     nextRewardProgress: virtual({
       field: graphql.field({
         type: graphql.Int,
-        resolve(item: any) {
-          return Math.min(100, Math.floor(((item.pointsBalance || 0) % 100) / 100 * 100));
+        resolve(item: BaseItem) {
+          const pointsBalance = typeof item.pointsBalance === "number" ? item.pointsBalance : 0;
+          return Math.min(100, Math.floor(((pointsBalance || 0) % 100) / 100 * 100));
         },
       }),
     }),

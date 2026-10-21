@@ -1,55 +1,51 @@
-import type { CreatePaymentInput, PaymentAdapterResult } from './index';
+import { randomUUID } from "node:crypto";
 
-function id(prefix: string) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}
+import type {
+  CapturePaymentInput,
+  CreatePaymentInput,
+  PaymentAdapterResult,
+  PaymentStatusInput,
+  PaymentWebhookInput,
+  RefundPaymentInput,
+  VerifiedPaymentWebhook,
+} from "./index";
 
 export async function createPaymentFunction(input: CreatePaymentInput): Promise<PaymentAdapterResult> {
   return {
     success: true,
-    provider: 'manual',
-    providerPaymentId: id('manual'),
-    status: 'pending',
+    provider: "pp_system_default",
+    providerPaymentId: `manual_${randomUUID()}`,
+    status: "pending",
     amount: input.amount,
     currencyCode: input.currencyCode,
-    data: {
-      paymentMode: 'manual',
-      message: 'Manual payment requires operator confirmation. Replace with a configured provider for live charging.',
-    },
+    data: { message: "Offline payment remains pending until an authorized operator records settlement." },
   };
 }
 
-export async function capturePaymentFunction(input: { providerPaymentId: string; amount?: number }): Promise<PaymentAdapterResult> {
-  return { success: true, provider: 'manual', providerPaymentId: input.providerPaymentId, status: 'captured', amount: input.amount };
+export async function capturePaymentFunction(input: CapturePaymentInput): Promise<PaymentAdapterResult> {
+  return { success: true, provider: "pp_system_default", providerPaymentId: input.providerPaymentId, status: "captured", amount: input.amount };
 }
 
-export async function refundPaymentFunction(input: { providerPaymentId: string; amount?: number; reason?: string }): Promise<PaymentAdapterResult> {
+export async function refundPaymentFunction(input: RefundPaymentInput): Promise<PaymentAdapterResult> {
   return {
     success: true,
-    provider: 'manual',
+    provider: "pp_system_default",
     providerPaymentId: input.providerPaymentId,
-    status: 'refunded',
+    status: "refunded",
     amount: input.amount,
-    data: { reason: input.reason || 'manual_refund' },
+    data: { reason: input.reason || "operator_refund", boundary: "Cafe cash-ledger refund only. External card refunds require separately recorded terminal evidence." },
   };
 }
 
-export async function getPaymentStatusFunction(input: { providerPaymentId: string }): Promise<PaymentAdapterResult> {
-  return { success: true, provider: 'manual', providerPaymentId: input.providerPaymentId, status: 'captured' };
+export async function getPaymentStatusFunction(input: PaymentStatusInput): Promise<PaymentAdapterResult> {
+  return { success: true, provider: "pp_system_default", providerPaymentId: input.providerPaymentId, status: "pending" };
 }
 
 export async function generatePaymentLinkFunction(input: CreatePaymentInput): Promise<PaymentAdapterResult> {
-  return {
-    success: true,
-    provider: 'manual',
-    providerPaymentId: id('manual_link'),
-    status: 'pending',
-    amount: input.amount,
-    currencyCode: input.currencyCode,
-    data: { url: `/checkout/manual?orderId=${input.orderId}` },
-  };
+  return createPaymentFunction(input);
 }
 
-export async function handleWebhookFunction(input: { event: any; headers?: Record<string, any> }): Promise<PaymentAdapterResult> {
-  return { success: true, provider: 'manual', status: 'received', data: { event: input.event } };
+export async function handleWebhookFunction(input: PaymentWebhookInput): Promise<VerifiedPaymentWebhook> {
+  void input;
+  throw new Error("Manual/offline payments do not accept webhooks");
 }

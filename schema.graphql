@@ -408,9 +408,723 @@ input UserRelateToManyForCreateInput {
   connect: [UserWhereUniqueInput!]
 }
 
+type StoreSetting {
+  id: ID!
+  singletonKey: String
+  name: String
+  tagline: String
+  description: String
+  address: String
+  phone: String
+  contactEmail: String
+  currencyCode: String
+  locale: String
+  timezone: String
+  brandColor: String
+  logoIcon: String
+  logoColor: String
+  weeklyHours: JSON
+  pickupLeadTimeMinutes: Int
+  pickupWindowMinutes: Int
+  pickupCapacityPerWindow: Int
+  taxRateBasisPoints: Int
+  menuCategories(where: MenuCategoryWhereInput! = {}, orderBy: [MenuCategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuCategoryWhereUniqueInput): [MenuCategory!]
+  menuCategoriesCount(where: MenuCategoryWhereInput! = {}): Int
+  menuItems(where: MenuItemWhereInput! = {}, orderBy: [MenuItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemWhereUniqueInput): [MenuItem!]
+  menuItemsCount(where: MenuItemWhereInput! = {}): Int
+  menuItemModifiers(where: MenuItemModifierWhereInput! = {}, orderBy: [MenuItemModifierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemModifierWhereUniqueInput): [MenuItemModifier!]
+  menuItemModifiersCount(where: MenuItemModifierWhereInput! = {}): Int
+  cafeOrders(where: CafeOrderWhereInput! = {}, orderBy: [CafeOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CafeOrderWhereUniqueInput): [CafeOrder!]
+  cafeOrdersCount(where: CafeOrderWhereInput! = {}): Int
+  orderItems(where: OrderItemWhereInput! = {}, orderBy: [OrderItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OrderItemWhereUniqueInput): [OrderItem!]
+  orderItemsCount(where: OrderItemWhereInput! = {}): Int
+  posOrders(where: PosOrderWhereInput! = {}, orderBy: [PosOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PosOrderWhereUniqueInput): [PosOrder!]
+  posOrdersCount(where: PosOrderWhereInput! = {}): Int
+  registerShifts(where: RegisterShiftWhereInput! = {}, orderBy: [RegisterShiftOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RegisterShiftWhereUniqueInput): [RegisterShift!]
+  registerShiftsCount(where: RegisterShiftWhereInput! = {}): Int
+  cashMovements(where: CashMovementWhereInput! = {}, orderBy: [CashMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CashMovementWhereUniqueInput): [CashMovement!]
+  cashMovementsCount(where: CashMovementWhereInput! = {}): Int
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  loyaltyAccounts(where: LoyaltyAccountWhereInput! = {}, orderBy: [LoyaltyAccountOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyAccountWhereUniqueInput): [LoyaltyAccount!]
+  loyaltyAccountsCount(where: LoyaltyAccountWhereInput! = {}): Int
+  subscriptions(where: SubscriptionWhereInput! = {}, orderBy: [SubscriptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SubscriptionWhereUniqueInput): [Subscription!]
+  subscriptionsCount(where: SubscriptionWhereInput! = {}): Int
+  cateringOrders(where: CateringOrderWhereInput! = {}, orderBy: [CateringOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CateringOrderWhereUniqueInput): [CateringOrder!]
+  cateringOrdersCount(where: CateringOrderWhereInput! = {}): Int
+  paymentEvents(where: PaymentEventWhereInput! = {}, orderBy: [PaymentEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentEventWhereUniqueInput): [PaymentEvent!]
+  paymentEventsCount(where: PaymentEventWhereInput! = {}): Int
+  inventoryItems(where: InventoryItemWhereInput! = {}, orderBy: [InventoryItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InventoryItemWhereUniqueInput): [InventoryItem!]
+  inventoryItemsCount(where: InventoryItemWhereInput! = {}): Int
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  suppliers(where: SupplierWhereInput! = {}, orderBy: [SupplierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SupplierWhereUniqueInput): [Supplier!]
+  suppliersCount(where: SupplierWhereInput! = {}): Int
+  purchaseOrders(where: PurchaseOrderWhereInput! = {}, orderBy: [PurchaseOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PurchaseOrderWhereUniqueInput): [PurchaseOrder!]
+  purchaseOrdersCount(where: PurchaseOrderWhereInput! = {}): Int
+  inventoryLots(where: InventoryLotWhereInput! = {}, orderBy: [InventoryLotOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InventoryLotWhereUniqueInput): [InventoryLot!]
+  inventoryLotsCount(where: InventoryLotWhereInput! = {}): Int
+  recipes(where: RecipeWhereInput! = {}, orderBy: [RecipeOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RecipeWhereUniqueInput): [Recipe!]
+  recipesCount(where: RecipeWhereInput! = {}): Int
+  ingredients(where: IngredientWhereInput! = {}, orderBy: [IngredientOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: IngredientWhereUniqueInput): [Ingredient!]
+  ingredientsCount(where: IngredientWhereInput! = {}): Int
+  prepBatches(where: PrepBatchWhereInput! = {}, orderBy: [PrepBatchOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PrepBatchWhereUniqueInput): [PrepBatch!]
+  prepBatchesCount(where: PrepBatchWhereInput! = {}): Int
+  prepBatchConsumptions(where: PrepBatchConsumptionWhereInput! = {}, orderBy: [PrepBatchConsumptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PrepBatchConsumptionWhereUniqueInput): [PrepBatchConsumption!]
+  prepBatchConsumptionsCount(where: PrepBatchConsumptionWhereInput! = {}): Int
+  wasteLogs(where: WasteLogWhereInput! = {}, orderBy: [WasteLogOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: WasteLogWhereUniqueInput): [WasteLog!]
+  wasteLogsCount(where: WasteLogWhereInput! = {}): Int
+  staffShifts(where: StaffShiftWhereInput! = {}, orderBy: [StaffShiftOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StaffShiftWhereUniqueInput): [StaffShift!]
+  staffShiftsCount(where: StaffShiftWhereInput! = {}): Int
+  domainEvents(where: CoffeeDomainEventWhereInput! = {}, orderBy: [CoffeeDomainEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeDomainEventWhereUniqueInput): [CoffeeDomainEvent!]
+  domainEventsCount(where: CoffeeDomainEventWhereInput! = {}): Int
+  outboxDeliveries(where: CoffeeOutboxDeliveryWhereInput! = {}, orderBy: [CoffeeOutboxDeliveryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeOutboxDeliveryWhereUniqueInput): [CoffeeOutboxDelivery!]
+  outboxDeliveriesCount(where: CoffeeOutboxDeliveryWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input StoreSettingWhereUniqueInput {
+  id: ID
+  singletonKey: String
+}
+
+input StoreSettingWhereInput {
+  AND: [StoreSettingWhereInput!]
+  OR: [StoreSettingWhereInput!]
+  NOT: [StoreSettingWhereInput!]
+  id: IDFilter
+  singletonKey: StringFilter
+  name: StringFilter
+  tagline: StringFilter
+  description: StringFilter
+  address: StringFilter
+  phone: StringFilter
+  contactEmail: StringFilter
+  currencyCode: StringFilter
+  locale: StringFilter
+  timezone: StringFilter
+  brandColor: StringFilter
+  logoIcon: StringFilter
+  logoColor: StringFilter
+  pickupLeadTimeMinutes: IntNullableFilter
+  pickupWindowMinutes: IntNullableFilter
+  pickupCapacityPerWindow: IntNullableFilter
+  taxRateBasisPoints: IntFilter
+  menuCategories: MenuCategoryManyRelationFilter
+  menuItems: MenuItemManyRelationFilter
+  menuItemModifiers: MenuItemModifierManyRelationFilter
+  cafeOrders: CafeOrderManyRelationFilter
+  orderItems: OrderItemManyRelationFilter
+  posOrders: PosOrderManyRelationFilter
+  registerShifts: RegisterShiftManyRelationFilter
+  cashMovements: CashMovementManyRelationFilter
+  payments: PaymentManyRelationFilter
+  loyaltyAccounts: LoyaltyAccountManyRelationFilter
+  subscriptions: SubscriptionManyRelationFilter
+  cateringOrders: CateringOrderManyRelationFilter
+  paymentEvents: PaymentEventManyRelationFilter
+  inventoryItems: InventoryItemManyRelationFilter
+  stockMovements: StockMovementManyRelationFilter
+  suppliers: SupplierManyRelationFilter
+  purchaseOrders: PurchaseOrderManyRelationFilter
+  inventoryLots: InventoryLotManyRelationFilter
+  recipes: RecipeManyRelationFilter
+  ingredients: IngredientManyRelationFilter
+  prepBatches: PrepBatchManyRelationFilter
+  prepBatchConsumptions: PrepBatchConsumptionManyRelationFilter
+  wasteLogs: WasteLogManyRelationFilter
+  staffShifts: StaffShiftManyRelationFilter
+  domainEvents: CoffeeDomainEventManyRelationFilter
+  outboxDeliveries: CoffeeOutboxDeliveryManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input IntNullableFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntNullableFilter
+}
+
+input IntFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntFilter
+}
+
+input MenuCategoryManyRelationFilter {
+  every: MenuCategoryWhereInput
+  some: MenuCategoryWhereInput
+  none: MenuCategoryWhereInput
+}
+
+input MenuItemManyRelationFilter {
+  every: MenuItemWhereInput
+  some: MenuItemWhereInput
+  none: MenuItemWhereInput
+}
+
+input MenuItemModifierManyRelationFilter {
+  every: MenuItemModifierWhereInput
+  some: MenuItemModifierWhereInput
+  none: MenuItemModifierWhereInput
+}
+
+input OrderItemManyRelationFilter {
+  every: OrderItemWhereInput
+  some: OrderItemWhereInput
+  none: OrderItemWhereInput
+}
+
+input PosOrderManyRelationFilter {
+  every: PosOrderWhereInput
+  some: PosOrderWhereInput
+  none: PosOrderWhereInput
+}
+
+input RegisterShiftManyRelationFilter {
+  every: RegisterShiftWhereInput
+  some: RegisterShiftWhereInput
+  none: RegisterShiftWhereInput
+}
+
+input CashMovementManyRelationFilter {
+  every: CashMovementWhereInput
+  some: CashMovementWhereInput
+  none: CashMovementWhereInput
+}
+
+input LoyaltyAccountManyRelationFilter {
+  every: LoyaltyAccountWhereInput
+  some: LoyaltyAccountWhereInput
+  none: LoyaltyAccountWhereInput
+}
+
+input SubscriptionManyRelationFilter {
+  every: SubscriptionWhereInput
+  some: SubscriptionWhereInput
+  none: SubscriptionWhereInput
+}
+
+input CateringOrderManyRelationFilter {
+  every: CateringOrderWhereInput
+  some: CateringOrderWhereInput
+  none: CateringOrderWhereInput
+}
+
+input PaymentEventManyRelationFilter {
+  every: PaymentEventWhereInput
+  some: PaymentEventWhereInput
+  none: PaymentEventWhereInput
+}
+
+input InventoryItemManyRelationFilter {
+  every: InventoryItemWhereInput
+  some: InventoryItemWhereInput
+  none: InventoryItemWhereInput
+}
+
+input StockMovementManyRelationFilter {
+  every: StockMovementWhereInput
+  some: StockMovementWhereInput
+  none: StockMovementWhereInput
+}
+
+input SupplierManyRelationFilter {
+  every: SupplierWhereInput
+  some: SupplierWhereInput
+  none: SupplierWhereInput
+}
+
+input PurchaseOrderManyRelationFilter {
+  every: PurchaseOrderWhereInput
+  some: PurchaseOrderWhereInput
+  none: PurchaseOrderWhereInput
+}
+
+input InventoryLotManyRelationFilter {
+  every: InventoryLotWhereInput
+  some: InventoryLotWhereInput
+  none: InventoryLotWhereInput
+}
+
+input RecipeManyRelationFilter {
+  every: RecipeWhereInput
+  some: RecipeWhereInput
+  none: RecipeWhereInput
+}
+
+input IngredientManyRelationFilter {
+  every: IngredientWhereInput
+  some: IngredientWhereInput
+  none: IngredientWhereInput
+}
+
+input PrepBatchManyRelationFilter {
+  every: PrepBatchWhereInput
+  some: PrepBatchWhereInput
+  none: PrepBatchWhereInput
+}
+
+input PrepBatchConsumptionManyRelationFilter {
+  every: PrepBatchConsumptionWhereInput
+  some: PrepBatchConsumptionWhereInput
+  none: PrepBatchConsumptionWhereInput
+}
+
+input WasteLogManyRelationFilter {
+  every: WasteLogWhereInput
+  some: WasteLogWhereInput
+  none: WasteLogWhereInput
+}
+
+input StaffShiftManyRelationFilter {
+  every: StaffShiftWhereInput
+  some: StaffShiftWhereInput
+  none: StaffShiftWhereInput
+}
+
+input CoffeeDomainEventManyRelationFilter {
+  every: CoffeeDomainEventWhereInput
+  some: CoffeeDomainEventWhereInput
+  none: CoffeeDomainEventWhereInput
+}
+
+input CoffeeOutboxDeliveryManyRelationFilter {
+  every: CoffeeOutboxDeliveryWhereInput
+  some: CoffeeOutboxDeliveryWhereInput
+  none: CoffeeOutboxDeliveryWhereInput
+}
+
+input StoreSettingOrderByInput {
+  id: OrderDirection
+  singletonKey: OrderDirection
+  name: OrderDirection
+  tagline: OrderDirection
+  description: OrderDirection
+  address: OrderDirection
+  phone: OrderDirection
+  contactEmail: OrderDirection
+  currencyCode: OrderDirection
+  locale: OrderDirection
+  timezone: OrderDirection
+  brandColor: OrderDirection
+  logoIcon: OrderDirection
+  logoColor: OrderDirection
+  pickupLeadTimeMinutes: OrderDirection
+  pickupWindowMinutes: OrderDirection
+  pickupCapacityPerWindow: OrderDirection
+  taxRateBasisPoints: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input StoreSettingUpdateInput {
+  singletonKey: String
+  name: String
+  tagline: String
+  description: String
+  address: String
+  phone: String
+  contactEmail: String
+  currencyCode: String
+  locale: String
+  timezone: String
+  brandColor: String
+  logoIcon: String
+  logoColor: String
+  weeklyHours: JSON
+  pickupLeadTimeMinutes: Int
+  pickupWindowMinutes: Int
+  pickupCapacityPerWindow: Int
+  taxRateBasisPoints: Int
+  menuCategories: MenuCategoryRelateToManyForUpdateInput
+  menuItems: MenuItemRelateToManyForUpdateInput
+  menuItemModifiers: MenuItemModifierRelateToManyForUpdateInput
+  cafeOrders: CafeOrderRelateToManyForUpdateInput
+  orderItems: OrderItemRelateToManyForUpdateInput
+  posOrders: PosOrderRelateToManyForUpdateInput
+  registerShifts: RegisterShiftRelateToManyForUpdateInput
+  cashMovements: CashMovementRelateToManyForUpdateInput
+  payments: PaymentRelateToManyForUpdateInput
+  loyaltyAccounts: LoyaltyAccountRelateToManyForUpdateInput
+  subscriptions: SubscriptionRelateToManyForUpdateInput
+  cateringOrders: CateringOrderRelateToManyForUpdateInput
+  paymentEvents: PaymentEventRelateToManyForUpdateInput
+  inventoryItems: InventoryItemRelateToManyForUpdateInput
+  stockMovements: StockMovementRelateToManyForUpdateInput
+  suppliers: SupplierRelateToManyForUpdateInput
+  purchaseOrders: PurchaseOrderRelateToManyForUpdateInput
+  inventoryLots: InventoryLotRelateToManyForUpdateInput
+  recipes: RecipeRelateToManyForUpdateInput
+  ingredients: IngredientRelateToManyForUpdateInput
+  prepBatches: PrepBatchRelateToManyForUpdateInput
+  prepBatchConsumptions: PrepBatchConsumptionRelateToManyForUpdateInput
+  wasteLogs: WasteLogRelateToManyForUpdateInput
+  staffShifts: StaffShiftRelateToManyForUpdateInput
+  domainEvents: CoffeeDomainEventRelateToManyForUpdateInput
+  outboxDeliveries: CoffeeOutboxDeliveryRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuCategoryRelateToManyForUpdateInput {
+  disconnect: [MenuCategoryWhereUniqueInput!]
+  set: [MenuCategoryWhereUniqueInput!]
+  create: [MenuCategoryCreateInput!]
+  connect: [MenuCategoryWhereUniqueInput!]
+}
+
+input MenuItemRelateToManyForUpdateInput {
+  disconnect: [MenuItemWhereUniqueInput!]
+  set: [MenuItemWhereUniqueInput!]
+  create: [MenuItemCreateInput!]
+  connect: [MenuItemWhereUniqueInput!]
+}
+
+input MenuItemModifierRelateToManyForUpdateInput {
+  disconnect: [MenuItemModifierWhereUniqueInput!]
+  set: [MenuItemModifierWhereUniqueInput!]
+  create: [MenuItemModifierCreateInput!]
+  connect: [MenuItemModifierWhereUniqueInput!]
+}
+
+input OrderItemRelateToManyForUpdateInput {
+  disconnect: [OrderItemWhereUniqueInput!]
+  set: [OrderItemWhereUniqueInput!]
+  create: [OrderItemCreateInput!]
+  connect: [OrderItemWhereUniqueInput!]
+}
+
+input PosOrderRelateToManyForUpdateInput {
+  disconnect: [PosOrderWhereUniqueInput!]
+  set: [PosOrderWhereUniqueInput!]
+  create: [PosOrderCreateInput!]
+  connect: [PosOrderWhereUniqueInput!]
+}
+
+input RegisterShiftRelateToManyForUpdateInput {
+  disconnect: [RegisterShiftWhereUniqueInput!]
+  set: [RegisterShiftWhereUniqueInput!]
+  create: [RegisterShiftCreateInput!]
+  connect: [RegisterShiftWhereUniqueInput!]
+}
+
+input CashMovementRelateToManyForUpdateInput {
+  disconnect: [CashMovementWhereUniqueInput!]
+  set: [CashMovementWhereUniqueInput!]
+  create: [CashMovementCreateInput!]
+  connect: [CashMovementWhereUniqueInput!]
+}
+
+input LoyaltyAccountRelateToManyForUpdateInput {
+  disconnect: [LoyaltyAccountWhereUniqueInput!]
+  set: [LoyaltyAccountWhereUniqueInput!]
+  create: [LoyaltyAccountCreateInput!]
+  connect: [LoyaltyAccountWhereUniqueInput!]
+}
+
+input SubscriptionRelateToManyForUpdateInput {
+  disconnect: [SubscriptionWhereUniqueInput!]
+  set: [SubscriptionWhereUniqueInput!]
+  create: [SubscriptionCreateInput!]
+  connect: [SubscriptionWhereUniqueInput!]
+}
+
+input CateringOrderRelateToManyForUpdateInput {
+  disconnect: [CateringOrderWhereUniqueInput!]
+  set: [CateringOrderWhereUniqueInput!]
+  create: [CateringOrderCreateInput!]
+  connect: [CateringOrderWhereUniqueInput!]
+}
+
+input PaymentEventRelateToManyForUpdateInput {
+  disconnect: [PaymentEventWhereUniqueInput!]
+  set: [PaymentEventWhereUniqueInput!]
+  create: [PaymentEventCreateInput!]
+  connect: [PaymentEventWhereUniqueInput!]
+}
+
+input InventoryItemRelateToManyForUpdateInput {
+  disconnect: [InventoryItemWhereUniqueInput!]
+  set: [InventoryItemWhereUniqueInput!]
+  create: [InventoryItemCreateInput!]
+  connect: [InventoryItemWhereUniqueInput!]
+}
+
+input StockMovementRelateToManyForUpdateInput {
+  disconnect: [StockMovementWhereUniqueInput!]
+  set: [StockMovementWhereUniqueInput!]
+  create: [StockMovementCreateInput!]
+  connect: [StockMovementWhereUniqueInput!]
+}
+
+input SupplierRelateToManyForUpdateInput {
+  disconnect: [SupplierWhereUniqueInput!]
+  set: [SupplierWhereUniqueInput!]
+  create: [SupplierCreateInput!]
+  connect: [SupplierWhereUniqueInput!]
+}
+
+input PurchaseOrderRelateToManyForUpdateInput {
+  disconnect: [PurchaseOrderWhereUniqueInput!]
+  set: [PurchaseOrderWhereUniqueInput!]
+  create: [PurchaseOrderCreateInput!]
+  connect: [PurchaseOrderWhereUniqueInput!]
+}
+
+input InventoryLotRelateToManyForUpdateInput {
+  disconnect: [InventoryLotWhereUniqueInput!]
+  set: [InventoryLotWhereUniqueInput!]
+  create: [InventoryLotCreateInput!]
+  connect: [InventoryLotWhereUniqueInput!]
+}
+
+input RecipeRelateToManyForUpdateInput {
+  disconnect: [RecipeWhereUniqueInput!]
+  set: [RecipeWhereUniqueInput!]
+  create: [RecipeCreateInput!]
+  connect: [RecipeWhereUniqueInput!]
+}
+
+input IngredientRelateToManyForUpdateInput {
+  disconnect: [IngredientWhereUniqueInput!]
+  set: [IngredientWhereUniqueInput!]
+  create: [IngredientCreateInput!]
+  connect: [IngredientWhereUniqueInput!]
+}
+
+input PrepBatchRelateToManyForUpdateInput {
+  disconnect: [PrepBatchWhereUniqueInput!]
+  set: [PrepBatchWhereUniqueInput!]
+  create: [PrepBatchCreateInput!]
+  connect: [PrepBatchWhereUniqueInput!]
+}
+
+input PrepBatchConsumptionRelateToManyForUpdateInput {
+  disconnect: [PrepBatchConsumptionWhereUniqueInput!]
+  set: [PrepBatchConsumptionWhereUniqueInput!]
+  create: [PrepBatchConsumptionCreateInput!]
+  connect: [PrepBatchConsumptionWhereUniqueInput!]
+}
+
+input WasteLogRelateToManyForUpdateInput {
+  disconnect: [WasteLogWhereUniqueInput!]
+  set: [WasteLogWhereUniqueInput!]
+  create: [WasteLogCreateInput!]
+  connect: [WasteLogWhereUniqueInput!]
+}
+
+input StaffShiftRelateToManyForUpdateInput {
+  disconnect: [StaffShiftWhereUniqueInput!]
+  set: [StaffShiftWhereUniqueInput!]
+  create: [StaffShiftCreateInput!]
+  connect: [StaffShiftWhereUniqueInput!]
+}
+
+input CoffeeDomainEventRelateToManyForUpdateInput {
+  disconnect: [CoffeeDomainEventWhereUniqueInput!]
+  set: [CoffeeDomainEventWhereUniqueInput!]
+  create: [CoffeeDomainEventCreateInput!]
+  connect: [CoffeeDomainEventWhereUniqueInput!]
+}
+
+input CoffeeOutboxDeliveryRelateToManyForUpdateInput {
+  disconnect: [CoffeeOutboxDeliveryWhereUniqueInput!]
+  set: [CoffeeOutboxDeliveryWhereUniqueInput!]
+  create: [CoffeeOutboxDeliveryCreateInput!]
+  connect: [CoffeeOutboxDeliveryWhereUniqueInput!]
+}
+
+input StoreSettingUpdateArgs {
+  where: StoreSettingWhereUniqueInput!
+  data: StoreSettingUpdateInput!
+}
+
+input StoreSettingCreateInput {
+  singletonKey: String
+  name: String
+  tagline: String
+  description: String
+  address: String
+  phone: String
+  contactEmail: String
+  currencyCode: String
+  locale: String
+  timezone: String
+  brandColor: String
+  logoIcon: String
+  logoColor: String
+  weeklyHours: JSON
+  pickupLeadTimeMinutes: Int
+  pickupWindowMinutes: Int
+  pickupCapacityPerWindow: Int
+  taxRateBasisPoints: Int
+  menuCategories: MenuCategoryRelateToManyForCreateInput
+  menuItems: MenuItemRelateToManyForCreateInput
+  menuItemModifiers: MenuItemModifierRelateToManyForCreateInput
+  cafeOrders: CafeOrderRelateToManyForCreateInput
+  orderItems: OrderItemRelateToManyForCreateInput
+  posOrders: PosOrderRelateToManyForCreateInput
+  registerShifts: RegisterShiftRelateToManyForCreateInput
+  cashMovements: CashMovementRelateToManyForCreateInput
+  payments: PaymentRelateToManyForCreateInput
+  loyaltyAccounts: LoyaltyAccountRelateToManyForCreateInput
+  subscriptions: SubscriptionRelateToManyForCreateInput
+  cateringOrders: CateringOrderRelateToManyForCreateInput
+  paymentEvents: PaymentEventRelateToManyForCreateInput
+  inventoryItems: InventoryItemRelateToManyForCreateInput
+  stockMovements: StockMovementRelateToManyForCreateInput
+  suppliers: SupplierRelateToManyForCreateInput
+  purchaseOrders: PurchaseOrderRelateToManyForCreateInput
+  inventoryLots: InventoryLotRelateToManyForCreateInput
+  recipes: RecipeRelateToManyForCreateInput
+  ingredients: IngredientRelateToManyForCreateInput
+  prepBatches: PrepBatchRelateToManyForCreateInput
+  prepBatchConsumptions: PrepBatchConsumptionRelateToManyForCreateInput
+  wasteLogs: WasteLogRelateToManyForCreateInput
+  staffShifts: StaffShiftRelateToManyForCreateInput
+  domainEvents: CoffeeDomainEventRelateToManyForCreateInput
+  outboxDeliveries: CoffeeOutboxDeliveryRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input MenuCategoryRelateToManyForCreateInput {
+  create: [MenuCategoryCreateInput!]
+  connect: [MenuCategoryWhereUniqueInput!]
+}
+
+input MenuItemRelateToManyForCreateInput {
+  create: [MenuItemCreateInput!]
+  connect: [MenuItemWhereUniqueInput!]
+}
+
+input MenuItemModifierRelateToManyForCreateInput {
+  create: [MenuItemModifierCreateInput!]
+  connect: [MenuItemModifierWhereUniqueInput!]
+}
+
+input OrderItemRelateToManyForCreateInput {
+  create: [OrderItemCreateInput!]
+  connect: [OrderItemWhereUniqueInput!]
+}
+
+input PosOrderRelateToManyForCreateInput {
+  create: [PosOrderCreateInput!]
+  connect: [PosOrderWhereUniqueInput!]
+}
+
+input RegisterShiftRelateToManyForCreateInput {
+  create: [RegisterShiftCreateInput!]
+  connect: [RegisterShiftWhereUniqueInput!]
+}
+
+input CashMovementRelateToManyForCreateInput {
+  create: [CashMovementCreateInput!]
+  connect: [CashMovementWhereUniqueInput!]
+}
+
+input LoyaltyAccountRelateToManyForCreateInput {
+  create: [LoyaltyAccountCreateInput!]
+  connect: [LoyaltyAccountWhereUniqueInput!]
+}
+
+input SubscriptionRelateToManyForCreateInput {
+  create: [SubscriptionCreateInput!]
+  connect: [SubscriptionWhereUniqueInput!]
+}
+
+input CateringOrderRelateToManyForCreateInput {
+  create: [CateringOrderCreateInput!]
+  connect: [CateringOrderWhereUniqueInput!]
+}
+
+input PaymentEventRelateToManyForCreateInput {
+  create: [PaymentEventCreateInput!]
+  connect: [PaymentEventWhereUniqueInput!]
+}
+
+input InventoryItemRelateToManyForCreateInput {
+  create: [InventoryItemCreateInput!]
+  connect: [InventoryItemWhereUniqueInput!]
+}
+
+input StockMovementRelateToManyForCreateInput {
+  create: [StockMovementCreateInput!]
+  connect: [StockMovementWhereUniqueInput!]
+}
+
+input SupplierRelateToManyForCreateInput {
+  create: [SupplierCreateInput!]
+  connect: [SupplierWhereUniqueInput!]
+}
+
+input PurchaseOrderRelateToManyForCreateInput {
+  create: [PurchaseOrderCreateInput!]
+  connect: [PurchaseOrderWhereUniqueInput!]
+}
+
+input InventoryLotRelateToManyForCreateInput {
+  create: [InventoryLotCreateInput!]
+  connect: [InventoryLotWhereUniqueInput!]
+}
+
+input RecipeRelateToManyForCreateInput {
+  create: [RecipeCreateInput!]
+  connect: [RecipeWhereUniqueInput!]
+}
+
+input IngredientRelateToManyForCreateInput {
+  create: [IngredientCreateInput!]
+  connect: [IngredientWhereUniqueInput!]
+}
+
+input PrepBatchRelateToManyForCreateInput {
+  create: [PrepBatchCreateInput!]
+  connect: [PrepBatchWhereUniqueInput!]
+}
+
+input PrepBatchConsumptionRelateToManyForCreateInput {
+  create: [PrepBatchConsumptionCreateInput!]
+  connect: [PrepBatchConsumptionWhereUniqueInput!]
+}
+
+input WasteLogRelateToManyForCreateInput {
+  create: [WasteLogCreateInput!]
+  connect: [WasteLogWhereUniqueInput!]
+}
+
+input StaffShiftRelateToManyForCreateInput {
+  create: [StaffShiftCreateInput!]
+  connect: [StaffShiftWhereUniqueInput!]
+}
+
+input CoffeeDomainEventRelateToManyForCreateInput {
+  create: [CoffeeDomainEventCreateInput!]
+  connect: [CoffeeDomainEventWhereUniqueInput!]
+}
+
+input CoffeeOutboxDeliveryRelateToManyForCreateInput {
+  create: [CoffeeOutboxDeliveryCreateInput!]
+  connect: [CoffeeOutboxDeliveryWhereUniqueInput!]
+}
+
 type MenuCategory {
   id: ID!
   name: String
+  store: StoreSetting
   description: String
   active: Boolean
   sortOrder: Int
@@ -430,29 +1144,13 @@ input MenuCategoryWhereInput {
   NOT: [MenuCategoryWhereInput!]
   id: IDFilter
   name: StringFilter
+  store: StoreSettingWhereInput
   description: StringFilter
   active: BooleanFilter
   sortOrder: IntNullableFilter
   menuItems: MenuItemManyRelationFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
-}
-
-input IntNullableFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: IntNullableFilter
-}
-
-input MenuItemManyRelationFilter {
-  every: MenuItemWhereInput
-  some: MenuItemWhereInput
-  none: MenuItemWhereInput
 }
 
 input MenuCategoryOrderByInput {
@@ -467,6 +1165,7 @@ input MenuCategoryOrderByInput {
 
 input MenuCategoryUpdateInput {
   name: String
+  store: StoreSettingRelateToOneForUpdateInput
   description: String
   active: Boolean
   sortOrder: Int
@@ -475,11 +1174,10 @@ input MenuCategoryUpdateInput {
   updatedAt: DateTime
 }
 
-input MenuItemRelateToManyForUpdateInput {
-  disconnect: [MenuItemWhereUniqueInput!]
-  set: [MenuItemWhereUniqueInput!]
-  create: [MenuItemCreateInput!]
-  connect: [MenuItemWhereUniqueInput!]
+input StoreSettingRelateToOneForUpdateInput {
+  create: StoreSettingCreateInput
+  connect: StoreSettingWhereUniqueInput
+  disconnect: Boolean
 }
 
 input MenuCategoryUpdateArgs {
@@ -489,6 +1187,7 @@ input MenuCategoryUpdateArgs {
 
 input MenuCategoryCreateInput {
   name: String
+  store: StoreSettingRelateToOneForCreateInput
   description: String
   active: Boolean
   sortOrder: Int
@@ -497,14 +1196,16 @@ input MenuCategoryCreateInput {
   updatedAt: DateTime
 }
 
-input MenuItemRelateToManyForCreateInput {
-  create: [MenuItemCreateInput!]
-  connect: [MenuItemWhereUniqueInput!]
+input StoreSettingRelateToOneForCreateInput {
+  create: StoreSettingCreateInput
+  connect: StoreSettingWhereUniqueInput
 }
 
 type MenuItem {
   id: ID!
+  idempotencyKey: String
   name: String
+  store: StoreSetting
   description: MenuItem_description_Document
   shortDescription: String
   price: Int
@@ -512,6 +1213,9 @@ type MenuItem {
   featured: Boolean
   popular: Boolean
   imageUrl: String
+  primaryImageUrl: String
+  menuItemImages(where: MenuItemImageWhereInput! = {}, orderBy: [MenuItemImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemImageWhereUniqueInput): [MenuItemImage!]
+  menuItemImagesCount(where: MenuItemImageWhereInput! = {}): Int
   prepTimeMinutes: Int
   caffeineMg: Int
   calories: Int
@@ -536,6 +1240,7 @@ type MenuItem_description_Document {
 
 input MenuItemWhereUniqueInput {
   id: ID
+  idempotencyKey: String
 }
 
 input MenuItemWhereInput {
@@ -543,13 +1248,16 @@ input MenuItemWhereInput {
   OR: [MenuItemWhereInput!]
   NOT: [MenuItemWhereInput!]
   id: IDFilter
+  idempotencyKey: StringNullableFilter
   name: StringFilter
+  store: StoreSettingWhereInput
   shortDescription: StringFilter
   price: IntFilter
   available: BooleanFilter
   featured: BooleanFilter
   popular: BooleanFilter
   imageUrl: StringNullableFilter
+  menuItemImages: MenuItemImageManyRelationFilter
   prepTimeMinutes: IntNullableFilter
   caffeineMg: IntNullableFilter
   calories: IntNullableFilter
@@ -562,31 +1270,15 @@ input MenuItemWhereInput {
   updatedAt: DateTimeFilter
 }
 
-input IntFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: IntFilter
-}
-
-input MenuItemModifierManyRelationFilter {
-  every: MenuItemModifierWhereInput
-  some: MenuItemModifierWhereInput
-  none: MenuItemModifierWhereInput
-}
-
-input OrderItemManyRelationFilter {
-  every: OrderItemWhereInput
-  some: OrderItemWhereInput
-  none: OrderItemWhereInput
+input MenuItemImageManyRelationFilter {
+  every: MenuItemImageWhereInput
+  some: MenuItemImageWhereInput
+  none: MenuItemImageWhereInput
 }
 
 input MenuItemOrderByInput {
   id: OrderDirection
+  idempotencyKey: OrderDirection
   name: OrderDirection
   shortDescription: OrderDirection
   price: OrderDirection
@@ -603,7 +1295,9 @@ input MenuItemOrderByInput {
 }
 
 input MenuItemUpdateInput {
+  idempotencyKey: String
   name: String
+  store: StoreSettingRelateToOneForUpdateInput
   description: JSON
   shortDescription: String
   price: Int
@@ -611,6 +1305,7 @@ input MenuItemUpdateInput {
   featured: Boolean
   popular: Boolean
   imageUrl: String
+  menuItemImages: MenuItemImageRelateToManyForUpdateInput
   prepTimeMinutes: Int
   caffeineMg: Int
   calories: Int
@@ -626,24 +1321,17 @@ input MenuItemUpdateInput {
   updatedAt: DateTime
 }
 
+input MenuItemImageRelateToManyForUpdateInput {
+  disconnect: [MenuItemImageWhereUniqueInput!]
+  set: [MenuItemImageWhereUniqueInput!]
+  create: [MenuItemImageCreateInput!]
+  connect: [MenuItemImageWhereUniqueInput!]
+}
+
 input MenuCategoryRelateToOneForUpdateInput {
   create: MenuCategoryCreateInput
   connect: MenuCategoryWhereUniqueInput
   disconnect: Boolean
-}
-
-input MenuItemModifierRelateToManyForUpdateInput {
-  disconnect: [MenuItemModifierWhereUniqueInput!]
-  set: [MenuItemModifierWhereUniqueInput!]
-  create: [MenuItemModifierCreateInput!]
-  connect: [MenuItemModifierWhereUniqueInput!]
-}
-
-input OrderItemRelateToManyForUpdateInput {
-  disconnect: [OrderItemWhereUniqueInput!]
-  set: [OrderItemWhereUniqueInput!]
-  create: [OrderItemCreateInput!]
-  connect: [OrderItemWhereUniqueInput!]
 }
 
 input InventoryItemRelateToOneForUpdateInput {
@@ -658,7 +1346,9 @@ input MenuItemUpdateArgs {
 }
 
 input MenuItemCreateInput {
+  idempotencyKey: String
   name: String
+  store: StoreSettingRelateToOneForCreateInput
   description: JSON
   shortDescription: String
   price: Int
@@ -666,6 +1356,7 @@ input MenuItemCreateInput {
   featured: Boolean
   popular: Boolean
   imageUrl: String
+  menuItemImages: MenuItemImageRelateToManyForCreateInput
   prepTimeMinutes: Int
   caffeineMg: Int
   calories: Int
@@ -681,19 +1372,14 @@ input MenuItemCreateInput {
   updatedAt: DateTime
 }
 
+input MenuItemImageRelateToManyForCreateInput {
+  create: [MenuItemImageCreateInput!]
+  connect: [MenuItemImageWhereUniqueInput!]
+}
+
 input MenuCategoryRelateToOneForCreateInput {
   create: MenuCategoryCreateInput
   connect: MenuCategoryWhereUniqueInput
-}
-
-input MenuItemModifierRelateToManyForCreateInput {
-  create: [MenuItemModifierCreateInput!]
-  connect: [MenuItemModifierWhereUniqueInput!]
-}
-
-input OrderItemRelateToManyForCreateInput {
-  create: [OrderItemCreateInput!]
-  connect: [OrderItemWhereUniqueInput!]
 }
 
 input InventoryItemRelateToOneForCreateInput {
@@ -701,8 +1387,99 @@ input InventoryItemRelateToOneForCreateInput {
   connect: InventoryItemWhereUniqueInput
 }
 
+type MenuItemImage {
+  id: ID!
+  image: ImageFieldOutput
+  imagePath: String
+  altText: String
+  order: Int
+  menuItems(where: MenuItemWhereInput! = {}, orderBy: [MenuItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemWhereUniqueInput): [MenuItem!]
+  menuItemsCount(where: MenuItemWhereInput! = {}): Int
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type ImageFieldOutput {
+  id: ID!
+  filesize: Int!
+  width: Int!
+  height: Int!
+  extension: ImageExtension!
+  url: String!
+}
+
+enum ImageExtension {
+  jpg
+  png
+  webp
+  gif
+}
+
+input MenuItemImageWhereUniqueInput {
+  id: ID
+}
+
+input MenuItemImageWhereInput {
+  AND: [MenuItemImageWhereInput!]
+  OR: [MenuItemImageWhereInput!]
+  NOT: [MenuItemImageWhereInput!]
+  id: IDFilter
+  imagePath: StringFilter
+  altText: StringFilter
+  order: IntNullableFilter
+  menuItems: MenuItemManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input MenuItemImageOrderByInput {
+  id: OrderDirection
+  imagePath: OrderDirection
+  altText: OrderDirection
+  order: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input MenuItemImageUpdateInput {
+  image: ImageFieldInput
+  imagePath: String
+  altText: String
+  order: Int
+  menuItems: MenuItemRelateToManyForUpdateInput
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ImageFieldInput {
+  upload: Upload!
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+input MenuItemImageUpdateArgs {
+  where: MenuItemImageWhereUniqueInput!
+  data: MenuItemImageUpdateInput!
+}
+
+input MenuItemImageCreateInput {
+  image: ImageFieldInput
+  imagePath: String
+  altText: String
+  order: Int
+  menuItems: MenuItemRelateToManyForCreateInput
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
 type MenuItemModifier {
   id: ID!
+  idempotencyKey: String
+  store: StoreSetting
   name: String
   modifierGroup: String
   modifierGroupLabel: String
@@ -713,12 +1490,19 @@ type MenuItemModifier {
   defaultSelected: Boolean
   inStock: Boolean
   menuItem: MenuItem
+  inventoryAction: String
+  inventoryItem: InventoryItem
+  replacesInventoryItem: InventoryItem
+  inventoryQuantity: Decimal
   createdAt: DateTime
   updatedAt: DateTime
 }
 
+scalar Decimal
+
 input MenuItemModifierWhereUniqueInput {
   id: ID
+  idempotencyKey: String
 }
 
 input MenuItemModifierWhereInput {
@@ -726,6 +1510,8 @@ input MenuItemModifierWhereInput {
   OR: [MenuItemModifierWhereInput!]
   NOT: [MenuItemModifierWhereInput!]
   id: IDFilter
+  idempotencyKey: StringNullableFilter
+  store: StoreSettingWhereInput
   name: StringFilter
   modifierGroup: StringNullableFilter
   modifierGroupLabel: StringFilter
@@ -736,12 +1522,28 @@ input MenuItemModifierWhereInput {
   defaultSelected: BooleanFilter
   inStock: BooleanFilter
   menuItem: MenuItemWhereInput
+  inventoryAction: StringNullableFilter
+  inventoryItem: InventoryItemWhereInput
+  replacesInventoryItem: InventoryItemWhereInput
+  inventoryQuantity: DecimalNullableFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
 
+input DecimalNullableFilter {
+  equals: Decimal
+  in: [Decimal!]
+  notIn: [Decimal!]
+  lt: Decimal
+  lte: Decimal
+  gt: Decimal
+  gte: Decimal
+  not: DecimalNullableFilter
+}
+
 input MenuItemModifierOrderByInput {
   id: OrderDirection
+  idempotencyKey: OrderDirection
   name: OrderDirection
   modifierGroup: OrderDirection
   modifierGroupLabel: OrderDirection
@@ -751,11 +1553,15 @@ input MenuItemModifierOrderByInput {
   priceAdjustment: OrderDirection
   defaultSelected: OrderDirection
   inStock: OrderDirection
+  inventoryAction: OrderDirection
+  inventoryQuantity: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
 
 input MenuItemModifierUpdateInput {
+  idempotencyKey: String
+  store: StoreSettingRelateToOneForUpdateInput
   name: String
   modifierGroup: String
   modifierGroupLabel: String
@@ -766,6 +1572,10 @@ input MenuItemModifierUpdateInput {
   defaultSelected: Boolean
   inStock: Boolean
   menuItem: MenuItemRelateToOneForUpdateInput
+  inventoryAction: String
+  inventoryItem: InventoryItemRelateToOneForUpdateInput
+  replacesInventoryItem: InventoryItemRelateToOneForUpdateInput
+  inventoryQuantity: Decimal
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -782,6 +1592,8 @@ input MenuItemModifierUpdateArgs {
 }
 
 input MenuItemModifierCreateInput {
+  idempotencyKey: String
+  store: StoreSettingRelateToOneForCreateInput
   name: String
   modifierGroup: String
   modifierGroupLabel: String
@@ -792,6 +1604,10 @@ input MenuItemModifierCreateInput {
   defaultSelected: Boolean
   inStock: Boolean
   menuItem: MenuItemRelateToOneForCreateInput
+  inventoryAction: String
+  inventoryItem: InventoryItemRelateToOneForCreateInput
+  replacesInventoryItem: InventoryItemRelateToOneForCreateInput
+  inventoryQuantity: Decimal
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -804,6 +1620,8 @@ input MenuItemRelateToOneForCreateInput {
 type CafeOrder {
   id: ID!
   orderNumber: String
+  idempotencyKey: String
+  requestFingerprint: String
   fulfillmentType: String
   orderSource: String
   status: String
@@ -827,12 +1645,19 @@ type CafeOrder {
   isRush: Boolean
   handoffCode: String
   secretKey: String
+  store: StoreSetting
   orderAgeMinutes: Int
   customer: User
   orderItems(where: OrderItemWhereInput! = {}, orderBy: [OrderItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OrderItemWhereUniqueInput): [OrderItem!]
   orderItemsCount(where: OrderItemWhereInput! = {}): Int
   payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
   paymentsCount(where: PaymentWhereInput! = {}): Int
+  paymentEvents(where: PaymentEventWhereInput! = {}, orderBy: [PaymentEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentEventWhereUniqueInput): [PaymentEvent!]
+  paymentEventsCount(where: PaymentEventWhereInput! = {}): Int
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  prepBatchConsumptions(where: PrepBatchConsumptionWhereInput! = {}, orderBy: [PrepBatchConsumptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PrepBatchConsumptionWhereUniqueInput): [PrepBatchConsumption!]
+  prepBatchConsumptionsCount(where: PrepBatchConsumptionWhereInput! = {}): Int
   loyaltyAccount: LoyaltyAccount
   loyaltyEvents(where: LoyaltyEventWhereInput! = {}, orderBy: [LoyaltyEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyEventWhereUniqueInput): [LoyaltyEvent!]
   loyaltyEventsCount(where: LoyaltyEventWhereInput! = {}): Int
@@ -873,10 +1698,13 @@ input CafeOrderWhereInput {
   cancelledAt: DateTimeNullableFilter
   isRush: BooleanFilter
   handoffCode: StringFilter
-  secretKey: StringFilter
+  store: StoreSettingWhereInput
   customer: UserWhereInput
   orderItems: OrderItemManyRelationFilter
   payments: PaymentManyRelationFilter
+  paymentEvents: PaymentEventManyRelationFilter
+  stockMovements: StockMovementManyRelationFilter
+  prepBatchConsumptions: PrepBatchConsumptionManyRelationFilter
   loyaltyAccount: LoyaltyAccountWhereInput
   loyaltyEvents: LoyaltyEventManyRelationFilter
   createdAt: DateTimeFilter
@@ -914,13 +1742,14 @@ input CafeOrderOrderByInput {
   cancelledAt: OrderDirection
   isRush: OrderDirection
   handoffCode: OrderDirection
-  secretKey: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
 
 input CafeOrderUpdateInput {
   orderNumber: String
+  idempotencyKey: String
+  requestFingerprint: String
   fulfillmentType: String
   orderSource: String
   status: String
@@ -944,9 +1773,13 @@ input CafeOrderUpdateInput {
   isRush: Boolean
   handoffCode: String
   secretKey: String
+  store: StoreSettingRelateToOneForUpdateInput
   customer: UserRelateToOneForUpdateInput
   orderItems: OrderItemRelateToManyForUpdateInput
   payments: PaymentRelateToManyForUpdateInput
+  paymentEvents: PaymentEventRelateToManyForUpdateInput
+  stockMovements: StockMovementRelateToManyForUpdateInput
+  prepBatchConsumptions: PrepBatchConsumptionRelateToManyForUpdateInput
   loyaltyAccount: LoyaltyAccountRelateToOneForUpdateInput
   loyaltyEvents: LoyaltyEventRelateToManyForUpdateInput
   createdAt: DateTime
@@ -973,6 +1806,8 @@ input CafeOrderUpdateArgs {
 
 input CafeOrderCreateInput {
   orderNumber: String
+  idempotencyKey: String
+  requestFingerprint: String
   fulfillmentType: String
   orderSource: String
   status: String
@@ -996,9 +1831,13 @@ input CafeOrderCreateInput {
   isRush: Boolean
   handoffCode: String
   secretKey: String
+  store: StoreSettingRelateToOneForCreateInput
   customer: UserRelateToOneForCreateInput
   orderItems: OrderItemRelateToManyForCreateInput
   payments: PaymentRelateToManyForCreateInput
+  paymentEvents: PaymentEventRelateToManyForCreateInput
+  stockMovements: StockMovementRelateToManyForCreateInput
+  prepBatchConsumptions: PrepBatchConsumptionRelateToManyForCreateInput
   loyaltyAccount: LoyaltyAccountRelateToOneForCreateInput
   loyaltyEvents: LoyaltyEventRelateToManyForCreateInput
   createdAt: DateTime
@@ -1017,10 +1856,13 @@ input LoyaltyEventRelateToManyForCreateInput {
 
 type OrderItem {
   id: ID!
+  store: StoreSetting
   quantity: Int
   price: Int
   itemNameSnapshot: String
+  imagePathSnapshot: String
   customizationsSummary: String
+  modifierSnapshot: JSON
   specialInstructions: String
   barStatus: String
   station: String
@@ -1046,9 +1888,11 @@ input OrderItemWhereInput {
   OR: [OrderItemWhereInput!]
   NOT: [OrderItemWhereInput!]
   id: IDFilter
+  store: StoreSettingWhereInput
   quantity: IntFilter
   price: IntFilter
   itemNameSnapshot: StringFilter
+  imagePathSnapshot: StringFilter
   customizationsSummary: StringFilter
   specialInstructions: StringFilter
   barStatus: StringNullableFilter
@@ -1069,6 +1913,7 @@ input OrderItemOrderByInput {
   quantity: OrderDirection
   price: OrderDirection
   itemNameSnapshot: OrderDirection
+  imagePathSnapshot: OrderDirection
   customizationsSummary: OrderDirection
   specialInstructions: OrderDirection
   barStatus: OrderDirection
@@ -1082,10 +1927,13 @@ input OrderItemOrderByInput {
 }
 
 input OrderItemUpdateInput {
+  store: StoreSettingRelateToOneForUpdateInput
   quantity: Int
   price: Int
   itemNameSnapshot: String
+  imagePathSnapshot: String
   customizationsSummary: String
+  modifierSnapshot: JSON
   specialInstructions: String
   barStatus: String
   station: String
@@ -1112,10 +1960,13 @@ input OrderItemUpdateArgs {
 }
 
 input OrderItemCreateInput {
+  store: StoreSettingRelateToOneForCreateInput
   quantity: Int
   price: Int
   itemNameSnapshot: String
+  imagePathSnapshot: String
   customizationsSummary: String
+  modifierSnapshot: JSON
   specialInstructions: String
   barStatus: String
   station: String
@@ -1137,6 +1988,11 @@ input CafeOrderRelateToOneForCreateInput {
 
 type Payment {
   id: ID!
+  idempotencyKey: String
+  refundIdempotencyKey: String
+  refundedAmount: Int
+  refundReason: String
+  refundedAt: DateTime
   status: String
   method: String
   amount: Int
@@ -1145,15 +2001,22 @@ type Payment {
   providerPaymentId: String
   failureMessage: String
   processedAt: DateTime
+  store: StoreSetting
   order: CafeOrder
   customer: User
   paymentProvider: PaymentProvider
+  events(where: PaymentEventWhereInput! = {}, orderBy: [PaymentEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentEventWhereUniqueInput): [PaymentEvent!]
+  eventsCount(where: PaymentEventWhereInput! = {}): Int
+  registerShift: RegisterShift
+  refundRegisterShift: RegisterShift
   createdAt: DateTime
   updatedAt: DateTime
 }
 
 input PaymentWhereUniqueInput {
   id: ID
+  idempotencyKey: String
+  refundIdempotencyKey: String
 }
 
 input PaymentWhereInput {
@@ -1161,6 +2024,11 @@ input PaymentWhereInput {
   OR: [PaymentWhereInput!]
   NOT: [PaymentWhereInput!]
   id: IDFilter
+  idempotencyKey: StringNullableFilter
+  refundIdempotencyKey: StringNullableFilter
+  refundedAmount: IntNullableFilter
+  refundReason: StringFilter
+  refundedAt: DateTimeNullableFilter
   status: StringNullableFilter
   method: StringNullableFilter
   amount: IntFilter
@@ -1169,15 +2037,24 @@ input PaymentWhereInput {
   providerPaymentId: StringFilter
   failureMessage: StringFilter
   processedAt: DateTimeNullableFilter
+  store: StoreSettingWhereInput
   order: CafeOrderWhereInput
   customer: UserWhereInput
   paymentProvider: PaymentProviderWhereInput
+  events: PaymentEventManyRelationFilter
+  registerShift: RegisterShiftWhereInput
+  refundRegisterShift: RegisterShiftWhereInput
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
 
 input PaymentOrderByInput {
   id: OrderDirection
+  idempotencyKey: OrderDirection
+  refundIdempotencyKey: OrderDirection
+  refundedAmount: OrderDirection
+  refundReason: OrderDirection
+  refundedAt: OrderDirection
   status: OrderDirection
   method: OrderDirection
   amount: OrderDirection
@@ -1191,6 +2068,11 @@ input PaymentOrderByInput {
 }
 
 input PaymentUpdateInput {
+  idempotencyKey: String
+  refundIdempotencyKey: String
+  refundedAmount: Int
+  refundReason: String
+  refundedAt: DateTime
   status: String
   method: String
   amount: Int
@@ -1199,9 +2081,13 @@ input PaymentUpdateInput {
   providerPaymentId: String
   failureMessage: String
   processedAt: DateTime
+  store: StoreSettingRelateToOneForUpdateInput
   order: CafeOrderRelateToOneForUpdateInput
   customer: UserRelateToOneForUpdateInput
   paymentProvider: PaymentProviderRelateToOneForUpdateInput
+  events: PaymentEventRelateToManyForUpdateInput
+  registerShift: RegisterShiftRelateToOneForUpdateInput
+  refundRegisterShift: RegisterShiftRelateToOneForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -1212,12 +2098,23 @@ input PaymentProviderRelateToOneForUpdateInput {
   disconnect: Boolean
 }
 
+input RegisterShiftRelateToOneForUpdateInput {
+  create: RegisterShiftCreateInput
+  connect: RegisterShiftWhereUniqueInput
+  disconnect: Boolean
+}
+
 input PaymentUpdateArgs {
   where: PaymentWhereUniqueInput!
   data: PaymentUpdateInput!
 }
 
 input PaymentCreateInput {
+  idempotencyKey: String
+  refundIdempotencyKey: String
+  refundedAmount: Int
+  refundReason: String
+  refundedAt: DateTime
   status: String
   method: String
   amount: Int
@@ -1226,9 +2123,13 @@ input PaymentCreateInput {
   providerPaymentId: String
   failureMessage: String
   processedAt: DateTime
+  store: StoreSettingRelateToOneForCreateInput
   order: CafeOrderRelateToOneForCreateInput
   customer: UserRelateToOneForCreateInput
   paymentProvider: PaymentProviderRelateToOneForCreateInput
+  events: PaymentEventRelateToManyForCreateInput
+  registerShift: RegisterShiftRelateToOneForCreateInput
+  refundRegisterShift: RegisterShiftRelateToOneForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -1238,19 +2139,116 @@ input PaymentProviderRelateToOneForCreateInput {
   connect: PaymentProviderWhereUniqueInput
 }
 
+input RegisterShiftRelateToOneForCreateInput {
+  create: RegisterShiftCreateInput
+  connect: RegisterShiftWhereUniqueInput
+}
+
+type PaymentEvent {
+  id: ID!
+  replayKey: String
+  providerCode: String
+  providerEventId: String
+  eventType: String
+  payloadHash: String
+  status: String
+  processedAt: DateTime
+  store: StoreSetting
+  order: CafeOrder
+  payment: Payment
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentEventWhereUniqueInput {
+  id: ID
+  replayKey: String
+}
+
+input PaymentEventWhereInput {
+  AND: [PaymentEventWhereInput!]
+  OR: [PaymentEventWhereInput!]
+  NOT: [PaymentEventWhereInput!]
+  id: IDFilter
+  replayKey: StringFilter
+  providerCode: StringFilter
+  providerEventId: StringFilter
+  eventType: StringFilter
+  payloadHash: StringFilter
+  status: StringFilter
+  processedAt: DateTimeNullableFilter
+  store: StoreSettingWhereInput
+  order: CafeOrderWhereInput
+  payment: PaymentWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentEventOrderByInput {
+  id: OrderDirection
+  replayKey: OrderDirection
+  providerCode: OrderDirection
+  providerEventId: OrderDirection
+  eventType: OrderDirection
+  payloadHash: OrderDirection
+  status: OrderDirection
+  processedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentEventUpdateInput {
+  replayKey: String
+  providerCode: String
+  providerEventId: String
+  eventType: String
+  payloadHash: String
+  status: String
+  processedAt: DateTime
+  store: StoreSettingRelateToOneForUpdateInput
+  order: CafeOrderRelateToOneForUpdateInput
+  payment: PaymentRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentRelateToOneForUpdateInput {
+  create: PaymentCreateInput
+  connect: PaymentWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PaymentEventUpdateArgs {
+  where: PaymentEventWhereUniqueInput!
+  data: PaymentEventUpdateInput!
+}
+
+input PaymentEventCreateInput {
+  replayKey: String
+  providerCode: String
+  providerEventId: String
+  eventType: String
+  payloadHash: String
+  status: String
+  processedAt: DateTime
+  store: StoreSettingRelateToOneForCreateInput
+  order: CafeOrderRelateToOneForCreateInput
+  payment: PaymentRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentRelateToOneForCreateInput {
+  create: PaymentCreateInput
+  connect: PaymentWhereUniqueInput
+}
+
 type PaymentProvider {
   id: ID!
   name: String
   code: String
   isInstalled: Boolean
-  credentials: JSON
   metadata: JSON
-  createPaymentFunction: String
-  capturePaymentFunction: String
-  refundPaymentFunction: String
-  getPaymentStatusFunction: String
-  generatePaymentLinkFunction: String
-  handleWebhookFunction: String
   paymentRecords(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
   paymentRecordsCount(where: PaymentWhereInput! = {}): Int
   createdAt: DateTime
@@ -1270,12 +2268,6 @@ input PaymentProviderWhereInput {
   name: StringFilter
   code: StringFilter
   isInstalled: BooleanFilter
-  createPaymentFunction: StringFilter
-  capturePaymentFunction: StringFilter
-  refundPaymentFunction: StringFilter
-  getPaymentStatusFunction: StringFilter
-  generatePaymentLinkFunction: StringFilter
-  handleWebhookFunction: StringFilter
   paymentRecords: PaymentManyRelationFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -1286,12 +2278,6 @@ input PaymentProviderOrderByInput {
   name: OrderDirection
   code: OrderDirection
   isInstalled: OrderDirection
-  createPaymentFunction: OrderDirection
-  capturePaymentFunction: OrderDirection
-  refundPaymentFunction: OrderDirection
-  getPaymentStatusFunction: OrderDirection
-  generatePaymentLinkFunction: OrderDirection
-  handleWebhookFunction: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -1300,14 +2286,7 @@ input PaymentProviderUpdateInput {
   name: String
   code: String
   isInstalled: Boolean
-  credentials: JSON
   metadata: JSON
-  createPaymentFunction: String
-  capturePaymentFunction: String
-  refundPaymentFunction: String
-  getPaymentStatusFunction: String
-  generatePaymentLinkFunction: String
-  handleWebhookFunction: String
   paymentRecords: PaymentRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -1322,14 +2301,7 @@ input PaymentProviderCreateInput {
   name: String
   code: String
   isInstalled: Boolean
-  credentials: JSON
   metadata: JSON
-  createPaymentFunction: String
-  capturePaymentFunction: String
-  refundPaymentFunction: String
-  getPaymentStatusFunction: String
-  generatePaymentLinkFunction: String
-  handleWebhookFunction: String
   paymentRecords: PaymentRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -1338,6 +2310,7 @@ input PaymentProviderCreateInput {
 type InventoryItem {
   id: ID!
   name: String
+  store: StoreSetting
   category: String
   unit: String
   currentStock: Decimal
@@ -1350,11 +2323,15 @@ type InventoryItem {
   menuItemsCount(where: MenuItemWhereInput! = {}): Int
   stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
   stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  inventoryLots(where: InventoryLotWhereInput! = {}, orderBy: [InventoryLotOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InventoryLotWhereUniqueInput): [InventoryLot!]
+  inventoryLotsCount(where: InventoryLotWhereInput! = {}): Int
+  purchaseOrders(where: PurchaseOrderWhereInput! = {}, orderBy: [PurchaseOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PurchaseOrderWhereUniqueInput): [PurchaseOrder!]
+  purchaseOrdersCount(where: PurchaseOrderWhereInput! = {}): Int
+  wasteLogs(where: WasteLogWhereInput! = {}, orderBy: [WasteLogOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: WasteLogWhereUniqueInput): [WasteLog!]
+  wasteLogsCount(where: WasteLogWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
 }
-
-scalar Decimal
 
 input InventoryItemWhereUniqueInput {
   id: ID
@@ -1366,6 +2343,7 @@ input InventoryItemWhereInput {
   NOT: [InventoryItemWhereInput!]
   id: IDFilter
   name: StringFilter
+  store: StoreSettingWhereInput
   category: StringNullableFilter
   unit: StringNullableFilter
   currentStock: DecimalNullableFilter
@@ -1376,25 +2354,11 @@ input InventoryItemWhereInput {
   sku: StringFilter
   menuItems: MenuItemManyRelationFilter
   stockMovements: StockMovementManyRelationFilter
+  inventoryLots: InventoryLotManyRelationFilter
+  purchaseOrders: PurchaseOrderManyRelationFilter
+  wasteLogs: WasteLogManyRelationFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
-}
-
-input DecimalNullableFilter {
-  equals: Decimal
-  in: [Decimal!]
-  notIn: [Decimal!]
-  lt: Decimal
-  lte: Decimal
-  gt: Decimal
-  gte: Decimal
-  not: DecimalNullableFilter
-}
-
-input StockMovementManyRelationFilter {
-  every: StockMovementWhereInput
-  some: StockMovementWhereInput
-  none: StockMovementWhereInput
 }
 
 input InventoryItemOrderByInput {
@@ -1414,6 +2378,7 @@ input InventoryItemOrderByInput {
 
 input InventoryItemUpdateInput {
   name: String
+  store: StoreSettingRelateToOneForUpdateInput
   category: String
   unit: String
   currentStock: Decimal
@@ -1424,15 +2389,11 @@ input InventoryItemUpdateInput {
   sku: String
   menuItems: MenuItemRelateToManyForUpdateInput
   stockMovements: StockMovementRelateToManyForUpdateInput
+  inventoryLots: InventoryLotRelateToManyForUpdateInput
+  purchaseOrders: PurchaseOrderRelateToManyForUpdateInput
+  wasteLogs: WasteLogRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
-}
-
-input StockMovementRelateToManyForUpdateInput {
-  disconnect: [StockMovementWhereUniqueInput!]
-  set: [StockMovementWhereUniqueInput!]
-  create: [StockMovementCreateInput!]
-  connect: [StockMovementWhereUniqueInput!]
 }
 
 input InventoryItemUpdateArgs {
@@ -1442,6 +2403,7 @@ input InventoryItemUpdateArgs {
 
 input InventoryItemCreateInput {
   name: String
+  store: StoreSettingRelateToOneForCreateInput
   category: String
   unit: String
   currentStock: Decimal
@@ -1452,22 +2414,27 @@ input InventoryItemCreateInput {
   sku: String
   menuItems: MenuItemRelateToManyForCreateInput
   stockMovements: StockMovementRelateToManyForCreateInput
+  inventoryLots: InventoryLotRelateToManyForCreateInput
+  purchaseOrders: PurchaseOrderRelateToManyForCreateInput
+  wasteLogs: WasteLogRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
 
-input StockMovementRelateToManyForCreateInput {
-  create: [StockMovementCreateInput!]
-  connect: [StockMovementWhereUniqueInput!]
-}
-
 type StockMovement {
   id: ID!
+  idempotencyKey: String
   type: String
   quantity: Decimal
   reason: String
   notes: String
+  store: StoreSetting
   inventoryItem: InventoryItem
+  order: CafeOrder
+  purchaseOrder: PurchaseOrder
+  inventoryLot: InventoryLot
+  prepBatch: PrepBatch
+  wasteLog: WasteLog
   createdBy: User
   createdAt: DateTime
   updatedAt: DateTime
@@ -1475,6 +2442,7 @@ type StockMovement {
 
 input StockMovementWhereUniqueInput {
   id: ID
+  idempotencyKey: String
 }
 
 input StockMovementWhereInput {
@@ -1482,11 +2450,18 @@ input StockMovementWhereInput {
   OR: [StockMovementWhereInput!]
   NOT: [StockMovementWhereInput!]
   id: IDFilter
+  idempotencyKey: StringNullableFilter
   type: StringNullableFilter
   quantity: DecimalFilter
   reason: StringFilter
   notes: StringFilter
+  store: StoreSettingWhereInput
   inventoryItem: InventoryItemWhereInput
+  order: CafeOrderWhereInput
+  purchaseOrder: PurchaseOrderWhereInput
+  inventoryLot: InventoryLotWhereInput
+  prepBatch: PrepBatchWhereInput
+  wasteLog: WasteLogWhereInput
   createdBy: UserWhereInput
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -1505,6 +2480,7 @@ input DecimalFilter {
 
 input StockMovementOrderByInput {
   id: OrderDirection
+  idempotencyKey: OrderDirection
   type: OrderDirection
   quantity: OrderDirection
   reason: OrderDirection
@@ -1514,14 +2490,45 @@ input StockMovementOrderByInput {
 }
 
 input StockMovementUpdateInput {
+  idempotencyKey: String
   type: String
   quantity: Decimal
   reason: String
   notes: String
+  store: StoreSettingRelateToOneForUpdateInput
   inventoryItem: InventoryItemRelateToOneForUpdateInput
+  order: CafeOrderRelateToOneForUpdateInput
+  purchaseOrder: PurchaseOrderRelateToOneForUpdateInput
+  inventoryLot: InventoryLotRelateToOneForUpdateInput
+  prepBatch: PrepBatchRelateToOneForUpdateInput
+  wasteLog: WasteLogRelateToOneForUpdateInput
   createdBy: UserRelateToOneForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
+}
+
+input PurchaseOrderRelateToOneForUpdateInput {
+  create: PurchaseOrderCreateInput
+  connect: PurchaseOrderWhereUniqueInput
+  disconnect: Boolean
+}
+
+input InventoryLotRelateToOneForUpdateInput {
+  create: InventoryLotCreateInput
+  connect: InventoryLotWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PrepBatchRelateToOneForUpdateInput {
+  create: PrepBatchCreateInput
+  connect: PrepBatchWhereUniqueInput
+  disconnect: Boolean
+}
+
+input WasteLogRelateToOneForUpdateInput {
+  create: WasteLogCreateInput
+  connect: WasteLogWhereUniqueInput
+  disconnect: Boolean
 }
 
 input StockMovementUpdateArgs {
@@ -1530,18 +2537,46 @@ input StockMovementUpdateArgs {
 }
 
 input StockMovementCreateInput {
+  idempotencyKey: String
   type: String
   quantity: Decimal
   reason: String
   notes: String
+  store: StoreSettingRelateToOneForCreateInput
   inventoryItem: InventoryItemRelateToOneForCreateInput
+  order: CafeOrderRelateToOneForCreateInput
+  purchaseOrder: PurchaseOrderRelateToOneForCreateInput
+  inventoryLot: InventoryLotRelateToOneForCreateInput
+  prepBatch: PrepBatchRelateToOneForCreateInput
+  wasteLog: WasteLogRelateToOneForCreateInput
   createdBy: UserRelateToOneForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
 
+input PurchaseOrderRelateToOneForCreateInput {
+  create: PurchaseOrderCreateInput
+  connect: PurchaseOrderWhereUniqueInput
+}
+
+input InventoryLotRelateToOneForCreateInput {
+  create: InventoryLotCreateInput
+  connect: InventoryLotWhereUniqueInput
+}
+
+input PrepBatchRelateToOneForCreateInput {
+  create: PrepBatchCreateInput
+  connect: PrepBatchWhereUniqueInput
+}
+
+input WasteLogRelateToOneForCreateInput {
+  create: WasteLogCreateInput
+  connect: WasteLogWhereUniqueInput
+}
+
 type LoyaltyAccount {
   id: ID!
+  store: StoreSetting
   customerName: String
   customerEmail: String
   customerPhone: String
@@ -1577,6 +2612,7 @@ input LoyaltyAccountWhereInput {
   OR: [LoyaltyAccountWhereInput!]
   NOT: [LoyaltyAccountWhereInput!]
   id: IDFilter
+  store: StoreSettingWhereInput
   customerName: StringFilter
   customerEmail: StringFilter
   customerPhone: StringFilter
@@ -1617,6 +2653,7 @@ input LoyaltyAccountOrderByInput {
 }
 
 input LoyaltyAccountUpdateInput {
+  store: StoreSettingRelateToOneForUpdateInput
   customerName: String
   customerEmail: String
   customerPhone: String
@@ -1643,6 +2680,7 @@ input LoyaltyAccountUpdateArgs {
 }
 
 input LoyaltyAccountCreateInput {
+  store: StoreSettingRelateToOneForCreateInput
   customerName: String
   customerEmail: String
   customerPhone: String
@@ -1735,6 +2773,1600 @@ input LoyaltyEventCreateInput {
   updatedAt: DateTime
 }
 
+type CoffeeDomainEvent {
+  id: ID!
+  eventKey: String
+  eventType: String
+  schemaVersion: String
+  aggregateType: String
+  aggregateId: String
+  payload: JSON
+  payloadHash: String
+  occurredAt: DateTime
+  store: StoreSetting
+  deliveries(where: CoffeeOutboxDeliveryWhereInput! = {}, orderBy: [CoffeeOutboxDeliveryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeOutboxDeliveryWhereUniqueInput): [CoffeeOutboxDelivery!]
+  deliveriesCount(where: CoffeeOutboxDeliveryWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CoffeeDomainEventWhereUniqueInput {
+  id: ID
+  eventKey: String
+}
+
+input CoffeeDomainEventWhereInput {
+  AND: [CoffeeDomainEventWhereInput!]
+  OR: [CoffeeDomainEventWhereInput!]
+  NOT: [CoffeeDomainEventWhereInput!]
+  id: IDFilter
+  eventKey: StringFilter
+  eventType: StringFilter
+  schemaVersion: StringFilter
+  aggregateType: StringFilter
+  aggregateId: StringFilter
+  payloadHash: StringFilter
+  occurredAt: DateTimeFilter
+  store: StoreSettingWhereInput
+  deliveries: CoffeeOutboxDeliveryManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input CoffeeDomainEventOrderByInput {
+  id: OrderDirection
+  eventKey: OrderDirection
+  eventType: OrderDirection
+  schemaVersion: OrderDirection
+  aggregateType: OrderDirection
+  aggregateId: OrderDirection
+  payloadHash: OrderDirection
+  occurredAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CoffeeDomainEventUpdateInput {
+  eventKey: String
+  eventType: String
+  schemaVersion: String
+  aggregateType: String
+  aggregateId: String
+  payload: JSON
+  payloadHash: String
+  occurredAt: DateTime
+  store: StoreSettingRelateToOneForUpdateInput
+  deliveries: CoffeeOutboxDeliveryRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CoffeeDomainEventUpdateArgs {
+  where: CoffeeDomainEventWhereUniqueInput!
+  data: CoffeeDomainEventUpdateInput!
+}
+
+input CoffeeDomainEventCreateInput {
+  eventKey: String
+  eventType: String
+  schemaVersion: String
+  aggregateType: String
+  aggregateId: String
+  payload: JSON
+  payloadHash: String
+  occurredAt: DateTime
+  store: StoreSettingRelateToOneForCreateInput
+  deliveries: CoffeeOutboxDeliveryRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type CoffeeOutboxDelivery {
+  id: ID!
+  deliveryKey: String
+  consumer: String
+  status: String
+  attempts: Int
+  maxAttempts: Int
+  nextAttempt: DateTime
+  lockedAt: DateTime
+  lockOwner: String
+  deliveredAt: DateTime
+  deadLetteredAt: DateTime
+  lastError: String
+  event: CoffeeDomainEvent
+  store: StoreSetting
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CoffeeOutboxDeliveryWhereUniqueInput {
+  id: ID
+  deliveryKey: String
+}
+
+input CoffeeOutboxDeliveryWhereInput {
+  AND: [CoffeeOutboxDeliveryWhereInput!]
+  OR: [CoffeeOutboxDeliveryWhereInput!]
+  NOT: [CoffeeOutboxDeliveryWhereInput!]
+  id: IDFilter
+  deliveryKey: StringFilter
+  consumer: StringFilter
+  status: StringFilter
+  attempts: IntFilter
+  maxAttempts: IntFilter
+  nextAttempt: DateTimeNullableFilter
+  lockedAt: DateTimeNullableFilter
+  lockOwner: StringFilter
+  deliveredAt: DateTimeNullableFilter
+  deadLetteredAt: DateTimeNullableFilter
+  lastError: StringFilter
+  event: CoffeeDomainEventWhereInput
+  store: StoreSettingWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input CoffeeOutboxDeliveryOrderByInput {
+  id: OrderDirection
+  deliveryKey: OrderDirection
+  consumer: OrderDirection
+  status: OrderDirection
+  attempts: OrderDirection
+  maxAttempts: OrderDirection
+  nextAttempt: OrderDirection
+  lockedAt: OrderDirection
+  lockOwner: OrderDirection
+  deliveredAt: OrderDirection
+  deadLetteredAt: OrderDirection
+  lastError: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CoffeeOutboxDeliveryUpdateInput {
+  deliveryKey: String
+  consumer: String
+  status: String
+  attempts: Int
+  maxAttempts: Int
+  nextAttempt: DateTime
+  lockedAt: DateTime
+  lockOwner: String
+  deliveredAt: DateTime
+  deadLetteredAt: DateTime
+  lastError: String
+  event: CoffeeDomainEventRelateToOneForUpdateInput
+  store: StoreSettingRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CoffeeDomainEventRelateToOneForUpdateInput {
+  create: CoffeeDomainEventCreateInput
+  connect: CoffeeDomainEventWhereUniqueInput
+  disconnect: Boolean
+}
+
+input CoffeeOutboxDeliveryUpdateArgs {
+  where: CoffeeOutboxDeliveryWhereUniqueInput!
+  data: CoffeeOutboxDeliveryUpdateInput!
+}
+
+input CoffeeOutboxDeliveryCreateInput {
+  deliveryKey: String
+  consumer: String
+  status: String
+  attempts: Int
+  maxAttempts: Int
+  nextAttempt: DateTime
+  lockedAt: DateTime
+  lockOwner: String
+  deliveredAt: DateTime
+  deadLetteredAt: DateTime
+  lastError: String
+  event: CoffeeDomainEventRelateToOneForCreateInput
+  store: StoreSettingRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CoffeeDomainEventRelateToOneForCreateInput {
+  create: CoffeeDomainEventCreateInput
+  connect: CoffeeDomainEventWhereUniqueInput
+}
+
+type WasteLog {
+  id: ID!
+  idempotencyKey: String
+  logNumber: String
+  store: StoreSetting
+  inventoryItem: InventoryItem
+  prepBatch: PrepBatch
+  reason: String
+  quantity: Decimal
+  unit: String
+  costCents: Int
+  loggedBy: User
+  loggedAt: DateTime
+  notes: String
+  metadata: JSON
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input WasteLogWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+  logNumber: String
+}
+
+input WasteLogWhereInput {
+  AND: [WasteLogWhereInput!]
+  OR: [WasteLogWhereInput!]
+  NOT: [WasteLogWhereInput!]
+  id: IDFilter
+  idempotencyKey: StringNullableFilter
+  logNumber: StringFilter
+  store: StoreSettingWhereInput
+  inventoryItem: InventoryItemWhereInput
+  prepBatch: PrepBatchWhereInput
+  reason: StringNullableFilter
+  quantity: DecimalNullableFilter
+  unit: StringFilter
+  costCents: IntNullableFilter
+  loggedBy: UserWhereInput
+  loggedAt: DateTimeNullableFilter
+  notes: StringFilter
+  stockMovements: StockMovementManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input WasteLogOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  logNumber: OrderDirection
+  reason: OrderDirection
+  quantity: OrderDirection
+  unit: OrderDirection
+  costCents: OrderDirection
+  loggedAt: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input WasteLogUpdateInput {
+  idempotencyKey: String
+  logNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  inventoryItem: InventoryItemRelateToOneForUpdateInput
+  prepBatch: PrepBatchRelateToOneForUpdateInput
+  reason: String
+  quantity: Decimal
+  unit: String
+  costCents: Int
+  loggedBy: UserRelateToOneForUpdateInput
+  loggedAt: DateTime
+  notes: String
+  metadata: JSON
+  stockMovements: StockMovementRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input WasteLogUpdateArgs {
+  where: WasteLogWhereUniqueInput!
+  data: WasteLogUpdateInput!
+}
+
+input WasteLogCreateInput {
+  idempotencyKey: String
+  logNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  inventoryItem: InventoryItemRelateToOneForCreateInput
+  prepBatch: PrepBatchRelateToOneForCreateInput
+  reason: String
+  quantity: Decimal
+  unit: String
+  costCents: Int
+  loggedBy: UserRelateToOneForCreateInput
+  loggedAt: DateTime
+  notes: String
+  metadata: JSON
+  stockMovements: StockMovementRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type CateringOrder {
+  id: ID!
+  cateringNumber: String
+  store: StoreSetting
+  customerName: String
+  customerEmail: String
+  status: String
+  eventAt: DateTime
+  guestCount: Int
+  deliveryAddress: String
+  subtotalCents: Int
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CateringOrderWhereUniqueInput {
+  id: ID
+  cateringNumber: String
+}
+
+input CateringOrderWhereInput {
+  AND: [CateringOrderWhereInput!]
+  OR: [CateringOrderWhereInput!]
+  NOT: [CateringOrderWhereInput!]
+  id: IDFilter
+  cateringNumber: StringFilter
+  store: StoreSettingWhereInput
+  customerName: StringFilter
+  customerEmail: StringFilter
+  status: StringNullableFilter
+  eventAt: DateTimeNullableFilter
+  guestCount: IntNullableFilter
+  deliveryAddress: StringFilter
+  subtotalCents: IntNullableFilter
+  notes: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input CateringOrderOrderByInput {
+  id: OrderDirection
+  cateringNumber: OrderDirection
+  customerName: OrderDirection
+  customerEmail: OrderDirection
+  status: OrderDirection
+  eventAt: OrderDirection
+  guestCount: OrderDirection
+  deliveryAddress: OrderDirection
+  subtotalCents: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CateringOrderUpdateInput {
+  cateringNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  customerName: String
+  customerEmail: String
+  status: String
+  eventAt: DateTime
+  guestCount: Int
+  deliveryAddress: String
+  subtotalCents: Int
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CateringOrderUpdateArgs {
+  where: CateringOrderWhereUniqueInput!
+  data: CateringOrderUpdateInput!
+}
+
+input CateringOrderCreateInput {
+  cateringNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  customerName: String
+  customerEmail: String
+  status: String
+  eventAt: DateTime
+  guestCount: Int
+  deliveryAddress: String
+  subtotalCents: Int
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type Subscription {
+  id: ID!
+  subscriptionNumber: String
+  store: StoreSetting
+  loyaltyAccount: LoyaltyAccount
+  status: String
+  planName: String
+  billingInterval: String
+  priceCents: Int
+  startsAt: DateTime
+  renewsAt: DateTime
+  cancelledAt: DateTime
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SubscriptionWhereUniqueInput {
+  id: ID
+  subscriptionNumber: String
+}
+
+input SubscriptionWhereInput {
+  AND: [SubscriptionWhereInput!]
+  OR: [SubscriptionWhereInput!]
+  NOT: [SubscriptionWhereInput!]
+  id: IDFilter
+  subscriptionNumber: StringFilter
+  store: StoreSettingWhereInput
+  loyaltyAccount: LoyaltyAccountWhereInput
+  status: StringNullableFilter
+  planName: StringFilter
+  billingInterval: StringNullableFilter
+  priceCents: IntNullableFilter
+  startsAt: DateTimeNullableFilter
+  renewsAt: DateTimeNullableFilter
+  cancelledAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input SubscriptionOrderByInput {
+  id: OrderDirection
+  subscriptionNumber: OrderDirection
+  status: OrderDirection
+  planName: OrderDirection
+  billingInterval: OrderDirection
+  priceCents: OrderDirection
+  startsAt: OrderDirection
+  renewsAt: OrderDirection
+  cancelledAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input SubscriptionUpdateInput {
+  subscriptionNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  loyaltyAccount: LoyaltyAccountRelateToOneForUpdateInput
+  status: String
+  planName: String
+  billingInterval: String
+  priceCents: Int
+  startsAt: DateTime
+  renewsAt: DateTime
+  cancelledAt: DateTime
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SubscriptionUpdateArgs {
+  where: SubscriptionWhereUniqueInput!
+  data: SubscriptionUpdateInput!
+}
+
+input SubscriptionCreateInput {
+  subscriptionNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  loyaltyAccount: LoyaltyAccountRelateToOneForCreateInput
+  status: String
+  planName: String
+  billingInterval: String
+  priceCents: Int
+  startsAt: DateTime
+  renewsAt: DateTime
+  cancelledAt: DateTime
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type PosOrder {
+  id: ID!
+  receiptNumber: String
+  store: StoreSetting
+  cafeOrder: CafeOrder
+  cashier: User
+  registerShift: RegisterShift
+  registerName: String
+  status: String
+  subtotalCents: Int
+  taxCents: Int
+  tipCents: Int
+  totalCents: Int
+  closedAt: DateTime
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PosOrderWhereUniqueInput {
+  id: ID
+  receiptNumber: String
+}
+
+input PosOrderWhereInput {
+  AND: [PosOrderWhereInput!]
+  OR: [PosOrderWhereInput!]
+  NOT: [PosOrderWhereInput!]
+  id: IDFilter
+  receiptNumber: StringFilter
+  store: StoreSettingWhereInput
+  cafeOrder: CafeOrderWhereInput
+  cashier: UserWhereInput
+  registerShift: RegisterShiftWhereInput
+  registerName: StringFilter
+  status: StringNullableFilter
+  subtotalCents: IntNullableFilter
+  taxCents: IntNullableFilter
+  tipCents: IntNullableFilter
+  totalCents: IntNullableFilter
+  closedAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PosOrderOrderByInput {
+  id: OrderDirection
+  receiptNumber: OrderDirection
+  registerName: OrderDirection
+  status: OrderDirection
+  subtotalCents: OrderDirection
+  taxCents: OrderDirection
+  tipCents: OrderDirection
+  totalCents: OrderDirection
+  closedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PosOrderUpdateInput {
+  receiptNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  cafeOrder: CafeOrderRelateToOneForUpdateInput
+  cashier: UserRelateToOneForUpdateInput
+  registerShift: RegisterShiftRelateToOneForUpdateInput
+  registerName: String
+  status: String
+  subtotalCents: Int
+  taxCents: Int
+  tipCents: Int
+  totalCents: Int
+  closedAt: DateTime
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PosOrderUpdateArgs {
+  where: PosOrderWhereUniqueInput!
+  data: PosOrderUpdateInput!
+}
+
+input PosOrderCreateInput {
+  receiptNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  cafeOrder: CafeOrderRelateToOneForCreateInput
+  cashier: UserRelateToOneForCreateInput
+  registerShift: RegisterShiftRelateToOneForCreateInput
+  registerName: String
+  status: String
+  subtotalCents: Int
+  taxCents: Int
+  tipCents: Int
+  totalCents: Int
+  closedAt: DateTime
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type RegisterShift {
+  id: ID!
+  idempotencyKey: String
+  closeIdempotencyKey: String
+  shiftNumber: String
+  store: StoreSetting
+  registerName: String
+  status: String
+  openingCashCents: Int
+  cashSalesCents: Int
+  cashRefundsCents: Int
+  cardSalesCents: Int
+  cardRefundsCents: Int
+  tipsCents: Int
+  payInsCents: Int
+  payOutsCents: Int
+  expectedCashCents: Int
+  countedCashCents: Int
+  cashVarianceCents: Int
+  openedBy: User
+  closedBy: User
+  openedAt: DateTime
+  closedAt: DateTime
+  posOrders(where: PosOrderWhereInput! = {}, orderBy: [PosOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PosOrderWhereUniqueInput): [PosOrder!]
+  posOrdersCount(where: PosOrderWhereInput! = {}): Int
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  cashMovements(where: CashMovementWhereInput! = {}, orderBy: [CashMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CashMovementWhereUniqueInput): [CashMovement!]
+  cashMovementsCount(where: CashMovementWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input RegisterShiftWhereUniqueInput {
+  id: ID
+  shiftNumber: String
+}
+
+input RegisterShiftWhereInput {
+  AND: [RegisterShiftWhereInput!]
+  OR: [RegisterShiftWhereInput!]
+  NOT: [RegisterShiftWhereInput!]
+  id: IDFilter
+  shiftNumber: StringFilter
+  store: StoreSettingWhereInput
+  registerName: StringFilter
+  status: StringNullableFilter
+  openingCashCents: IntNullableFilter
+  cashSalesCents: IntNullableFilter
+  cashRefundsCents: IntNullableFilter
+  cardSalesCents: IntNullableFilter
+  cardRefundsCents: IntNullableFilter
+  tipsCents: IntNullableFilter
+  payInsCents: IntNullableFilter
+  payOutsCents: IntNullableFilter
+  expectedCashCents: IntNullableFilter
+  countedCashCents: IntNullableFilter
+  cashVarianceCents: IntNullableFilter
+  openedBy: UserWhereInput
+  closedBy: UserWhereInput
+  openedAt: DateTimeNullableFilter
+  closedAt: DateTimeNullableFilter
+  posOrders: PosOrderManyRelationFilter
+  payments: PaymentManyRelationFilter
+  cashMovements: CashMovementManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input RegisterShiftOrderByInput {
+  id: OrderDirection
+  shiftNumber: OrderDirection
+  registerName: OrderDirection
+  status: OrderDirection
+  openingCashCents: OrderDirection
+  cashSalesCents: OrderDirection
+  cashRefundsCents: OrderDirection
+  cardSalesCents: OrderDirection
+  cardRefundsCents: OrderDirection
+  tipsCents: OrderDirection
+  payInsCents: OrderDirection
+  payOutsCents: OrderDirection
+  expectedCashCents: OrderDirection
+  countedCashCents: OrderDirection
+  cashVarianceCents: OrderDirection
+  openedAt: OrderDirection
+  closedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input RegisterShiftUpdateInput {
+  idempotencyKey: String
+  closeIdempotencyKey: String
+  shiftNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  registerName: String
+  status: String
+  openingCashCents: Int
+  cashSalesCents: Int
+  cashRefundsCents: Int
+  cardSalesCents: Int
+  cardRefundsCents: Int
+  tipsCents: Int
+  payInsCents: Int
+  payOutsCents: Int
+  expectedCashCents: Int
+  countedCashCents: Int
+  cashVarianceCents: Int
+  openedBy: UserRelateToOneForUpdateInput
+  closedBy: UserRelateToOneForUpdateInput
+  openedAt: DateTime
+  closedAt: DateTime
+  posOrders: PosOrderRelateToManyForUpdateInput
+  payments: PaymentRelateToManyForUpdateInput
+  cashMovements: CashMovementRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input RegisterShiftUpdateArgs {
+  where: RegisterShiftWhereUniqueInput!
+  data: RegisterShiftUpdateInput!
+}
+
+input RegisterShiftCreateInput {
+  idempotencyKey: String
+  closeIdempotencyKey: String
+  shiftNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  registerName: String
+  status: String
+  openingCashCents: Int
+  cashSalesCents: Int
+  cashRefundsCents: Int
+  cardSalesCents: Int
+  cardRefundsCents: Int
+  tipsCents: Int
+  payInsCents: Int
+  payOutsCents: Int
+  expectedCashCents: Int
+  countedCashCents: Int
+  cashVarianceCents: Int
+  openedBy: UserRelateToOneForCreateInput
+  closedBy: UserRelateToOneForCreateInput
+  openedAt: DateTime
+  closedAt: DateTime
+  posOrders: PosOrderRelateToManyForCreateInput
+  payments: PaymentRelateToManyForCreateInput
+  cashMovements: CashMovementRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type CashMovement {
+  id: ID!
+  idempotencyKey: String
+  movementNumber: String
+  store: StoreSetting
+  type: String
+  amountCents: Int
+  reason: String
+  registerShift: RegisterShift
+  recordedBy: User
+  recordedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CashMovementWhereUniqueInput {
+  id: ID
+  movementNumber: String
+}
+
+input CashMovementWhereInput {
+  AND: [CashMovementWhereInput!]
+  OR: [CashMovementWhereInput!]
+  NOT: [CashMovementWhereInput!]
+  id: IDFilter
+  movementNumber: StringFilter
+  store: StoreSettingWhereInput
+  type: StringFilter
+  amountCents: IntFilter
+  reason: StringFilter
+  registerShift: RegisterShiftWhereInput
+  recordedBy: UserWhereInput
+  recordedAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input CashMovementOrderByInput {
+  id: OrderDirection
+  movementNumber: OrderDirection
+  type: OrderDirection
+  amountCents: OrderDirection
+  reason: OrderDirection
+  recordedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CashMovementUpdateInput {
+  idempotencyKey: String
+  movementNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  type: String
+  amountCents: Int
+  reason: String
+  registerShift: RegisterShiftRelateToOneForUpdateInput
+  recordedBy: UserRelateToOneForUpdateInput
+  recordedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CashMovementUpdateArgs {
+  where: CashMovementWhereUniqueInput!
+  data: CashMovementUpdateInput!
+}
+
+input CashMovementCreateInput {
+  idempotencyKey: String
+  movementNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  type: String
+  amountCents: Int
+  reason: String
+  registerShift: RegisterShiftRelateToOneForCreateInput
+  recordedBy: UserRelateToOneForCreateInput
+  recordedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type StaffShift {
+  id: ID!
+  idempotencyKey: String
+  shiftNumber: String
+  store: StoreSetting
+  staff: User
+  role: String
+  status: String
+  startsAt: DateTime
+  endsAt: DateTime
+  clockInAt: DateTime
+  clockOutAt: DateTime
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input StaffShiftWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+  shiftNumber: String
+}
+
+input StaffShiftWhereInput {
+  AND: [StaffShiftWhereInput!]
+  OR: [StaffShiftWhereInput!]
+  NOT: [StaffShiftWhereInput!]
+  id: IDFilter
+  idempotencyKey: StringFilter
+  shiftNumber: StringFilter
+  store: StoreSettingWhereInput
+  staff: UserWhereInput
+  role: StringNullableFilter
+  status: StringNullableFilter
+  startsAt: DateTimeNullableFilter
+  endsAt: DateTimeNullableFilter
+  clockInAt: DateTimeNullableFilter
+  clockOutAt: DateTimeNullableFilter
+  notes: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input StaffShiftOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  shiftNumber: OrderDirection
+  role: OrderDirection
+  status: OrderDirection
+  startsAt: OrderDirection
+  endsAt: OrderDirection
+  clockInAt: OrderDirection
+  clockOutAt: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input StaffShiftUpdateInput {
+  idempotencyKey: String
+  shiftNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  staff: UserRelateToOneForUpdateInput
+  role: String
+  status: String
+  startsAt: DateTime
+  endsAt: DateTime
+  clockInAt: DateTime
+  clockOutAt: DateTime
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input StaffShiftUpdateArgs {
+  where: StaffShiftWhereUniqueInput!
+  data: StaffShiftUpdateInput!
+}
+
+input StaffShiftCreateInput {
+  idempotencyKey: String
+  shiftNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  staff: UserRelateToOneForCreateInput
+  role: String
+  status: String
+  startsAt: DateTime
+  endsAt: DateTime
+  clockInAt: DateTime
+  clockOutAt: DateTime
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type PrepBatch {
+  id: ID!
+  idempotencyKey: String
+  batchNumber: String
+  store: StoreSetting
+  recipe: Recipe
+  status: String
+  preparedBy: User
+  quantityMade: Decimal
+  quantityRemaining: Decimal
+  startedAt: DateTime
+  completedAt: DateTime
+  expiresAt: DateTime
+  notes: String
+  metadata: JSON
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  consumptions(where: PrepBatchConsumptionWhereInput! = {}, orderBy: [PrepBatchConsumptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PrepBatchConsumptionWhereUniqueInput): [PrepBatchConsumption!]
+  consumptionsCount(where: PrepBatchConsumptionWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PrepBatchWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+  batchNumber: String
+}
+
+input PrepBatchWhereInput {
+  AND: [PrepBatchWhereInput!]
+  OR: [PrepBatchWhereInput!]
+  NOT: [PrepBatchWhereInput!]
+  id: IDFilter
+  idempotencyKey: StringNullableFilter
+  batchNumber: StringFilter
+  store: StoreSettingWhereInput
+  recipe: RecipeWhereInput
+  status: StringNullableFilter
+  preparedBy: UserWhereInput
+  quantityMade: DecimalNullableFilter
+  quantityRemaining: DecimalNullableFilter
+  startedAt: DateTimeNullableFilter
+  completedAt: DateTimeNullableFilter
+  expiresAt: DateTimeNullableFilter
+  notes: StringFilter
+  stockMovements: StockMovementManyRelationFilter
+  consumptions: PrepBatchConsumptionManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PrepBatchOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  batchNumber: OrderDirection
+  status: OrderDirection
+  quantityMade: OrderDirection
+  quantityRemaining: OrderDirection
+  startedAt: OrderDirection
+  completedAt: OrderDirection
+  expiresAt: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PrepBatchUpdateInput {
+  idempotencyKey: String
+  batchNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  recipe: RecipeRelateToOneForUpdateInput
+  status: String
+  preparedBy: UserRelateToOneForUpdateInput
+  quantityMade: Decimal
+  quantityRemaining: Decimal
+  startedAt: DateTime
+  completedAt: DateTime
+  expiresAt: DateTime
+  notes: String
+  metadata: JSON
+  stockMovements: StockMovementRelateToManyForUpdateInput
+  consumptions: PrepBatchConsumptionRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input RecipeRelateToOneForUpdateInput {
+  create: RecipeCreateInput
+  connect: RecipeWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PrepBatchUpdateArgs {
+  where: PrepBatchWhereUniqueInput!
+  data: PrepBatchUpdateInput!
+}
+
+input PrepBatchCreateInput {
+  idempotencyKey: String
+  batchNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  recipe: RecipeRelateToOneForCreateInput
+  status: String
+  preparedBy: UserRelateToOneForCreateInput
+  quantityMade: Decimal
+  quantityRemaining: Decimal
+  startedAt: DateTime
+  completedAt: DateTime
+  expiresAt: DateTime
+  notes: String
+  metadata: JSON
+  stockMovements: StockMovementRelateToManyForCreateInput
+  consumptions: PrepBatchConsumptionRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input RecipeRelateToOneForCreateInput {
+  create: RecipeCreateInput
+  connect: RecipeWhereUniqueInput
+}
+
+type PrepBatchConsumption {
+  id: ID!
+  idempotencyKey: String
+  store: StoreSetting
+  prepBatch: PrepBatch
+  order: CafeOrder
+  quantity: Decimal
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PrepBatchConsumptionWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+}
+
+input PrepBatchConsumptionWhereInput {
+  AND: [PrepBatchConsumptionWhereInput!]
+  OR: [PrepBatchConsumptionWhereInput!]
+  NOT: [PrepBatchConsumptionWhereInput!]
+  id: IDFilter
+  idempotencyKey: StringFilter
+  store: StoreSettingWhereInput
+  prepBatch: PrepBatchWhereInput
+  order: CafeOrderWhereInput
+  quantity: DecimalFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PrepBatchConsumptionOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  quantity: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PrepBatchConsumptionUpdateInput {
+  idempotencyKey: String
+  store: StoreSettingRelateToOneForUpdateInput
+  prepBatch: PrepBatchRelateToOneForUpdateInput
+  order: CafeOrderRelateToOneForUpdateInput
+  quantity: Decimal
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PrepBatchConsumptionUpdateArgs {
+  where: PrepBatchConsumptionWhereUniqueInput!
+  data: PrepBatchConsumptionUpdateInput!
+}
+
+input PrepBatchConsumptionCreateInput {
+  idempotencyKey: String
+  store: StoreSettingRelateToOneForCreateInput
+  prepBatch: PrepBatchRelateToOneForCreateInput
+  order: CafeOrderRelateToOneForCreateInput
+  quantity: Decimal
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type PurchaseOrder {
+  id: ID!
+  idempotencyKey: String
+  poNumber: String
+  store: StoreSetting
+  supplier: Supplier
+  inventoryItem: InventoryItem
+  orderedQuantity: Decimal
+  unitCostCents: Int
+  status: String
+  orderedAt: DateTime
+  expectedAt: DateTime
+  receivedAt: DateTime
+  subtotalCents: Int
+  notes: String
+  metadata: JSON
+  inventoryLots(where: InventoryLotWhereInput! = {}, orderBy: [InventoryLotOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InventoryLotWhereUniqueInput): [InventoryLot!]
+  inventoryLotsCount(where: InventoryLotWhereInput! = {}): Int
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PurchaseOrderWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+  poNumber: String
+}
+
+input PurchaseOrderWhereInput {
+  AND: [PurchaseOrderWhereInput!]
+  OR: [PurchaseOrderWhereInput!]
+  NOT: [PurchaseOrderWhereInput!]
+  id: IDFilter
+  idempotencyKey: StringNullableFilter
+  poNumber: StringFilter
+  store: StoreSettingWhereInput
+  supplier: SupplierWhereInput
+  inventoryItem: InventoryItemWhereInput
+  orderedQuantity: DecimalNullableFilter
+  unitCostCents: IntNullableFilter
+  status: StringNullableFilter
+  orderedAt: DateTimeNullableFilter
+  expectedAt: DateTimeNullableFilter
+  receivedAt: DateTimeNullableFilter
+  subtotalCents: IntNullableFilter
+  notes: StringFilter
+  inventoryLots: InventoryLotManyRelationFilter
+  stockMovements: StockMovementManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PurchaseOrderOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  poNumber: OrderDirection
+  orderedQuantity: OrderDirection
+  unitCostCents: OrderDirection
+  status: OrderDirection
+  orderedAt: OrderDirection
+  expectedAt: OrderDirection
+  receivedAt: OrderDirection
+  subtotalCents: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PurchaseOrderUpdateInput {
+  idempotencyKey: String
+  poNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  supplier: SupplierRelateToOneForUpdateInput
+  inventoryItem: InventoryItemRelateToOneForUpdateInput
+  orderedQuantity: Decimal
+  unitCostCents: Int
+  status: String
+  orderedAt: DateTime
+  expectedAt: DateTime
+  receivedAt: DateTime
+  subtotalCents: Int
+  notes: String
+  metadata: JSON
+  inventoryLots: InventoryLotRelateToManyForUpdateInput
+  stockMovements: StockMovementRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierRelateToOneForUpdateInput {
+  create: SupplierCreateInput
+  connect: SupplierWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PurchaseOrderUpdateArgs {
+  where: PurchaseOrderWhereUniqueInput!
+  data: PurchaseOrderUpdateInput!
+}
+
+input PurchaseOrderCreateInput {
+  idempotencyKey: String
+  poNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  supplier: SupplierRelateToOneForCreateInput
+  inventoryItem: InventoryItemRelateToOneForCreateInput
+  orderedQuantity: Decimal
+  unitCostCents: Int
+  status: String
+  orderedAt: DateTime
+  expectedAt: DateTime
+  receivedAt: DateTime
+  subtotalCents: Int
+  notes: String
+  metadata: JSON
+  inventoryLots: InventoryLotRelateToManyForCreateInput
+  stockMovements: StockMovementRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierRelateToOneForCreateInput {
+  create: SupplierCreateInput
+  connect: SupplierWhereUniqueInput
+}
+
+type Supplier {
+  id: ID!
+  name: String
+  store: StoreSetting
+  status: String
+  contactName: String
+  email: String
+  phone: String
+  website: String
+  leadTimeDays: Int
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierWhereUniqueInput {
+  id: ID
+}
+
+input SupplierWhereInput {
+  AND: [SupplierWhereInput!]
+  OR: [SupplierWhereInput!]
+  NOT: [SupplierWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  store: StoreSettingWhereInput
+  status: StringNullableFilter
+  contactName: StringFilter
+  email: StringFilter
+  phone: StringFilter
+  website: StringFilter
+  leadTimeDays: IntNullableFilter
+  notes: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input SupplierOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  status: OrderDirection
+  contactName: OrderDirection
+  email: OrderDirection
+  phone: OrderDirection
+  website: OrderDirection
+  leadTimeDays: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input SupplierUpdateInput {
+  name: String
+  store: StoreSettingRelateToOneForUpdateInput
+  status: String
+  contactName: String
+  email: String
+  phone: String
+  website: String
+  leadTimeDays: Int
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierUpdateArgs {
+  where: SupplierWhereUniqueInput!
+  data: SupplierUpdateInput!
+}
+
+input SupplierCreateInput {
+  name: String
+  store: StoreSettingRelateToOneForCreateInput
+  status: String
+  contactName: String
+  email: String
+  phone: String
+  website: String
+  leadTimeDays: Int
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type InventoryLot {
+  id: ID!
+  lotNumber: String
+  store: StoreSetting
+  inventoryItem: InventoryItem
+  supplier: Supplier
+  purchaseOrder: PurchaseOrder
+  quantityReceived: Decimal
+  quantityRemaining: Decimal
+  unitCostCents: Int
+  receivedAt: DateTime
+  expiresAt: DateTime
+  status: String
+  metadata: JSON
+  stockMovements(where: StockMovementWhereInput! = {}, orderBy: [StockMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StockMovementWhereUniqueInput): [StockMovement!]
+  stockMovementsCount(where: StockMovementWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input InventoryLotWhereUniqueInput {
+  id: ID
+  lotNumber: String
+}
+
+input InventoryLotWhereInput {
+  AND: [InventoryLotWhereInput!]
+  OR: [InventoryLotWhereInput!]
+  NOT: [InventoryLotWhereInput!]
+  id: IDFilter
+  lotNumber: StringFilter
+  store: StoreSettingWhereInput
+  inventoryItem: InventoryItemWhereInput
+  supplier: SupplierWhereInput
+  purchaseOrder: PurchaseOrderWhereInput
+  quantityReceived: DecimalNullableFilter
+  quantityRemaining: DecimalNullableFilter
+  unitCostCents: IntNullableFilter
+  receivedAt: DateTimeNullableFilter
+  expiresAt: DateTimeNullableFilter
+  status: StringNullableFilter
+  stockMovements: StockMovementManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input InventoryLotOrderByInput {
+  id: OrderDirection
+  lotNumber: OrderDirection
+  quantityReceived: OrderDirection
+  quantityRemaining: OrderDirection
+  unitCostCents: OrderDirection
+  receivedAt: OrderDirection
+  expiresAt: OrderDirection
+  status: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input InventoryLotUpdateInput {
+  lotNumber: String
+  store: StoreSettingRelateToOneForUpdateInput
+  inventoryItem: InventoryItemRelateToOneForUpdateInput
+  supplier: SupplierRelateToOneForUpdateInput
+  purchaseOrder: PurchaseOrderRelateToOneForUpdateInput
+  quantityReceived: Decimal
+  quantityRemaining: Decimal
+  unitCostCents: Int
+  receivedAt: DateTime
+  expiresAt: DateTime
+  status: String
+  metadata: JSON
+  stockMovements: StockMovementRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input InventoryLotUpdateArgs {
+  where: InventoryLotWhereUniqueInput!
+  data: InventoryLotUpdateInput!
+}
+
+input InventoryLotCreateInput {
+  lotNumber: String
+  store: StoreSettingRelateToOneForCreateInput
+  inventoryItem: InventoryItemRelateToOneForCreateInput
+  supplier: SupplierRelateToOneForCreateInput
+  purchaseOrder: PurchaseOrderRelateToOneForCreateInput
+  quantityReceived: Decimal
+  quantityRemaining: Decimal
+  unitCostCents: Int
+  receivedAt: DateTime
+  expiresAt: DateTime
+  status: String
+  metadata: JSON
+  stockMovements: StockMovementRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type Ingredient {
+  id: ID!
+  name: String
+  store: StoreSetting
+  inventoryItem: InventoryItem
+  recipe: Recipe
+  quantity: Decimal
+  unit: String
+  optional: Boolean
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input IngredientWhereUniqueInput {
+  id: ID
+}
+
+input IngredientWhereInput {
+  AND: [IngredientWhereInput!]
+  OR: [IngredientWhereInput!]
+  NOT: [IngredientWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  store: StoreSettingWhereInput
+  inventoryItem: InventoryItemWhereInput
+  recipe: RecipeWhereInput
+  quantity: DecimalNullableFilter
+  unit: StringFilter
+  optional: BooleanFilter
+  notes: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input IngredientOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  quantity: OrderDirection
+  unit: OrderDirection
+  optional: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input IngredientUpdateInput {
+  name: String
+  store: StoreSettingRelateToOneForUpdateInput
+  inventoryItem: InventoryItemRelateToOneForUpdateInput
+  recipe: RecipeRelateToOneForUpdateInput
+  quantity: Decimal
+  unit: String
+  optional: Boolean
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input IngredientUpdateArgs {
+  where: IngredientWhereUniqueInput!
+  data: IngredientUpdateInput!
+}
+
+input IngredientCreateInput {
+  name: String
+  store: StoreSettingRelateToOneForCreateInput
+  inventoryItem: InventoryItemRelateToOneForCreateInput
+  recipe: RecipeRelateToOneForCreateInput
+  quantity: Decimal
+  unit: String
+  optional: Boolean
+  notes: String
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type Recipe {
+  id: ID!
+  name: String
+  store: StoreSetting
+  menuItem: MenuItem
+  status: String
+  yieldQuantity: Decimal
+  yieldUnit: String
+  prepInstructions: String
+  allergenNotes: String
+  active: Boolean
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input RecipeWhereUniqueInput {
+  id: ID
+}
+
+input RecipeWhereInput {
+  AND: [RecipeWhereInput!]
+  OR: [RecipeWhereInput!]
+  NOT: [RecipeWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  store: StoreSettingWhereInput
+  menuItem: MenuItemWhereInput
+  status: StringNullableFilter
+  yieldQuantity: DecimalNullableFilter
+  yieldUnit: StringFilter
+  prepInstructions: StringFilter
+  allergenNotes: StringFilter
+  active: BooleanFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input RecipeOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  status: OrderDirection
+  yieldQuantity: OrderDirection
+  yieldUnit: OrderDirection
+  prepInstructions: OrderDirection
+  allergenNotes: OrderDirection
+  active: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input RecipeUpdateInput {
+  name: String
+  store: StoreSettingRelateToOneForUpdateInput
+  menuItem: MenuItemRelateToOneForUpdateInput
+  status: String
+  yieldQuantity: Decimal
+  yieldUnit: String
+  prepInstructions: String
+  allergenNotes: String
+  active: Boolean
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input RecipeUpdateArgs {
+  where: RecipeWhereUniqueInput!
+  data: RecipeUpdateInput!
+}
+
+input RecipeCreateInput {
+  name: String
+  store: StoreSettingRelateToOneForCreateInput
+  menuItem: MenuItemRelateToOneForCreateInput
+  status: String
+  yieldQuantity: Decimal
+  yieldUnit: String
+  prepInstructions: String
+  allergenNotes: String
+  active: Boolean
+  metadata: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -1753,6 +4385,12 @@ type Mutation {
   updateRoles(data: [RoleUpdateArgs!]!): [Role]
   deleteRole(where: RoleWhereUniqueInput!): Role
   deleteRoles(where: [RoleWhereUniqueInput!]!): [Role]
+  createStoreSetting(data: StoreSettingCreateInput!): StoreSetting
+  createStoreSettings(data: [StoreSettingCreateInput!]!): [StoreSetting]
+  updateStoreSetting(where: StoreSettingWhereUniqueInput!, data: StoreSettingUpdateInput!): StoreSetting
+  updateStoreSettings(data: [StoreSettingUpdateArgs!]!): [StoreSetting]
+  deleteStoreSetting(where: StoreSettingWhereUniqueInput!): StoreSetting
+  deleteStoreSettings(where: [StoreSettingWhereUniqueInput!]!): [StoreSetting]
   createMenuCategory(data: MenuCategoryCreateInput!): MenuCategory
   createMenuCategories(data: [MenuCategoryCreateInput!]!): [MenuCategory]
   updateMenuCategory(where: MenuCategoryWhereUniqueInput!, data: MenuCategoryUpdateInput!): MenuCategory
@@ -1765,6 +4403,12 @@ type Mutation {
   updateMenuItems(data: [MenuItemUpdateArgs!]!): [MenuItem]
   deleteMenuItem(where: MenuItemWhereUniqueInput!): MenuItem
   deleteMenuItems(where: [MenuItemWhereUniqueInput!]!): [MenuItem]
+  createMenuItemImage(data: MenuItemImageCreateInput!): MenuItemImage
+  createMenuItemImages(data: [MenuItemImageCreateInput!]!): [MenuItemImage]
+  updateMenuItemImage(where: MenuItemImageWhereUniqueInput!, data: MenuItemImageUpdateInput!): MenuItemImage
+  updateMenuItemImages(data: [MenuItemImageUpdateArgs!]!): [MenuItemImage]
+  deleteMenuItemImage(where: MenuItemImageWhereUniqueInput!): MenuItemImage
+  deleteMenuItemImages(where: [MenuItemImageWhereUniqueInput!]!): [MenuItemImage]
   createMenuItemModifier(data: MenuItemModifierCreateInput!): MenuItemModifier
   createMenuItemModifiers(data: [MenuItemModifierCreateInput!]!): [MenuItemModifier]
   updateMenuItemModifier(where: MenuItemModifierWhereUniqueInput!, data: MenuItemModifierUpdateInput!): MenuItemModifier
@@ -1789,6 +4433,12 @@ type Mutation {
   updatePayments(data: [PaymentUpdateArgs!]!): [Payment]
   deletePayment(where: PaymentWhereUniqueInput!): Payment
   deletePayments(where: [PaymentWhereUniqueInput!]!): [Payment]
+  createPaymentEvent(data: PaymentEventCreateInput!): PaymentEvent
+  createPaymentEvents(data: [PaymentEventCreateInput!]!): [PaymentEvent]
+  updatePaymentEvent(where: PaymentEventWhereUniqueInput!, data: PaymentEventUpdateInput!): PaymentEvent
+  updatePaymentEvents(data: [PaymentEventUpdateArgs!]!): [PaymentEvent]
+  deletePaymentEvent(where: PaymentEventWhereUniqueInput!): PaymentEvent
+  deletePaymentEvents(where: [PaymentEventWhereUniqueInput!]!): [PaymentEvent]
   createPaymentProvider(data: PaymentProviderCreateInput!): PaymentProvider
   createPaymentProviders(data: [PaymentProviderCreateInput!]!): [PaymentProvider]
   updatePaymentProvider(where: PaymentProviderWhereUniqueInput!, data: PaymentProviderUpdateInput!): PaymentProvider
@@ -1819,15 +4469,137 @@ type Mutation {
   updateLoyaltyEvents(data: [LoyaltyEventUpdateArgs!]!): [LoyaltyEvent]
   deleteLoyaltyEvent(where: LoyaltyEventWhereUniqueInput!): LoyaltyEvent
   deleteLoyaltyEvents(where: [LoyaltyEventWhereUniqueInput!]!): [LoyaltyEvent]
+  createCoffeeDomainEvent(data: CoffeeDomainEventCreateInput!): CoffeeDomainEvent
+  createCoffeeDomainEvents(data: [CoffeeDomainEventCreateInput!]!): [CoffeeDomainEvent]
+  updateCoffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!, data: CoffeeDomainEventUpdateInput!): CoffeeDomainEvent
+  updateCoffeeDomainEvents(data: [CoffeeDomainEventUpdateArgs!]!): [CoffeeDomainEvent]
+  deleteCoffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!): CoffeeDomainEvent
+  deleteCoffeeDomainEvents(where: [CoffeeDomainEventWhereUniqueInput!]!): [CoffeeDomainEvent]
+  createCoffeeOutboxDelivery(data: CoffeeOutboxDeliveryCreateInput!): CoffeeOutboxDelivery
+  createCoffeeOutboxDeliveries(data: [CoffeeOutboxDeliveryCreateInput!]!): [CoffeeOutboxDelivery]
+  updateCoffeeOutboxDelivery(where: CoffeeOutboxDeliveryWhereUniqueInput!, data: CoffeeOutboxDeliveryUpdateInput!): CoffeeOutboxDelivery
+  updateCoffeeOutboxDeliveries(data: [CoffeeOutboxDeliveryUpdateArgs!]!): [CoffeeOutboxDelivery]
+  deleteCoffeeOutboxDelivery(where: CoffeeOutboxDeliveryWhereUniqueInput!): CoffeeOutboxDelivery
+  deleteCoffeeOutboxDeliveries(where: [CoffeeOutboxDeliveryWhereUniqueInput!]!): [CoffeeOutboxDelivery]
+  createWasteLog(data: WasteLogCreateInput!): WasteLog
+  createWasteLogs(data: [WasteLogCreateInput!]!): [WasteLog]
+  updateWasteLog(where: WasteLogWhereUniqueInput!, data: WasteLogUpdateInput!): WasteLog
+  updateWasteLogs(data: [WasteLogUpdateArgs!]!): [WasteLog]
+  deleteWasteLog(where: WasteLogWhereUniqueInput!): WasteLog
+  deleteWasteLogs(where: [WasteLogWhereUniqueInput!]!): [WasteLog]
+  createCateringOrder(data: CateringOrderCreateInput!): CateringOrder
+  createCateringOrders(data: [CateringOrderCreateInput!]!): [CateringOrder]
+  updateCateringOrder(where: CateringOrderWhereUniqueInput!, data: CateringOrderUpdateInput!): CateringOrder
+  updateCateringOrders(data: [CateringOrderUpdateArgs!]!): [CateringOrder]
+  deleteCateringOrder(where: CateringOrderWhereUniqueInput!): CateringOrder
+  deleteCateringOrders(where: [CateringOrderWhereUniqueInput!]!): [CateringOrder]
+  createSubscription(data: SubscriptionCreateInput!): Subscription
+  createSubscriptions(data: [SubscriptionCreateInput!]!): [Subscription]
+  updateSubscription(where: SubscriptionWhereUniqueInput!, data: SubscriptionUpdateInput!): Subscription
+  updateSubscriptions(data: [SubscriptionUpdateArgs!]!): [Subscription]
+  deleteSubscription(where: SubscriptionWhereUniqueInput!): Subscription
+  deleteSubscriptions(where: [SubscriptionWhereUniqueInput!]!): [Subscription]
+  createPosOrder(data: PosOrderCreateInput!): PosOrder
+  createPosOrders(data: [PosOrderCreateInput!]!): [PosOrder]
+  updatePosOrder(where: PosOrderWhereUniqueInput!, data: PosOrderUpdateInput!): PosOrder
+  updatePosOrders(data: [PosOrderUpdateArgs!]!): [PosOrder]
+  deletePosOrder(where: PosOrderWhereUniqueInput!): PosOrder
+  deletePosOrders(where: [PosOrderWhereUniqueInput!]!): [PosOrder]
+  createRegisterShift(data: RegisterShiftCreateInput!): RegisterShift
+  createRegisterShifts(data: [RegisterShiftCreateInput!]!): [RegisterShift]
+  updateRegisterShift(where: RegisterShiftWhereUniqueInput!, data: RegisterShiftUpdateInput!): RegisterShift
+  updateRegisterShifts(data: [RegisterShiftUpdateArgs!]!): [RegisterShift]
+  deleteRegisterShift(where: RegisterShiftWhereUniqueInput!): RegisterShift
+  deleteRegisterShifts(where: [RegisterShiftWhereUniqueInput!]!): [RegisterShift]
+  createCashMovement(data: CashMovementCreateInput!): CashMovement
+  createCashMovements(data: [CashMovementCreateInput!]!): [CashMovement]
+  updateCashMovement(where: CashMovementWhereUniqueInput!, data: CashMovementUpdateInput!): CashMovement
+  updateCashMovements(data: [CashMovementUpdateArgs!]!): [CashMovement]
+  deleteCashMovement(where: CashMovementWhereUniqueInput!): CashMovement
+  deleteCashMovements(where: [CashMovementWhereUniqueInput!]!): [CashMovement]
+  createStaffShift(data: StaffShiftCreateInput!): StaffShift
+  createStaffShifts(data: [StaffShiftCreateInput!]!): [StaffShift]
+  updateStaffShift(where: StaffShiftWhereUniqueInput!, data: StaffShiftUpdateInput!): StaffShift
+  updateStaffShifts(data: [StaffShiftUpdateArgs!]!): [StaffShift]
+  deleteStaffShift(where: StaffShiftWhereUniqueInput!): StaffShift
+  deleteStaffShifts(where: [StaffShiftWhereUniqueInput!]!): [StaffShift]
+  createPrepBatch(data: PrepBatchCreateInput!): PrepBatch
+  createPrepBatches(data: [PrepBatchCreateInput!]!): [PrepBatch]
+  updatePrepBatch(where: PrepBatchWhereUniqueInput!, data: PrepBatchUpdateInput!): PrepBatch
+  updatePrepBatches(data: [PrepBatchUpdateArgs!]!): [PrepBatch]
+  deletePrepBatch(where: PrepBatchWhereUniqueInput!): PrepBatch
+  deletePrepBatches(where: [PrepBatchWhereUniqueInput!]!): [PrepBatch]
+  createPrepBatchConsumption(data: PrepBatchConsumptionCreateInput!): PrepBatchConsumption
+  createPrepBatchConsumptions(data: [PrepBatchConsumptionCreateInput!]!): [PrepBatchConsumption]
+  updatePrepBatchConsumption(where: PrepBatchConsumptionWhereUniqueInput!, data: PrepBatchConsumptionUpdateInput!): PrepBatchConsumption
+  updatePrepBatchConsumptions(data: [PrepBatchConsumptionUpdateArgs!]!): [PrepBatchConsumption]
+  deletePrepBatchConsumption(where: PrepBatchConsumptionWhereUniqueInput!): PrepBatchConsumption
+  deletePrepBatchConsumptions(where: [PrepBatchConsumptionWhereUniqueInput!]!): [PrepBatchConsumption]
+  createPurchaseOrder(data: PurchaseOrderCreateInput!): PurchaseOrder
+  createPurchaseOrders(data: [PurchaseOrderCreateInput!]!): [PurchaseOrder]
+  updatePurchaseOrder(where: PurchaseOrderWhereUniqueInput!, data: PurchaseOrderUpdateInput!): PurchaseOrder
+  updatePurchaseOrders(data: [PurchaseOrderUpdateArgs!]!): [PurchaseOrder]
+  deletePurchaseOrder(where: PurchaseOrderWhereUniqueInput!): PurchaseOrder
+  deletePurchaseOrders(where: [PurchaseOrderWhereUniqueInput!]!): [PurchaseOrder]
+  createSupplier(data: SupplierCreateInput!): Supplier
+  createSuppliers(data: [SupplierCreateInput!]!): [Supplier]
+  updateSupplier(where: SupplierWhereUniqueInput!, data: SupplierUpdateInput!): Supplier
+  updateSuppliers(data: [SupplierUpdateArgs!]!): [Supplier]
+  deleteSupplier(where: SupplierWhereUniqueInput!): Supplier
+  deleteSuppliers(where: [SupplierWhereUniqueInput!]!): [Supplier]
+  createInventoryLot(data: InventoryLotCreateInput!): InventoryLot
+  createInventoryLots(data: [InventoryLotCreateInput!]!): [InventoryLot]
+  updateInventoryLot(where: InventoryLotWhereUniqueInput!, data: InventoryLotUpdateInput!): InventoryLot
+  updateInventoryLots(data: [InventoryLotUpdateArgs!]!): [InventoryLot]
+  deleteInventoryLot(where: InventoryLotWhereUniqueInput!): InventoryLot
+  deleteInventoryLots(where: [InventoryLotWhereUniqueInput!]!): [InventoryLot]
+  createIngredient(data: IngredientCreateInput!): Ingredient
+  createIngredients(data: [IngredientCreateInput!]!): [Ingredient]
+  updateIngredient(where: IngredientWhereUniqueInput!, data: IngredientUpdateInput!): Ingredient
+  updateIngredients(data: [IngredientUpdateArgs!]!): [Ingredient]
+  deleteIngredient(where: IngredientWhereUniqueInput!): Ingredient
+  deleteIngredients(where: [IngredientWhereUniqueInput!]!): [Ingredient]
+  createRecipe(data: RecipeCreateInput!): Recipe
+  createRecipes(data: [RecipeCreateInput!]!): [Recipe]
+  updateRecipe(where: RecipeWhereUniqueInput!, data: RecipeUpdateInput!): Recipe
+  updateRecipes(data: [RecipeUpdateArgs!]!): [Recipe]
+  deleteRecipe(where: RecipeWhereUniqueInput!): Recipe
+  deleteRecipes(where: [RecipeWhereUniqueInput!]!): [Recipe]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
-  createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, items: [CafePickupOrderItemInput!]!): CafeOrder
-  updateCafeOrderStatus(orderId: ID!, status: String!): CafeOrder
-  applyCafeLoyalty(orderId: ID!, secretKey: String, customerEmail: String!, customerName: String, customerPhone: String, redeemDrinkCredit: Boolean): LoyaltyAccount
-  initiateCafePaymentSession(orderId: ID!, secretKey: String, paymentProvider: String!): CafePaymentSessionResult
+  registerCoffeeCustomer(name: String!, email: String!, password: String!): Boolean!
+  updateCoffeeCustomerProfile(name: String!, phone: String): Boolean!
+  createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, idempotencyKey: String, receiptKey: String, registerShiftId: ID, tipCents: Int, quoteFingerprint: String, externalCardReference: String, externalCardApproved: Boolean, items: [CafePickupOrderItemInput!]!): CafeOrderReceipt!
+  updateCafeOrderStatus(orderId: ID!, status: String!): CoffeeOrderStatusReceipt
+  updateCafeOrderItemStatus(orderItemId: ID!, status: String!, expectedStatus: String!, idempotencyKey: String!): CoffeeKdsCommandReceipt!
+  updateCateringOrderStatus(cateringOrderId: ID!, status: String!): CateringOrder
+  updateSubscriptionStatus(subscriptionId: ID!, status: String!): Subscription
+  updatePosOrderStatus(posOrderId: ID!, status: String!): PosOrder
+  applyCafeLoyalty(orderId: ID!, secretKey: String, customerEmail: String!, customerName: String, customerPhone: String, redeemDrinkCredit: Boolean): CafeLoyaltyProjection
+  initiateCafePaymentSession(orderId: ID!, secretKey: String, paymentProvider: String!, idempotencyKey: String): CafePaymentSessionResult
+  refundCafePayment(paymentId: ID!, amount: Int, reason: String, externalRefundReference: String, idempotencyKey: String!): CoffeePaymentReceipt
+  acceptCafePickupOrder(orderId: ID!, idempotencyKey: String!): CafeOrder
+  recordCafePayment(orderId: ID!, method: String!, idempotencyKey: String!, externalCardReference: String, externalCardApproved: Boolean): CoffeePaymentReceipt
+  handleCafePaymentWebhook(providerCode: String!, rawBody: String!, headers: JSON!): CafePaymentWebhookResult!
+  runCoffeeOnboarding(template: String!, data: JSON): CoffeeOnboardingResult!
+  createCoffeePurchaseOrder(supplierId: ID!, inventoryItemId: ID!, orderedQuantity: Float!, unitCostCents: Int!, expectedAt: String, notes: String, idempotencyKey: String!): PurchaseOrder!
+  receiveCoffeePurchaseOrder(purchaseOrderId: ID!, expiresAt: String): InventoryLot!
+  completeCoffeePrepBatch(recipeId: ID!, quantityMade: Float!, expiresAt: String, notes: String, idempotencyKey: String!): PrepBatch!
+  recordCoffeeWaste(inventoryItemId: ID, prepBatchId: ID, quantity: Float!, reason: String!, notes: String, idempotencyKey: String!): WasteLog!
+  openRegisterShift(registerName: String!, openingCashCents: Int!, idempotencyKey: String!): RegisterShift!
+  recordRegisterCashMovement(registerShiftId: ID!, type: String!, amountCents: Int!, reason: String!, idempotencyKey: String!): CashMovement!
+  closeRegisterShift(registerShiftId: ID!, countedCashCents: Int!, idempotencyKey: String!): RegisterShift!
+  createCoffeeMenuCategory(name: String!, description: String, sortOrder: Int, idempotencyKey: String!): MenuCategory!
+  createCoffeeMenuItem(name: String!, price: Int!, categoryId: ID, barStation: String, shortDescription: String, prepTimeMinutes: Int, idempotencyKey: String!): MenuItem!
+  updateCoffeeMenuItem(menuItemId: ID!, name: String, shortDescription: String, categoryId: ID, clearCategory: Boolean, barStation: String, prepTimeMinutes: Int, price: Int, available: Boolean, featured: Boolean, popular: Boolean, expectedUpdatedAt: String, idempotencyKey: String!): MenuItem!
+  createCoffeeMenuModifier(inventoryAction: String, inventoryItemId: ID, replacesInventoryItemId: ID, inventoryQuantity: Float, menuItemId: ID!, name: String!, modifierGroup: String!, modifierGroupLabel: String, priceAdjustment: Int!, required: Boolean, minSelections: Int, maxSelections: Int, defaultSelected: Boolean, inStock: Boolean, idempotencyKey: String!): MenuItemModifier!
+  updateCoffeeMenuModifier(inventoryAction: String, inventoryItemId: ID, replacesInventoryItemId: ID, inventoryQuantity: Float, modifierId: ID!, name: String!, modifierGroup: String!, modifierGroupLabel: String, priceAdjustment: Int!, required: Boolean, minSelections: Int, maxSelections: Int, defaultSelected: Boolean, inStock: Boolean, expectedUpdatedAt: String, idempotencyKey: String!): MenuItemModifier!
+  updateCoffeeModifierStock(modifierId: ID!, inStock: Boolean!, expectedUpdatedAt: String, idempotencyKey: String!): MenuItemModifier!
+  scheduleCoffeeStaffShift(staffId: ID!, role: String!, startsAt: String!, endsAt: String!, notes: String, idempotencyKey: String!): StaffShift!
+  updateCoffeeStaffShiftStatus(staffShiftId: ID!, status: String!, expectedStatus: String, idempotencyKey: String!): StaffShift!
 }
 
 union UserAuthenticationWithPasswordResult = UserAuthenticationWithPasswordSuccess | UserAuthenticationWithPasswordFailure
@@ -1865,12 +4637,18 @@ type Query {
   role(where: RoleWhereUniqueInput!): Role
   roles(where: RoleWhereInput! = {}, orderBy: [RoleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RoleWhereUniqueInput): [Role!]
   rolesCount(where: RoleWhereInput! = {}): Int
+  storeSetting(where: StoreSettingWhereUniqueInput!): StoreSetting
+  storeSettings(where: StoreSettingWhereInput! = {}, orderBy: [StoreSettingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StoreSettingWhereUniqueInput): [StoreSetting!]
+  storeSettingsCount(where: StoreSettingWhereInput! = {}): Int
   menuCategory(where: MenuCategoryWhereUniqueInput!): MenuCategory
   menuCategories(where: MenuCategoryWhereInput! = {}, orderBy: [MenuCategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuCategoryWhereUniqueInput): [MenuCategory!]
   menuCategoriesCount(where: MenuCategoryWhereInput! = {}): Int
   menuItem(where: MenuItemWhereUniqueInput!): MenuItem
   menuItems(where: MenuItemWhereInput! = {}, orderBy: [MenuItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemWhereUniqueInput): [MenuItem!]
   menuItemsCount(where: MenuItemWhereInput! = {}): Int
+  menuItemImage(where: MenuItemImageWhereUniqueInput!): MenuItemImage
+  menuItemImages(where: MenuItemImageWhereInput! = {}, orderBy: [MenuItemImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemImageWhereUniqueInput): [MenuItemImage!]
+  menuItemImagesCount(where: MenuItemImageWhereInput! = {}): Int
   menuItemModifier(where: MenuItemModifierWhereUniqueInput!): MenuItemModifier
   menuItemModifiers(where: MenuItemModifierWhereInput! = {}, orderBy: [MenuItemModifierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemModifierWhereUniqueInput): [MenuItemModifier!]
   menuItemModifiersCount(where: MenuItemModifierWhereInput! = {}): Int
@@ -1883,6 +4661,9 @@ type Query {
   payment(where: PaymentWhereUniqueInput!): Payment
   payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
   paymentsCount(where: PaymentWhereInput! = {}): Int
+  paymentEvent(where: PaymentEventWhereUniqueInput!): PaymentEvent
+  paymentEvents(where: PaymentEventWhereInput! = {}, orderBy: [PaymentEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentEventWhereUniqueInput): [PaymentEvent!]
+  paymentEventsCount(where: PaymentEventWhereInput! = {}): Int
   paymentProvider(where: PaymentProviderWhereUniqueInput!): PaymentProvider
   paymentProviders(where: PaymentProviderWhereInput! = {}, orderBy: [PaymentProviderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentProviderWhereUniqueInput): [PaymentProvider!]
   paymentProvidersCount(where: PaymentProviderWhereInput! = {}): Int
@@ -1898,12 +4679,72 @@ type Query {
   loyaltyEvent(where: LoyaltyEventWhereUniqueInput!): LoyaltyEvent
   loyaltyEvents(where: LoyaltyEventWhereInput! = {}, orderBy: [LoyaltyEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyEventWhereUniqueInput): [LoyaltyEvent!]
   loyaltyEventsCount(where: LoyaltyEventWhereInput! = {}): Int
+  coffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!): CoffeeDomainEvent
+  coffeeDomainEvents(where: CoffeeDomainEventWhereInput! = {}, orderBy: [CoffeeDomainEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeDomainEventWhereUniqueInput): [CoffeeDomainEvent!]
+  coffeeDomainEventsCount(where: CoffeeDomainEventWhereInput! = {}): Int
+  coffeeOutboxDelivery(where: CoffeeOutboxDeliveryWhereUniqueInput!): CoffeeOutboxDelivery
+  coffeeOutboxDeliveries(where: CoffeeOutboxDeliveryWhereInput! = {}, orderBy: [CoffeeOutboxDeliveryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeOutboxDeliveryWhereUniqueInput): [CoffeeOutboxDelivery!]
+  coffeeOutboxDeliveriesCount(where: CoffeeOutboxDeliveryWhereInput! = {}): Int
+  wasteLog(where: WasteLogWhereUniqueInput!): WasteLog
+  wasteLogs(where: WasteLogWhereInput! = {}, orderBy: [WasteLogOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: WasteLogWhereUniqueInput): [WasteLog!]
+  wasteLogsCount(where: WasteLogWhereInput! = {}): Int
+  cateringOrder(where: CateringOrderWhereUniqueInput!): CateringOrder
+  cateringOrders(where: CateringOrderWhereInput! = {}, orderBy: [CateringOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CateringOrderWhereUniqueInput): [CateringOrder!]
+  cateringOrdersCount(where: CateringOrderWhereInput! = {}): Int
+  subscription(where: SubscriptionWhereUniqueInput!): Subscription
+  subscriptions(where: SubscriptionWhereInput! = {}, orderBy: [SubscriptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SubscriptionWhereUniqueInput): [Subscription!]
+  subscriptionsCount(where: SubscriptionWhereInput! = {}): Int
+  posOrder(where: PosOrderWhereUniqueInput!): PosOrder
+  posOrders(where: PosOrderWhereInput! = {}, orderBy: [PosOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PosOrderWhereUniqueInput): [PosOrder!]
+  posOrdersCount(where: PosOrderWhereInput! = {}): Int
+  registerShift(where: RegisterShiftWhereUniqueInput!): RegisterShift
+  registerShifts(where: RegisterShiftWhereInput! = {}, orderBy: [RegisterShiftOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RegisterShiftWhereUniqueInput): [RegisterShift!]
+  registerShiftsCount(where: RegisterShiftWhereInput! = {}): Int
+  cashMovement(where: CashMovementWhereUniqueInput!): CashMovement
+  cashMovements(where: CashMovementWhereInput! = {}, orderBy: [CashMovementOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CashMovementWhereUniqueInput): [CashMovement!]
+  cashMovementsCount(where: CashMovementWhereInput! = {}): Int
+  staffShift(where: StaffShiftWhereUniqueInput!): StaffShift
+  staffShifts(where: StaffShiftWhereInput! = {}, orderBy: [StaffShiftOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StaffShiftWhereUniqueInput): [StaffShift!]
+  staffShiftsCount(where: StaffShiftWhereInput! = {}): Int
+  prepBatch(where: PrepBatchWhereUniqueInput!): PrepBatch
+  prepBatches(where: PrepBatchWhereInput! = {}, orderBy: [PrepBatchOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PrepBatchWhereUniqueInput): [PrepBatch!]
+  prepBatchesCount(where: PrepBatchWhereInput! = {}): Int
+  prepBatchConsumption(where: PrepBatchConsumptionWhereUniqueInput!): PrepBatchConsumption
+  prepBatchConsumptions(where: PrepBatchConsumptionWhereInput! = {}, orderBy: [PrepBatchConsumptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PrepBatchConsumptionWhereUniqueInput): [PrepBatchConsumption!]
+  prepBatchConsumptionsCount(where: PrepBatchConsumptionWhereInput! = {}): Int
+  purchaseOrder(where: PurchaseOrderWhereUniqueInput!): PurchaseOrder
+  purchaseOrders(where: PurchaseOrderWhereInput! = {}, orderBy: [PurchaseOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PurchaseOrderWhereUniqueInput): [PurchaseOrder!]
+  purchaseOrdersCount(where: PurchaseOrderWhereInput! = {}): Int
+  supplier(where: SupplierWhereUniqueInput!): Supplier
+  suppliers(where: SupplierWhereInput! = {}, orderBy: [SupplierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SupplierWhereUniqueInput): [Supplier!]
+  suppliersCount(where: SupplierWhereInput! = {}): Int
+  inventoryLot(where: InventoryLotWhereUniqueInput!): InventoryLot
+  inventoryLots(where: InventoryLotWhereInput! = {}, orderBy: [InventoryLotOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InventoryLotWhereUniqueInput): [InventoryLot!]
+  inventoryLotsCount(where: InventoryLotWhereInput! = {}): Int
+  ingredient(where: IngredientWhereUniqueInput!): Ingredient
+  ingredients(where: IngredientWhereInput! = {}, orderBy: [IngredientOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: IngredientWhereUniqueInput): [Ingredient!]
+  ingredientsCount(where: IngredientWhereInput! = {}): Int
+  recipe(where: RecipeWhereUniqueInput!): Recipe
+  recipes(where: RecipeWhereInput! = {}, orderBy: [RecipeOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RecipeWhereUniqueInput): [Recipe!]
+  recipesCount(where: RecipeWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   redirectToInit: Boolean
-  getCafeOrder(orderId: ID!, secretKey: String): JSON
-  getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): JSON
+  getCafeOrder(orderId: ID!, secretKey: String): CafeOrderProjection
+  getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): CafeLoyaltyProjection
+  getCoffeeKdsRecoveryScope: CoffeeKdsRecoveryScope
+  getCoffeeCustomerOrders(after: ID): CoffeeCustomerOrderPage!
+  getCoffeeStore: CoffeeStorefrontSettings
+  getCoffeeMenu(menuItemId: ID, search: String, categoryId: ID, after: String): CoffeeMenuProjection!
+  getCoffeeOrderQueue(search: String, status: String, fulfillment: String, includeCompleted: Boolean = true, activeCursor: String, historyCursor: String): CoffeeOrderQueueProjection!
+  getCoffeeKdsBoard(cursor: String, limit: Int = 100): CoffeeKdsProjection!
+  getCoffeeMenuManager(search: String, categoryId: ID, cursor: String, limit: Int = 50): CoffeeManagedMenuProjection!
+  getCoffeeMenuInventoryOptions(search: String, limit: Int = 25): CoffeeMenuInventoryOptions!
+  getCoffeePosRegister(search: String, categoryId: ID, cursor: String, limit: Int = 48): CoffeePosProjection!
+  quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int): CafeOrderQuote!
+  getCoffeeReports(period: String, startDate: String, endDate: String, lowStockPage: Int): CoffeeReportsProjection!
+  getCoffeeOperations(receiptCursor: String, purchaseSupplierSearch: String, purchaseSupplierCursor: String, purchaseInventorySearch: String, purchaseInventoryCursor: String, inventoryWasteSearch: String, inventoryWasteCursor: String, prepBatchSearch: String, prepBatchCursor: String, recipeSearch: String, recipeCursor: String, staffSearch: String, staffCursor: String, shiftCursor: String): CoffeeOperationsProjection!
 }
 
 union AuthenticatedItem = User
@@ -2044,6 +4885,127 @@ enum KeystoneAdminUISortDirection {
   DESC
 }
 
+type CoffeePaymentOrder {
+  id: ID!
+  status: String
+}
+
+type CoffeePaymentReceipt {
+  id: ID!
+  status: String
+  method: String
+  amount: Int
+  currencyCode: String
+  provider: String
+  providerPaymentId: String
+  processedAt: String
+  refundedAmount: Int
+  refundedAt: String
+  order: CoffeePaymentOrder
+}
+
+type CoffeeOrderStatusItem {
+  id: ID!
+  barStatus: String
+}
+
+type CoffeeOrderStatusReceipt {
+  id: ID!
+  orderNumber: String
+  status: String
+  startedAt: String
+  readyAt: String
+  completedAt: String
+  orderItems: [CoffeeOrderStatusItem!]
+}
+
+type CoffeeKdsRecoveryScope {
+  actorId: ID!
+  storeId: ID!
+}
+
+type CoffeeKdsCommandOrder {
+  id: ID!
+  orderNumber: String!
+  status: String!
+  pickupName: String
+  promisedAt: String
+}
+
+type CoffeeKdsCommandReceipt {
+  id: ID!
+  quantity: Int!
+  itemNameSnapshot: String!
+  customizationsSummary: String
+  barStatus: String!
+  station: String
+  queuedAt: String
+  startedAt: String
+  readyAt: String
+  handedOffAt: String
+  idempotencyKey: String!
+  expectedStatus: String!
+  requestedStatus: String!
+  actorId: ID!
+  storeId: ID!
+  order: CoffeeKdsCommandOrder!
+}
+
+type CoffeeCustomerOrder {
+  id: ID!
+  orderNumber: String!
+  status: String!
+  total: Int!
+  currencyCode: String!
+  createdAt: DateTime!
+}
+
+type CoffeeCustomerOrderPage {
+  orders: [CoffeeCustomerOrder!]!
+  nextCursor: ID
+}
+
+type CoffeeStorefrontSettings {
+  name: String!
+  tagline: String
+  description: String
+  address: String
+  phone: String
+  contactEmail: String
+  currencyCode: String!
+  locale: String!
+  timezone: String!
+  brandColor: String!
+  logoIcon: String
+  logoColor: String
+  weeklyHours: JSON
+  pickupLeadTimeMinutes: Int
+}
+
+type CoffeeOnboardingResult {
+  status: String!
+  storeSettings: Int!
+  categories: Int!
+  menuItems: Int!
+  modifiers: Int!
+  inventoryItems: Int!
+  paymentProviders: Int!
+  suppliers: Int!
+  recipes: Int!
+  ingredients: Int!
+  purchaseOrders: Int!
+  staffShifts: Int!
+  loyaltyAccounts: Int!
+  cateringOrders: Int!
+}
+
+type CafePaymentWebhookResult {
+  success: Boolean!
+  replayed: Boolean!
+  paymentId: ID
+  orderId: ID
+}
+
 type CafePaymentSessionResult {
   success: Boolean!
   paymentId: ID
@@ -2051,7 +5013,6 @@ type CafePaymentSessionResult {
   providerPaymentId: String
   status: String
   amount: Int
-  data: JSON
   error: String
 }
 
@@ -2060,4 +5021,644 @@ input CafePickupOrderItemInput {
   quantity: Int!
   modifierIds: [ID!]
   specialInstructions: String
+}
+
+type CoffeeNamedRef {
+  id: ID
+  name: String
+}
+
+type CoffeeStatusAction {
+  status: String!
+  label: String!
+  tone: String!
+}
+
+type CoffeeMenuCategoryProjection {
+  id: ID!
+  name: String!
+  description: String
+  active: Boolean
+  sortOrder: Int
+}
+
+type CoffeeMenuModifierProjection {
+  id: ID!
+  name: String!
+  modifierGroup: String
+  modifierGroupLabel: String
+  priceAdjustment: Int!
+  required: Boolean
+  minSelections: Int
+  maxSelections: Int
+  defaultSelected: Boolean
+  inStock: Boolean!
+}
+
+type CoffeeMenuItemProjection {
+  id: ID!
+  name: String!
+  shortDescription: String
+  price: Int!
+  available: Boolean!
+  featured: Boolean
+  popular: Boolean
+  imageUrl: String
+  primaryImageUrl: String
+  prepTimeMinutes: Int
+  caffeineMg: Int
+  barStation: String
+  temperatureOptions: [String!]!
+  dietaryFlags: [String!]!
+  category: CoffeeNamedRef
+  modifiers: [CoffeeMenuModifierProjection!]!
+}
+
+type CoffeeMenuProjection {
+  categories: [CoffeeMenuCategoryProjection!]!
+  items: [CoffeeMenuItemProjection!]!
+  item: CoffeeMenuItemProjection
+  nextCursor: String
+  hasUncategorized: Boolean
+}
+
+type CoffeeMenuInventoryOption {
+  id: ID!
+  name: String!
+  unit: String
+}
+
+type CoffeeMenuInventoryOptions {
+  items: [CoffeeMenuInventoryOption!]!
+  hasMore: Boolean!
+}
+
+type CoffeeManagedMenuModifier {
+  id: ID!
+  name: String!
+  modifierGroup: String!
+  modifierGroupLabel: String
+  priceAdjustment: Int!
+  required: Boolean!
+  minSelections: Int!
+  maxSelections: Int!
+  defaultSelected: Boolean!
+  inStock: Boolean!
+  updatedAt: String!
+  inventoryAction: String
+  inventoryQuantity: Float
+  inventoryItem: CoffeeMenuInventoryOption
+  replacesInventoryItem: CoffeeMenuInventoryOption
+}
+
+type CoffeeManagedMenuItem {
+  id: ID!
+  name: String!
+  shortDescription: String
+  price: Int!
+  available: Boolean!
+  featured: Boolean!
+  popular: Boolean!
+  prepTimeMinutes: Int
+  barStation: String
+  updatedAt: String!
+  category: CoffeeNamedRef
+  modifiers: [CoffeeManagedMenuModifier!]!
+  modifiersHasMore: Boolean!
+}
+
+type CoffeeManagedMenuStats {
+  items: Int!
+  hidden: Int!
+  modifiersOut: Int!
+}
+
+type CoffeeManagedMenuProjection {
+  canManageProducts: Boolean!
+  categories: [CoffeeMenuCategoryProjection!]!
+  categoriesHasMore: Boolean!
+  matchingCount: Int!
+  stats: CoffeeManagedMenuStats!
+  hasMore: Boolean!
+  nextCursor: String
+  items: [CoffeeManagedMenuItem!]!
+}
+
+type CafeModifierSnapshotProjection {
+  id: ID!
+  name: String!
+  group: String!
+  groupLabel: String!
+  priceAdjustment: Int!
+}
+
+type CafeOrderItemProjection {
+  id: ID!
+  quantity: Int!
+  itemNameSnapshot: String
+  imagePathSnapshot: String
+  customizationsSummary: String
+  modifierSnapshot: [CafeModifierSnapshotProjection!]!
+  specialInstructions: String
+  price: Int!
+  barStatus: String
+  station: String
+}
+
+type CafeOrderProjection {
+  id: ID!
+  orderNumber: String!
+  status: String!
+  handoffCode: String
+  pickupName: String
+  promisedAt: String
+  subtotal: Int!
+  tax: Int!
+  tip: Int
+  total: Int!
+  currencyCode: String!
+  orderItems: [CafeOrderItemProjection!]!
+}
+
+type CafeOrderReceipt {
+  id: ID!
+  orderNumber: String!
+  status: String!
+  handoffCode: String
+  pickupName: String
+  promisedAt: String
+  subtotal: Int!
+  tax: Int!
+  tip: Int
+  total: Int!
+  currencyCode: String!
+  secretKey: String!
+  orderItems: [CafeOrderItemProjection!]!
+}
+
+type CafeLoyaltyProjection {
+  id: ID!
+  customerName: String
+  customerEmail: String
+  customerPhone: String
+  status: String
+  tier: String
+  pointsBalance: Int!
+  lifetimePoints: Int
+  drinkCredits: Int!
+  visits: Int
+  lastVisitAt: String
+  nextRewardProgress: Int
+}
+
+type CoffeeOrderQueueSummary {
+  allCount: Int!
+  activeCount: Int!
+  openCount: Int!
+  acceptedCount: Int!
+  paidCount: Int!
+  queuedCount: Int!
+  preparingCount: Int!
+  readyCount: Int!
+  completedCount: Int!
+  cancelledCount: Int!
+  refundedCount: Int!
+}
+
+type CoffeeOrderQueueFilters {
+  status: String!
+  fulfillment: String!
+}
+
+type CoffeeRefundablePaymentProjection {
+  id: ID!
+  status: String!
+  method: String!
+  amount: Int!
+  refundedAmount: Int
+}
+
+type CoffeeOrderQueueCapabilities {
+  canManageOrders: Boolean!
+  canManagePayments: Boolean!
+  canManageLoyalty: Boolean!
+}
+
+type CoffeeOrderQueueTicket {
+  id: ID!
+  orderNumber: String!
+  status: String!
+  fulfillmentType: String
+  orderSource: String
+  customerName: String
+  customerEmail: String
+  pickupName: String
+  promisedAt: DateTime
+  total: Int!
+  isRush: Boolean
+  orderItems: [CafeOrderItemProjection!]!
+  paymentState: String
+  canRecordPayment: Boolean!
+  canApplyLoyalty: Boolean!
+  loyaltyApplied: Boolean
+  refundablePayments: [CoffeeRefundablePaymentProjection!]!
+  actions: [CoffeeStatusAction!]!
+}
+
+type CoffeeOrderQueueProjection {
+  summary: CoffeeOrderQueueSummary!
+  capabilities: CoffeeOrderQueueCapabilities!
+  filters: CoffeeOrderQueueFilters!
+  storeTimezone: String
+  activeCount: Int!
+  activeHasMore: Boolean!
+  activeNextCursor: String
+  historyCount: Int!
+  historyHasMore: Boolean!
+  historyNextCursor: String
+  tickets: [CoffeeOrderQueueTicket!]!
+}
+
+type CoffeeKdsOrderRef {
+  id: ID!
+  orderNumber: String!
+  status: String!
+  pickupName: String
+  promisedAt: DateTime
+  isRush: Boolean
+}
+
+type CoffeeKdsItemProjection {
+  id: ID!
+  quantity: Int!
+  itemNameSnapshot: String
+  customizationsSummary: String
+  specialInstructions: String
+  barStatus: String!
+  station: String
+  queuedAt: DateTime
+  startedAt: DateTime
+  readyAt: DateTime
+  order: CoffeeKdsOrderRef!
+  nextAction: CoffeeStatusAction
+}
+
+type CoffeeKdsProjection {
+  activeCount: Int!
+  canManageOrders: Boolean!
+  storeTimezone: String
+  hasMore: Boolean!
+  nextCursor: String
+  items: [CoffeeKdsItemProjection!]!
+}
+
+type CoffeeRegisterShiftProjection {
+  id: ID!
+  shiftNumber: String!
+  registerName: String
+  status: String!
+  openingCashCents: Int
+  cashSalesCents: Int
+  cardSalesCents: Int
+  tipsCents: Int
+  payInsCents: Int
+  payOutsCents: Int
+  expectedCashCents: Int
+  openedAt: DateTime
+}
+
+type CoffeePosProjection {
+  operatorId: ID!
+  storeId: ID!
+  items: [CoffeeMenuItemProjection!]!
+  hasMore: Boolean!
+  nextCursor: String
+  categories: [CoffeeNamedRef!]!
+  openShift: CoffeeRegisterShiftProjection
+}
+
+type CafeOrderQuoteLine {
+  index: Int!
+  menuItemId: ID!
+  name: String!
+  quantity: Int!
+  unitPrice: Int!
+  lineTotal: Int!
+}
+
+type CafeOrderQuote {
+  subtotal: Int!
+  tax: Int!
+  tip: Int!
+  total: Int!
+  currencyCode: String!
+  quoteFingerprint: String!
+  estimatedPickupMinutes: Int!
+  lines: [CafeOrderQuoteLine!]!
+}
+
+type CoffeeReportPeriod {
+  period: String!
+  startDate: String!
+  endDate: String!
+  timezone: String!
+  timezoneConfigured: Boolean!
+}
+
+type CoffeeItemPerformance {
+  key: String!
+  menuItemId: ID
+  name: String!
+  quantity: Int!
+  revenueCents: Float!
+}
+
+type CoffeeStationLoad {
+  station: String!
+  quantity: Int!
+}
+
+type CoffeeSalesReport {
+  orderCount: Int!
+  completedCount: Int!
+  cancelledCount: Int!
+  completionRatePercent: Int!
+  grossSalesCents: Float!
+  taxCents: Float!
+  tipCents: Float!
+  discountCents: Float!
+  averageFulfillmentMinutes: Int
+  fulfillmentSampleCount: Int!
+  openTicketCount: Int!
+  readyTicketCount: Int!
+  topItems: [CoffeeItemPerformance!]!
+  topItemsTruncated: Boolean!
+  stationProduction: [CoffeeStationLoad!]!
+}
+
+type CoffeeCollectionsReport {
+  currencyCode: String
+  currencyMismatch: Boolean!
+  paymentCount: Int!
+  grossCollectedCents: Float
+  refundedCents: Float
+  netCollectedCents: Float
+  needsReviewCount: Int!
+}
+
+type CoffeeLowStockItem {
+  id: ID!
+  name: String!
+  category: String
+  unit: String
+  currentStock: Float!
+  reorderPoint: Float!
+  parLevel: Float!
+  supplierName: String
+}
+
+type CoffeeLowStockReport {
+  totalCount: Int!
+  page: Int!
+  pageSize: Int!
+  items: [CoffeeLowStockItem!]!
+}
+
+type CoffeeLoyaltyReportAccount {
+  id: ID!
+  customerName: String
+  customerEmail: String
+  tier: String
+  lifetimePoints: Int
+  drinkCredits: Int
+  lastVisitAt: DateTime
+}
+
+type CoffeeLoyaltyReport {
+  accountCount: Int!
+  totalVisits: Int!
+  outstandingDrinkCredits: Int!
+  topAccounts: [CoffeeLoyaltyReportAccount!]!
+}
+
+type CoffeeReportsProjection {
+  storeTimezone: String
+  period: CoffeeReportPeriod!
+  sales: CoffeeSalesReport
+  collections: CoffeeCollectionsReport
+  lowStock: CoffeeLowStockReport
+  loyalty: CoffeeLoyaltyReport
+}
+
+type CoffeeRecipeProjection {
+  id: ID!
+  name: String!
+  status: String!
+  yieldQuantity: Float
+  yieldUnit: String
+  active: Boolean!
+  menuItem: CoffeeNamedRef
+}
+
+type CoffeeIngredientProjection {
+  id: ID!
+  name: String!
+  quantity: Float
+  unit: String
+  optional: Boolean!
+  recipe: CoffeeNamedRef
+  inventoryItem: CoffeeNamedRef
+}
+
+type CoffeeInventoryLotProjection {
+  id: ID!
+  lotNumber: String!
+  quantityReceived: Float
+  quantityRemaining: Float
+  unitCostCents: Int
+  status: String!
+  expiresAt: DateTime
+  inventoryItem: CoffeeNamedRef
+  supplier: CoffeeNamedRef
+}
+
+type CoffeeSupplierProjection {
+  id: ID!
+  name: String!
+  status: String!
+  contactName: String
+  email: String
+  phone: String
+  leadTimeDays: Int
+}
+
+type CoffeePurchaseOrderProjection {
+  id: ID!
+  poNumber: String!
+  status: String!
+  subtotalCents: Int
+  expectedAt: DateTime
+  supplier: CoffeeNamedRef
+}
+
+type CoffeeInventoryUnitRef {
+  id: ID
+  name: String
+  unit: String
+}
+
+type CoffeeReceiptPurchaseOrder {
+  id: ID!
+  poNumber: String!
+  status: String!
+  subtotalCents: Int
+  expectedAt: DateTime
+  orderedQuantity: Float
+  unitCostCents: Int
+  supplier: CoffeeNamedRef
+  inventoryItem: CoffeeInventoryUnitRef
+}
+
+type CoffeeReceiptPurchaseOrderPage {
+  items: [CoffeeReceiptPurchaseOrder!]!
+  hasMore: Boolean!
+  nextCursor: String
+  loadError: Boolean!
+}
+
+type CoffeeOperationsOption {
+  id: ID!
+  name: String!
+  detail: String
+  unit: String
+  currentStock: Float
+}
+
+type CoffeeOperationsOptionPage {
+  items: [CoffeeOperationsOption!]!
+  hasMore: Boolean!
+  nextCursor: String
+  loadError: Boolean!
+}
+
+type CoffeePrepBatchProjection {
+  id: ID!
+  batchNumber: String!
+  status: String!
+  quantityMade: Float
+  recipe: CoffeeNamedRef
+  preparedBy: CoffeeNamedRef
+  expiresAt: DateTime
+}
+
+type CoffeeStaffRef {
+  id: ID
+  name: String
+  email: String
+}
+
+type CoffeeStaffShiftProjection {
+  id: ID!
+  shiftNumber: String!
+  role: String!
+  status: String!
+  startsAt: DateTime
+  endsAt: DateTime
+  clockInAt: DateTime
+  clockOutAt: DateTime
+  staff: CoffeeStaffRef
+  actions: [CoffeeStatusAction!]!
+}
+
+type CoffeeStaffShiftPage {
+  items: [CoffeeStaffShiftProjection!]!
+  hasMore: Boolean!
+  nextCursor: String
+  loadError: Boolean!
+  totalCount: Int
+}
+
+type CoffeePosOrderProjection {
+  id: ID!
+  receiptNumber: String!
+  registerName: String
+  status: String!
+  subtotalCents: Int
+  taxCents: Int
+  tipCents: Int
+  totalCents: Int
+  cashier: CoffeeNamedRef
+}
+
+type CoffeeSubscriptionProjection {
+  id: ID!
+  subscriptionNumber: String!
+  status: String!
+  planName: String!
+  billingInterval: String!
+  priceCents: Int
+  renewsAt: DateTime
+  actions: [CoffeeStatusAction!]!
+}
+
+type CoffeeCateringProjection {
+  id: ID!
+  cateringNumber: String!
+  customerName: String!
+  customerEmail: String
+  status: String!
+  eventAt: DateTime
+  guestCount: Int
+  subtotalCents: Int
+  actions: [CoffeeStatusAction!]!
+}
+
+type CoffeeWasteProjection {
+  id: ID!
+  logNumber: String!
+  reason: String!
+  quantity: Float
+  unit: String
+  costCents: Int
+  inventoryItem: CoffeeNamedRef
+  prepBatch: CoffeePrepBatchRef
+}
+
+type CoffeePrepBatchRef {
+  batchNumber: String!
+}
+
+type CoffeeOperationsSections {
+  inventory: Boolean!
+  inventoryManage: Boolean!
+  products: Boolean!
+  staffing: Boolean!
+  payments: Boolean!
+  catering: Boolean!
+  subscriptions: Boolean!
+}
+
+type CoffeeOperationsProjection {
+  sections: CoffeeOperationsSections!
+  storeTimezone: String
+  draftScope: String!
+  recipes: [CoffeeRecipeProjection!]!
+  ingredients: [CoffeeIngredientProjection!]!
+  inventoryLots: [CoffeeInventoryLotProjection!]!
+  suppliers: [CoffeeSupplierProjection!]!
+  purchaseOrders: [CoffeePurchaseOrderProjection!]!
+  prepBatches: [CoffeePrepBatchProjection!]!
+  wasteLogs: [CoffeeWasteProjection!]!
+  posOrders: [CoffeePosOrderProjection!]!
+  subscriptions: [CoffeeSubscriptionProjection!]!
+  cateringOrders: [CoffeeCateringProjection!]!
+  recentStaffShifts: [CoffeeStaffShiftProjection!]!
+  receiptPurchaseOrders: CoffeeReceiptPurchaseOrderPage!
+  purchaseSuppliers: CoffeeOperationsOptionPage!
+  purchaseInventoryItems: CoffeeOperationsOptionPage!
+  inventoryWasteItems: CoffeeOperationsOptionPage!
+  wastePrepBatches: CoffeeOperationsOptionPage!
+  prepRecipes: CoffeeOperationsOptionPage!
+  staffMembers: CoffeeOperationsOptionPage!
+  activeStaffShifts: CoffeeStaffShiftPage!
 }

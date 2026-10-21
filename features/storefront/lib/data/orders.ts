@@ -9,7 +9,7 @@ export type PickupOrderItemInput = {
   specialInstructions?: string;
 };
 
-export type PickupOrderInput = {
+export type PickupOrderRequest = {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -17,11 +17,75 @@ export type PickupOrderInput = {
   requestedPickupMinutes?: number;
   specialInstructions?: string;
   paymentMethod?: string;
+  quoteFingerprint: string;
   items: PickupOrderItemInput[];
 };
 
+export type PickupOrderInput = PickupOrderRequest & {
+  idempotencyKey: string;
+  receiptKey: string;
+};
+
+export type CafeModifierSnapshot = {
+  id: string;
+  name: string;
+  group: string;
+  groupLabel: string;
+  priceAdjustment: number;
+};
+
+export type CafeOrderItemSnapshot = {
+  id: string;
+  quantity: number;
+  itemNameSnapshot?: string | null;
+  imagePathSnapshot?: string | null;
+  customizationsSummary?: string | null;
+  modifierSnapshot?: CafeModifierSnapshot[] | null;
+  specialInstructions?: string | null;
+  price: number;
+};
+
+export type CafePickupOrder = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  handoffCode?: string | null;
+  pickupName?: string | null;
+  promisedAt?: string | null;
+  subtotal: number;
+  tax: number;
+  tip?: number;
+  total: number;
+  currencyCode: string;
+  secretKey?: string | null;
+  orderItems?: CafeOrderItemSnapshot[];
+};
+
+export type CafeOrderQuote = {
+  subtotal: number;
+  tax: number;
+  tip: number;
+  total: number;
+  currencyCode: string;
+  quoteFingerprint: string;
+  estimatedPickupMinutes: number;
+  lines: Array<{ index: number; menuItemId: string; name: string; quantity: number; unitPrice: number; lineTotal: number }>;
+};
+
+const QUOTE_CAFE_ORDER_QUERY = `
+  query QuoteCafeOrder($items: [CafePickupOrderItemInput!]!, $tipCents: Int) {
+    quoteCafeOrder(items: $items, tipCents: $tipCents) {
+      subtotal tax tip total currencyCode quoteFingerprint estimatedPickupMinutes
+      lines { index menuItemId name quantity unitPrice lineTotal }
+    }
+  }
+`;
+
 const CREATE_PICKUP_ORDER_MUTATION = `
   mutation CreateCafePickupOrder(
+    $idempotencyKey: String!
+    $receiptKey: String!
+    $quoteFingerprint: String!
     $customerName: String!
     $customerEmail: String
     $customerPhone: String
@@ -32,6 +96,9 @@ const CREATE_PICKUP_ORDER_MUTATION = `
     $items: [CafePickupOrderItemInput!]!
   ) {
     createCafePickupOrder(
+      idempotencyKey: $idempotencyKey
+      receiptKey: $receiptKey
+      quoteFingerprint: $quoteFingerprint
       customerName: $customerName
       customerEmail: $customerEmail
       customerPhone: $customerPhone
@@ -49,21 +116,33 @@ const CREATE_PICKUP_ORDER_MUTATION = `
       promisedAt
       subtotal
       tax
+      tip
       total
+      currencyCode
       secretKey
       orderItems {
         id
         quantity
         itemNameSnapshot
+        imagePathSnapshot
         customizationsSummary
+        modifierSnapshot { id name group groupLabel priceAdjustment }
+        specialInstructions
         price
       }
     }
   }
 `;
 
+export async function quoteCafePickupOrder(items: PickupOrderItemInput[], tipCents = 0) {
+  if (!items.length) return { success: true as const, quote: null };
+  const response = await keystoneClient<{ quoteCafeOrder: CafeOrderQuote }>(QUOTE_CAFE_ORDER_QUERY, { items, tipCents }, { cache: "no-store" });
+  if (!response.success) return { success: false as const, error: response.error };
+  return { success: true as const, quote: response.data.quoteCafeOrder };
+}
+
 export async function createCafePickupOrder(input: PickupOrderInput) {
-  const response = await keystoneClient<{ createCafePickupOrder: any }>(CREATE_PICKUP_ORDER_MUTATION, input, { cache: "no-store" });
+  const response = await keystoneClient<{ createCafePickupOrder: CafePickupOrder }>(CREATE_PICKUP_ORDER_MUTATION, input, { cache: "no-store" });
 
   if (!response.success) {
     return { success: false as const, error: response.error };

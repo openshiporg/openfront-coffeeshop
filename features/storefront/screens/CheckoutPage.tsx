@@ -1,5 +1,10 @@
 import { CheckoutClient } from "../components/CheckoutClient";
+import { StorefrontShell } from "../components/StorefrontShell";
 
 export default function CheckoutPage() {
-  return <CheckoutClient />;
+  return (
+    <StorefrontShell>
+      <CheckoutClient />
+    </StorefrontShell>
+  );
 }

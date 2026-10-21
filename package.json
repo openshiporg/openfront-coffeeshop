@@ -1,25 +1,28 @@
 {
-  "name": "weekday-keystone",
+  "name": "openfront-coffee-shop",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "keystone build --no-ui && npm run migrate && next dev",
-    "build": "keystone build --no-ui && npm run migrate && next build",
+    "build": "keystone build --no-ui && next build",
     "start": "next start",
-    "lint": "next lint",
-    "migrate:gen": "keystone build --no-ui && tsx features/keystone/view-order/generate-view-order.ts && keystone prisma migrate dev",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "tsx --test $(find features app -name '*.test.ts')",
+    "migrate:gen": "keystone build --no-ui && tsx features/keystone/view-order/generate-view-order.ts && prisma migrate dev",
     "migrate": "prisma migrate deploy"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.13",
-    "@openrouter/ai-sdk-provider": "^2.0.2",
     "@ai-sdk/react": "^3.0.51",
-    "@graphql-tools/schema": "^10.0.23",
+    "@graphql-tools/schema": "^10.1.5",
     "@keystone-6/auth": "^8.1.0",
     "@keystone-6/core": "^6.5.1",
     "@keystone-6/document-renderer": "^1.1.2",
     "@keystone-6/fields-document": "^9.1.1",
-    "@modelcontextprotocol/sdk": "^1.15.1",
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@openrouter/ai-sdk-provider": "^2.0.2",
     "@prisma/client": "6.5.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -71,9 +74,9 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.511.0",
     "marked": "^16.1.1",
-    "next": "^16.0.10",
+    "next": "16.3.8",
     "next-themes": "^0.4.6",
-    "nodemailer": "^7.0.5",
+    "nodemailer": "^10.0.10",
     "pluralize": "^8.0.0",
     "react": "^19.2.2",
     "react-day-picker": "^9.7.0",
@@ -103,7 +106,7 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.0.10",
+    "eslint-config-next": "16.3.8",
     "node-fetch": "^3.3.2",
     "prisma": "6.5.0",
     "tailwindcss": "^4",
@@ -118,7 +121,19 @@
     "react": "^19.2.2",
     "react-dom": "^19.2.2",
     "@keystone-6/core": {
-      "next": "14.2.35"
-    }
+      "next": "16.3.8",
+      "image-size": "2.0.4",
+      "file-type": "21.3.4",
+      "esbuild": "0.25.12"
+    },
+    "form-data": "4.0.6",
+    "proxy-addr": "2.0.8",
+    "source-map-js": "1.2.2",
+    "sharp": "0.35.5",
+    "@graphql-tools/utils": "^12.1.0",
+    "esbuild": "0.25.12",
+    "ajv-formats": { "ajv": "^8.18.0" },
+    "uuid": "11.1.1",
+    "@apollo/server": { "uuid": "11.1.1" }
   }
 }

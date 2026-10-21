@@ -62,13 +62,23 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
     setError,
     setIsLoading,
     resetOnboardingState,
-    getDisplayNamesFromData,
-    templateDisplayNames,
+    result,
+    setResult,
+    outcome,
+    setOutcome,
+    customDraft,
+    setCustomDraft,
   } = onboardingState;
+
+  // Custom setup can only be confirmed after its payload was validated and reviewed.
+  const canConfirm = selectedTemplate !== 'custom' || customJsonApplied;
 
   const { runOnboarding } = useOnboardingApi({
     selectedTemplate,
     currentJsonData,
+    canSubmit: canConfirm,
+    setResult,
+    setOutcome,
     setProgress,
     setItemLoading,
     setItemCompleted,
@@ -81,20 +91,33 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
 
   if (!isOpen) return null;
 
-  const displayNames = currentJsonData
-    ? getDisplayNamesFromData(currentJsonData)
-    : templateDisplayNames;
+  const summary = (label: string, singular: string, plural: string, count: number | undefined) => (
+    <div className="flex items-center space-x-2 text-muted-foreground">
+      <CircleCheck className="h-4 w-4 fill-muted-foreground text-background" aria-hidden />
+      <span className="font-medium">
+        {count === undefined ? label : `${count} ${count === 1 ? singular : plural} added`}
+      </span>
+    </div>
+  );
+
+  const errorBanner = error && !isLoading && step !== 'done' ? (
+    <Badge color="rose" className="gap-3 rounded-none border-b text-sm" role="alert">
+      <AlertCircle className="size-4 shrink-0 sm:size-5" aria-hidden />
+      <span className="text-xs sm:text-sm">{error}</span>
+    </Badge>
+  ) : null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-[95vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+    // Closing is held while setup is running so its outcome is never abandoned mid-flight.
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !isLoading) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="flex max-h-[calc(100dvh-2rem)] max-w-[95vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="mb-0 shrink-0 border-b px-4 py-4 sm:px-6">
           <DialogTitle>Coffee Shop Setup</DialogTitle>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-          <div className="order-1 flex shrink-0 flex-col lg:order-none lg:w-80 lg:justify-between lg:border-r">
-            <div className="flex-1">
+          <div className="order-1 flex min-h-0 shrink-0 flex-col overflow-hidden lg:order-none lg:w-80 lg:justify-between lg:border-r">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="p-4 sm:p-6">
                 <div className="flex items-center space-x-3">
                   <div className="inline-flex shrink-0 items-center justify-center rounded-sm bg-muted p-3">
@@ -103,7 +126,7 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                   <div className="space-y-0.5">
                     <h3 className="text-sm font-medium text-foreground">Cafe Setup</h3>
                     <p className="text-sm text-muted-foreground">
-                      {step === 'done' ? 'Your coffee shop is ready' : 'Configure your coffee shop demo data'}
+                      {step === 'done' ? 'Your coffee shop is ready' : 'Configure your coffee shop operating data'}
                     </p>
                   </div>
                 </div>
@@ -113,31 +136,26 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                   <>
                     <h4 className="mb-2 text-sm font-medium text-foreground">Setup Complete</h4>
                     <p className="mb-4 text-sm text-muted-foreground">
-                      Your {selectedTemplate === 'minimal' ? 'basic' : selectedTemplate === 'custom' ? 'custom' : 'complete'} coffee setup is ready to use.
+                      Review Store Settings to confirm your business details, sales tax rate and hours, and count your opening stock before taking orders.
                     </p>
-                    <div className="mb-4 flex items-center space-x-2 text-sm text-emerald-600 dark:text-emerald-500">
-                      <CircleCheck className="h-4 w-4 fill-emerald-500 text-background" />
-                      <span>Setup complete</span>
+                    <div className="mb-4 flex items-center space-x-2 text-sm text-emerald-600 dark:text-emerald-500" role="status">
+                      <CircleCheck className="h-4 w-4 fill-emerald-500 text-background" aria-hidden />
+                      <span>Setup saved</span>
                     </div>
 
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center space-x-2 text-muted-foreground">
-                        <CircleCheck className="h-4 w-4 fill-muted-foreground text-background" />
-                        <span className="font-medium">{displayNames.categories.length} category{displayNames.categories.length === 1 ? '' : 'ies'} created</span>
+                    {outcome === 'reconciled' || !result ? (
+                      <p className="text-sm text-muted-foreground">
+                        Setup finished, but the confirmation was interrupted, so the number of records added is not available. Existing records were kept as they were.
+                      </p>
+                    ) : (
+                      <div className="space-y-3 text-sm">
+                        {summary('', 'category', 'categories', result.categories)}
+                        {summary('', 'menu item', 'menu items', result.menuItems)}
+                        {summary('', 'modifier', 'modifiers', result.modifiers)}
+                        {summary('', 'inventory item', 'inventory items', result.inventoryItems)}
+                        <p className="text-xs text-muted-foreground">Records that already existed were kept unchanged and are not counted.</p>
                       </div>
-                      <div className="flex items-center space-x-2 text-muted-foreground">
-                        <CircleCheck className="h-4 w-4 fill-muted-foreground text-background" />
-                        <span className="font-medium">{displayNames.menuItems.length} menu item{displayNames.menuItems.length === 1 ? '' : 's'} created</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-muted-foreground">
-                        <CircleCheck className="h-4 w-4 fill-muted-foreground text-background" />
-                        <span className="font-medium">{displayNames.modifiers.length} modifier{displayNames.modifiers.length === 1 ? '' : 's'} created</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-muted-foreground">
-                        <CircleCheck className="h-4 w-4 fill-muted-foreground text-background" />
-                        <span className="font-medium">{displayNames.inventoryItems.length} inventory item{displayNames.inventoryItems.length === 1 ? '' : 's'} created</span>
-                      </div>
-                    </div>
+                    )}
                   </>
                 ) : !isLoading ? (
                   <>
@@ -152,7 +170,7 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                           <SelectItem value="minimal">
                             <div className="flex flex-col items-start text-left">
                               <span className="font-medium">Basic Setup</span>
-                              <span className="text-xs text-muted-foreground">A few sample drinks and pantry items</span>
+                              <span className="text-xs text-muted-foreground">A few drinks, pastries and pantry items</span>
                             </div>
                           </SelectItem>
                           <SelectItem value="full">
@@ -164,7 +182,7 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                           <SelectItem value="custom">
                             <div className="flex flex-col items-start text-left">
                               <span className="font-medium">Custom Setup</span>
-                              <span className="text-xs text-muted-foreground">Use your own JSON templates</span>
+                              <span className="text-xs text-muted-foreground">Paste and review your own configuration</span>
                             </div>
                           </SelectItem>
                         </SelectContent>
@@ -178,9 +196,9 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                         className="space-y-4"
                       >
                         {([
-                          ['minimal', 'Basic Setup', 'A few sample drinks and pantry items'],
+                          ['minimal', 'Basic Setup', 'A few drinks, pastries and pantry items'],
                           ['full', 'Complete Setup', 'Full menu, modifiers, and inventory'],
-                          ['custom', 'Custom Setup', 'Use your own JSON templates'],
+                          ['custom', 'Custom Setup', 'Paste and review your own configuration'],
                         ] as const).map(([value, title, description]) => (
                           <div
                             key={value}
@@ -216,12 +234,7 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
             </div>
 
             <div className="hidden flex-col border-t lg:flex">
-              {error && !isLoading && step !== 'done' ? (
-                <Badge color="rose" className="gap-3 rounded-none border-b text-sm">
-                  <AlertCircle className="size-4 sm:size-7" />
-                  <span className="text-xs sm:text-sm">Error: Please ensure you're using a fresh installation without conflicting data.</span>
-                </Badge>
-              ) : null}
+              {errorBanner}
 
               <div className="flex items-center justify-between p-4">
                 {step === 'done' ? (
@@ -251,7 +264,7 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                         Creating...
                       </Button>
                     ) : (
-                      <Button onClick={runOnboarding} className="w-full sm:w-auto">
+                      <Button type="button" onClick={runOnboarding} disabled={!canConfirm} className="w-full sm:w-auto">
                         Confirm
                       </Button>
                     )}
@@ -262,18 +275,36 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
           </div>
 
           <div className="order-2 min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:order-none">
-            {selectedTemplate === 'custom' && step === 'template' && !customJsonApplied ? (
+            {selectedTemplate === 'custom' && step !== 'done' && !isLoading && !customJsonApplied ? (
               <CustomSetupSteps
-                currentJson={currentJsonData}
+                draft={customDraft}
+                onDraftChange={setCustomDraft}
                 onJsonUpdate={(newJsonData) => {
                   setCurrentJsonData(newJsonData);
                   setCustomJsonApplied(true);
                 }}
-                onBack={() => setCustomJsonApplied(false)}
               />
             ) : (
+              <>
+              {selectedTemplate === 'custom' && step !== 'done' && !isLoading ? (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
+                  <span>Review the configuration below, then confirm.</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="min-h-11"
+                    onClick={() => {
+                      setCustomJsonApplied(false);
+                      setCurrentJsonData({});
+                    }}
+                  >
+                    Edit configuration
+                  </Button>
+                </div>
+              ) : null}
               <SectionRenderer
-                sections={SECTION_DEFINITIONS as any}
+                sections={[...SECTION_DEFINITIONS]}
                 selectedTemplate={selectedTemplate}
                 isLoading={isLoading}
                 loadingItems={loadingItems}
@@ -283,17 +314,13 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                 step={step}
                 currentJsonData={currentJsonData}
               />
+              </>
             )}
           </div>
         </div>
 
         <div className="flex shrink-0 flex-col border-t lg:hidden">
-          {error && !isLoading && step !== 'done' ? (
-            <Badge color="rose" className="gap-3 rounded-none border-b text-sm">
-              <AlertCircle className="size-4 sm:size-7" />
-              <span className="text-xs sm:text-sm">Error: Please ensure you're using a fresh installation without conflicting data.</span>
-            </Badge>
-          ) : null}
+          {errorBanner}
 
           <div className="flex items-center justify-between p-4">
             {step === 'done' ? (
@@ -323,7 +350,7 @@ export default function OnboardingDialog({ isOpen, onClose }: OnboardingDialogPr
                     Creating...
                   </Button>
                 ) : (
-                  <Button onClick={runOnboarding} className="flex-1">
+                  <Button type="button" onClick={runOnboarding} disabled={!canConfirm} className="flex-1">
                     Confirm
                   </Button>
                 )}

@@ -1,4 +1,5 @@
 import { list } from "@keystone-6/core";
+import { denyAll } from "@keystone-6/core/access";
 import { integer, relationship, select, text } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
@@ -8,12 +9,12 @@ export const LoyaltyEvent = list({
   access: {
     operation: {
       query: permissions.canReadLoyalty,
-      create: permissions.canManageLoyalty,
-      update: permissions.canManageLoyalty,
-      delete: permissions.canManageLoyalty,
+      create: denyAll,
+      update: denyAll,
+      delete: denyAll,
     },
   },
-  ui: { listView: { initialColumns: ["account", "type", "pointsDelta", "drinkCreditsDelta", "order"] } },
+  ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["account", "type", "pointsDelta", "drinkCreditsDelta", "order"] } },
   fields: {
     type: select({
       type: "string",
@@ -21,6 +22,7 @@ export const LoyaltyEvent = list({
         { label: "Earned", value: "earned" },
         { label: "Redeemed", value: "redeemed" },
         { label: "Manual Adjustment", value: "manual_adjustment" },
+        { label: "Refund Reversal", value: "refund_reversal" },
         { label: "Signup", value: "signup" },
       ],
       defaultValue: "earned",

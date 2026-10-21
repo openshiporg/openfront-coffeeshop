@@ -11,6 +11,13 @@ export const Role = list({
       ...allOperations(permissions.canManageRoles),
       query: isSignedIn,
     },
+    filter: {
+      query: ({ session }) => {
+        if (!session) return false
+        if (permissions.canManageRoles({ session })) return true
+        return { assignedTo: { some: { id: { equals: session.itemId } } } }
+      },
+    },
   },
   ui: {
     hideCreate: args => !permissions.canManageRoles(args),
@@ -36,11 +43,11 @@ export const Role = list({
     canManagePeople: checkbox({ defaultValue: false }),
     canManageRoles: checkbox({ defaultValue: false }),
     canManageSettings: checkbox({ defaultValue: false }),
-    canManageOnboarding: checkbox({ defaultValue: true }),
+    canManageOnboarding: checkbox({ defaultValue: false }),
     assignedTo: relationship({
       ref: 'User.role',
       many: true,
-      ui: { itemView: { fieldMode: 'read' } },
+      ui: { displayMode: 'count', itemView: { fieldMode: 'read' } },
     }),
     ...trackingFields,
   },

@@ -52,12 +52,12 @@ export const User = list({
     }),
     role: relationship({
       ref: 'Role.assignedTo',
-      access: { create: permissions.canManagePeople, update: permissions.canManagePeople },
-      ui: { itemView: { fieldMode: args => (permissions.canManagePeople(args) ? 'edit' : 'read') } },
+      access: { create: permissions.canManageRoles, update: permissions.canManageRoles },
+      ui: { itemView: { fieldMode: args => (permissions.canManageRoles(args) ? 'edit' : 'read') } },
     }),
-    cafeOrders: relationship({ ref: 'CafeOrder.customer', many: true }),
-    payments: relationship({ ref: 'Payment.customer', many: true }),
-    loyaltyAccount: relationship({ ref: 'LoyaltyAccount.customer' }),
+    cafeOrders: relationship({ ref: 'CafeOrder.customer', many: true, access: { create: denyAll, update: denyAll } }),
+    payments: relationship({ ref: 'Payment.customer', many: true, access: { create: denyAll, update: denyAll } }),
+    loyaltyAccount: relationship({ ref: 'LoyaltyAccount.customer', access: { create: denyAll, update: denyAll } }),
     ...trackingFields,
   },
 });

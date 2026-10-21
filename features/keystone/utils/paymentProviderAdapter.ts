@@ -1,80 +1,54 @@
-type AdapterFunctionName =
-  | "createPaymentFunction"
-  | "capturePaymentFunction"
-  | "refundPaymentFunction"
-  | "getPaymentStatusFunction"
-  | "generatePaymentLinkFunction"
-  | "handleWebhookFunction";
+import {
+  getPaymentProviderAdapter,
+  normalizePaymentProviderCode,
+  type CapturePaymentInput,
+  type CreatePaymentInput,
+  type PaymentAdapterResult,
+  type PaymentProviderCode,
+  type PaymentStatusInput,
+  type PaymentWebhookInput,
+  type RefundPaymentInput,
+  type VerifiedPaymentWebhook,
+} from "../../integrations/payment";
 
-type ProviderRecord = {
-  code: string;
-  createPaymentFunction?: string | null;
-  capturePaymentFunction?: string | null;
-  refundPaymentFunction?: string | null;
-  getPaymentStatusFunction?: string | null;
-  generatePaymentLinkFunction?: string | null;
-  handleWebhookFunction?: string | null;
+type AdapterInputMap = {
+  createPaymentFunction: CreatePaymentInput;
+  capturePaymentFunction: CapturePaymentInput;
+  refundPaymentFunction: RefundPaymentInput;
+  getPaymentStatusFunction: PaymentStatusInput;
+  generatePaymentLinkFunction: CreatePaymentInput;
+  handleWebhookFunction: PaymentWebhookInput;
 };
+type AdapterOutputMap = {
+  createPaymentFunction: PaymentAdapterResult;
+  capturePaymentFunction: PaymentAdapterResult;
+  refundPaymentFunction: PaymentAdapterResult;
+  getPaymentStatusFunction: PaymentAdapterResult;
+  generatePaymentLinkFunction: PaymentAdapterResult;
+  handleWebhookFunction: VerifiedPaymentWebhook;
+};
+type AdapterFunctionName = keyof AdapterInputMap;
+type ProviderRecord = { code: string };
 
-export async function executePaymentProviderAdapter({
+export function getStaticPaymentProviderCode(provider: ProviderRecord): PaymentProviderCode {
+  const code = normalizePaymentProviderCode(provider.code);
+  if (code !== provider.code) throw new Error(`Payment provider record must use canonical code ${code}`);
+  return code;
+}
+
+export async function executePaymentProviderAdapter<K extends AdapterFunctionName>({
   provider,
   functionName,
   args,
 }: {
   provider: ProviderRecord;
-  functionName: AdapterFunctionName;
-  args: any;
-}) {
-  const functionPath = provider[functionName];
-
-  if (!functionPath) {
-    return {
-      success: false,
-      provider: provider.code,
-      status: "adapter_error",
-      error: `Payment provider ${provider.code} does not define ${functionName}`,
-    };
-  }
-
-  if (functionPath.startsWith("http")) {
-    const response = await fetch(functionPath, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider, ...args }),
-    });
-
-    if (!response.ok) {
-      return {
-        success: false,
-        provider: provider.code,
-        status: "adapter_error",
-        error: `HTTP request failed: ${response.statusText}`,
-      };
-    }
-
-    return response.json();
-  }
-
-  try {
-    const adapter = await import(`../../integrations/payment/${functionPath}.ts`);
-    const fn = adapter[functionName];
-
-    if (typeof fn !== "function") {
-      return {
-        success: false,
-        provider: provider.code,
-        status: "adapter_error",
-        error: `Function ${functionName} not found in adapter ${functionPath}`,
-      };
-    }
-
-    return await fn(args);
-  } catch (error) {
-    return {
-      success: false,
-      provider: provider.code,
-      status: "adapter_error",
-      error: error instanceof Error ? error.message : "Unknown payment adapter error",
-    };
-  }
+  functionName: K;
+  args: AdapterInputMap[K];
+}): Promise<AdapterOutputMap[K]> {
+  const code = getStaticPaymentProviderCode(provider);
+  const adapter = await getPaymentProviderAdapter(code);
+  const fn = adapter[functionName];
+  if (typeof fn !== "function") throw new Error(`Payment provider ${code} does not support ${functionName}`);
+  const callable = fn as (input: unknown) => Promise<unknown>;
+  return await callable(args) as AdapterOutputMap[K];
 }

@@ -5,14 +5,13 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { 
-  getIntrospectionQuery, 
-  buildClientSchema, 
   GraphQLSchema,
   isNonNullType,
   isListType,
   isInputObjectType,
 } from 'graphql';
 import { getBaseUrl } from '@/features/dashboard/lib/getBaseUrl';
+import { keystoneContext } from '@/features/keystone/context';
 
 // Get simple type name for display
 function getSimpleTypeName(type: any): string {
@@ -32,6 +31,7 @@ async function executeGraphQL(query: string, graphqlEndpoint: string, cookie: st
     headers: {
       'Content-Type': 'application/json',
       'Cookie': cookie,
+      'Origin': new URL(graphqlEndpoint).origin,
     },
     body: JSON.stringify({ query }),
   });
@@ -43,30 +43,17 @@ async function executeGraphQL(query: string, graphqlEndpoint: string, cookie: st
   return result;
 }
 
-// Get GraphQL schema from introspection
-async function getGraphQLSchema(graphqlEndpoint: string, cookie: string): Promise<GraphQLSchema> {
-  const response = await fetch(graphqlEndpoint, {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Cookie': cookie,
-    },
-    body: JSON.stringify({ query: getIntrospectionQuery() }),
-  });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-  
-  const result = await response.json();
-  if (result.errors) {
-    throw new Error(`GraphQL introspection failed: ${JSON.stringify(result.errors)}`);
-  }
-  
-  return buildClientSchema(result.data);
+// Use the already-built local schema for tool metadata. Tool executions still use
+// the public GraphQL endpoint and pass through the same perimeter as every caller.
+async function getGraphQLSchema(_graphqlEndpoint: string, _cookie: string): Promise<GraphQLSchema> {
+  return keystoneContext.graphql.schema;
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ transport: string }> }) {
+export async function POST() {
+  return new Response('MCP integration is unavailable', { status: 404 });
+}
+
+async function disabledPost(request: Request, { params }: { params: Promise<{ transport: string }> }) {
   // Track if any CRUD operations occurred during this request
   let dataHasChanged = false;
   
@@ -915,7 +902,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
   }
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ transport: string }> }) {
+export async function GET() {
+  return new Response('MCP integration is unavailable', { status: 404 });
+}
+
+async function disabledGet(request: Request, { params }: { params: Promise<{ transport: string }> }) {
   const { transport } = await params;
   
   const baseUrl = await getBaseUrl();

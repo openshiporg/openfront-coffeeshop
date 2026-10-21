@@ -1,5 +1,3 @@
-'use server' 
-
 import { createTransport, getTestMessageUrl } from "nodemailer";
 
 // Utility function to get base URL for emails
@@ -61,6 +59,13 @@ function passwordResetEmail({ url }: { url: string }): string {
 export async function sendPasswordResetEmail(resetToken: string, to: string, baseUrl?: string): Promise<void> {
   // Use provided baseUrl or fall back to utility function
   const frontendUrl = baseUrl || getBaseUrlForEmails();
+  // Staff reset in the dashboard; customers (no dashboard access) reset from their storefront account.
+  const { keystoneContext } = await import("../context");
+  const user = await keystoneContext.sudo().prisma.user.findUnique({
+    where: { email: to },
+    select: { role: { select: { canAccessDashboard: true } } },
+  });
+  const resetPath = user?.role?.canAccessDashboard ? "/dashboard/reset" : "/account/reset";
   
   // email the user a token
   const info = await transport.sendMail({
@@ -68,10 +73,10 @@ export async function sendPasswordResetEmail(resetToken: string, to: string, bas
     from: process.env.SMTP_FROM,
     subject: "Your password reset token!",
     html: passwordResetEmail({
-      url: `${frontendUrl}/dashboard/reset?token=${resetToken}`,
+      url: `${frontendUrl}${resetPath}?token=${encodeURIComponent(resetToken)}`,
     }),
   });
-  if (process.env.MAIL_USER?.includes("ethereal.email")) {
+  if (process.env.SMTP_USER?.includes("ethereal.email")) {
     console.log(`📧 Message Sent!  Preview it at ${getTestMessageUrl(info as any)}`);
   }
 }

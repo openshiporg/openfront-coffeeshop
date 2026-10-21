@@ -1,6 +1,6 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
-import { getItemsFromJsonData } from '../utils/dataUtils';
+import { getItemsFromJsonData, type CoffeeSeedData } from '../utils/dataUtils';
 import { SectionItem } from './SectionItem';
 
 interface SectionRendererProps {
@@ -12,7 +12,7 @@ interface SectionRendererProps {
   itemErrors: Record<string, Record<string, string | undefined>>;
   error: string | null;
   step: 'template' | 'progress' | 'done';
-  currentJsonData?: any;
+  currentJsonData?: CoffeeSeedData;
 }
 
 export function SectionRenderer({

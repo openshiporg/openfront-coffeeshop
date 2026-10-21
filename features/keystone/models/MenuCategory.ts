@@ -2,12 +2,13 @@ import { list } from "@keystone-6/core";
 import { checkbox, integer, relationship, text } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
+import { requiredStoreRelationship } from "./requiredRelationship";
 import { trackingFields } from "./trackingFields";
 
 export const MenuCategory = list({
   access: {
     operation: {
-      query: () => true,
+      query: permissions.canReadProducts,
       create: permissions.canManageProducts,
       update: permissions.canManageProducts,
       delete: permissions.canManageProducts,
@@ -20,10 +21,11 @@ export const MenuCategory = list({
   },
   fields: {
     name: text({ validation: { isRequired: true } }),
+    store: requiredStoreRelationship("StoreSetting.menuCategories"),
     description: text({ ui: { displayMode: "textarea" } }),
     active: checkbox({ defaultValue: true }),
     sortOrder: integer({ defaultValue: 0 }),
-    menuItems: relationship({ ref: "MenuItem.category", many: true }),
+    menuItems: relationship({ ref: "MenuItem.category", many: true, ui: { displayMode: "count" } }),
     ...trackingFields,
   },
 });

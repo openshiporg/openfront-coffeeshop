@@ -30,6 +30,13 @@ model User {
   passwordResetRedeemedAt      DateTime?
   from_StockMovement_createdBy StockMovement[] @relation("StockMovement_createdBy")
   from_LoyaltyEvent_createdBy  LoyaltyEvent[]  @relation("LoyaltyEvent_createdBy")
+  from_WasteLog_loggedBy       WasteLog[]      @relation("WasteLog_loggedBy")
+  from_PosOrder_cashier        PosOrder[]      @relation("PosOrder_cashier")
+  from_RegisterShift_openedBy  RegisterShift[] @relation("RegisterShift_openedBy")
+  from_RegisterShift_closedBy  RegisterShift[] @relation("RegisterShift_closedBy")
+  from_CashMovement_recordedBy CashMovement[]  @relation("CashMovement_recordedBy")
+  from_StaffShift_staff        StaffShift[]    @relation("StaffShift_staff")
+  from_PrepBatch_preparedBy    PrepBatch[]     @relation("PrepBatch_preparedBy")
 
   @@index([roleId])
 }
@@ -53,119 +60,220 @@ model Role {
   canManagePeople     Boolean  @default(false)
   canManageRoles      Boolean  @default(false)
   canManageSettings   Boolean  @default(false)
-  canManageOnboarding Boolean  @default(true)
+  canManageOnboarding Boolean  @default(false)
   assignedTo          User[]   @relation("User_role")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @default(now()) @updatedAt
 }
 
+model StoreSetting {
+  id                      String                 @id @default(cuid())
+  singletonKey            String                 @unique @default("primary")
+  name                    String                 @default("")
+  tagline                 String                 @default("")
+  description             String                 @default("")
+  address                 String                 @default("")
+  phone                   String                 @default("")
+  contactEmail            String                 @default("")
+  currencyCode            String                 @default("USD")
+  locale                  String                 @default("en-US")
+  timezone                String                 @default("America/New_York")
+  brandColor              String                 @default("copper")
+  logoIcon                String                 @default("<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" height=\"100%\" width=\"100%\" viewBox=\"0 0 42 48\"><path fill=\"#155eef\" fill-rule=\"evenodd\" d=\"m22.102 20.86 9.9-9.9L29.88 8.84l-7.339 7.339V3h-3v13.178l-7.339-7.34-2.121 2.122 9.9 9.9 1.06 1.06zm2.12 2.121 9.9-9.9 2.121 2.122-7.339 7.339H42v3H28.904l7.34 7.339L34.121 35l-9.9-9.899-1.06-1.06zM7.96 35.001l9.9-9.899 1.06-1.06-1.06-1.061-9.9-9.9-2.121 2.122 7.339 7.339H.002v3h13.176l-7.34 7.339zm12.02-7.777-9.9 9.9 2.122 2.12 7.339-7.338V45h3V31.906l7.339 7.338L32 37.124l-9.9-9.9-1.06-1.061z\" clip-rule=\"evenodd\"/></svg>")
+  logoColor               String                 @default("0")
+  weeklyHours             Json?                  @default("[]")
+  pickupLeadTimeMinutes   Int?                   @default(12)
+  pickupWindowMinutes     Int?                   @default(15)
+  pickupCapacityPerWindow Int?                   @default(20)
+  taxRateBasisPoints      Int                    @default(875)
+  menuCategories          MenuCategory[]         @relation("MenuCategory_store")
+  menuItems               MenuItem[]             @relation("MenuItem_store")
+  menuItemModifiers       MenuItemModifier[]     @relation("MenuItemModifier_store")
+  cafeOrders              CafeOrder[]            @relation("CafeOrder_store")
+  orderItems              OrderItem[]            @relation("OrderItem_store")
+  posOrders               PosOrder[]             @relation("PosOrder_store")
+  registerShifts          RegisterShift[]        @relation("RegisterShift_store")
+  cashMovements           CashMovement[]         @relation("CashMovement_store")
+  payments                Payment[]              @relation("Payment_store")
+  loyaltyAccounts         LoyaltyAccount[]       @relation("LoyaltyAccount_store")
+  subscriptions           Subscription[]         @relation("Subscription_store")
+  cateringOrders          CateringOrder[]        @relation("CateringOrder_store")
+  paymentEvents           PaymentEvent[]         @relation("PaymentEvent_store")
+  inventoryItems          InventoryItem[]        @relation("InventoryItem_store")
+  stockMovements          StockMovement[]        @relation("StockMovement_store")
+  suppliers               Supplier[]             @relation("Supplier_store")
+  purchaseOrders          PurchaseOrder[]        @relation("PurchaseOrder_store")
+  inventoryLots           InventoryLot[]         @relation("InventoryLot_store")
+  recipes                 Recipe[]               @relation("Recipe_store")
+  ingredients             Ingredient[]           @relation("Ingredient_store")
+  prepBatches             PrepBatch[]            @relation("PrepBatch_store")
+  prepBatchConsumptions   PrepBatchConsumption[] @relation("PrepBatchConsumption_store")
+  wasteLogs               WasteLog[]             @relation("WasteLog_store")
+  staffShifts             StaffShift[]           @relation("StaffShift_store")
+  domainEvents            CoffeeDomainEvent[]    @relation("CoffeeDomainEvent_store")
+  outboxDeliveries        CoffeeOutboxDelivery[] @relation("CoffeeOutboxDelivery_store")
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @default(now()) @updatedAt
+}
+
 model MenuCategory {
-  id          String     @id @default(cuid())
-  name        String     @default("")
-  description String     @default("")
-  active      Boolean    @default(true)
-  sortOrder   Int?       @default(0)
-  menuItems   MenuItem[] @relation("MenuItem_category")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now()) @updatedAt
+  id          String       @id @default(cuid())
+  name        String       @default("")
+  store       StoreSetting @relation("MenuCategory_store", fields: [storeId], references: [id])
+  storeId     String       @map("store")
+  description String       @default("")
+  active      Boolean      @default(true)
+  sortOrder   Int?         @default(0)
+  menuItems   MenuItem[]   @relation("MenuItem_category")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+
+  @@index([storeId])
 }
 
 model MenuItem {
-  id                 String             @id @default(cuid())
-  name               String             @default("")
-  description        Json               @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  shortDescription   String             @default("")
-  price              Int
-  available          Boolean            @default(true)
-  featured           Boolean            @default(false)
-  popular            Boolean            @default(false)
-  imageUrl           String?
-  prepTimeMinutes    Int?               @default(5)
-  caffeineMg         Int?
-  calories           Int?
-  barStation         String?            @default("espresso_bar")
-  temperatureOptions Json               @default("[\"hot\"]")
-  dietaryFlags       Json               @default("[]")
-  serviceWindows     Json               @default("[\"all_day\"]")
-  category           MenuCategory?      @relation("MenuItem_category", fields: [categoryId], references: [id])
-  categoryId         String?            @map("category")
-  modifiers          MenuItemModifier[] @relation("MenuItemModifier_menuItem")
-  orderItems         OrderItem[]        @relation("OrderItem_menuItem")
-  inventoryItem      InventoryItem?     @relation("MenuItem_inventoryItem", fields: [inventoryItemId], references: [id])
-  inventoryItemId    String?            @map("inventoryItem")
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @default(now()) @updatedAt
+  id                   String             @id @default(cuid())
+  idempotencyKey       String?            @unique
+  name                 String             @default("")
+  store                StoreSetting       @relation("MenuItem_store", fields: [storeId], references: [id])
+  storeId              String             @map("store")
+  description          Json               @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
+  shortDescription     String             @default("")
+  price                Int
+  available            Boolean            @default(true)
+  featured             Boolean            @default(false)
+  popular              Boolean            @default(false)
+  imageUrl             String?
+  menuItemImages       MenuItemImage[]    @relation("MenuItem_menuItemImages")
+  prepTimeMinutes      Int?               @default(5)
+  caffeineMg           Int?
+  calories             Int?
+  barStation           String?            @default("espresso_bar")
+  temperatureOptions   Json               @default("[\"hot\"]")
+  dietaryFlags         Json               @default("[]")
+  serviceWindows       Json               @default("[\"all_day\"]")
+  category             MenuCategory?      @relation("MenuItem_category", fields: [categoryId], references: [id])
+  categoryId           String?            @map("category")
+  modifiers            MenuItemModifier[] @relation("MenuItemModifier_menuItem")
+  orderItems           OrderItem[]        @relation("OrderItem_menuItem")
+  inventoryItem        InventoryItem?     @relation("MenuItem_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId      String?            @map("inventoryItem")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @default(now()) @updatedAt
+  from_Recipe_menuItem Recipe[]           @relation("Recipe_menuItem")
 
+  @@index([storeId])
   @@index([categoryId])
   @@index([inventoryItemId])
 }
 
-model MenuItemModifier {
-  id                              String      @id @default(cuid())
-  name                            String      @default("")
-  modifierGroup                   String?     @default("milk")
-  modifierGroupLabel              String      @default("")
-  required                        Boolean     @default(false)
-  minSelections                   Int?        @default(0)
-  maxSelections                   Int?        @default(1)
-  priceAdjustment                 Int?        @default(0)
-  defaultSelected                 Boolean     @default(false)
-  inStock                         Boolean     @default(true)
-  menuItem                        MenuItem?   @relation("MenuItemModifier_menuItem", fields: [menuItemId], references: [id])
-  menuItemId                      String?     @map("menuItem")
-  createdAt                       DateTime    @default(now())
-  updatedAt                       DateTime    @default(now()) @updatedAt
-  from_OrderItem_appliedModifiers OrderItem[] @relation("OrderItem_appliedModifiers")
+model MenuItemImage {
+  id              String     @id @default(cuid())
+  image_id        String?
+  image_filesize  Int?
+  image_width     Int?
+  image_height    Int?
+  image_extension String?
+  imagePath       String     @default("")
+  altText         String     @default("")
+  order           Int?       @default(0)
+  menuItems       MenuItem[] @relation("MenuItem_menuItemImages")
+  metadata        Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @default(now()) @updatedAt
+}
 
+model MenuItemModifier {
+  id                              String         @id @default(cuid())
+  idempotencyKey                  String?        @unique
+  store                           StoreSetting   @relation("MenuItemModifier_store", fields: [storeId], references: [id])
+  storeId                         String         @map("store")
+  name                            String         @default("")
+  modifierGroup                   String?        @default("milk")
+  modifierGroupLabel              String         @default("")
+  required                        Boolean        @default(false)
+  minSelections                   Int?           @default(0)
+  maxSelections                   Int?           @default(1)
+  priceAdjustment                 Int?           @default(0)
+  defaultSelected                 Boolean        @default(false)
+  inStock                         Boolean        @default(true)
+  menuItem                        MenuItem?      @relation("MenuItemModifier_menuItem", fields: [menuItemId], references: [id])
+  menuItemId                      String?        @map("menuItem")
+  inventoryAction                 String?        @default("unreviewed")
+  inventoryItem                   InventoryItem? @relation("MenuItemModifier_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId                 String?        @map("inventoryItem")
+  replacesInventoryItem           InventoryItem? @relation("MenuItemModifier_replacesInventoryItem", fields: [replacesInventoryItemId], references: [id])
+  replacesInventoryItemId         String?        @map("replacesInventoryItem")
+  inventoryQuantity               Decimal?       @default("0") @postgresql.Decimal(18, 4)
+  createdAt                       DateTime       @default(now())
+  updatedAt                       DateTime       @default(now()) @updatedAt
+  from_OrderItem_appliedModifiers OrderItem[]    @relation("OrderItem_appliedModifiers")
+
+  @@index([storeId])
   @@index([menuItemId])
+  @@index([inventoryItemId])
+  @@index([replacesInventoryItemId])
 }
 
 model CafeOrder {
-  id                  String          @id @default(cuid())
-  orderNumber         String          @unique @default("")
-  fulfillmentType     String?         @default("pickup")
-  orderSource         String?         @default("online")
-  status              String?         @default("open")
-  customerName        String          @default("")
-  customerEmail       String          @default("")
-  customerPhone       String          @default("")
-  pickupName          String          @default("")
-  specialInstructions String          @default("")
-  subtotal            Int?            @default(0)
-  tax                 Int?            @default(0)
-  tip                 Int?            @default(0)
-  discount            Int?            @default(0)
-  total               Int?            @default(0)
-  currencyCode        String          @default("USD")
-  paidAt              DateTime?
-  promisedAt          DateTime?
-  startedAt           DateTime?
-  readyAt             DateTime?
-  completedAt         DateTime?
-  cancelledAt         DateTime?
-  isRush              Boolean         @default(false)
-  handoffCode         String          @default("")
-  secretKey           String          @default("")
-  customer            User?           @relation("CafeOrder_customer", fields: [customerId], references: [id])
-  customerId          String?         @map("customer")
-  orderItems          OrderItem[]     @relation("OrderItem_order")
-  payments            Payment[]       @relation("Payment_order")
-  loyaltyAccount      LoyaltyAccount? @relation("CafeOrder_loyaltyAccount", fields: [loyaltyAccountId], references: [id])
-  loyaltyAccountId    String?         @map("loyaltyAccount")
-  loyaltyEvents       LoyaltyEvent[]  @relation("LoyaltyEvent_order")
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @default(now()) @updatedAt
+  id                      String                 @id @default(cuid())
+  orderNumber             String                 @unique @default("")
+  idempotencyKey          String?                @unique
+  requestFingerprint      String?
+  fulfillmentType         String?                @default("pickup")
+  orderSource             String?                @default("online")
+  status                  String?                @default("open")
+  customerName            String                 @default("")
+  customerEmail           String                 @default("")
+  customerPhone           String                 @default("")
+  pickupName              String                 @default("")
+  specialInstructions     String                 @default("")
+  subtotal                Int?                   @default(0)
+  tax                     Int?                   @default(0)
+  tip                     Int?                   @default(0)
+  discount                Int?                   @default(0)
+  total                   Int?                   @default(0)
+  currencyCode            String                 @default("USD")
+  paidAt                  DateTime?
+  promisedAt              DateTime?
+  startedAt               DateTime?
+  readyAt                 DateTime?
+  completedAt             DateTime?
+  cancelledAt             DateTime?
+  isRush                  Boolean                @default(false)
+  handoffCode             String                 @default("")
+  secretKey               String                 @default("")
+  store                   StoreSetting           @relation("CafeOrder_store", fields: [storeId], references: [id])
+  storeId                 String                 @map("store")
+  customer                User?                  @relation("CafeOrder_customer", fields: [customerId], references: [id])
+  customerId              String?                @map("customer")
+  orderItems              OrderItem[]            @relation("OrderItem_order")
+  payments                Payment[]              @relation("Payment_order")
+  paymentEvents           PaymentEvent[]         @relation("PaymentEvent_order")
+  stockMovements          StockMovement[]        @relation("StockMovement_order")
+  prepBatchConsumptions   PrepBatchConsumption[] @relation("PrepBatchConsumption_order")
+  loyaltyAccount          LoyaltyAccount?        @relation("CafeOrder_loyaltyAccount", fields: [loyaltyAccountId], references: [id])
+  loyaltyAccountId        String?                @map("loyaltyAccount")
+  loyaltyEvents           LoyaltyEvent[]         @relation("LoyaltyEvent_order")
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @default(now()) @updatedAt
+  from_PosOrder_cafeOrder PosOrder[]             @relation("PosOrder_cafeOrder")
 
+  @@index([storeId])
   @@index([customerId])
   @@index([loyaltyAccountId])
 }
 
 model OrderItem {
   id                    String             @id @default(cuid())
+  store                 StoreSetting       @relation("OrderItem_store", fields: [storeId], references: [id])
+  storeId               String             @map("store")
   quantity              Int                @default(1)
   price                 Int
   itemNameSnapshot      String             @default("")
+  imagePathSnapshot     String             @default("")
   customizationsSummary String             @default("")
+  modifierSnapshot      Json?              @default("[]")
   specialInstructions   String             @default("")
   barStatus             String?            @default("new")
   station               String?            @default("espresso_bar")
@@ -181,107 +289,173 @@ model OrderItem {
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @default(now()) @updatedAt
 
+  @@index([storeId])
   @@index([orderId])
   @@index([menuItemId])
 }
 
 model Payment {
-  id                String           @id @default(cuid())
-  status            String?          @default("pending")
-  method            String?          @default("card")
-  amount            Int
-  currencyCode      String           @default("USD")
-  provider          String           @default("manual")
-  providerPaymentId String           @default("")
-  failureMessage    String           @default("")
-  processedAt       DateTime?
-  order             CafeOrder?       @relation("Payment_order", fields: [orderId], references: [id])
-  orderId           String?          @map("order")
-  customer          User?            @relation("Payment_customer", fields: [customerId], references: [id])
-  customerId        String?          @map("customer")
-  paymentProvider   PaymentProvider? @relation("Payment_paymentProvider", fields: [paymentProviderId], references: [id])
-  paymentProviderId String?          @map("paymentProvider")
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @default(now()) @updatedAt
+  id                    String           @id @default(cuid())
+  idempotencyKey        String?          @unique
+  refundIdempotencyKey  String?          @unique
+  refundedAmount        Int?             @default(0)
+  refundReason          String           @default("")
+  refundedAt            DateTime?
+  status                String?          @default("pending")
+  method                String?          @default("card")
+  amount                Int
+  currencyCode          String           @default("USD")
+  provider              String           @default("manual")
+  providerPaymentId     String           @default("")
+  failureMessage        String           @default("")
+  processedAt           DateTime?
+  store                 StoreSetting     @relation("Payment_store", fields: [storeId], references: [id])
+  storeId               String           @map("store")
+  order                 CafeOrder?       @relation("Payment_order", fields: [orderId], references: [id])
+  orderId               String?          @map("order")
+  customer              User?            @relation("Payment_customer", fields: [customerId], references: [id])
+  customerId            String?          @map("customer")
+  paymentProvider       PaymentProvider? @relation("Payment_paymentProvider", fields: [paymentProviderId], references: [id])
+  paymentProviderId     String?          @map("paymentProvider")
+  events                PaymentEvent[]   @relation("PaymentEvent_payment")
+  registerShift         RegisterShift?   @relation("Payment_registerShift", fields: [registerShiftId], references: [id])
+  registerShiftId       String?          @map("registerShift")
+  refundRegisterShift   RegisterShift?   @relation("Payment_refundRegisterShift", fields: [refundRegisterShiftId], references: [id])
+  refundRegisterShiftId String?          @map("refundRegisterShift")
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @default(now()) @updatedAt
 
+  @@index([storeId])
   @@index([orderId])
   @@index([customerId])
   @@index([paymentProviderId])
+  @@index([registerShiftId])
+  @@index([refundRegisterShiftId])
+}
+
+model PaymentEvent {
+  id              String       @id @default(cuid())
+  replayKey       String       @unique @default("")
+  providerCode    String       @default("")
+  providerEventId String       @default("")
+  eventType       String       @default("")
+  payloadHash     String       @default("")
+  status          String
+  processedAt     DateTime?    @default(now())
+  store           StoreSetting @relation("PaymentEvent_store", fields: [storeId], references: [id])
+  storeId         String       @map("store")
+  order           CafeOrder?   @relation("PaymentEvent_order", fields: [orderId], references: [id])
+  orderId         String?      @map("order")
+  payment         Payment?     @relation("PaymentEvent_payment", fields: [paymentId], references: [id])
+  paymentId       String?      @map("payment")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([orderId])
+  @@index([paymentId])
 }
 
 model PaymentProvider {
-  id                          String    @id @default(cuid())
-  name                        String    @default("")
-  code                        String    @unique @default("")
-  isInstalled                 Boolean   @default(true)
-  credentials                 Json?     @default("{}")
-  metadata                    Json?     @default("{}")
-  createPaymentFunction       String    @default("")
-  capturePaymentFunction      String    @default("")
-  refundPaymentFunction       String    @default("")
-  getPaymentStatusFunction    String    @default("")
-  generatePaymentLinkFunction String    @default("")
-  handleWebhookFunction       String    @default("")
-  paymentRecords              Payment[] @relation("Payment_paymentProvider")
-  createdAt                   DateTime  @default(now())
-  updatedAt                   DateTime  @default(now()) @updatedAt
+  id             String    @id @default(cuid())
+  name           String    @default("")
+  code           String    @unique @default("")
+  isInstalled    Boolean   @default(false)
+  metadata       Json?     @default("{}")
+  paymentRecords Payment[] @relation("Payment_paymentProvider")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
 }
 
 model InventoryItem {
-  id             String          @id @default(cuid())
-  name           String          @default("")
-  category       String?         @default("coffee")
-  unit           String?         @default("each")
-  currentStock   Decimal?        @default("0") @postgresql.Decimal(18, 4)
-  reorderPoint   Decimal?        @default("0") @postgresql.Decimal(18, 4)
-  parLevel       Decimal?        @default("0") @postgresql.Decimal(18, 4)
-  costPerUnit    Int?            @default(0)
-  supplierName   String          @default("")
-  sku            String          @default("")
-  menuItems      MenuItem[]      @relation("MenuItem_inventoryItem")
-  stockMovements StockMovement[] @relation("StockMovement_inventoryItem")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now()) @updatedAt
+  id                                          String             @id @default(cuid())
+  name                                        String             @default("")
+  store                                       StoreSetting       @relation("InventoryItem_store", fields: [storeId], references: [id])
+  storeId                                     String             @map("store")
+  category                                    String?            @default("coffee")
+  unit                                        String?            @default("each")
+  currentStock                                Decimal?           @default("0") @postgresql.Decimal(18, 4)
+  reorderPoint                                Decimal?           @default("0") @postgresql.Decimal(18, 4)
+  parLevel                                    Decimal?           @default("0") @postgresql.Decimal(18, 4)
+  costPerUnit                                 Int?               @default(0)
+  supplierName                                String             @default("")
+  sku                                         String             @default("")
+  menuItems                                   MenuItem[]         @relation("MenuItem_inventoryItem")
+  stockMovements                              StockMovement[]    @relation("StockMovement_inventoryItem")
+  inventoryLots                               InventoryLot[]     @relation("InventoryLot_inventoryItem")
+  purchaseOrders                              PurchaseOrder[]    @relation("PurchaseOrder_inventoryItem")
+  wasteLogs                                   WasteLog[]         @relation("WasteLog_inventoryItem")
+  createdAt                                   DateTime           @default(now())
+  updatedAt                                   DateTime           @default(now()) @updatedAt
+  from_MenuItemModifier_inventoryItem         MenuItemModifier[] @relation("MenuItemModifier_inventoryItem")
+  from_MenuItemModifier_replacesInventoryItem MenuItemModifier[] @relation("MenuItemModifier_replacesInventoryItem")
+  from_Ingredient_inventoryItem               Ingredient[]       @relation("Ingredient_inventoryItem")
+
+  @@index([storeId])
 }
 
 model StockMovement {
   id              String         @id @default(cuid())
+  idempotencyKey  String?        @unique
   type            String?        @default("adjustment")
   quantity        Decimal        @postgresql.Decimal(18, 4)
   reason          String         @default("")
   notes           String         @default("")
-  inventoryItem   InventoryItem? @relation("StockMovement_inventoryItem", fields: [inventoryItemId], references: [id])
-  inventoryItemId String?        @map("inventoryItem")
+  store           StoreSetting   @relation("StockMovement_store", fields: [storeId], references: [id])
+  storeId         String         @map("store")
+  inventoryItem   InventoryItem  @relation("StockMovement_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId String         @map("inventoryItem")
+  order           CafeOrder?     @relation("StockMovement_order", fields: [orderId], references: [id])
+  orderId         String?        @map("order")
+  purchaseOrder   PurchaseOrder? @relation("StockMovement_purchaseOrder", fields: [purchaseOrderId], references: [id])
+  purchaseOrderId String?        @map("purchaseOrder")
+  inventoryLot    InventoryLot?  @relation("StockMovement_inventoryLot", fields: [inventoryLotId], references: [id])
+  inventoryLotId  String?        @map("inventoryLot")
+  prepBatch       PrepBatch?     @relation("StockMovement_prepBatch", fields: [prepBatchId], references: [id])
+  prepBatchId     String?        @map("prepBatch")
+  wasteLog        WasteLog?      @relation("StockMovement_wasteLog", fields: [wasteLogId], references: [id])
+  wasteLogId      String?        @map("wasteLog")
   createdBy       User?          @relation("StockMovement_createdBy", fields: [createdById], references: [id])
   createdById     String?        @map("createdBy")
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @default(now()) @updatedAt
 
+  @@index([storeId])
   @@index([inventoryItemId])
+  @@index([orderId])
+  @@index([purchaseOrderId])
+  @@index([inventoryLotId])
+  @@index([prepBatchId])
+  @@index([wasteLogId])
   @@index([createdById])
 }
 
 model LoyaltyAccount {
-  id             String         @id @default(cuid())
-  customerName   String         @default("")
-  customerEmail  String         @unique @default("")
-  customerPhone  String         @default("")
-  marketingOptIn Boolean        @default(false)
-  status         String?        @default("active")
-  tier           String?        @default("regular")
-  pointsBalance  Int?           @default(0)
-  lifetimePoints Int?           @default(0)
-  drinkCredits   Int?           @default(0)
-  visits         Int?           @default(0)
-  lastVisitAt    DateTime?
-  firstVisitAt   DateTime?
-  notes          String         @default("")
-  customer       User?          @relation("LoyaltyAccount_customer", fields: [customerId], references: [id])
-  customerId     String?        @unique @map("customer")
-  orders         CafeOrder[]    @relation("CafeOrder_loyaltyAccount")
-  events         LoyaltyEvent[] @relation("LoyaltyEvent_account")
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @default(now()) @updatedAt
+  id                               String         @id @default(cuid())
+  store                            StoreSetting   @relation("LoyaltyAccount_store", fields: [storeId], references: [id])
+  storeId                          String         @map("store")
+  customerName                     String         @default("")
+  customerEmail                    String         @unique @default("")
+  customerPhone                    String         @default("")
+  marketingOptIn                   Boolean        @default(false)
+  status                           String?        @default("active")
+  tier                             String?        @default("regular")
+  pointsBalance                    Int?           @default(0)
+  lifetimePoints                   Int?           @default(0)
+  drinkCredits                     Int?           @default(0)
+  visits                           Int?           @default(0)
+  lastVisitAt                      DateTime?
+  firstVisitAt                     DateTime?
+  notes                            String         @default("")
+  customer                         User?          @relation("LoyaltyAccount_customer", fields: [customerId], references: [id])
+  customerId                       String?        @unique @map("customer")
+  orders                           CafeOrder[]    @relation("CafeOrder_loyaltyAccount")
+  events                           LoyaltyEvent[] @relation("LoyaltyEvent_account")
+  createdAt                        DateTime       @default(now())
+  updatedAt                        DateTime       @default(now()) @updatedAt
+  from_Subscription_loyaltyAccount Subscription[] @relation("Subscription_loyaltyAccount")
+
+  @@index([storeId])
 }
 
 model LoyaltyEvent {
@@ -302,4 +476,416 @@ model LoyaltyEvent {
   @@index([accountId])
   @@index([orderId])
   @@index([createdById])
+}
+
+model CoffeeDomainEvent {
+  id            String                 @id @default(cuid())
+  eventKey      String                 @unique @default("")
+  eventType     String                 @default("")
+  schemaVersion String                 @default("1")
+  aggregateType String                 @default("")
+  aggregateId   String                 @default("")
+  payload       Json?
+  payloadHash   String                 @default("")
+  occurredAt    DateTime               @default(now())
+  store         StoreSetting           @relation("CoffeeDomainEvent_store", fields: [storeId], references: [id])
+  storeId       String                 @map("store")
+  deliveries    CoffeeOutboxDelivery[] @relation("CoffeeOutboxDelivery_event")
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @default(now()) @updatedAt
+
+  @@index([eventType])
+  @@index([aggregateType])
+  @@index([aggregateId])
+  @@index([storeId])
+}
+
+model CoffeeOutboxDelivery {
+  id             String            @id @default(cuid())
+  deliveryKey    String            @unique @default("")
+  consumer       String            @default("")
+  status         String            @default("pending")
+  attempts       Int               @default(0)
+  maxAttempts    Int               @default(8)
+  nextAttempt    DateTime?         @default(now())
+  lockedAt       DateTime?
+  lockOwner      String            @default("")
+  deliveredAt    DateTime?
+  deadLetteredAt DateTime?
+  lastError      String            @default("")
+  event          CoffeeDomainEvent @relation("CoffeeOutboxDelivery_event", fields: [eventId], references: [id])
+  eventId        String            @map("event")
+  store          StoreSetting      @relation("CoffeeOutboxDelivery_store", fields: [storeId], references: [id])
+  storeId        String            @map("store")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @default(now()) @updatedAt
+
+  @@index([consumer])
+  @@index([status])
+  @@index([nextAttempt])
+  @@index([eventId])
+  @@index([storeId])
+}
+
+model WasteLog {
+  id              String          @id @default(cuid())
+  idempotencyKey  String?         @unique
+  logNumber       String          @unique @default("")
+  store           StoreSetting    @relation("WasteLog_store", fields: [storeId], references: [id])
+  storeId         String          @map("store")
+  inventoryItem   InventoryItem?  @relation("WasteLog_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId String?         @map("inventoryItem")
+  prepBatch       PrepBatch?      @relation("WasteLog_prepBatch", fields: [prepBatchId], references: [id])
+  prepBatchId     String?         @map("prepBatch")
+  reason          String?         @default("expired")
+  quantity        Decimal?        @default("0") @postgresql.Decimal(18, 4)
+  unit            String          @default("each")
+  costCents       Int?            @default(0)
+  loggedBy        User?           @relation("WasteLog_loggedBy", fields: [loggedById], references: [id])
+  loggedById      String?         @map("loggedBy")
+  loggedAt        DateTime?       @default(now())
+  notes           String          @default("")
+  metadata        Json?
+  stockMovements  StockMovement[] @relation("StockMovement_wasteLog")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([inventoryItemId])
+  @@index([prepBatchId])
+  @@index([loggedById])
+}
+
+model CateringOrder {
+  id              String       @id @default(cuid())
+  cateringNumber  String       @unique @default("")
+  store           StoreSetting @relation("CateringOrder_store", fields: [storeId], references: [id])
+  storeId         String       @map("store")
+  customerName    String       @default("")
+  customerEmail   String       @default("")
+  status          String?      @default("inquiry")
+  eventAt         DateTime?
+  guestCount      Int?         @default(0)
+  deliveryAddress String       @default("")
+  subtotalCents   Int?         @default(0)
+  notes           String       @default("")
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+
+  @@index([storeId])
+}
+
+model Subscription {
+  id                 String          @id @default(cuid())
+  subscriptionNumber String          @unique @default("")
+  store              StoreSetting    @relation("Subscription_store", fields: [storeId], references: [id])
+  storeId            String          @map("store")
+  loyaltyAccount     LoyaltyAccount? @relation("Subscription_loyaltyAccount", fields: [loyaltyAccountId], references: [id])
+  loyaltyAccountId   String?         @map("loyaltyAccount")
+  status             String?         @default("trialing")
+  planName           String          @default("")
+  billingInterval    String?         @default("monthly")
+  priceCents         Int?            @default(0)
+  startsAt           DateTime?
+  renewsAt           DateTime?
+  cancelledAt        DateTime?
+  metadata           Json?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([loyaltyAccountId])
+}
+
+model PosOrder {
+  id              String         @id @default(cuid())
+  receiptNumber   String         @unique @default("")
+  store           StoreSetting   @relation("PosOrder_store", fields: [storeId], references: [id])
+  storeId         String         @map("store")
+  cafeOrder       CafeOrder?     @relation("PosOrder_cafeOrder", fields: [cafeOrderId], references: [id])
+  cafeOrderId     String?        @map("cafeOrder")
+  cashier         User?          @relation("PosOrder_cashier", fields: [cashierId], references: [id])
+  cashierId       String?        @map("cashier")
+  registerShift   RegisterShift? @relation("PosOrder_registerShift", fields: [registerShiftId], references: [id])
+  registerShiftId String?        @map("registerShift")
+  registerName    String         @default("")
+  status          String?        @default("open")
+  subtotalCents   Int?           @default(0)
+  taxCents        Int?           @default(0)
+  tipCents        Int?           @default(0)
+  totalCents      Int?           @default(0)
+  closedAt        DateTime?
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([cafeOrderId])
+  @@index([cashierId])
+  @@index([registerShiftId])
+}
+
+model RegisterShift {
+  id                               String         @id @default(cuid())
+  idempotencyKey                   String         @unique @default("")
+  closeIdempotencyKey              String?        @unique
+  shiftNumber                      String         @unique @default("")
+  store                            StoreSetting   @relation("RegisterShift_store", fields: [storeId], references: [id])
+  storeId                          String         @map("store")
+  registerName                     String         @default("")
+  status                           String?        @default("open")
+  openingCashCents                 Int?           @default(0)
+  cashSalesCents                   Int?           @default(0)
+  cashRefundsCents                 Int?           @default(0)
+  cardSalesCents                   Int?           @default(0)
+  cardRefundsCents                 Int?           @default(0)
+  tipsCents                        Int?           @default(0)
+  payInsCents                      Int?           @default(0)
+  payOutsCents                     Int?           @default(0)
+  expectedCashCents                Int?           @default(0)
+  countedCashCents                 Int?
+  cashVarianceCents                Int?
+  openedBy                         User?          @relation("RegisterShift_openedBy", fields: [openedById], references: [id])
+  openedById                       String?        @map("openedBy")
+  closedBy                         User?          @relation("RegisterShift_closedBy", fields: [closedById], references: [id])
+  closedById                       String?        @map("closedBy")
+  openedAt                         DateTime?      @default(now())
+  closedAt                         DateTime?
+  posOrders                        PosOrder[]     @relation("PosOrder_registerShift")
+  payments                         Payment[]      @relation("Payment_registerShift")
+  cashMovements                    CashMovement[] @relation("CashMovement_registerShift")
+  createdAt                        DateTime       @default(now())
+  updatedAt                        DateTime       @default(now()) @updatedAt
+  from_Payment_refundRegisterShift Payment[]      @relation("Payment_refundRegisterShift")
+
+  @@index([storeId])
+  @@index([openedById])
+  @@index([closedById])
+}
+
+model CashMovement {
+  id              String         @id @default(cuid())
+  idempotencyKey  String         @unique @default("")
+  movementNumber  String         @unique @default("")
+  store           StoreSetting   @relation("CashMovement_store", fields: [storeId], references: [id])
+  storeId         String         @map("store")
+  type            String
+  amountCents     Int
+  reason          String         @default("")
+  registerShift   RegisterShift? @relation("CashMovement_registerShift", fields: [registerShiftId], references: [id])
+  registerShiftId String?        @map("registerShift")
+  recordedBy      User?          @relation("CashMovement_recordedBy", fields: [recordedById], references: [id])
+  recordedById    String?        @map("recordedBy")
+  recordedAt      DateTime?      @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([registerShiftId])
+  @@index([recordedById])
+}
+
+model StaffShift {
+  id             String       @id @default(cuid())
+  idempotencyKey String       @unique @default("")
+  shiftNumber    String       @unique @default("")
+  store          StoreSetting @relation("StaffShift_store", fields: [storeId], references: [id])
+  storeId        String       @map("store")
+  staff          User?        @relation("StaffShift_staff", fields: [staffId], references: [id])
+  staffId        String?      @map("staff")
+  role           String?      @default("barista")
+  status         String?      @default("scheduled")
+  startsAt       DateTime?
+  endsAt         DateTime?
+  clockInAt      DateTime?
+  clockOutAt     DateTime?
+  notes          String       @default("")
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([staffId])
+}
+
+model PrepBatch {
+  id                      String                 @id @default(cuid())
+  idempotencyKey          String?                @unique
+  batchNumber             String                 @unique @default("")
+  store                   StoreSetting           @relation("PrepBatch_store", fields: [storeId], references: [id])
+  storeId                 String                 @map("store")
+  recipe                  Recipe?                @relation("PrepBatch_recipe", fields: [recipeId], references: [id])
+  recipeId                String?                @map("recipe")
+  status                  String?                @default("completed")
+  preparedBy              User?                  @relation("PrepBatch_preparedBy", fields: [preparedById], references: [id])
+  preparedById            String?                @map("preparedBy")
+  quantityMade            Decimal?               @default("0") @postgresql.Decimal(18, 4)
+  quantityRemaining       Decimal?               @default("0") @postgresql.Decimal(18, 4)
+  startedAt               DateTime?
+  completedAt             DateTime?
+  expiresAt               DateTime?
+  notes                   String                 @default("")
+  metadata                Json?
+  stockMovements          StockMovement[]        @relation("StockMovement_prepBatch")
+  consumptions            PrepBatchConsumption[] @relation("PrepBatchConsumption_prepBatch")
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @default(now()) @updatedAt
+  from_WasteLog_prepBatch WasteLog[]             @relation("WasteLog_prepBatch")
+
+  @@index([storeId])
+  @@index([recipeId])
+  @@index([preparedById])
+}
+
+model PrepBatchConsumption {
+  id             String       @id @default(cuid())
+  idempotencyKey String       @unique @default("")
+  store          StoreSetting @relation("PrepBatchConsumption_store", fields: [storeId], references: [id])
+  storeId        String       @map("store")
+  prepBatch      PrepBatch    @relation("PrepBatchConsumption_prepBatch", fields: [prepBatchId], references: [id])
+  prepBatchId    String       @map("prepBatch")
+  order          CafeOrder    @relation("PrepBatchConsumption_order", fields: [orderId], references: [id])
+  orderId        String       @map("order")
+  quantity       Decimal      @postgresql.Decimal(18, 4)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([prepBatchId])
+  @@index([orderId])
+}
+
+model PurchaseOrder {
+  id              String          @id @default(cuid())
+  idempotencyKey  String?         @unique
+  poNumber        String          @unique @default("")
+  store           StoreSetting    @relation("PurchaseOrder_store", fields: [storeId], references: [id])
+  storeId         String          @map("store")
+  supplier        Supplier?       @relation("PurchaseOrder_supplier", fields: [supplierId], references: [id])
+  supplierId      String?         @map("supplier")
+  inventoryItem   InventoryItem?  @relation("PurchaseOrder_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId String?         @map("inventoryItem")
+  orderedQuantity Decimal?        @default("0") @postgresql.Decimal(18, 4)
+  unitCostCents   Int?            @default(0)
+  status          String?         @default("submitted")
+  orderedAt       DateTime?
+  expectedAt      DateTime?
+  receivedAt      DateTime?
+  subtotalCents   Int?            @default(0)
+  notes           String          @default("")
+  metadata        Json?
+  inventoryLots   InventoryLot[]  @relation("InventoryLot_purchaseOrder")
+  stockMovements  StockMovement[] @relation("StockMovement_purchaseOrder")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([supplierId])
+  @@index([inventoryItemId])
+}
+
+model Supplier {
+  id                          String          @id @default(cuid())
+  name                        String          @default("")
+  store                       StoreSetting    @relation("Supplier_store", fields: [storeId], references: [id])
+  storeId                     String          @map("store")
+  status                      String?         @default("active")
+  contactName                 String          @default("")
+  email                       String          @default("")
+  phone                       String          @default("")
+  website                     String          @default("")
+  leadTimeDays                Int?            @default(0)
+  notes                       String          @default("")
+  metadata                    Json?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @default(now()) @updatedAt
+  from_PurchaseOrder_supplier PurchaseOrder[] @relation("PurchaseOrder_supplier")
+  from_InventoryLot_supplier  InventoryLot[]  @relation("InventoryLot_supplier")
+
+  @@index([storeId])
+}
+
+model InventoryLot {
+  id                String          @id @default(cuid())
+  lotNumber         String          @unique @default("")
+  store             StoreSetting    @relation("InventoryLot_store", fields: [storeId], references: [id])
+  storeId           String          @map("store")
+  inventoryItem     InventoryItem?  @relation("InventoryLot_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId   String?         @map("inventoryItem")
+  supplier          Supplier?       @relation("InventoryLot_supplier", fields: [supplierId], references: [id])
+  supplierId        String?         @map("supplier")
+  purchaseOrder     PurchaseOrder?  @relation("InventoryLot_purchaseOrder", fields: [purchaseOrderId], references: [id])
+  purchaseOrderId   String?         @map("purchaseOrder")
+  quantityReceived  Decimal?        @default("0") @postgresql.Decimal(18, 4)
+  quantityRemaining Decimal?        @default("0") @postgresql.Decimal(18, 4)
+  unitCostCents     Int?            @default(0)
+  receivedAt        DateTime?
+  expiresAt         DateTime?
+  status            String?         @default("active")
+  metadata          Json?
+  stockMovements    StockMovement[] @relation("StockMovement_inventoryLot")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([inventoryItemId])
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+}
+
+model Ingredient {
+  id              String         @id @default(cuid())
+  name            String         @default("")
+  store           StoreSetting   @relation("Ingredient_store", fields: [storeId], references: [id])
+  storeId         String         @map("store")
+  inventoryItem   InventoryItem? @relation("Ingredient_inventoryItem", fields: [inventoryItemId], references: [id])
+  inventoryItemId String?        @map("inventoryItem")
+  recipe          Recipe?        @relation("Ingredient_recipe", fields: [recipeId], references: [id])
+  recipeId        String?        @map("recipe")
+  quantity        Decimal?       @default("0") @postgresql.Decimal(18, 4)
+  unit            String         @default("g")
+  optional        Boolean        @default(false)
+  notes           String         @default("")
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([inventoryItemId])
+  @@index([recipeId])
+}
+
+model Recipe {
+  id                     String       @id @default(cuid())
+  name                   String       @default("")
+  store                  StoreSetting @relation("Recipe_store", fields: [storeId], references: [id])
+  storeId                String       @map("store")
+  menuItem               MenuItem?    @relation("Recipe_menuItem", fields: [menuItemId], references: [id])
+  menuItemId             String?      @map("menuItem")
+  status                 String?      @default("draft")
+  yieldQuantity          Decimal?     @default("1") @postgresql.Decimal(18, 4)
+  yieldUnit              String       @default("serving")
+  prepInstructions       String       @default("")
+  allergenNotes          String       @default("")
+  active                 Boolean      @default(true)
+  metadata               Json?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @default(now()) @updatedAt
+  from_PrepBatch_recipe  PrepBatch[]  @relation("PrepBatch_recipe")
+  from_Ingredient_recipe Ingredient[] @relation("Ingredient_recipe")
+
+  @@index([storeId])
+  @@index([menuItemId])
+}
+
+model GraphQLRateLimitBucket {
+  bucketKey    String
+  windowStart  DateTime @postgresql.Timestamptz
+  requestCount Int      @default(0)
+  costUnits    Int      @default(0)
+  expiresAt    DateTime @postgresql.Timestamptz
+
+  @@id([bucketKey, windowStart])
+  @@index([expiresAt])
 }

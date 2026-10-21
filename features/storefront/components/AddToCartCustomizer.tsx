@@ -1,94 +1,113 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Minus, Plus, ShoppingBag } from "lucide-react";
-import { formatMoney } from "@/features/storefront/lib/format";
-import { loadCartLines, saveCartLines } from "@/features/storefront/lib/cart/storage";
-import type { CartLine } from "@/features/storefront/lib/cart/types";
+import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { formatMoney, formatModifierAdjustment } from "@/features/storefront/lib/format";
+import { addCartLine, CART_LIMITS } from "@/features/storefront/lib/cart/storage";
+import { buildQuotedCartLine, defaultModifierIds, modifierGroups, unavailableRequiredModifierGroups } from "@/features/storefront/lib/cart/menuCart";
 import type { StorefrontMenuItem } from "@/features/storefront/lib/data/menu";
+import { quoteCafePickupOrder } from "@/features/storefront/lib/data/orders";
 
-function groupedModifiers(item: StorefrontMenuItem) {
-  return (item.modifiers || []).reduce<Record<string, NonNullable<StorefrontMenuItem["modifiers"]>>>((groups, modifier) => {
-    if (!modifier.inStock) return groups;
-    const key = modifier.modifierGroupLabel || modifier.modifierGroup || "Options";
-    groups[key] = groups[key] || [];
-    groups[key].push(modifier);
-    return groups;
-  }, {});
-}
+const UNAVAILABLE_MESSAGE = "This item can’t be added right now. It may be sold out or outside its service hours.";
 
-export function AddToCartCustomizer({ item, compact = false }: { item: StorefrontMenuItem; compact?: boolean }) {
+export function AddToCartCustomizer({ item, compact = false, orderingAvailable = true }: { item: StorefrontMenuItem; compact?: boolean; orderingAvailable?: boolean }) {
   const [quantity, setQuantity] = useState(1);
-  const [selectedModifiers, setSelectedModifiers] = useState<string[]>((item.modifiers || []).filter((modifier) => modifier.defaultSelected).map((modifier) => modifier.id));
+  const [selectedModifiers, setSelectedModifiers] = useState<string[]>(() => defaultModifierIds(item));
   const [notes, setNotes] = useState("");
   const [added, setAdded] = useState(false);
-  const groups = useMemo(() => groupedModifiers(item), [item]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const request = useRef(0);
+  const groups = useMemo(() => modifierGroups(item), [item]);
   const selectedModifierRecords = (item.modifiers || []).filter((modifier) => selectedModifiers.includes(modifier.id));
   const unitPrice = item.price + selectedModifierRecords.reduce((sum, modifier) => sum + Number(modifier.priceAdjustment || 0), 0);
+  const unavailableGroups = unavailableRequiredModifierGroups(item);
+  const unmetGroups = groups.filter((group) => group.modifiers.filter((modifier) => selectedModifiers.includes(modifier.id)).length < group.minimum);
+  const blocked = !orderingAvailable || pending || unmetGroups.length > 0 || unavailableGroups.length > 0;
 
-  function toggleModifier(id: string, maxSelections: number, groupMembers: string[]) {
+  function toggleModifier(id: string, maximum: number, groupMembers: string[]) {
+    setAdded(false);
     setSelectedModifiers((current) => {
       if (current.includes(id)) return current.filter((modifierId) => modifierId !== id);
-      const currentInGroup = current.filter((modifierId) => groupMembers.includes(modifierId));
-      const pruned = maxSelections === 1 ? current.filter((modifierId) => !groupMembers.includes(modifierId)) : current;
-      if (maxSelections > 1 && currentInGroup.length >= maxSelections) return current;
-      return [...pruned, id];
+      if (maximum === 1) return [...current.filter((modifierId) => !groupMembers.includes(modifierId)), id];
+      if (current.filter((modifierId) => groupMembers.includes(modifierId)).length >= maximum) return current;
+      return [...current, id];
     });
   }
 
-  function addToCart() {
-    const line: CartLine = {
-      cartId: `${item.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      menuItemId: item.id,
-      name: item.name,
-      quantity,
-      unitPrice,
-      basePrice: item.price,
-      modifierIds: selectedModifiers,
-      modifierNames: selectedModifierRecords.map((modifier) => modifier.name),
-      notes,
-      prepTimeMinutes: item.prepTimeMinutes,
-    };
-    saveCartLines([...loadCartLines(), line]);
-    setAdded(true);
+  async function addToCart() {
+    if (blocked) return;
+    const requestId = ++request.current;
+    setPending(true);
+    setAdded(false);
+    setError(null);
+    try {
+      const result = await quoteCafePickupOrder([{ menuItemId: item.id, quantity, modifierIds: selectedModifiers, specialInstructions: notes || undefined }]);
+      if (requestId !== request.current) return;
+      if (!result.success || !result.quote) {
+        setError(UNAVAILABLE_MESSAGE);
+        return;
+      }
+      const line = buildQuotedCartLine(item, result.quote, selectedModifiers, crypto.randomUUID(), quantity);
+      line.notes = notes;
+      const reason = addCartLine(line);
+      if (reason) setError(reason);
+      else setAdded(true);
+    } catch {
+      if (requestId === request.current) setError(UNAVAILABLE_MESSAGE);
+    } finally {
+      if (requestId === request.current) setPending(false);
+    }
   }
 
   return (
-    <div className="rounded-lg border border-[#cdb894] bg-[#fff8ed] p-4 shadow-[0_18px_70px_rgba(32,23,21,0.12)] lg:sticky lg:top-6 lg:self-start">
-      {!compact && (
-        <div className="mb-5 border-b border-[#d7c7ad] pb-4">
-          <div className="text-xs font-black uppercase tracking-[0.18em] text-[#8b5f2b]">Build your order</div>
-          <h2 className="mt-2 text-2xl font-black text-[#201715]">{item.name}</h2>
+    <div className="sf-sticky-panel">
+      {!compact ? (
+        <div className="mb-5 border-b border-[var(--sf-rule)] pb-4">
+          <p className="sf-kicker">Customize</p>
+          <h2 className="sf-display mt-2 text-3xl leading-none [overflow-wrap:anywhere]">{item.name}</h2>
         </div>
-      )}
+      ) : null}
 
-      <div className="space-y-5">
-        {Object.entries(groups).map(([groupName, modifiers]) => {
-          const max = Math.max(...modifiers.map((modifier) => modifier.maxSelections || 1));
-          const memberIds = modifiers.map((modifier) => modifier.id);
+      <div className="sf-panel space-y-5">
+        {groups.map((group) => {
+          const memberIds = group.modifiers.map((modifier) => modifier.id);
+          const single = group.maximum === 1;
+          const selectedCount = group.modifiers.filter((modifier) => selectedModifiers.includes(modifier.id)).length;
+          const helpId = `modifier-help-${item.id}-${group.key}`;
           return (
-            <fieldset key={groupName} className="space-y-2">
-              <legend className="flex w-full items-center justify-between gap-3 text-sm font-black text-[#201715]">
-                <span>{groupName}</span>
-                <span className="text-xs font-semibold text-[#8b5f2b]">Choose up to {max}</span>
+            <fieldset key={group.key} className="space-y-3 border-t border-[var(--sf-rule)] pt-4 first:border-t-0 first:pt-0" aria-describedby={helpId}>
+              <legend className="flex w-full flex-wrap items-center justify-between gap-3 text-sm font-semibold">
+                <span>{group.label}</span>
+                <span id={helpId} className="text-xs font-medium text-[var(--sf-ink-faint)]">
+                  {group.minimum ? (group.minimum === group.maximum ? `Choose ${group.minimum}` : `Choose ${group.minimum}–${group.maximum}`) : `Optional · up to ${group.maximum}`}
+                </span>
               </legend>
-              <div className="grid gap-2">
-                {modifiers.map((modifier) => {
+              <div className="grid gap-2" role={single ? "radiogroup" : "group"} aria-label={group.label}>
+                {group.modifiers.map((modifier) => {
                   const active = selectedModifiers.includes(modifier.id);
+                  const atLimit = !single && !active && selectedCount >= group.maximum;
+                  const disabled = !modifier.inStock || atLimit;
                   return (
-                    <button
-                      key={modifier.id}
-                      type="button"
-                      onClick={() => toggleModifier(modifier.id, modifier.maxSelections || max || 1, memberIds)}
-                      className={`flex min-h-11 items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm transition ${active ? "border-[#201715] bg-[#201715] text-[#fff8ed]" : "border-[#d7c7ad] bg-white text-[#201715] hover:border-[#8b5f2b]"}`}
-                    >
-                      <span className="font-semibold">{modifier.name}</span>
-                      <span className="flex items-center gap-2 text-xs font-bold">
-                        {modifier.priceAdjustment ? `+${formatMoney(modifier.priceAdjustment)}` : "Included"}
-                        {active ? <Check className="h-4 w-4" /> : null}
+                    <label key={modifier.id} className={`sf-modifier ${active ? "is-active" : ""} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
+                      <span className="flex min-w-0 items-center gap-3">
+                        <input
+                          type={single ? "radio" : "checkbox"}
+                          name={`modifier-${item.id}-${group.key}`}
+                          value={modifier.id}
+                          checked={active}
+                          disabled={disabled}
+                          onChange={() => toggleModifier(modifier.id, group.maximum, memberIds)}
+                          onClick={(event) => { if (single && active && group.minimum === 0) { event.preventDefault(); toggleModifier(modifier.id, group.maximum, memberIds); } }}
+                          className="h-4 w-4 shrink-0 accent-[var(--sf-accent)]"
+                        />
+                        <span className="font-medium [overflow-wrap:anywhere]">{modifier.name}</span>
                       </span>
-                    </button>
+                      <span className="text-xs font-semibold">
+                        {!modifier.inStock ? "Sold out" : formatModifierAdjustment(modifier.priceAdjustment)}
+                      </span>
+                    </label>
                   );
                 })}
               </div>
@@ -96,33 +115,60 @@ export function AddToCartCustomizer({ item, compact = false }: { item: Storefron
           );
         })}
 
-        <label className="space-y-2 text-sm font-black text-[#201715]">
-          Barista notes
-          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="min-h-20 w-full rounded-md border border-[#d7c7ad] bg-white px-3 py-2 font-medium outline-none focus:border-[#8b5f2b]" placeholder="Light ice, extra hot..." />
+        <label htmlFor={`barista-notes-${item.id}`} className="block space-y-2 text-sm font-medium">
+          Barista notes (optional)
+          <textarea
+            id={`barista-notes-${item.id}`}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            className="sf-field"
+            maxLength={500}
+            placeholder="Extra hot, light ice, no sleeve…"
+          />
         </label>
 
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-[#d7c7ad] bg-white p-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-[var(--sf-rule)] bg-[var(--sf-paper-inset)] p-2">
           <div className="flex items-center gap-2">
-            <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="grid h-9 w-9 place-items-center rounded-md border border-[#d7c7ad] transition hover:border-[#8b5f2b]">
-              <Minus className="h-4 w-4" />
+            <button
+              type="button"
+              aria-label="Decrease quantity"
+              disabled={quantity <= 1}
+              onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+              className="grid h-11 w-11 place-items-center border border-[var(--sf-rule)] disabled:opacity-50"
+            >
+              <Minus className="h-4 w-4" aria-hidden="true" />
             </button>
-            <span className="w-7 text-center font-black">{quantity}</span>
-            <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((value) => value + 1)} className="grid h-9 w-9 place-items-center rounded-md border border-[#d7c7ad] transition hover:border-[#8b5f2b]">
-              <Plus className="h-4 w-4" />
+            <span className="w-8 text-center text-lg font-semibold sf-ticket" aria-live="polite" aria-label={`Quantity ${quantity}`}>{quantity}</span>
+            <button
+              type="button"
+              aria-label="Increase quantity"
+              disabled={quantity >= CART_LIMITS.maxLineQuantity}
+              onClick={() => setQuantity((value) => Math.min(CART_LIMITS.maxLineQuantity, value + 1))}
+              className="grid h-11 w-11 place-items-center border border-[var(--sf-rule)] disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
-          <button type="button" onClick={addToCart} className="inline-flex items-center gap-2 rounded-md bg-[#201715] px-5 py-3 text-sm font-black text-[#fff8ed] transition hover:bg-[#8b3f24]">
-            <ShoppingBag className="h-4 w-4" />
-            Add / {formatMoney(unitPrice * quantity)}
+          <button type="button" onClick={addToCart} disabled={blocked} className="sf-btn sf-btn-primary disabled:cursor-not-allowed disabled:opacity-50">
+            <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+            {!orderingAvailable ? "Unavailable now" : pending ? "Checking price…" : `Add · ${formatMoney(unitPrice * quantity)}`}
           </button>
         </div>
 
-        {added && (
-          <div className="flex items-center justify-between gap-3 rounded-md border border-[#bad0b9] bg-[#edf6ea] px-3 py-2 text-sm text-[#355b3d]">
-            <span>Added to pickup cart.</span>
-            <Link href="/checkout" className="font-black underline underline-offset-4">Checkout</Link>
-          </div>
-        )}
+        <div aria-live="polite" className="space-y-3">
+          {!orderingAvailable ? <p className="sf-alert-error">Pickup ordering is closed for the current hours or this item&apos;s service window. You can still review its options.</p> : null}
+          {error ? <p className="sf-alert-error" role="alert">{error}</p> : null}
+          {unavailableGroups.length > 0 ? <p className="sf-alert-error">Required options in {unavailableGroups.join(", ")} are sold out, so this item can’t be added.</p> : null}
+          {unmetGroups.length > 0 && unavailableGroups.length === 0 ? <p className="sf-alert-error">Choose {unmetGroups.map((group) => group.label).join(", ")} before adding this item.</p> : null}
+          {added ? (
+            <div className="sf-alert-success flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <span>Added to pickup cart.</span>
+              <Link href="/checkout" className="font-semibold underline underline-offset-4">
+                Go to checkout
+              </Link>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

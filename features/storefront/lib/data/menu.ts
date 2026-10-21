@@ -1,5 +1,3 @@
-"use server";
-
 import { cache } from "react";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 
@@ -25,6 +23,7 @@ export type StorefrontMenuItem = {
   featured: boolean;
   popular: boolean;
   imageUrl?: string | null;
+  primaryImageUrl?: string | null;
   prepTimeMinutes?: number | null;
   caffeineMg?: number | null;
   barStation?: string | null;
@@ -42,104 +41,68 @@ export type StorefrontMenuCategory = {
   sortOrder: number;
 };
 
+const MENU_ITEM_FIELDS = `
+  id name shortDescription price available featured popular imageUrl primaryImageUrl
+  prepTimeMinutes caffeineMg barStation temperatureOptions dietaryFlags
+  category { id name }
+  modifiers { id name modifierGroup modifierGroupLabel priceAdjustment required minSelections maxSelections defaultSelected inStock }
+`;
+
+export type StorefrontMenuFilters = { search?: string; categoryId?: string; after?: string | null };
+
+export type StorefrontMenuPage =
+  | { kind: "ok"; categories: StorefrontMenuCategory[]; items: StorefrontMenuItem[]; nextCursor: string | null; hasUncategorized: boolean }
+  | { kind: "unavailable" };
+
+export type StorefrontMenuItemResult =
+  | { kind: "found"; item: StorefrontMenuItem }
+  | { kind: "not-found" }
+  | { kind: "unavailable" };
+
 const MENU_QUERY = `
-  query StorefrontMenu {
-    menuCategories(where: { active: { equals: true } }, orderBy: { sortOrder: asc }) {
-      id
-      name
-      description
-      active
-      sortOrder
-    }
-    menuItems(where: { available: { equals: true } }, orderBy: { name: asc }) {
-      id
-      name
-      shortDescription
-      price
-      available
-      featured
-      popular
-      imageUrl
-      prepTimeMinutes
-      caffeineMg
-      barStation
-      temperatureOptions
-      dietaryFlags
-      category { id name }
-      modifiers {
-        id
-        name
-        modifierGroup
-        modifierGroupLabel
-        priceAdjustment
-        required
-        minSelections
-        maxSelections
-        defaultSelected
-        inStock
-      }
+  query StorefrontMenu($search: String, $categoryId: ID, $after: String) {
+    getCoffeeMenu(search: $search, categoryId: $categoryId, after: $after) {
+      categories { id name description active sortOrder }
+      items { ${MENU_ITEM_FIELDS} }
+      nextCursor
+      hasUncategorized
     }
   }
 `;
 
 const MENU_ITEM_QUERY = `
   query StorefrontMenuItem($id: ID!) {
-    menuItem(where: { id: $id }) {
-      id
-      name
-      shortDescription
-      price
-      available
-      featured
-      popular
-      imageUrl
-      prepTimeMinutes
-      caffeineMg
-      barStation
-      temperatureOptions
-      dietaryFlags
-      category { id name }
-      modifiers {
-        id
-        name
-        modifierGroup
-        modifierGroupLabel
-        priceAdjustment
-        required
-        minSelections
-        maxSelections
-        defaultSelected
-        inStock
-      }
+    getCoffeeMenu(menuItemId: $id) {
+      item { ${MENU_ITEM_FIELDS} }
     }
   }
 `;
 
-export const getStorefrontMenu = cache(async function getStorefrontMenu() {
-  const response = await keystoneClient<{ menuCategories: StorefrontMenuCategory[]; menuItems: StorefrontMenuItem[] }>(
+type MenuResponse = { getCoffeeMenu: { categories?: StorefrontMenuCategory[]; items?: StorefrontMenuItem[]; nextCursor?: string | null; hasUncategorized?: boolean | null } | null };
+
+export async function fetchStorefrontMenuPage(filters: StorefrontMenuFilters = {}): Promise<StorefrontMenuPage> {
+  const response = await keystoneClient<MenuResponse>(
     MENU_QUERY,
-    {},
-    { cache: "no-store" }
+    { search: filters.search?.trim().slice(0, 100) || null, categoryId: filters.categoryId || null, after: filters.after || null },
+    { cache: "no-store" },
   );
+  const menu = response.success ? response.data.getCoffeeMenu : null;
+  if (!menu || !Array.isArray(menu.items) || !Array.isArray(menu.categories)) return { kind: "unavailable" };
+  return { kind: "ok", categories: menu.categories, items: menu.items, nextCursor: menu.nextCursor || null, hasUncategorized: Boolean(menu.hasUncategorized) };
+}
 
-  if (!response.success) {
-    return { categories: [], items: [], error: response.error };
-  }
-
-  return {
-    categories: response.data.menuCategories || [],
-    items: response.data.menuItems || [],
-    error: null,
-  };
+export const getStorefrontMenu = cache(async function getStorefrontMenu(search = "", categoryId = "") {
+  return fetchStorefrontMenuPage({ search, categoryId });
 });
 
-export const getStorefrontMenuItem = cache(async function getStorefrontMenuItem(id: string) {
-  const response = await keystoneClient<{ menuItem: StorefrontMenuItem | null }>(
+export const getStorefrontMenuItem = cache(async function getStorefrontMenuItem(id: string): Promise<StorefrontMenuItemResult> {
+  const response = await keystoneClient<{ getCoffeeMenu: { item: StorefrontMenuItem | null } | null }>(
     MENU_ITEM_QUERY,
     { id },
     { cache: "no-store" }
   );
 
-  if (!response.success) return null;
-  return response.data.menuItem;
+  if (!response.success || !response.data.getCoffeeMenu || !Object.hasOwn(response.data.getCoffeeMenu, "item")) return { kind: "unavailable" };
+  const item = response.data.getCoffeeMenu.item;
+  return item ? { kind: "found", item } : { kind: "not-found" };
 });

@@ -1,88 +1,162 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock, Coffee, ReceiptText } from "lucide-react";
-import { formatMoney, formatPickupTime } from "@/features/storefront/lib/format";
+import { formatModifierAdjustment, formatMoney, formatPickupTime } from "@/features/storefront/lib/format";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { StorefrontShell } from "@/features/storefront/components/StorefrontShell";
+import { StorefrontMedia } from "@/features/storefront/components/StorefrontMedia";
+import { getCoffeeStoreResult } from "@/features/storefront/lib/data/store";
+import { ReceiptRefreshButton } from "@/features/storefront/components/ReceiptRefreshButton";
+import type { CafeOrderItemSnapshot, CafePickupOrder } from "@/features/storefront/lib/data/orders";
+import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, resolveOrderConfirmation } from "@/features/storefront/lib/orderConfirmation";
 
 const ORDER_QUERY = `
   query ConfirmedCafeOrder($id: ID!, $secretKey: String) {
-    getCafeOrder(orderId: $id, secretKey: $secretKey)
+    getCafeOrder(orderId: $id, secretKey: $secretKey) {
+      id orderNumber status handoffCode pickupName promisedAt subtotal tax tip total currencyCode
+      orderItems {
+        id quantity itemNameSnapshot imagePathSnapshot customizationsSummary specialInstructions price
+        modifierSnapshot { id name group groupLabel priceAdjustment }
+      }
+    }
   }
 `;
 
 export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secretKey?: string }) {
-  const response = id
-    ? await keystoneClient<{ getCafeOrder: any }>(ORDER_QUERY, { id, secretKey }, { cache: "no-store" })
-    : null;
-  const order = response?.success ? response.data.getCafeOrder : null;
+  // The receipt is authorized on its own; current public store settings are optional context, never a gate.
+  const [response, storeResult] = await Promise.all([
+    id
+      ? keystoneClient<{ getCafeOrder: CafePickupOrder | null }>(ORDER_QUERY, { id, secretKey }, { cache: "no-store" })
+      : Promise.resolve(null),
+    getCoffeeStoreResult(),
+  ]);
+  const store = storeResult.kind === "ok" ? storeResult.store : null;
+  const loadedAt = formatPickupTime(new Date().toISOString(), store?.timezone);
+  const confirmation = resolveOrderConfirmation(id, response);
+  const order = confirmation.kind === "found" ? confirmation.order : null;
+  const statusCopy = order ? getCustomerOrderStatusCopy(order.status) : null;
+  const failureCopy = confirmation.kind === "found" ? null : getOrderConfirmationFailureCopy(confirmation.kind);
 
   return (
-    <main className="min-h-screen bg-[#f4ead9] px-5 py-8 text-[#201715] md:px-8 lg:px-10">
-      <div className="mx-auto max-w-4xl">
+    <StorefrontShell>
+      <main className="sf-container py-8 sm:py-10">
         {order ? (
-          <section className="overflow-hidden rounded-lg border border-[#cdb894] bg-[#fff8ed] shadow-[0_28px_90px_rgba(32,23,21,0.14)]">
-            <div className="bg-[#201715] p-6 text-[#fff8ed] md:p-8">
-              <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#d6a85d]">
-                <CheckCircle2 className="h-4 w-4" />
-                Order confirmed
-              </p>
-              <div className="mt-5 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <section className="space-y-10">
+            <div className="border-b border-[var(--sf-rule)] pb-8">
+              <p className="sf-kicker">{statusCopy?.label}</p>
+              <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h1 className="text-5xl font-black leading-none md:text-7xl">#{order.orderNumber}</h1>
-                  <p className="mt-3 text-[#dacdb8]">For {order.pickupName || "Guest"} / pickup around {formatPickupTime(order.promisedAt)}</p>
-                </div>
-                <div className="rounded-lg border border-white/15 bg-white/10 px-6 py-5 text-center">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-[#d6a85d]">Handoff</div>
-                  <div className="mt-1 text-4xl font-black">{order.handoffCode}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-px bg-[#d7c7ad] md:grid-cols-3">
-              <div className="bg-[#fff8ed] p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-[#8b5f2b]"><Clock className="h-4 w-4" /> Pickup</div>
-                <div className="mt-1 text-lg font-black">{formatPickupTime(order.promisedAt)}</div>
-              </div>
-              <div className="bg-[#fff8ed] p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-[#8b5f2b]"><Coffee className="h-4 w-4" /> Status</div>
-                <div className="mt-1 text-lg font-black capitalize">{order.status?.replaceAll("_", " ")}</div>
-              </div>
-              <div className="bg-[#fff8ed] p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-[#8b5f2b]"><ReceiptText className="h-4 w-4" /> Total</div>
-                <div className="mt-1 text-lg font-black">{formatMoney(order.total)}</div>
-              </div>
-            </div>
-
-            <div className="p-5 md:p-8">
-              <h2 className="text-2xl font-black">Bar ticket</h2>
-              <div className="mt-4 overflow-hidden rounded-lg border border-[#d7c7ad] bg-white">
-                {order.orderItems?.map((item: any) => (
-                  <div key={item.id} className="flex justify-between gap-4 border-b border-[#eadfcc] p-4 last:border-b-0">
-                    <div>
-                      <div className="font-black">{item.quantity}x {item.itemNameSnapshot}</div>
-                      {item.customizationsSummary && <div className="mt-1 text-sm text-[#6d5e52]">{item.customizationsSummary}</div>}
-                    </div>
-                    <div className="font-black">{formatMoney(item.price * item.quantity)}</div>
+                  <h1 className="sf-display text-[var(--sf-text-display)] leading-[0.9] [overflow-wrap:anywhere]">#{order.orderNumber}</h1>
+                  <p className="mt-4 max-w-xl text-[var(--sf-ink-muted)] leading-relaxed">
+                    For {order.pickupName || "Guest"} · {statusCopy?.message}
+                  </p>
+                  {statusCopy?.showPickupEstimate ? (
+                    <p className="mt-2 text-sm text-[var(--sf-ink-muted)]">
+                      {order.status === "open" ? "Requested pickup time" : "Pickup time"}: {formatPickupTime(order.promisedAt, store?.timezone)}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-xs text-[var(--sf-ink-muted)]">
+                    Status as of {loadedAt}. Email or text notification delivery is not confirmed here.
+                  </p>
+                  <div className="mt-4">
+                    <ReceiptRefreshButton />
                   </div>
-                ))}
+                </div>
+                <div>
+                  <p className="sf-kicker">Handoff code</p>
+                  <p className="sf-handoff sf-ticket mt-2">{order.handoffCode || "—"}</p>
+                </div>
               </div>
-              <div className="mt-5 space-y-2 border-t border-[#d7c7ad] pt-4 text-sm">
-                <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(order.subtotal)}</span></div>
-                <div className="flex justify-between"><span>Tax</span><span>{formatMoney(order.tax)}</span></div>
-                <div className="flex justify-between text-lg font-black"><span>Total</span><span>{formatMoney(order.total)}</span></div>
+            </div>
+
+            <div className="sf-split">
+              <div>
+                <h2 className="sf-display text-[var(--sf-text-display-s)]">{order.status === "open" ? "Requested items" : "Order items"}</h2>
+                <div className="mt-4 divide-y divide-[var(--sf-rule)] border-t border-[var(--sf-rule)]">
+                  {order.orderItems?.map((item: CafeOrderItemSnapshot) => (
+                    <div key={item.id} className="flex justify-between gap-4 py-4">
+                      <div className="flex min-w-0 gap-4">
+                        <StorefrontMedia
+                          item={{
+                            name: item.itemNameSnapshot || "Menu item",
+                            imageUrl: item.imagePathSnapshot,
+                            primaryImageUrl: item.imagePathSnapshot,
+                          }}
+                          className="h-16 w-16 shrink-0 border border-[var(--sf-rule)]"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold">
+                            {item.quantity}× {item.itemNameSnapshot}
+                          </p>
+                          {item.modifierSnapshot?.length ? (
+                            <ul className="mt-1 space-y-0.5 text-sm text-[var(--sf-ink-muted)]">
+                              {item.modifierSnapshot.map((modifier) => (
+                                <li key={`${modifier.id}:${modifier.name}`}>
+                                  {modifier.name}
+                                  {modifier.priceAdjustment ? ` · ${formatModifierAdjustment(modifier.priceAdjustment, order.currencyCode)}` : ""}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : item.customizationsSummary ? (
+                            <p className="mt-1 text-sm text-[var(--sf-ink-muted)]">{item.customizationsSummary}</p>
+                          ) : null}
+                          {item.specialInstructions ? (
+                            <p className="mt-2 text-sm italic text-[var(--sf-ink-muted)]">Note: {item.specialInstructions}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="sf-ticket font-semibold">{formatMoney(item.price * item.quantity, order.currencyCode)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              <aside className="sf-panel sf-sticky-panel">
+                <p className="sf-kicker">Order reference</p>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--sf-ink-muted)]">
+                  This handoff code is associated with this order.
+                </p>
+
+                <hr className="sf-rule my-5" />
+
+                <p className="sf-kicker">Totals</p>
+                <div className="mt-4 space-y-2 text-sm text-[var(--sf-ink-muted)] sf-ticket">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{formatMoney(order.subtotal, order.currencyCode)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tax</span>
+                    <span>{formatMoney(order.tax, order.currencyCode)}</span>
+                  </div>
+                  {order.tip ? (
+                    <div className="flex justify-between">
+                      <span>Tip</span>
+                      <span>{formatMoney(order.tip, order.currencyCode)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex justify-between pt-2 text-lg font-semibold text-[var(--sf-ink)]">
+                    <span>Total</span>
+                    <span>{formatMoney(order.total, order.currencyCode)}</span>
+                  </div>
+                </div>
+              </aside>
             </div>
           </section>
-        ) : (
-          <div className="rounded-lg border border-[#cdb894] bg-[#fff8ed] p-8 text-center shadow-[0_24px_80px_rgba(32,23,21,0.12)]">
-            <h1 className="text-3xl font-black">Order not found</h1>
-            <p className="mt-2 text-[#6d5e52]">The confirmation link is missing an order id or the order secret did not match.</p>
+        ) : failureCopy ? (
+          <div className="sf-panel text-center">
+            <h1 className="sf-display text-[var(--sf-text-display-s)]">{failureCopy.title}</h1>
+            <p className="mt-3 text-sm text-[var(--sf-ink-muted)]">{failureCopy.message}</p>
+            {confirmation.kind === "unavailable" ? (
+              <div className="mt-5 flex justify-center">
+                <ReceiptRefreshButton label="Try again" />
+              </div>
+            ) : null}
           </div>
-        )}
-        <Link href="/" className="mt-6 inline-flex items-center gap-2 rounded-md bg-[#201715] px-5 py-3 text-sm font-black text-[#fff8ed]">
-          <ArrowLeft className="h-4 w-4" />
-          Back to menu
+        ) : null}
+
+        <Link href="/" className="sf-back-link mt-8 inline-flex">
+          ← Back to menu
         </Link>
-      </div>
-    </main>
+      </main>
+    </StorefrontShell>
   );
 }

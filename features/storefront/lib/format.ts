@@ -5,10 +5,11 @@ export function formatMoney(cents = 0, currency = "USD") {
   }).format(cents / 100);
 }
 
-export function formatPickupTime(value?: string | null) {
-  if (!value) return "soon";
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+/** Signed price adjustment for a modifier: "+$0.75", "−$0.50", or "Included" for zero. */
+export function formatModifierAdjustment(cents?: number | null, currency = "USD") {
+  const amount = Number(cents || 0);
+  if (!amount) return "Included";
+  return `${amount > 0 ? "+" : "−"}${formatMoney(Math.abs(amount), currency)}`;
 }
+
+export { formatPickupTime } from "@/lib/date-time";

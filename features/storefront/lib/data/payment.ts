@@ -2,6 +2,16 @@
 
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 
+type CafePaymentSession = {
+  success: boolean;
+  paymentId?: string | null;
+  provider?: string | null;
+  providerPaymentId?: string | null;
+  status?: string | null;
+  amount?: number | null;
+  error?: string | null;
+};
+
 const INITIATE_CAFE_PAYMENT_SESSION = `
   mutation InitiateCafePaymentSession($orderId: ID!, $secretKey: String, $paymentProvider: String!) {
     initiateCafePaymentSession(orderId: $orderId, secretKey: $secretKey, paymentProvider: $paymentProvider) {
@@ -11,14 +21,13 @@ const INITIATE_CAFE_PAYMENT_SESSION = `
       providerPaymentId
       status
       amount
-      data
       error
     }
   }
 `;
 
 export async function initiateCafePaymentSession(orderId: string, secretKey: string | undefined, paymentProvider: string) {
-  const response = await keystoneClient<{ initiateCafePaymentSession: any }>(
+  const response = await keystoneClient<{ initiateCafePaymentSession: CafePaymentSession }>(
     INITIATE_CAFE_PAYMENT_SESSION,
     { orderId, secretKey, paymentProvider },
     { cache: "no-store" }

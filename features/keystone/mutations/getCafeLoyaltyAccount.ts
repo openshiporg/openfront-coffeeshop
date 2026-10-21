@@ -1,4 +1,4 @@
-import { permissions } from "../access";
+import { permissions, type Session } from "../access";
 
 type LookupArgs = {
   email?: string | null;
@@ -6,11 +6,53 @@ type LookupArgs = {
   secretKey?: string | null;
 };
 
+type LoyaltyAccountLookupResult = {
+  id: string;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  status?: string | null;
+  tier?: string | null;
+  pointsBalance: number;
+  lifetimePoints?: number | null;
+  drinkCredits: number;
+  visits?: number | null;
+  lastVisitAt?: string | null;
+  nextRewardProgress?: number | null;
+};
+
+type CafeOrderLoyaltyProof = {
+  id: string;
+  customerEmail?: string | null;
+  secretKey?: string | null;
+  loyaltyAccount?: { id: string } | null;
+};
+
+type LoyaltyLookupContext = {
+  session?: Session;
+  prisma: { storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> } };
+  sudo(): {
+    query: {
+      CafeOrder: {
+        findOne(args: { where: { id: string }; query: string }): Promise<CafeOrderLoyaltyProof | null>;
+      };
+      LoyaltyAccount: {
+        findOne(args: { where: { id: string }; query: string }): Promise<LoyaltyAccountLookupResult | null>;
+        findMany(args: {
+          where: { customerEmail: { equals: string }; store: { id: { equals: string } } };
+          take: number;
+          query: string;
+        }): Promise<LoyaltyAccountLookupResult[]>;
+      };
+    };
+  };
+};
+
 function normalizeEmail(email?: string | null) {
   return email?.trim().toLowerCase() || null;
 }
 
-export default async function getCafeLoyaltyAccount(root: any, args: LookupArgs, context: any) {
+export default async function getCafeLoyaltyAccount(_root: unknown, args: LookupArgs, context: LoyaltyLookupContext) {
   const email = normalizeEmail(args.email);
   if (!email) return null;
 
@@ -21,31 +63,35 @@ export default async function getCafeLoyaltyAccount(root: any, args: LookupArgs,
   if (!isStaff) {
     if (!args.orderId || !args.secretKey) return null;
 
-    const order = await context.sudo().query.CafeOrder.findOne({
+    // Proof fields only; no loyalty data is read until the order secret and email match.
+    const proof = await context.sudo().query.CafeOrder.findOne({
       where: { id: args.orderId },
-      query: "id customerEmail secretKey loyaltyAccount { id pointsBalance drinkCredits nextRewardProgress }",
+      query: "id customerEmail secretKey",
     });
 
-    if (!order || !order.secretKey || order.secretKey !== args.secretKey) {
+    if (!proof || !proof.secretKey || proof.secretKey !== args.secretKey) {
       return null;
     }
 
-    if (normalizeEmail(order.customerEmail) !== email) {
+    if (normalizeEmail(proof.customerEmail) !== email) {
       return null;
     }
 
-    if (!order.loyaltyAccount?.id) {
+    const linked = await context.sudo().query.CafeOrder.findOne({ where: { id: proof.id }, query: "id loyaltyAccount { id }" });
+    if (!linked?.loyaltyAccount?.id) {
       return null;
     }
 
     return context.sudo().query.LoyaltyAccount.findOne({
-      where: { id: order.loyaltyAccount.id },
+      where: { id: linked.loyaltyAccount.id },
       query: "id customerEmail pointsBalance drinkCredits nextRewardProgress",
     });
   }
 
+  const store = await context.prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true } });
+  if (!store?.id) return null;
   const accounts = await context.sudo().query.LoyaltyAccount.findMany({
-    where: { customerEmail: { equals: email } },
+    where: { customerEmail: { equals: email }, store: { id: { equals: store.id } } },
     take: 1,
     query: "id customerName customerEmail customerPhone status tier pointsBalance lifetimePoints drinkCredits visits lastVisitAt nextRewardProgress",
   });

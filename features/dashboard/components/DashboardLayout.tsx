@@ -90,12 +90,13 @@ function DashboardLayoutContent({ children, adminMeta, authenticatedItem }: Dash
         adminMeta={adminMeta}
         user={authenticatedItem}
         onOpenDialog={() => setIsOnboardingDialogOpen(true)}
-      />
+      />      
       <SidebarInset className="min-w-0">
         {children}
       </SidebarInset>
       <RightSidebar side="right" />
       <FloatingChatButton />
+      {/* Onboarding Dialog - Now at layout level, not hidden by sidebar */}
       <OnboardingDialog
         isOpen={isOnboardingDialogOpen}
         onClose={() => setIsOnboardingDialogOpen(false)}

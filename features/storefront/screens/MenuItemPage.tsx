@@ -1,78 +1,101 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Coffee, Flame, Leaf } from "lucide-react";
 import { AddToCartCustomizer } from "@/features/storefront/components/AddToCartCustomizer";
 import { getStorefrontMenuItem } from "@/features/storefront/lib/data/menu";
 import { formatMoney } from "@/features/storefront/lib/format";
+import { StorefrontShell } from "@/features/storefront/components/StorefrontShell";
+import { StorefrontMedia } from "@/features/storefront/components/StorefrontMedia";
 
 export async function MenuItemPage({ id }: { id: string }) {
-  const item = await getStorefrontMenuItem(id);
-  if (!item || !item.available) notFound();
+  const result = await getStorefrontMenuItem(id);
+  if (result.kind === "not-found") notFound();
+  if (result.kind === "unavailable") {
+    return (
+      <StorefrontShell>
+        <main className="sf-container py-16">
+          <div className="sf-empty" role="alert">
+            <p>This menu item is temporarily unavailable. Your cart is unchanged.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              <a href={`/menu/${encodeURIComponent(id)}`} className="sf-btn sf-btn-ghost">Try again</a>
+              <Link href="/#board" className="sf-btn sf-btn-ghost">Back to board</Link>
+            </div>
+          </div>
+        </main>
+      </StorefrontShell>
+    );
+  }
+  const item = result.item;
 
   return (
-    <main className="min-h-screen bg-[#f4ead9] px-5 py-6 text-[#201715] md:px-8 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex items-center justify-between border-b border-[#cdb894] pb-5">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-[#8b5f2b]">
-            <ArrowLeft className="h-4 w-4" />
-            Menu
+    <StorefrontShell>
+      <main className="sf-container py-8 sm:py-10">
+        <div className="sf-page-head">
+          <Link href="/#board" className="sf-back-link">
+            ← Back to board
           </Link>
-          <Link href="/checkout" className="rounded-md bg-[#201715] px-4 py-2 text-sm font-bold text-[#fff8ed]">
+          <Link href="/checkout" className="sf-btn sf-btn-ghost">
             Pickup cart
           </Link>
-        </header>
+        </div>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] xl:grid-cols-[minmax(0,1fr)_30rem]">
-          <section className="overflow-hidden rounded-lg border border-[#cdb894] bg-[#fff8ed]">
-            <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="relative min-h-[360px] overflow-hidden bg-[#201715]">
-                {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.name} className="h-full min-h-[360px] w-full object-cover" />
-                ) : (
-                  <div className="relative h-full min-h-[360px] bg-[#201715]">
-                    <div className="absolute inset-x-10 top-10 h-32 rounded-full bg-[#fff8ed]/90 blur-3xl" />
-                    <div className="absolute bottom-0 left-1/2 h-56 w-64 -translate-x-1/2 rounded-t-full border-x-[26px] border-t-[26px] border-[#f7efe2] bg-[#8f4f31]" />
-                    <div className="absolute bottom-24 left-[58%] h-24 w-32 rounded-r-full border-[18px] border-[#f7efe2]" />
-                    <div className="absolute bottom-8 left-1/2 h-10 w-80 -translate-x-1/2 rounded-full bg-black/30 blur-lg" />
-                  </div>
-                )}
-                <div className="absolute left-5 top-5 rounded-md bg-[#fff8ed] px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#8b5f2b]">
-                  {item.category?.name || "Coffee bar"}
+        <div className="sf-split mt-8">
+          <section className="space-y-8">
+            <div className="sf-spotlight-media max-h-[28rem]">
+              <StorefrontMedia item={item} className="h-full min-h-[20rem] w-full" emphasize eager />
+            </div>
+
+            <div>
+              <p className="sf-kicker">{item.category?.name || "Coffee bar"}</p>
+              <h1 className="sf-display mt-3 text-[var(--sf-text-display-s)] leading-[0.95] [overflow-wrap:anywhere]">
+                {item.name}
+              </h1>
+              <p className="mt-5 max-w-2xl text-[var(--sf-text-lg)] leading-relaxed text-[var(--sf-ink-muted)]">
+                {item.shortDescription || "Made for pickup and routed to the bar queue once staff accept your order."}
+              </p>
+
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                <div className="sf-stat">
+                  <div className="sf-stat-value">{formatMoney(item.price)}</div>
+                  <div className="sf-stat-label">Base price</div>
+                </div>
+                <div className="sf-stat">
+                  <div className="sf-stat-value">{item.prepTimeMinutes || 5} min</div>
+                  <div className="sf-stat-label">Prep time</div>
+                </div>
+                <div className="sf-stat">
+                  <div className="sf-stat-value">{item.caffeineMg ?? "—"}</div>
+                  <div className="sf-stat-label">mg caffeine</div>
                 </div>
               </div>
-              <div className="flex flex-col justify-between p-6 md:p-8">
-                <div>
-                  <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#8b5f2b]">
-                    <Coffee className="h-4 w-4" />
-                    Built to order
+
+              <div className="mt-6 flex flex-wrap gap-2 text-[var(--sf-text-xs)] text-[var(--sf-ink-faint)]">
+                {item.temperatureOptions?.map((option) => (
+                  <span key={option} className="border border-[var(--sf-rule)] px-2 py-1 capitalize">
+                    {option}
+                  </span>
+                ))}
+              </div>
+              {item.dietaryFlags?.length ? (
+                <div className="mt-4 max-w-2xl">
+                  <p className="text-[var(--sf-text-xs)] font-semibold uppercase tracking-[0.14em] text-[var(--sf-ink-faint)]">Cafe notes for the standard recipe</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[var(--sf-text-xs)] text-[var(--sf-ink-faint)]">
+                    {item.dietaryFlags.map((flag) => (
+                      <span key={flag} className="border border-[var(--sf-rule)] px-2 py-1 capitalize">
+                        {flag.replaceAll("_", " ")}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--sf-ink-muted)]">
+                    Options and add-ons can change ingredients. Ask the cafe before ordering if you have an allergy or dietary need.
                   </p>
-                  <h1 className="mt-4 text-5xl font-black leading-none md:text-6xl">{item.name}</h1>
-                  <p className="mt-5 text-lg leading-8 text-[#6d5e52]">{item.shortDescription || "Made for pickup and routed to the bar queue after payment."}</p>
                 </div>
-                <div className="mt-8 grid gap-px overflow-hidden rounded-lg border border-[#d7c7ad] bg-[#d7c7ad] sm:grid-cols-3">
-                  <div className="bg-[#fff8ed] p-4">
-                    <div className="text-2xl font-black">{formatMoney(item.price)}</div>
-                    <div className="text-sm text-[#6d5e52]">base</div>
-                  </div>
-                  <div className="bg-[#fff8ed] p-4">
-                    <div className="flex items-center gap-2 text-2xl font-black"><Clock className="h-5 w-5 text-[#557260]" />{item.prepTimeMinutes || 5}</div>
-                    <div className="text-sm text-[#6d5e52]">minutes</div>
-                  </div>
-                  <div className="bg-[#fff8ed] p-4">
-                    <div className="flex items-center gap-2 text-2xl font-black"><Flame className="h-5 w-5 text-[#8b3f24]" />{item.caffeineMg || "0"}</div>
-                    <div className="text-sm text-[#6d5e52]">mg caffeine</div>
-                  </div>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-[#6d5e52]">
-                  {item.temperatureOptions?.map((option) => <span key={option} className="rounded-md border border-[#d7c7ad] px-2 py-1 capitalize">{option}</span>)}
-                  {item.dietaryFlags?.map((flag) => <span key={flag} className="inline-flex items-center gap-1 rounded-md border border-[#d7c7ad] px-2 py-1 capitalize"><Leaf className="h-3 w-3 text-[#557260]" />{flag.replaceAll("_", " ")}</span>)}
-                </div>
-              </div>
+              ) : null}
             </div>
           </section>
-          <AddToCartCustomizer item={item} />
+
+          <AddToCartCustomizer item={item} orderingAvailable={item.available} />
         </div>
-      </div>
-    </main>
+      </main>
+    </StorefrontShell>
   );
 }
