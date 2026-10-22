@@ -5,6 +5,7 @@ import { models } from "./models";
 import { revocableStatelessSessions } from "./revocableSession";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
+import { s3ForcePathStyle } from "./lib/s3-storage";
 
 // As in E-commerce: no built-in database or session secret in any environment.
 const databaseURL = process.env.DATABASE_URL;
@@ -121,7 +122,7 @@ export default withAuth(
         secretAccessKey,
         endpoint,
         signed: { expiry: 5000 },
-        forcePathStyle: true,
+        forcePathStyle: s3ForcePathStyle(endpoint),
       },
     },
     ui: {
