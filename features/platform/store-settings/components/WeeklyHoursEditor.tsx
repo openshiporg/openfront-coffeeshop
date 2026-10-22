@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { WEEKDAYS, type Weekday } from '../lib/store-settings-input'
+import { PillButton, PillTrack } from '@/features/platform/components/PillTabs'
 
 export type HoursRow = { day: Weekday; closed: boolean; open: string; close: string }
 
@@ -83,37 +84,27 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
         <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">Weekly hours</span>
       </div>
 
-      <div className="grid grid-cols-7 divide-x divide-border" role="group" aria-label="Choose a day to edit">
-        {hours.map((row) => {
-          const isActive = row.day === activeDay
-          return (
-            <button
+      <div className="px-3 py-3">
+        <PillTrack label="Choose a day to edit">
+          {hours.map((row) => (
+            <PillButton
               key={row.day}
-              type="button"
+              active={row.day === activeDay}
               onClick={() => setActiveDay(row.day)}
-              aria-pressed={isActive}
-              aria-label={`${row.day}, ${row.closed ? 'closed' : `${row.open || '--:--'} to ${row.close || '--:--'}`}`}
-              className={cn(
-                'flex min-h-11 flex-col items-center px-1 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                isActive ? 'bg-muted' : 'hover:bg-muted/30',
-              )}
+              aria-label={`${row.day}${row.day === todayKey ? ' (today)' : ''}, ${row.closed ? 'closed' : `${row.open || '--:--'} to ${row.close || '--:--'}`}`}
+              className="min-h-10 px-3"
             >
-              <span className={cn('text-[10px] font-semibold uppercase tracking-wider', isActive ? 'text-foreground' : 'text-muted-foreground')}>
-                {row.day.slice(0, 3)}
-              </span>
-              <span className={cn('mt-1.5 h-1.5 w-1.5 rounded-full', row.closed ? 'bg-muted-foreground/40' : 'bg-emerald-500')} aria-hidden="true" />
-              {row.day === todayKey ? (
-                <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">Today</span>
-              ) : null}
-            </button>
-          )
-        })}
+              <span className={cn('size-1.5 rounded-full', row.closed ? 'bg-muted-foreground/40' : 'bg-emerald-500')} aria-hidden="true" />
+              <span className={row.day === todayKey ? 'underline decoration-dotted underline-offset-4' : undefined}>{row.day.slice(0, 3)}</span>
+            </PillButton>
+          ))}
+        </PillTrack>
       </div>
 
       <div className="flex items-center justify-between gap-3 px-5 py-3">
         <div>
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{active.day}</p>
-          <p className="mt-0.5 text-sm font-semibold">{active.closed ? 'Closed all day' : 'Open for pickup'}</p>
+          <p className="mt-0.5 text-sm font-semibold">{active.closed ? 'Closed' : 'Open for pickup'}</p>
         </div>
         <div className="flex items-center gap-2.5">
           <Label htmlFor={`${id}-open-switch`} className="text-xs text-muted-foreground">
@@ -130,7 +121,7 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
       </div>
 
       {active.closed ? (
-        <p className="px-5 py-4 text-xs text-muted-foreground">Turn on Open to set {active.day} hours.</p>
+        <p className="px-5 py-4 text-xs text-muted-foreground">Closed</p>
       ) : (
         <div className="grid grid-cols-2 divide-x divide-border">
           <div className="px-5 py-3">

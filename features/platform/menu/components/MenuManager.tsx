@@ -3,16 +3,18 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Plus, Search } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { PillButton, PillLink, PillTrack } from "@/features/platform/components/PillTabs";
+import { PlatformEmpty, PlatformHeader } from "@/features/platform/components/PlatformPage";
+import { StatusDot, StatusTitle } from "@/features/platform/components/StatusTitle";
 import {
   createMenuCategoryAction,
   createMenuItemAction,
@@ -114,80 +116,79 @@ export function MenuManager({ data, filters }: { data: MenuManagerData; filters:
     router.refresh();
   }, [router]);
 
-  const available = data.stats.items - data.stats.hidden;
   const filtered = Boolean(filters.search || filters.categoryId);
+  const categoryHref = (categoryId: string) => menuHref({ search: filters.search, categoryId });
 
   return (
-    <div className="space-y-6 px-4 pb-8 md:px-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Menu</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {data.stats.items} items · {available} available · {data.stats.modifiersOut} options out of stock
-          </p>
-        </div>
-        {canManage && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setCreateCategoryOpen(true)}>New Category</Button>
-            <Button size="sm" onClick={() => setCreateItemOpen(true)}><Plus aria-hidden="true" />New Item</Button>
-          </div>
+    <div className="space-y-6 px-4 pb-10 md:px-6">
+      <PlatformHeader
+        title="Menu"
+        meta={(
+          <>
+            <span className="tabular-nums">{data.stats.items} items</span>
+            {data.stats.hidden > 0 ? <span className="inline-flex items-center gap-1.5 tabular-nums"><StatusDot tone="zinc" />{data.stats.hidden} unavailable</span> : null}
+            {data.stats.modifiersOut > 0 ? <span className="inline-flex items-center gap-1.5 tabular-nums"><StatusDot tone="amber" />{data.stats.modifiersOut} options out</span> : null}
+            {!canManage ? <span>View only</span> : null}
+          </>
         )}
-      </div>
-
-      {!canManage && (
-        <p className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
-          You can view the menu. Changes need a role that can manage products.
-        </p>
-      )}
+        actions={canManage ? (
+          <>
+            <Button variant="outline" className="rounded-full" onClick={() => setCreateCategoryOpen(true)}>New category</Button>
+            <Button className="rounded-full" onClick={() => setCreateItemOpen(true)}><Plus aria-hidden="true" />New item</Button>
+          </>
+        ) : null}
+      />
 
       <div aria-live="polite" role="status" className="sr-only">{feedback?.tone === "status" ? feedback.message : ""}</div>
       {feedback?.tone === "error" && (
-        <div role="alert" className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div role="alert" className="flex flex-col gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>{feedback.message}</span>
-          <Button variant="ghost" size="sm" onClick={() => setFeedback(null)}>Dismiss</Button>
+          <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setFeedback(null)}>Dismiss</Button>
         </div>
       )}
 
-      <form key={`${filters.search}|${filters.categoryId}`} method="get" action={MENU_PATH} role="search" className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_14rem_auto] sm:items-end">
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor="menu-search">Search menu</Label>
-          <Input id="menu-search" name="q" type="search" defaultValue={filters.search} placeholder="Item, description or option" maxLength={200} />
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor="menu-category-filter">Category</Label>
-          <select id="menu-category-filter" name="category" defaultValue={filters.categoryId} className={selectClass}>
-            <option value="">All categories</option>
-            <option value="uncategorized">Uncategorized</option>
-            {data.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-        </div>
-        <div className="flex gap-2">
-          <Button type="submit" variant="outline">Search</Button>
-          {filtered && <Button asChild variant="ghost"><Link href={MENU_PATH}>Clear</Link></Button>}
-        </div>
-      </form>
-      {data.categoriesHasMore && <p className="text-xs text-muted-foreground">Only the first 200 categories are listed here.</p>}
+      <div className="space-y-3">
+        <form key={`${filters.search}|${filters.categoryId}`} method="get" action={MENU_PATH} role="search" className="flex max-w-xl items-center gap-2">
+          {filters.categoryId ? <input type="hidden" name="category" value={filters.categoryId} /> : null}
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Label htmlFor="menu-search" className="sr-only">Search menu</Label>
+            <Input id="menu-search" name="q" type="search" defaultValue={filters.search} placeholder="Item, description or option" maxLength={200} className="h-10 rounded-full pl-9" />
+          </div>
+          <Button type="submit" variant="outline" className="h-10 rounded-full">Search</Button>
+          {filtered && <Button asChild variant="ghost" className="h-10 rounded-full"><Link href={MENU_PATH}>Clear</Link></Button>}
+        </form>
+        <nav aria-label="Category">
+          <PillTrack label="Category">
+            <PillLink href={categoryHref("")} active={!filters.categoryId}>All</PillLink>
+            {data.categories.map((category) => (
+              <PillLink key={category.id} href={categoryHref(category.id)} active={filters.categoryId === category.id}>{category.name}</PillLink>
+            ))}
+            <PillLink href={categoryHref("uncategorized")} active={filters.categoryId === "uncategorized"}>Uncategorized</PillLink>
+          </PillTrack>
+        </nav>
+        {data.categoriesHasMore && <p className="text-xs text-muted-foreground">First 200 categories shown.</p>}
+      </div>
 
-      <p className="text-sm text-muted-foreground">
-        {data.matchingCount} {filtered ? "matching" : ""} item{data.matchingCount === 1 ? "" : "s"}{filters.cursor ? " · later page" : ""}
-      </p>
-
-      {data.items.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {data.items.map((item) => (
-            <MenuItemCard key={item.id} item={item} categories={data.categories} canManage={canManage} commands={commands} notify={notify} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {filtered ? "No menu items match this search." : canManage ? "The menu has no items yet. Use New Item to add the first one." : "The menu has no items yet."}
-        </div>
-      )}
+      <div className="space-y-2">
+        <p className="text-sm tabular-nums text-muted-foreground">
+          {data.matchingCount} {filtered ? "matching " : ""}item{data.matchingCount === 1 ? "" : "s"}{filters.cursor ? " · later page" : ""}
+        </p>
+        {data.items.length ? (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+            {data.items.map((item) => (
+              <MenuItemCard key={item.id} item={item} categories={data.categories} canManage={canManage} commands={commands} notify={notify} />
+            ))}
+          </ul>
+        ) : (
+          <PlatformEmpty>{filtered ? "No menu items match." : "No menu items yet."}</PlatformEmpty>
+        )}
+      </div>
 
       {(filters.cursor || data.hasMore) && (
         <nav aria-label="Menu pages" className="flex flex-wrap gap-2">
-          {filters.cursor && <Button asChild variant="outline" size="sm"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId })}>First page</Link></Button>}
-          {data.hasMore && data.nextCursor && <Button asChild variant="outline" size="sm"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId, cursor: data.nextCursor })}>Next page</Link></Button>}
+          {filters.cursor && <Button asChild variant="ghost" size="sm" className="rounded-full"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId })}>First page</Link></Button>}
+          {data.hasMore && data.nextCursor && <Button asChild variant="outline" size="sm" className="rounded-full"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId, cursor: data.nextCursor })}>Next page</Link></Button>}
         </nav>
       )}
 
@@ -210,11 +211,11 @@ function reportResult(notify: Notify, result: MenuActionResult, success: string,
 
 function ConflictNotice({ subject, onKeep, onDiscard }: { subject: string; onKeep: () => void; onDiscard: () => void }) {
   return (
-    <div role="alert" className="flex flex-col gap-2 rounded-md border border-border bg-muted p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-      <span>{subject} was changed by someone else while you were editing.</span>
+    <div role="alert" className="flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <span>{subject} changed while you were editing.</span>
       <span className="flex gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={onDiscard}>Use saved version</Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onKeep}>Keep my changes</Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={onDiscard}>Use saved</Button>
+        <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onKeep}>Keep mine</Button>
       </span>
     </div>
   );
@@ -233,58 +234,75 @@ function MenuItemCard({ item, categories, canManage, commands, notify }: { item:
     return result;
   }
 
+  const [optionsOpen, setOptionsOpen] = React.useState(false);
+  const outCount = item.modifiers.filter((modifier) => !modifier.inStock).length;
+  const optionsId = `menu-item-${item.id}-options`;
+
   return (
-    <Card className="min-w-0 gap-4 py-4">
-      <CardHeader className="px-4">
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="break-words text-base">{item.name}</CardTitle>
-              {!item.available && <Badge variant="destructive">Unavailable</Badge>}
-              {item.featured && <Badge variant="secondary">Featured</Badge>}
-              {item.popular && <Badge variant="secondary">Popular</Badge>}
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {item.category?.name || "Uncategorized"} · {stationLabel(item.barStation)} · {item.prepTimeMinutes ?? 0} min prep
-            </p>
-            {item.shortDescription && <p className="mt-1 break-words text-sm text-muted-foreground">{item.shortDescription}</p>}
-          </div>
+    <li className="min-w-0">
+      <div className="grid min-w-0 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+        <div className="min-w-0 space-y-1">
+          <StatusTitle as="h3" tone={item.available ? "green" : "zinc"} status={item.available ? null : "Unavailable"} className="text-base font-semibold">
+            {item.name}
+          </StatusTitle>
+          <p className="pl-4 text-sm text-muted-foreground">
+            {item.category?.name || "Uncategorized"} · {stationLabel(item.barStation)} · {item.prepTimeMinutes ?? 0} min
+          </p>
+          {item.shortDescription && <p className="line-clamp-2 break-words pl-4 text-sm text-muted-foreground">{item.shortDescription}</p>}
+        </div>
+        <div className="flex items-start justify-between gap-4 pl-4 sm:justify-end sm:pl-0">
           {canManage
             ? <PriceEditor item={item} busy={busy} onSave={(price, base) => update("price", { price }, base, `${item.name} price saved`)} />
-            : <p className="text-base font-semibold">{money(item.price)}</p>}
+            : <p className="text-base font-semibold tabular-nums">{money(item.price)}</p>}
+          {canManage && (
+            <label className="flex min-h-9 shrink-0 items-center gap-2 text-sm font-medium">
+              <Switch checked={item.available} disabled={busy} onCheckedChange={() => update("available", { available: !item.available }, item.updatedAt, `${item.name} is now ${item.available ? "unavailable" : "available"}`)} />
+              <span className="sr-only">Available</span>
+              <span aria-hidden="true" className="w-16 text-muted-foreground">{item.available ? "On" : "Off"}</span>
+            </label>
+          )}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4 px-4">
-        {canManage && (
-          <div className="flex flex-wrap gap-2">
-            <FlagToggle label="Available" pressed={item.available} busy={busy} onToggle={() => update("available", { available: !item.available }, item.updatedAt, `${item.name} is now ${item.available ? "unavailable" : "available"}`)} />
-            <FlagToggle label="Featured" pressed={item.featured} busy={busy} onToggle={() => update("featured", { featured: !item.featured }, item.updatedAt, `${item.name} featured setting saved`)} />
-            <FlagToggle label="Popular" pressed={item.popular} busy={busy} onToggle={() => update("popular", { popular: !item.popular }, item.updatedAt, `${item.name} popular setting saved`)} />
-            <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setDetailsOpen(true)}>Edit details</Button>
-            <Button asChild size="sm" variant="link"><Link href={`/dashboard/menu-items/${item.id}`}>Photos and full record</Link></Button>
-          </div>
-        )}
+      </div>
 
-        <section aria-label={`${item.name} options`} className="space-y-3 rounded-md border border-border bg-muted/40 p-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Options</h3>
-          {item.modifiers.length === 0 && <p className="text-sm text-muted-foreground">No options yet.</p>}
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pl-8">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="-ml-2 rounded-full"
+          aria-expanded={optionsOpen}
+          aria-controls={optionsId}
+          onClick={() => setOptionsOpen((open) => !open)}
+        >
+          <ChevronDown aria-hidden="true" className={`transition-transform ${optionsOpen ? "rotate-180" : ""}`} />
+          Options <span className="tabular-nums text-muted-foreground">{item.modifiers.length}</span>
+          {outCount > 0 ? <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400"><StatusDot tone="amber" />{outCount} out</span> : null}
+        </Button>
+        {canManage && (
+          <>
+            <PillTrack label={`${item.name} flags`}>
+              <PillButton active={item.featured} disabled={busy} onClick={() => update("featured", { featured: !item.featured }, item.updatedAt, `${item.name} featured setting saved`)}>Featured</PillButton>
+              <PillButton active={item.popular} disabled={busy} onClick={() => update("popular", { popular: !item.popular }, item.updatedAt, `${item.name} popular setting saved`)}>Popular</PillButton>
+            </PillTrack>
+            <Button type="button" size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => setDetailsOpen(true)}>Edit details</Button>
+            <Button asChild size="sm" variant="ghost" className="rounded-full text-muted-foreground"><Link href={`/dashboard/menu-items/${item.id}`}>Full record<ArrowUpRight aria-hidden="true" /></Link></Button>
+          </>
+        )}
+        {!canManage && (item.featured || item.popular) ? <span className="text-xs text-muted-foreground">{[item.featured && "Featured", item.popular && "Popular"].filter(Boolean).join(" · ")}</span> : null}
+      </div>
+
+      {optionsOpen && (
+        <section id={optionsId} aria-label={`${item.name} options`} className="space-y-2 border-t border-border bg-muted/40 p-3 sm:px-4">
+          {item.modifiers.length === 0 && <p className="px-1 text-sm text-muted-foreground">No options.</p>}
           {item.modifiers.map((modifier) => canManage
             ? <ModifierEditor key={modifier.id} modifier={modifier} commands={commands} notify={notify} />
             : <ModifierSummary key={modifier.id} modifier={modifier} />)}
-          {item.modifiersHasMore && <p className="text-xs text-muted-foreground">This item has more than 100 options; only the first 100 are shown.</p>}
+          {item.modifiersHasMore && <p className="px-1 text-xs text-muted-foreground">First 100 options shown.</p>}
           {canManage && <NewModifierForm item={item} commands={commands} notify={notify} />}
         </section>
-      </CardContent>
+      )}
       {canManage && <ItemDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} item={item} categories={categories} busy={busy} onSave={update} />}
-    </Card>
-  );
-}
-
-function FlagToggle({ label, pressed, busy, onToggle }: { label: string; pressed: boolean; busy: boolean; onToggle: () => void }) {
-  return (
-    <Button type="button" size="sm" variant={pressed ? "secondary" : "outline"} aria-pressed={pressed} disabled={busy} onClick={onToggle}>
-      {label}: {pressed ? "On" : "Off"}
-    </Button>
+    </li>
   );
 }
 
@@ -299,11 +317,14 @@ function PriceEditor({ item, busy, onSave }: { item: MenuManagerItem; busy: bool
     if (result.success) draft.settle(submitted);
   }
   return (
-    <div className="grid gap-1.5 sm:justify-items-end">
-      <Label htmlFor={id}>Price</Label>
-      <div className="flex items-center gap-2">
-        <Input id={id} inputMode="decimal" className="w-24 text-right" value={draft.value} aria-invalid={cents == null} onChange={(event) => { const next = event.target.value; draft.set(() => next); }} />
-        <Button type="button" size="sm" disabled={!draft.dirty || cents == null || busy} onClick={save}>{busy ? "Saving…" : "Save"}</Button>
+    <div className="grid gap-1 sm:justify-items-end">
+      <Label htmlFor={id} className="sr-only">Price</Label>
+      <div className="flex items-center gap-1.5">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">$</span>
+          <Input id={id} inputMode="decimal" className="h-9 w-24 pl-5 text-right font-medium tabular-nums" value={draft.value} aria-invalid={cents == null} onChange={(event) => { const next = event.target.value; draft.set(() => next); }} />
+        </div>
+        {draft.dirty && <Button type="button" size="sm" className="rounded-full" disabled={cents == null || busy} onClick={save}>{busy ? "Saving…" : "Save"}</Button>}
       </div>
       {cents == null && <p className="text-xs text-destructive">Enter a price like 4.50</p>}
       {draft.conflict && <ConflictNotice subject="This price" onKeep={draft.keepMine} onDiscard={draft.discard} />}
@@ -367,7 +388,7 @@ function ItemDetailsDialog({ open, onOpenChange, item, categories, busy, onSave 
         <form onSubmit={save} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>Edit {item.name}</DialogTitle>
-            <DialogDescription>Name, description, category, station and prep time. Unsaved changes stay here if you close this window.</DialogDescription>
+            <DialogDescription className="sr-only">Item details</DialogDescription>
           </DialogHeader>
           {draft.conflict && <ConflictNotice subject="This item" onKeep={draft.keepMine} onDiscard={draft.discard} />}
           <div className="grid gap-1.5">
@@ -401,8 +422,8 @@ function ItemDetailsDialog({ open, onOpenChange, item, categories, busy, onSave 
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            {draft.dirty && <Button type="button" variant="ghost" onClick={draft.discard}>Discard changes</Button>}
-            <Button type="submit" disabled={busy || !nameValid || !prepValid || !hasChanges}>{busy ? "Saving…" : "Save"}</Button>
+            {draft.dirty && <Button type="button" variant="ghost" className="rounded-full" onClick={draft.discard}>Discard changes</Button>}
+            <Button type="submit" className="rounded-full" disabled={busy || !nameValid || !prepValid || !hasChanges}>{busy ? "Saving…" : "Save"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -445,7 +466,7 @@ function CreateItemDialog({ open, onOpenChange, categories, commands, notify }: 
         <form onSubmit={create} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>New item</DialogTitle>
-            <DialogDescription>New items are available as soon as they are saved. Add options after creating the item.</DialogDescription>
+            <DialogDescription className="sr-only">New menu item</DialogDescription>
           </DialogHeader>
           <div className="grid gap-1.5">
             <Label htmlFor="new-item-name">Name</Label>
@@ -480,7 +501,7 @@ function CreateItemDialog({ open, onOpenChange, categories, commands, notify }: 
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={busy || !valid}>{busy ? "Adding…" : "Add item"}</Button>
+            <Button type="submit" className="rounded-full" disabled={busy || !valid}>{busy ? "Adding…" : "Add item"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -519,7 +540,7 @@ function CreateCategoryDialog({ open, onOpenChange, commands, notify }: { open: 
         <form onSubmit={create} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>New category</DialogTitle>
-            <DialogDescription>Categories group items on the menu and in the register.</DialogDescription>
+            <DialogDescription className="sr-only">New menu category</DialogDescription>
           </DialogHeader>
           <div className="grid gap-1.5">
             <Label htmlFor="new-category-name">Name</Label>
@@ -535,7 +556,7 @@ function CreateCategoryDialog({ open, onOpenChange, commands, notify }: { open: 
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={busy || !valid}>{busy ? "Adding…" : "Add category"}</Button>
+            <Button type="submit" className="rounded-full" disabled={busy || !valid}>{busy ? "Adding…" : "Add category"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -547,27 +568,26 @@ function inventorySummary(modifier: MenuModifier) {
   const target = modifier.inventoryItem?.name || "an inventory item";
   const unit = modifier.inventoryItem?.unit ? ` ${modifier.inventoryItem.unit}` : "";
   switch (modifier.inventoryAction) {
-    case "none": return "Inventory: no stock used";
-    case "add": return `Inventory: uses ${Number(modifier.inventoryQuantity || 0)}${unit} of ${target}`;
-    case "substitute": return `Inventory: replaces ${modifier.replacesInventoryItem?.name || "the base ingredient"} with ${target}`;
-    case "unreviewed": return "Inventory not reviewed — this option can't be offered until it is";
+    case "none": return "No stock used";
+    case "add": return `Uses ${Number(modifier.inventoryQuantity || 0)}${unit} of ${target}`;
+    case "substitute": return `Replaces ${modifier.replacesInventoryItem?.name || "the base ingredient"} with ${target}`;
+    case "unreviewed": return "Inventory not reviewed. Can't be offered until reviewed.";
     default: return null;
   }
 }
 
 function ModifierSummary({ modifier }: { modifier: MenuModifier }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card p-3 text-sm">
+    <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg bg-card px-3 py-2.5 text-sm ring-1 ring-foreground/5">
       <div className="min-w-0">
-        <p className="font-medium break-words">{modifier.name} <span className="font-normal text-muted-foreground">· {modifier.modifierGroupLabel || modifier.modifierGroup}</span></p>
-        <p className="text-xs text-muted-foreground">
-          {modifier.required ? "Required" : "Optional"} · choose {modifier.minSelections}–{modifier.maxSelections}{modifier.defaultSelected ? " · default" : ""}
+        <StatusTitle as="p" tone={modifier.inStock ? "green" : "red"} status={modifier.inStock ? null : "Out of stock"} className="font-medium">
+          {modifier.name}
+        </StatusTitle>
+        <p className="pl-4 text-xs text-muted-foreground">
+          {modifier.modifierGroupLabel || modifier.modifierGroup} · {modifier.required ? "Required" : "Optional"} · {modifier.minSelections}–{modifier.maxSelections}{modifier.defaultSelected ? " · Default" : ""}
         </p>
       </div>
-      <div className="flex items-center gap-2">
-        <span>{money(modifier.priceAdjustment)}</span>
-        <Badge variant={modifier.inStock ? "secondary" : "destructive"}>{modifier.inStock ? "In stock" : "Out of stock"}</Badge>
-      </div>
+      <span className="tabular-nums">{money(modifier.priceAdjustment)}</span>
     </div>
   );
 }
@@ -620,6 +640,8 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
   const dirty = draft.dirty || review !== null;
   const reviewConflict = review !== null && reviewBase !== modifier.updatedAt;
   const canSave = Boolean(rule) && dirty && (review === null || reviewComplete(review)) && !busy;
+  const [editing, setEditing] = React.useState(false);
+  const expanded = editing || dirty || draft.conflict || reviewConflict || unreviewed;
 
   function set<K extends keyof RuleDraft>(key: K, next: RuleDraft[K]) {
     draft.set((current) => ({ ...current, [key]: next }));
@@ -654,7 +676,31 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-border bg-card p-3">
+    <div className="grid gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <StatusTitle as="p" tone={modifier.inStock ? "green" : "red"} status={modifier.inStock ? null : "Out of stock"} className="text-sm font-medium">
+            {modifier.name}
+          </StatusTitle>
+          <p className="pl-4 text-xs text-muted-foreground">
+            {modifier.modifierGroupLabel || modifier.modifierGroup} · <span className="tabular-nums">{money(modifier.priceAdjustment)}</span>
+            {unreviewed ? <span className="text-destructive"> · Inventory not reviewed</span> : null}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <PillTrack label={`${modifier.name} stock`}>
+            <PillButton active={modifier.inStock} disabled={busy || (!modifier.inStock && unreviewed)} onClick={() => { if (!modifier.inStock) void toggleStock(); }}>In stock</PillButton>
+            <PillButton active={!modifier.inStock} disabled={busy} onClick={() => { if (modifier.inStock) void toggleStock(); }}>Out</PillButton>
+          </PillTrack>
+          {!dirty && !draft.conflict && !reviewConflict && !unreviewed && (
+            <Button type="button" size="sm" variant="ghost" className="rounded-full" aria-expanded={editing} onClick={() => setEditing((open) => !open)}>
+              {editing ? "Close" : "Edit"}
+            </Button>
+          )}
+        </div>
+      </div>
+      {expanded && (
+        <>
       {(draft.conflict || reviewConflict) && (
         <ConflictNotice
           subject={`${modifier.name}`}
@@ -701,12 +747,12 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
           Selected by default
         </label>
       </fieldset>
-      {!rule && <p className="text-xs text-destructive">Check the name, price and selection limits (maximum 1–20, minimum no higher than maximum, at least 1 when required).</p>}
+      {!rule && <p className="text-xs text-destructive">Check name, price and limits: maximum 1–20, minimum ≤ maximum, at least 1 when required.</p>}
 
-      <div className="grid gap-2 rounded-md border border-border p-3 text-sm">
+      <div className="grid gap-2 rounded-lg border border-border p-3 text-sm">
         <p className={unreviewed ? "text-destructive" : "text-muted-foreground"}>{inventorySummary(modifier)}</p>
         {review === null
-          ? <div><Button type="button" size="sm" variant="outline" disabled={busy} onClick={startReview}>{unreviewed ? "Review inventory" : "Change inventory"}</Button></div>
+          ? <div><Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={startReview}>{unreviewed ? "Review inventory" : "Change inventory"}</Button></div>
           : (
             <>
               <InventoryReviewFields idPrefix={prefix} review={review} onChange={setReview} current={modifier} />
@@ -715,21 +761,13 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
           )}
       </div>
 
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" disabled={!canSave} onClick={save}>{busy ? "Saving…" : "Save option"}</Button>
-        {dirty && <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => { draft.discard(); setReview(null); }}>Discard changes</Button>}
-        <Button
-          type="button"
-          size="sm"
-          variant={modifier.inStock ? "secondary" : "outline"}
-          aria-pressed={modifier.inStock}
-          disabled={busy || (!modifier.inStock && unreviewed)}
-          onClick={toggleStock}
-        >
-          {modifier.inStock ? "In stock" : "Out of stock"}
-        </Button>
+        <Button type="button" size="sm" className="rounded-full" disabled={!canSave} onClick={save}>{busy ? "Saving…" : "Save option"}</Button>
+        {dirty && <Button type="button" size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => { draft.discard(); setReview(null); }}>Discard changes</Button>}
       </div>
+        </>
+      )}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
@@ -781,7 +819,7 @@ function InventoryReviewFields({ idPrefix, review, onChange, current }: { idPref
               onChange({ ...review, quantity: valid ? Number(next) : 0 });
             }}
           />
-          <p className="text-xs text-muted-foreground">In the ingredient&apos;s own unit, up to four decimal places.</p>
+          <p className="text-xs text-muted-foreground">Ingredient&apos;s unit, up to 4 decimals</p>
         </div>
       )}
       {review.action === "substitute" && (
@@ -793,7 +831,7 @@ function InventoryReviewFields({ idPrefix, review, onChange, current }: { idPref
           onChange={(replacesInventoryItemId) => onChange({ ...review, replacesInventoryItemId })}
         />
       )}
-      {!reviewComplete(review) && <p className="text-xs text-muted-foreground">Finish choosing the inventory before saving.</p>}
+      {!reviewComplete(review) && <p className="text-xs text-muted-foreground">Inventory incomplete</p>}
     </div>
   );
 }
@@ -846,7 +884,7 @@ function InventoryPicker({ id, label, value, initial, onChange }: { id: string; 
         {options.map((option) => <option key={option.id} value={option.id}>{option.name}{option.unit ? ` (${option.unit})` : ""}</option>)}
       </select>
       <div aria-live="polite" className="text-xs text-muted-foreground">
-        {error ? <span className="text-destructive">{error}</span> : searched && !options.length ? "No inventory matches this search." : hasMore ? "More ingredients match; refine the search to narrow the list." : ""}
+        {error ? <span className="text-destructive">{error}</span> : searched && !options.length ? "No matching inventory." : hasMore ? "More match. Refine the search." : ""}
       </div>
     </div>
   );
@@ -883,8 +921,8 @@ function NewModifierForm({ item, commands, notify }: { item: MenuManagerItem; co
   }
 
   return (
-    <div className="grid gap-3 border-t border-border pt-3">
-      <p className="text-sm font-medium">Add an option</p>
+    <div className="grid gap-3 rounded-lg border border-dashed border-border p-3">
+      <p className="text-sm font-medium">New option</p>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-name`}>Option name</Label>
@@ -901,17 +939,17 @@ function NewModifierForm({ item, commands, notify }: { item: MenuManagerItem; co
           <Input id={`${prefix}-price`} inputMode="decimal" value={draft.price} aria-invalid={priceAdjustment == null} onChange={(event) => setDraft({ ...draft, price: event.target.value })} />
         </div>
       </div>
-      <fieldset className="grid gap-2 rounded-md border border-border p-3">
-        <legend className="px-1 text-sm">Inventory for this option</legend>
+      <fieldset className="grid gap-2 rounded-lg border border-border p-3">
+        <legend className="px-1 text-sm">Inventory</legend>
         <InventoryReviewFields key={formVersion} idPrefix={prefix} review={review} onChange={(next) => { setReview(next); setReviewed(true); }} />
         <label htmlFor={`${prefix}-reviewed`} className="flex items-center gap-2 text-sm">
           <input id={`${prefix}-reviewed`} type="checkbox" className={checkboxClass} checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} />
-          I&apos;ve confirmed how this option uses inventory
+          Inventory confirmed
         </label>
       </fieldset>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div>
-        <Button type="button" size="sm" variant="outline" disabled={busy || !valid} onClick={create}>{busy ? "Adding…" : "Add option"}</Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy || !valid} onClick={create}>{busy ? "Adding…" : "Add option"}</Button>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Metadata } from "next";
-import { DM_Sans, Instrument_Serif } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 
 import { getStoreLogoThemeHue } from "@/features/keystone/lib/brand-colors";
 import { UnconfiguredStorefront } from "@/features/storefront/components/StorefrontShell";
@@ -9,16 +9,15 @@ import { getCoffeeStore, getCoffeeStoreResult } from "@/features/storefront/lib/
 // One storefront font/brand frame for every storefront route (the (storefront)
 // group layout and the root `/` home). Dashboard typography stays on the root
 // layout's Geist variables; these fonts are scoped to `.sf-root`.
-const sfDisplay = Instrument_Serif({
+const sfDisplay = Bricolage_Grotesque({
   variable: "--font-sf-display",
   subsets: ["latin"],
-  weight: ["400"],
+  axes: ["opsz"],
 });
 
-const sfBody = DM_Sans({
+const sfBody = Instrument_Sans({
   variable: "--font-sf-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 type StorefrontBrandStyle = CSSProperties & { "--sf-brand-hue": string };
@@ -47,7 +46,7 @@ export async function StorefrontFrame({
   const result = await getCoffeeStoreResult();
   const store = result.kind === "ok" ? result.store : null;
   const style: StorefrontBrandStyle = {
-    "--sf-brand-hue": store ? String(getStoreLogoThemeHue(store.logoColor)) : "0",
+    "--sf-brand-hue": store ? String(getStoreLogoThemeHue(store.logoColor)) : "45",
   };
 
   return (

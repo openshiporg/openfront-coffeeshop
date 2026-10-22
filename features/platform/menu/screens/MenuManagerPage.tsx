@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { PlatformHeader } from "@/features/platform/components/PlatformPage";
 import { MenuManager } from "../components/MenuManager";
 import type { MenuManagerData, MenuManagerFilters } from "../types";
 
@@ -69,15 +70,10 @@ export async function MenuManagerPage({ search, categoryId, cursor }: { search: 
 
   if (!isMenuManagerData(data)) {
     return (
-      <PageContainer title="Menu" breadcrumbs={BREADCRUMBS} header={<h1 className="text-2xl font-semibold tracking-tight">Menu</h1>}>
-        <div role="alert" className="mx-4 rounded-lg border border-border bg-card p-4 text-sm text-foreground md:mx-6">
-          <p className="font-medium">The menu could not be loaded.</p>
-          <p className="mt-1 text-muted-foreground">
-            {cursor ? "This page of results is no longer available." : "No menu items are shown and no changes can be made until it loads."}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button asChild size="sm"><Link href={retryHref(search, categoryId)}>{cursor ? "Back to the first page" : "Try again"}</Link></Button>
-          </div>
+      <PageContainer title="Menu" breadcrumbs={BREADCRUMBS} header={<PlatformHeader title="Menu" />}>
+        <div role="alert" className="mx-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm md:mx-6">
+          <p className="font-medium">{cursor ? "This page of results is no longer available." : "Menu unavailable."}</p>
+          <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={retryHref(search, categoryId)}>{cursor ? "First page" : "Try again"}</Link></Button>
         </div>
       </PageContainer>
     );

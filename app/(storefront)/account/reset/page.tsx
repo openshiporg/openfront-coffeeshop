@@ -8,7 +8,7 @@ export default async function CustomerPasswordResetPage({ searchParams }: { sear
   const value = typeof token === "string" && token.length <= 512 ? token : undefined;
   return (
     <StorefrontShell>
-      <main className="sf-container py-16">
+      <main className="sf-container sf-page">
         <CustomerPasswordResetForm token={value} />
       </main>
     </StorefrontShell>

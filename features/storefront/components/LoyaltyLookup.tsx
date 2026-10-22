@@ -57,18 +57,14 @@ export function LoyaltyLookup({ email, orderId, secretKey, onApplyEmail }: Props
         </button>
       </div>
       {account ? (
-        <div className="mt-3 border border-[var(--sf-rule)] bg-[var(--sf-paper)] p-3 text-sm">
+        <div className="mt-3 rounded-[var(--sf-radius-sm)] bg-[var(--sf-surface)] p-3 text-sm">
           <p className="font-semibold">Rewards available for {account.customerEmail}</p>
           <p className="mt-1 text-[var(--sf-ink-muted)]">
             {account.pointsBalance || 0}/100 points toward the next drink · {account.drinkCredits || 0} drink credits
             available
           </p>
         </div>
-      ) : (
-        <p className="mt-3 text-sm leading-relaxed text-[var(--sf-ink-muted)]">
-          Rewards lookup becomes available after the secure order id and key exist.
-        </p>
-      )}
+      ) : null}
       {error ? <p className="sf-alert-error mt-3">{error}</p> : null}
     </div>
   );

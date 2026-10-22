@@ -44,15 +44,14 @@ export function OrderStatusActions({ orderId, actions }: { orderId: string; acti
   }
 
   return (
-    <div className="space-y-2 border-t border-border pt-3">
+    <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {actions.map((action) => (
           <Button
             key={action.status}
             type="button"
-            size="sm"
-            variant={action.tone === "danger" ? "outline" : "default"}
-            className={action.tone === "danger" ? "text-destructive" : undefined}
+            variant={action.tone === "danger" ? "ghost" : "default"}
+            className={action.tone === "danger" ? "min-h-10 rounded-full text-destructive" : "min-h-10 flex-1 rounded-full sm:flex-none"}
             disabled={Boolean(pendingStatus)}
             onClick={() => run(action.status)}
           >
@@ -83,8 +82,8 @@ export function AcceptPickupAction({ orderId }: { orderId: string }) {
     router.refresh();
   }
   return (
-    <div className="space-y-2 border-t border-border pt-3">
-      <Button type="button" size="sm" disabled={pending} onClick={accept}>{pending ? "Accepting…" : "Accept unpaid pickup"}</Button>
+    <div className="space-y-2">
+      <Button type="button" className="min-h-10 w-full rounded-full sm:w-auto" disabled={pending} onClick={accept}>{pending ? "Accepting…" : "Accept unpaid pickup"}</Button>
       <ActionError message={error} />
     </div>
   );
@@ -148,18 +147,18 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
   }
 
   return (
-    <div className="space-y-2 border-t border-border pt-3">
-      <p className="text-xs font-medium text-muted-foreground">Record pay-at-pickup payment · {money(total)} · open register required</p>
+    <div className="space-y-2 rounded-lg bg-muted/50 p-2.5">
+      <p className="px-0.5 text-xs font-medium text-muted-foreground">Take payment · <span className="tabular-nums text-foreground">{money(total)}</span></p>
       {unresolved ? (
         <p role="status" className="text-sm text-muted-foreground">
-          A {unresolved.method} payment for this order was not confirmed. Retry it before choosing another tender.
+          {unresolved.method === "cash" ? "Cash" : "Card"} payment not confirmed. Retry it before choosing another tender.
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="outline" disabled={pendingMethod !== null} onClick={() => record("cash")}>
+      <div className="grid grid-cols-2 gap-2">
+        <Button type="button" variant="outline" className="min-h-10 rounded-full bg-background" disabled={pendingMethod !== null} onClick={() => record("cash")}>
           {pendingMethod === "cash" ? "Recording…" : unresolved?.method === "cash" ? "Retry cash payment" : "Record cash"}
         </Button>
-        <Button type="button" size="sm" variant="outline" disabled={pendingMethod !== null} onClick={() => { setTerminalApproved(false); setConfirmCard(true); }}>
+        <Button type="button" variant="outline" className="min-h-10 rounded-full bg-background" disabled={pendingMethod !== null} onClick={() => { setTerminalApproved(false); setConfirmCard(true); }}>
           {pendingMethod === "card" ? "Recording…" : unresolved?.method === "card" ? "Retry card payment" : "Record card"}
         </Button>
       </div>
@@ -169,7 +168,7 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
           <DialogHeader>
             <DialogTitle>Record external card payment</DialogTitle>
             <DialogDescription>
-              Confirm that {money(total)} was approved on the external card terminal. This records the payment in the cafe ledger; it does not charge the card.
+              Records {money(total)} approved on the external terminal. It does not charge the card.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -184,7 +183,7 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
                 aria-invalid={terminalReference.trim() !== "" && !referenceValid}
                 aria-describedby={`${referenceId}-hint`}
               />
-              <p id={`${referenceId}-hint`} className="text-xs text-muted-foreground">4–64 letters, numbers or # . _ : / - as printed on the terminal receipt.</p>
+              <p id={`${referenceId}-hint`} className="text-xs text-muted-foreground">4–64 characters: letters, numbers, # . _ : / -</p>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id={approvedId} checked={terminalApproved} onCheckedChange={(checked) => setTerminalApproved(checked === true)} />
@@ -217,8 +216,8 @@ export function ApplyLoyaltyAction({ orderId, customerEmail, customerName }: { o
     router.refresh();
   }
   return (
-    <div className="space-y-2 border-t border-border pt-3">
-      <Button type="button" size="sm" variant="secondary" disabled={pending} onClick={apply}>{pending ? "Applying…" : "Apply purchase to rewards"}</Button>
+    <div className="space-y-2">
+      <Button type="button" size="sm" variant="ghost" className="rounded-full" disabled={pending} onClick={apply}>{pending ? "Applying…" : "Apply purchase to rewards"}</Button>
       <p role="status" aria-live="polite" className={message ? "text-sm text-muted-foreground" : "sr-only"}>{message || ""}</p>
       <ActionError message={error} />
     </div>
@@ -288,10 +287,10 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
   const isCard = target?.method === "card";
 
   return (
-    <div className="space-y-2 border-t border-border pt-3">
+    <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {payments.map((payment) => (
-          <Button key={payment.id} type="button" size="sm" variant="outline" className="text-destructive" onClick={() => open(payment)}>
+          <Button key={payment.id} type="button" size="sm" variant="ghost" className="rounded-full text-destructive" onClick={() => open(payment)}>
             {`${payment.method === "card" ? "Record external card refund" : "Refund cash"} · ${money(payment.amount)}`}
           </Button>
         ))}
@@ -303,13 +302,13 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
               <DialogTitle>{isCard ? "Record external card refund" : "Refund cash"}</DialogTitle>
               <DialogDescription>
                 {isCard
-                  ? `Refund ${target ? money(target.amount) : ""} on the external card terminal first, then record its reference here. The cafe ledger does not move card funds.`
-                  : `Pay out ${target ? money(target.amount) : ""} from the open register and record a full cash refund. This cannot be undone.`}
+                  ? `Refund ${target ? money(target.amount) : ""} on the external terminal first. Recording here does not move card funds.`
+                  : `Full cash refund of ${target ? money(target.amount) : ""} from the open register. This cannot be undone.`}
               </DialogDescription>
             </DialogHeader>
             {storedIntent ? (
               <p role="status" className="text-sm text-muted-foreground">
-                A previous attempt to record this refund was not confirmed. Retry it with the same details; do not refund on the terminal again.
+                Previous attempt not confirmed. Retry with the same details; don’t refund on the terminal again.
               </p>
             ) : null}
             {isCard ? (

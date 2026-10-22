@@ -3,7 +3,7 @@ import { StorefrontShell } from "../components/StorefrontShell";
 
 export default function CheckoutPage() {
   return (
-    <StorefrontShell>
+    <StorefrontShell cartBar={false}>
       <CheckoutClient />
     </StorefrontShell>
   );

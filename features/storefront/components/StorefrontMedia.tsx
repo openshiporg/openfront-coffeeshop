@@ -7,6 +7,7 @@ type Props = {
   imageClassName?: string;
   emphasize?: boolean;
   eager?: boolean;
+  sizes?: string;
 };
 
 export function StorefrontMedia({
@@ -15,20 +16,18 @@ export function StorefrontMedia({
   imageClassName = "",
   emphasize = false,
   eager = false,
+  sizes = "(min-width: 1024px) 42vw, 100vw",
 }: Props) {
   const source = item.primaryImageUrl || item.imageUrl;
 
   if (source) {
     return (
-      <div
-        className={`relative overflow-hidden bg-[var(--sf-paper-inset)] ${className}`}
-        style={{ position: "relative", minHeight: "1px" }}
-      >
+      <div className={`relative overflow-hidden bg-[var(--sf-inset)] ${className}`} style={{ position: "relative", minHeight: "1px" }}>
         <Image
           src={source}
           alt={item.name}
           fill
-          sizes="(min-width: 1024px) 42vw, 100vw"
+          sizes={sizes}
           className={`object-cover ${imageClassName}`}
           loading={eager ? "eager" : "lazy"}
           fetchPriority={eager ? "high" : "auto"}
@@ -38,22 +37,20 @@ export function StorefrontMedia({
     );
   }
 
+  // No photo: a tinted tile with the item's initial, never a placeholder label.
   return (
     <div
-      className={`relative overflow-hidden bg-[linear-gradient(165deg,var(--sf-paper-inset),var(--sf-paper-raised))] ${className}`}
+      className={`relative grid place-items-center overflow-hidden bg-[radial-gradient(120%_90%_at_30%_20%,var(--sf-accent-soft),var(--sf-inset-strong))] ${className}`}
       style={{ position: "relative", minHeight: "1px" }}
       role="img"
-      aria-label={`${item.name} — house illustration`}
+      aria-label={item.name}
     >
-      <div className="absolute inset-0 opacity-40 [background:repeating-linear-gradient(90deg,transparent,transparent_11px,color-mix(in_oklch,var(--sf-rule)_35%,transparent)_11px,color-mix(in_oklch,var(--sf-rule)_35%,transparent)_12px)]" />
-      <div className="absolute left-[14%] top-[18%] h-[42%] w-[34%] border border-[var(--sf-rule-strong)] bg-[color-mix(in_oklch,var(--sf-accent)_22%,var(--sf-paper-inset))]" />
-      <div className="absolute bottom-[16%] right-[12%] h-[28%] w-[38%] border border-[var(--sf-rule-strong)] bg-[var(--sf-paper)]" />
-      <div
-        className={`absolute bottom-[22%] left-[22%] h-[10%] w-[48%] rounded-full bg-[color-mix(in_oklch,var(--sf-ink)_14%,transparent)] blur-md ${emphasize ? "opacity-80" : "opacity-50"}`}
-      />
-      <p className="absolute left-4 top-4 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[var(--sf-ink-faint)]">
-        House illustration
-      </p>
+      <span
+        aria-hidden="true"
+        className={`sf-display select-none text-[var(--sf-accent)] ${emphasize ? "text-[clamp(4rem,14vw,8rem)] opacity-70" : "text-[2.25rem] opacity-60"}`}
+      >
+        {item.name.trim().charAt(0).toUpperCase()}
+      </span>
     </div>
   );
 }

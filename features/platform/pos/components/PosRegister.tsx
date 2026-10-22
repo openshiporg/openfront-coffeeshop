@@ -3,17 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowUpRight, Minus, Plus, Search, Trash2, Wallet } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { PillButton, PillTrack } from "@/features/platform/components/PillTabs";
+import { PlatformEmpty } from "@/features/platform/components/PlatformPage";
+import { StatusTitle } from "@/features/platform/components/StatusTitle";
 import {
   closeRegisterShiftAction,
   createPosOrderAction,
@@ -106,7 +108,7 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
       <DialogContent className="flex max-h-[90vh] w-[calc(100%-2rem)] flex-col gap-4 overflow-hidden">
         <DialogHeader>
           <DialogTitle className="break-words pr-6">Customize {item.name}</DialogTitle>
-          <DialogDescription>Choose options for this line.</DialogDescription>
+          <DialogDescription className="tabular-nums">{formatMoney(item.price)}</DialogDescription>
         </DialogHeader>
         <div className="-mx-1 min-h-0 flex-1 space-y-5 overflow-y-auto px-1">
           {groups.map((group) => {
@@ -123,7 +125,7 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
                     onValueChange={(id) => choose(group, id)}
                   >
                     {group.available.map((modifier) => (
-                      <div key={modifier.id} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                      <div key={modifier.id} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <RadioGroupItem id={`pos-mod-${modifier.id}`} value={modifier.id} />
                           <Label htmlFor={`pos-mod-${modifier.id}`} className="min-w-0 break-words">{modifier.name}</Label>
@@ -137,7 +139,7 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
                     const checked = selected.includes(modifier.id);
                     const atMax = !checked && group.max > 1 && count >= group.max;
                     return (
-                      <div key={modifier.id} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                      <div key={modifier.id} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <Checkbox id={`pos-mod-${modifier.id}`} checked={checked} disabled={atMax} onCheckedChange={() => toggle(group, modifier.id)} />
                           <Label htmlFor={`pos-mod-${modifier.id}`} className="min-w-0 break-words">{modifier.name}</Label>
@@ -154,8 +156,8 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
         </div>
         {problems.length > 0 && <p role="status" className="text-sm text-destructive">{problems[0]}</p>}
         <DialogFooter className="gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button type="button" disabled={problems.length > 0} onClick={() => onAdd(selected)}>Add · {formatMoney(unitPrice(item, selected))}</Button>
+          <Button type="button" variant="outline" className="rounded-full" onClick={onCancel}>Cancel</Button>
+          <Button type="button" className="rounded-full" disabled={problems.length > 0} onClick={() => onAdd(selected)}>Add · {formatMoney(unitPrice(item, selected))}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -219,6 +221,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
   const [storageBlocked, setStorageBlocked] = React.useState(false);
   const [notice, setNotice] = React.useState<Notice>(null);
   const [receipts, setReceipts] = React.useState<PosReceipt[]>([]);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
   const dispatching = React.useRef(false);
 
   React.useEffect(() => {
@@ -439,196 +442,275 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
         ? `Record external card payment · ${formatMoney(quote.total, quote.currencyCode)}`
         : `Record cash payment · ${formatMoney(quote.total, quote.currencyCode)}`;
 
-  return (
-    <div className="grid min-w-0 gap-6 px-4 pb-8 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
-      <section className="min-w-0 space-y-6" aria-label="Menu">
-        {storageBlocked && (
-          <div role="alert" className="rounded-lg border border-destructive/40 bg-card p-4 text-sm text-destructive">
-            This browser cannot keep a safe recovery copy of register actions, so sales and drawer actions are disabled. Allow site storage for this page and reload.
+  const lineCount = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const drawerPanel = openShift ? (
+    <div className="space-y-6">
+      <dl className="grid grid-cols-2 gap-3 text-sm">
+        {[
+          ["Opening float", openShift.openingCashCents],
+          ["Expected cash", openShift.expectedCashCents],
+          ["Cash sales", openShift.cashSalesCents],
+          ["Card sales", openShift.cardSalesCents],
+          ["Tips", openShift.tipsCents],
+          ["Pay in / out", openShift.payInsCents - openShift.payOutsCents],
+        ].map(([label, cents]) => (
+          <div key={label as string} className="rounded-lg bg-muted/60 px-3 py-2">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="font-semibold tabular-nums">{formatMoney(cents as number)}</dd>
           </div>
-        )}
+        ))}
+      </dl>
 
-        {openShift ? (
-          <Card>
-            <CardContent className="grid gap-4 pt-6 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="min-w-0"><p className="text-xs text-muted-foreground">Open shift</p><p className="break-words font-semibold">{openShift.registerName}</p><p className="font-mono text-xs text-muted-foreground">{openShift.shiftNumber}</p></div>
-              <div><p className="text-xs text-muted-foreground">Expected cash</p><p className="text-xl font-semibold">{formatMoney(openShift.expectedCashCents)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Cash / card sales</p><p className="font-semibold">{formatMoney(openShift.cashSalesCents)} / {formatMoney(openShift.cardSalesCents)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Tips</p><p className="text-xl font-semibold">{formatMoney(openShift.tipsCents)}</p></div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader><CardTitle className="text-lg">Open a register shift</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Count the opening float before the first sale.</p>
-              <form
-                className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,10rem)_auto] sm:items-end"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (openingParse.kind !== "valid" || !registerName.trim()) return;
-                  void dispatch({ kind: "open", key: newKey(), request: { registerName: registerName.trim(), openingCashCents: openingParse.cents } });
-                }}
-              >
-                <div className="min-w-0 space-y-1.5">
-                  <Label htmlFor="pos-register-name">Register name</Label>
-                  <Input id="pos-register-name" value={registerName} maxLength={100} onChange={(event) => setRegisterName(event.target.value)} disabled={writesBlocked} />
-                </div>
-                <div className="min-w-0 space-y-1.5">
-                  <Label htmlFor="pos-opening-cash">Opening cash</Label>
-                  <Input id="pos-opening-cash" value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked} />
-                </div>
-                <Button type="submit" disabled={writesBlocked || openingParse.kind !== "valid" || !registerName.trim()}>Open shift</Button>
-                <p id="pos-opening-cash-error" className="text-sm text-destructive sm:col-span-3">{moneyError(openingParse)}</p>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="space-y-3">
-          <form
-            role="search"
-            className="flex min-w-0 gap-2"
-            onSubmit={(event) => { event.preventDefault(); void loadCatalog({ search: searchInput.trim(), categoryId: filter.categoryId }); }}
-          >
-            <Label htmlFor="pos-search" className="sr-only">Search menu</Label>
-            <Input id="pos-search" type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search menu" maxLength={200} className="min-w-0" />
-            <Button type="submit" variant="outline" disabled={catalogStatus === "loading"}><Search aria-hidden />Search</Button>
-          </form>
-          {initial.categories.length > 0 && (
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Category">
-              {[{ id: "", name: "All" }, ...initial.categories].map((category) => (
-                <Button
-                  key={category.id || "all"}
-                  type="button"
-                  size="sm"
-                  variant={filter.categoryId === category.id ? "default" : "outline"}
-                  aria-pressed={filter.categoryId === category.id}
-                  disabled={catalogStatus === "loading"}
-                  onClick={() => void loadCatalog({ search: filter.search, categoryId: category.id })}
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-          )}
+      <section aria-labelledby="pos-movement-title" className="space-y-3">
+        <h3 id="pos-movement-title" className="text-sm font-semibold">Cash movement</h3>
+        <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor="pos-movement-amount">Amount</Label>
+            <Input id="pos-movement-amount" value={movementAmount} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={movementParse.kind === "invalid"} aria-describedby="pos-movement-error" onChange={(event) => setMovementAmount(event.target.value)} />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor="pos-movement-reason">Reason</Label>
+            <Input id="pos-movement-reason" value={movementReason} maxLength={500} disabled={writesBlocked} onChange={(event) => setMovementReason(event.target.value)} />
+          </div>
         </div>
-
-        <div aria-live="polite" aria-busy={catalogStatus === "loading"}>
-          {catalogStatus === "error" && (
-            <div role="alert" className="mb-3 rounded-lg border border-border bg-card p-4 text-sm">
-              <p>Menu items could not be loaded.</p>
-              <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void loadCatalog(filter, catalog.items.length ? catalog.nextCursor : null)}>Try again</Button>
-            </div>
-          )}
-          {catalogStatus !== "error" && !catalog.items.length && (
-            <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">{filter.search || filter.categoryId ? "No available items match." : "No menu items are available for sale."}</p>
-          )}
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {catalog.items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                disabled={ticketLocked || !openShift}
-                onClick={() => item.modifiers?.length ? setCustomizing(item) : addItem(item)}
-                className="min-w-0 rounded-lg border border-border bg-card p-4 text-left text-card-foreground shadow-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <div className="flex min-w-0 justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="break-words font-semibold">{item.name}</div>
-                    {item.category?.name && <div className="mt-1 break-words text-xs text-muted-foreground">{item.category.name}</div>}
-                  </div>
-                  <div className="shrink-0 font-semibold">{formatMoney(item.price)}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          {catalog.hasMore && catalogStatus !== "error" && (
-            <Button type="button" variant="outline" className="mt-3" disabled={catalogStatus === "loading"} onClick={() => void loadCatalog(filter, catalog.nextCursor)}>
-              {catalogStatus === "loading" ? "Loading…" : "Load more"}
+        <p id="pos-movement-error" className="text-sm text-destructive empty:hidden">{moneyError(movementParse) || (payoutTooLarge ? `Can't exceed the ${formatMoney(openShift.expectedCashCents)} expected in the drawer.` : null)}</p>
+        <div className="grid grid-cols-3 gap-2">
+          {(["pay_in", "pay_out", "cash_drop"] as const).map((type) => (
+            <Button
+              key={type}
+              type="button"
+              variant="outline"
+              className="min-h-10 rounded-full"
+              disabled={writesBlocked || movementParse.kind !== "valid" || !movementReason.trim() || (type !== "pay_in" && payoutTooLarge)}
+              onClick={() => submitMovement(type)}
+            >
+              {type === "pay_in" ? "Pay in" : type === "pay_out" ? "Pay out" : "Cash drop"}
             </Button>
-          )}
+          ))}
         </div>
       </section>
 
-      {customizing ? <PosModifierCustomizer item={customizing} onCancel={() => setCustomizing(null)} onAdd={(modifierIds) => addItem(customizing, modifierIds)} /> : null}
+      <form
+        aria-labelledby="pos-close-title"
+        className="space-y-3 border-t border-border pt-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (countedParse.kind !== "valid") return;
+          void dispatch({ kind: "close", key: newKey(), request: { registerShiftId: openShift.id, countedCashCents: countedParse.cents } });
+        }}
+      >
+        <h3 id="pos-close-title" className="text-sm font-semibold">Close shift</h3>
+        <div className="flex items-end gap-2">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Label htmlFor="pos-counted-cash">Counted cash</Label>
+            <Input id="pos-counted-cash" value={countedCash} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={countedParse.kind === "invalid"} aria-describedby="pos-counted-error" onChange={(event) => setCountedCash(event.target.value)} />
+          </div>
+          <Button type="submit" variant="destructive" className="min-h-10 rounded-full" disabled={writesBlocked || countedParse.kind !== "valid"}>Close shift</Button>
+        </div>
+        <p id="pos-counted-error" className="text-sm text-destructive empty:hidden">{moneyError(countedParse)}</p>
+      </form>
+    </div>
+  ) : null;
 
-      <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start" aria-label="Current ticket">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-            <CardTitle className="text-lg">Current ticket</CardTitle>
-            <Badge variant="secondary">{cart.length} {cart.length === 1 ? "line" : "lines"}</Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {pending && (
-              <div role="alert" className="space-y-2 rounded-lg border border-destructive/40 p-3 text-sm">
-                <p className="font-medium">Unconfirmed: {commandLabel(pending)}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" disabled={inFlight} onClick={() => void dispatch(pending)}>{inFlight ? "Checking…" : "Retry"}</Button>
-                  <Button type="button" size="sm" variant="outline" disabled={inFlight} onClick={discardPending}>Discard</Button>
-                  <Button asChild size="sm" variant="ghost"><Link href="/dashboard/platform/orders">Check orders</Link></Button>
-                </div>
+  return (
+    <div className="min-w-0 px-4 pb-28 md:px-6 lg:pb-8">
+      {storageBlocked && (
+        <div role="alert" className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          Site storage is blocked, so sales and drawer actions are disabled. Allow site storage and reload.
+        </div>
+      )}
+
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+        {openShift ? (
+          <>
+            <div className="min-w-0">
+              <StatusTitle as="p" tone="green" status={<span className="font-mono">{openShift.shiftNumber}</span>} className="text-sm font-semibold">
+                {openShift.registerName}
+              </StatusTitle>
+              <p className="pl-4 text-xs text-muted-foreground">Expected cash <span className="font-medium tabular-nums text-foreground">{formatMoney(openShift.expectedCashCents)}</span></p>
+            </div>
+            <Button type="button" variant="outline" className="min-h-10 rounded-full" onClick={() => setDrawerOpen(true)}>
+              <Wallet aria-hidden />Drawer
+            </Button>
+          </>
+        ) : (
+          <form
+            className="flex w-full flex-col gap-3 sm:flex-row sm:items-end"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (openingParse.kind !== "valid" || !registerName.trim()) return;
+              void dispatch({ kind: "open", key: newKey(), request: { registerName: registerName.trim(), openingCashCents: openingParse.cents } });
+            }}
+          >
+            <StatusTitle as="p" tone="zinc" status="Closed" className="text-sm font-semibold sm:self-center sm:pb-0">Register</StatusTitle>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Label htmlFor="pos-register-name">Register name</Label>
+              <Input id="pos-register-name" value={registerName} maxLength={100} onChange={(event) => setRegisterName(event.target.value)} disabled={writesBlocked} />
+            </div>
+            <div className="min-w-0 space-y-1.5 sm:w-36">
+              <Label htmlFor="pos-opening-cash">Opening cash</Label>
+              <Input id="pos-opening-cash" value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked} />
+            </div>
+            <Button type="submit" className="min-h-10 rounded-full" disabled={writesBlocked || openingParse.kind !== "valid" || !registerName.trim()}>Open shift</Button>
+            <p id="pos-opening-cash-error" className="text-sm text-destructive empty:hidden sm:basis-full">{moneyError(openingParse)}</p>
+          </form>
+        )}
+      </div>
+
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
+        <section className="min-w-0 space-y-4" aria-label="Menu">
+          <div className="space-y-3">
+            <form
+              role="search"
+              className="relative flex min-w-0 gap-2"
+              onSubmit={(event) => { event.preventDefault(); void loadCatalog({ search: searchInput.trim(), categoryId: filter.categoryId }); }}
+            >
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Label htmlFor="pos-search" className="sr-only">Search menu</Label>
+              <Input id="pos-search" type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search menu" maxLength={200} className="h-10 min-w-0 rounded-full pl-9" />
+              <Button type="submit" variant="outline" className="h-10 rounded-full" disabled={catalogStatus === "loading"}>Search</Button>
+            </form>
+            {initial.categories.length > 0 && (
+              <PillTrack label="Category">
+                {[{ id: "", name: "All" }, ...initial.categories].map((category) => (
+                  <PillButton
+                    key={category.id || "all"}
+                    size="md"
+                    active={filter.categoryId === category.id}
+                    disabled={catalogStatus === "loading"}
+                    onClick={() => void loadCatalog({ search: filter.search, categoryId: category.id })}
+                  >
+                    {category.name}
+                  </PillButton>
+                ))}
+              </PillTrack>
+            )}
+          </div>
+
+          <div aria-live="polite" aria-busy={catalogStatus === "loading"}>
+            {catalogStatus === "error" && (
+              <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                <p>Menu items couldn&apos;t load.</p>
+                <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => void loadCatalog(filter, catalog.items.length ? catalog.nextCursor : null)}>Try again</Button>
               </div>
             )}
-
-            <ul className="space-y-3">
-              {cart.map((item, index) => {
-                const lineName = `${item.name}, line ${index + 1}`;
+            {catalogStatus !== "error" && !catalog.items.length && (
+              <PlatformEmpty>{filter.search || filter.categoryId ? "No available items match." : "No menu items for sale."}</PlatformEmpty>
+            )}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+              {catalog.items.map((item) => {
+                const inTicket = cart.filter((line) => line.menuItemId === item.id).reduce((sum, line) => sum + line.quantity, 0);
                 return (
-                  <li key={item.cartId} className="min-w-0 rounded-md border border-border p-3">
-                    <div className="flex min-w-0 justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="break-words font-medium">{item.name}</div>
-                        {item.modifierNames.length > 0 && <div className="mt-1 break-words text-xs text-muted-foreground">{item.modifierNames.join(", ")}</div>}
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" disabled={ticketLocked} aria-label={`Remove ${lineName}`} onClick={() => setCart((current) => current.filter((line) => line.cartId !== item.cartId))}>
-                        <Trash2 aria-hidden />
-                      </Button>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1">
-                        <Button type="button" variant="outline" size="icon" disabled={ticketLocked || item.quantity <= 1} aria-label={`Decrease quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity - 1)}><Minus aria-hidden /></Button>
-                        <span className="w-8 text-center text-sm font-semibold" aria-label={`Quantity of ${lineName}`}>{item.quantity}</span>
-                        <Button type="button" variant="outline" size="icon" disabled={ticketLocked || item.quantity >= MAX_LINE_QUANTITY} aria-label={`Increase quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus aria-hidden /></Button>
-                      </div>
-                      <span className="shrink-0 font-semibold">{quote?.lines[index] ? formatMoney(quote.lines[index].lineTotal, quote.currencyCode) : "—"}</span>
-                    </div>
-                  </li>
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={ticketLocked || !openShift}
+                    onClick={() => item.modifiers?.length ? setCustomizing(item) : addItem(item)}
+                    className="relative flex min-h-24 min-w-0 flex-col justify-between gap-3 rounded-xl border border-border bg-card p-3 text-left text-card-foreground shadow-xs transition-[background-color,transform] hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="min-w-0">
+                      <span className="block break-words text-sm font-semibold leading-snug">{item.name}</span>
+                      {item.category?.name && <span className="mt-0.5 block break-words text-xs text-muted-foreground">{item.category.name}</span>}
+                    </span>
+                    <span className="flex items-end justify-between gap-2">
+                      <span className="text-sm font-semibold tabular-nums">{formatMoney(item.price)}</span>
+                      {item.modifiers?.length ? <span className="text-xs text-muted-foreground">Options</span> : null}
+                    </span>
+                    {inTicket > 0 && <span className="absolute right-2 top-2 grid min-w-6 place-items-center rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-primary-foreground" aria-label={`${inTicket} on ticket`}>{inTicket}</span>}
+                  </button>
                 );
               })}
-            </ul>
-            {!cart.length && <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">{openShift ? "Select a menu item to start a ticket." : "Open a shift to start selling."}</p>}
+            </div>
+            {catalog.hasMore && catalogStatus !== "error" && (
+              <Button type="button" variant="outline" className="mt-3 rounded-full" disabled={catalogStatus === "loading"} onClick={() => void loadCatalog(filter, catalog.nextCursor)}>
+                {catalogStatus === "loading" ? "Loading…" : "Load more"}
+              </Button>
+            )}
+          </div>
+        </section>
 
-            <div className="space-y-3 border-t border-border pt-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="pos-customer-name">Name</Label>
-                <Input id="pos-customer-name" value={customerName} maxLength={200} disabled={ticketLocked} onChange={(event) => setCustomerName(event.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="pos-ticket-notes">Ticket notes</Label>
-                <Textarea id="pos-ticket-notes" value={notes} maxLength={2000} disabled={ticketLocked} onChange={(event) => setNotes(event.target.value)} className="min-h-16" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="pos-tip">Tip</Label>
-                <Input id="pos-tip" value={tipInput} inputMode="decimal" disabled={ticketLocked} aria-invalid={tipParse.kind === "invalid"} aria-describedby="pos-tip-error" onChange={(event) => setTipInput(event.target.value)} />
-                <p id="pos-tip-error" className="text-sm text-destructive">{moneyError(tipParse)}</p>
+        {customizing ? <PosModifierCustomizer item={customizing} onCancel={() => setCustomizing(null)} onAdd={(modifierIds) => addItem(customizing, modifierIds)} /> : null}
+
+        <aside id="pos-ticket" className="min-w-0 scroll-mt-4 lg:sticky lg:top-4 lg:self-start" aria-labelledby="pos-ticket-title">
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <h2 id="pos-ticket-title" className="font-semibold">Ticket</h2>
+              <span className="text-sm tabular-nums text-muted-foreground">{lineCount} {lineCount === 1 ? "item" : "items"}</span>
+            </div>
+            <div className="space-y-4 p-4">
+              {pending && (
+                <div role="alert" className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                  <p className="font-medium">Unconfirmed: {commandLabel(pending)}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" className="rounded-full" disabled={inFlight} onClick={() => void dispatch(pending)}>{inFlight ? "Checking…" : "Retry"}</Button>
+                    <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={inFlight} onClick={discardPending}>Discard</Button>
+                    <Button asChild size="sm" variant="ghost" className="rounded-full"><Link href="/dashboard/platform/orders">Orders<ArrowUpRight aria-hidden /></Link></Button>
+                  </div>
+                </div>
+              )}
+
+              {cart.length ? (
+                <ul className="divide-y divide-dashed divide-border">
+                  {cart.map((item, index) => {
+                    const lineName = `${item.name}, line ${index + 1}`;
+                    return (
+                      <li key={item.cartId} className="min-w-0 py-2.5 first:pt-0">
+                        <div className="flex min-w-0 items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="break-words text-sm font-medium">{item.name}</div>
+                            {item.modifierNames.length > 0 && <div className="break-words text-xs text-muted-foreground">{item.modifierNames.join(", ")}</div>}
+                          </div>
+                          <span className="shrink-0 text-sm font-semibold tabular-nums">{quote?.lines[index] ? formatMoney(quote.lines[index].lineTotal, quote.currencyCode) : "—"}</span>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between gap-2">
+                          <div className="inline-flex items-center rounded-full bg-muted p-0.5 ring-1 ring-inset ring-foreground/5">
+                            <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full" disabled={ticketLocked || item.quantity <= 1} aria-label={`Decrease quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity - 1)}><Minus aria-hidden /></Button>
+                            <span className="w-7 text-center text-sm font-semibold tabular-nums" aria-label={`Quantity of ${lineName}`}>{item.quantity}</span>
+                            <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full" disabled={ticketLocked || item.quantity >= MAX_LINE_QUANTITY} aria-label={`Increase quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus aria-hidden /></Button>
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-muted-foreground hover:text-destructive" disabled={ticketLocked} aria-label={`Remove ${lineName}`} onClick={() => setCart((current) => current.filter((line) => line.cartId !== item.cartId))}>
+                            <Trash2 aria-hidden />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <PlatformEmpty className="py-6">{openShift ? "No items" : "Open a shift to sell"}</PlatformEmpty>
+              )}
+
+              <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[minmax(0,1fr)_7rem] lg:grid-cols-[minmax(0,1fr)_6.5rem]">
+                <div className="min-w-0 space-y-1.5">
+                  <Label htmlFor="pos-customer-name">Name</Label>
+                  <Input id="pos-customer-name" value={customerName} maxLength={200} disabled={ticketLocked} onChange={(event) => setCustomerName(event.target.value)} />
+                </div>
+                <div className="min-w-0 space-y-1.5">
+                  <Label htmlFor="pos-tip">Tip</Label>
+                  <Input id="pos-tip" value={tipInput} inputMode="decimal" disabled={ticketLocked} aria-invalid={tipParse.kind === "invalid"} aria-describedby="pos-tip-error" onChange={(event) => setTipInput(event.target.value)} />
+                </div>
+                <p id="pos-tip-error" className="text-sm text-destructive empty:hidden sm:col-span-2">{moneyError(tipParse)}</p>
+                <div className="min-w-0 space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="pos-ticket-notes">Ticket notes</Label>
+                  <Textarea id="pos-ticket-notes" value={notes} maxLength={2000} disabled={ticketLocked} onChange={(event) => setNotes(event.target.value)} className="min-h-14" />
+                </div>
               </div>
 
               {quote?.total !== 0 && (
-                <fieldset className="space-y-2">
-                  <legend className="text-sm font-medium">Tender</legend>
-                  <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PosPaymentMethod)} disabled={ticketLocked} className="gap-2">
-                    <div className="flex items-center gap-2"><RadioGroupItem id="pos-tender-cash" value="cash" /><Label htmlFor="pos-tender-cash">Cash</Label></div>
-                    <div className="flex items-center gap-2"><RadioGroupItem id="pos-tender-card" value="manual_card" /><Label htmlFor="pos-tender-card">Record external card payment</Label></div>
-                  </RadioGroup>
-                </fieldset>
+                <div className="space-y-2">
+                  <p id="pos-tender-label" className="text-sm font-medium">Tender</p>
+                  <PillTrack label="Tender" className="[&>div]:flex [&>div]:w-full">
+                    <PillButton size="md" className="flex-1" active={paymentMethod === "cash"} disabled={ticketLocked} onClick={() => setPaymentMethod("cash")}>Cash</PillButton>
+                    <PillButton size="md" className="flex-1" active={paymentMethod === "manual_card"} disabled={ticketLocked} onClick={() => setPaymentMethod("manual_card")}>External card</PillButton>
+                  </PillTrack>
+                </div>
               )}
               {effectiveMethod === "manual_card" && (
-                <div className="space-y-3 rounded-md border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Run the card on the separate card terminal first. This records the terminal&apos;s approval; no card is charged from here.</p>
+                <div className="space-y-3 rounded-xl bg-muted/60 p-3">
+                  <p className="text-xs text-muted-foreground">Run the card on the terminal first. Nothing is charged from here.</p>
                   <div className="space-y-1.5">
-                    <Label htmlFor="pos-card-reference">Terminal approval code or reference</Label>
-                    <Input id="pos-card-reference" value={cardReference} maxLength={64} autoComplete="off" disabled={ticketLocked} aria-invalid={cardReference.trim().length > 0 && !TERMINAL_REFERENCE.test(cardReference.trim())} onChange={(event) => setCardReference(event.target.value)} />
+                    <Label htmlFor="pos-card-reference">Terminal approval code</Label>
+                    <Input id="pos-card-reference" value={cardReference} maxLength={64} autoComplete="off" disabled={ticketLocked} className="bg-background" aria-invalid={cardReference.trim().length > 0 && !TERMINAL_REFERENCE.test(cardReference.trim())} onChange={(event) => setCardReference(event.target.value)} />
                   </div>
                   <div className="flex items-start gap-2">
                     <Checkbox
@@ -637,39 +719,39 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
                       disabled={ticketLocked || !quote}
                       onCheckedChange={(checked) => setApprovedFingerprint(checked === true && quote ? quote.quoteFingerprint : null)}
                     />
-                    <Label htmlFor="pos-card-approved" className="leading-5">The card terminal approved {quote ? formatMoney(quote.total, quote.currencyCode) : "this total"} for this sale</Label>
+                    <Label htmlFor="pos-card-approved" className="leading-5">Terminal approved {quote ? formatMoney(quote.total, quote.currencyCode) : "this total"}</Label>
                   </div>
                 </div>
               )}
 
-              <dl className="space-y-1 text-sm">
-                <div className="flex justify-between"><dt>Subtotal</dt><dd>{quote ? formatMoney(quote.subtotal, quote.currencyCode) : "—"}</dd></div>
-                <div className="flex justify-between"><dt>Tax</dt><dd>{quote ? formatMoney(quote.tax, quote.currencyCode) : "—"}</dd></div>
-                <div className="flex justify-between"><dt>Tip</dt><dd>{quote ? formatMoney(quote.tip, quote.currencyCode) : "—"}</dd></div>
-                <div className="flex justify-between text-lg font-bold"><dt>Total</dt><dd>{quote ? formatMoney(quote.total, quote.currencyCode) : "—"}</dd></div>
+              <dl className="space-y-1 text-sm tabular-nums">
+                <div className="flex justify-between text-muted-foreground"><dt>Subtotal</dt><dd>{quote ? formatMoney(quote.subtotal, quote.currencyCode) : "—"}</dd></div>
+                <div className="flex justify-between text-muted-foreground"><dt>Tax</dt><dd>{quote ? formatMoney(quote.tax, quote.currencyCode) : "—"}</dd></div>
+                <div className="flex justify-between text-muted-foreground"><dt>Tip</dt><dd>{quote ? formatMoney(quote.tip, quote.currencyCode) : "—"}</dd></div>
+                <div className="flex justify-between pt-1 text-xl font-semibold tracking-tight"><dt>Total</dt><dd>{quote ? formatMoney(quote.total, quote.currencyCode) : "—"}</dd></div>
               </dl>
-              <div aria-live="polite" className="text-sm text-muted-foreground">
-                {quoteState.status === "pricing" && "Pricing ticket…"}
+              <div aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
+                {quoteState.status === "pricing" && "Pricing…"}
                 {quoteState.status === "error" && (
                   <span className="text-destructive">
-                    This ticket could not be priced. <button type="button" className="underline" onClick={() => setQuoteAttempt((value) => value + 1)}>Try again</button>
+                    Couldn&apos;t price this ticket. <button type="button" className="underline underline-offset-4" onClick={() => setQuoteAttempt((value) => value + 1)}>Try again</button>
                   </span>
                 )}
               </div>
-              <Button type="button" className="w-full" disabled={!canSubmitSale} onClick={submitSale}>
+              <Button type="button" className="min-h-12 w-full rounded-full text-base" disabled={!canSubmitSale} onClick={submitSale}>
                 {inFlight && pending?.kind === "sale" ? "Recording…" : saleLabel}
               </Button>
               <div aria-live="assertive" role={notice?.tone === "error" ? "alert" : "status"}>
-                {notice && <p className={`rounded-md border p-3 text-sm ${notice.tone === "error" ? "border-destructive/40 text-destructive" : "border-border text-foreground"}`}>{notice.text}</p>}
+                {notice && <p className={`rounded-xl p-3 text-sm ${notice.tone === "error" ? "border border-destructive/40 bg-destructive/5 text-destructive" : "bg-muted/60 text-foreground"}`}>{notice.text}</p>}
               </div>
               {receipts.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold">Recent receipts</p>
+                <div className="space-y-1.5 border-t border-border pt-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Recent</p>
                   <ul className="space-y-1 text-sm">
                     {receipts.map((receipt, index) => (
                       <li key={index} className="break-words text-muted-foreground">
                         {receipt.kind === "sale"
-                          ? <><Link className="underline" href={`/dashboard/platform/orders?search=${encodeURIComponent(receipt.orderNumber)}`}>#{receipt.orderNumber}</Link> · {receiptText(receipt).replace(/^Order #\S+ recorded\. /, "")}</>
+                          ? <><Link className="font-medium text-foreground underline underline-offset-4" href={`/dashboard/platform/orders?search=${encodeURIComponent(receipt.orderNumber)}`}>#{receipt.orderNumber}</Link> · {receiptText(receipt).replace(/^Order #\S+ recorded\. /, "")}</>
                           : receiptText(receipt)}
                       </li>
                     ))}
@@ -677,55 +759,29 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
                 </div>
               )}
             </div>
+          </div>
+        </aside>
+      </div>
 
-            {openShift && (
-              <div className="space-y-3 border-t border-border pt-4">
-                <p className="text-sm font-semibold">Cash drawer</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="min-w-0 space-y-1.5">
-                    <Label htmlFor="pos-movement-amount">Amount</Label>
-                    <Input id="pos-movement-amount" value={movementAmount} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={movementParse.kind === "invalid"} aria-describedby="pos-movement-error" onChange={(event) => setMovementAmount(event.target.value)} />
-                  </div>
-                  <div className="min-w-0 space-y-1.5">
-                    <Label htmlFor="pos-movement-reason">Reason</Label>
-                    <Input id="pos-movement-reason" value={movementReason} maxLength={500} disabled={writesBlocked} onChange={(event) => setMovementReason(event.target.value)} />
-                  </div>
-                </div>
-                <p id="pos-movement-error" className="text-sm text-destructive">{moneyError(movementParse) || (payoutTooLarge ? `Pay outs and cash drops cannot exceed the ${formatMoney(openShift.expectedCashCents)} expected in the drawer.` : null)}</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["pay_in", "pay_out", "cash_drop"] as const).map((type) => (
-                    <Button
-                      key={type}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={writesBlocked || movementParse.kind !== "valid" || !movementReason.trim() || (type !== "pay_in" && payoutTooLarge)}
-                      onClick={() => submitMovement(type)}
-                    >
-                      {type === "pay_in" ? "Pay in" : type === "pay_out" ? "Pay out" : "Cash drop"}
-                    </Button>
-                  ))}
-                </div>
-                <form
-                  className="grid gap-2 pt-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (countedParse.kind !== "valid") return;
-                    void dispatch({ kind: "close", key: newKey(), request: { registerShiftId: openShift.id, countedCashCents: countedParse.cents } });
-                  }}
-                >
-                  <div className="min-w-0 space-y-1.5">
-                    <Label htmlFor="pos-counted-cash">Counted closing cash</Label>
-                    <Input id="pos-counted-cash" value={countedCash} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={countedParse.kind === "invalid"} aria-describedby="pos-counted-error" onChange={(event) => setCountedCash(event.target.value)} />
-                  </div>
-                  <Button type="submit" variant="destructive" disabled={writesBlocked || countedParse.kind !== "valid"}>Close shift</Button>
-                  <p id="pos-counted-error" className="text-sm text-destructive sm:col-span-2">{moneyError(countedParse)}</p>
-                </form>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </aside>
+      {cart.length > 0 && (
+        <a
+          href="#pos-ticket"
+          className="fixed inset-x-4 bottom-4 z-20 flex min-h-12 items-center justify-between gap-3 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg lg:hidden"
+        >
+          <span className="tabular-nums">Ticket · {lineCount} {lineCount === 1 ? "item" : "items"}</span>
+          <span className="tabular-nums">{quote ? formatMoney(quote.total, quote.currencyCode) : "Pricing…"}</span>
+        </a>
+      )}
+
+      <Sheet open={drawerOpen && !!openShift} onOpenChange={setDrawerOpen}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{openShift?.registerName ?? "Drawer"}</SheetTitle>
+            <SheetDescription className="font-mono">{openShift?.shiftNumber}</SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-6">{drawerPanel}</div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

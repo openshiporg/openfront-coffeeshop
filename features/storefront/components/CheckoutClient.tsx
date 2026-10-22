@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Minus, Plus, RotateCcw, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { createCafePickupOrder, quoteCafePickupOrder, type CafeOrderQuote, type PickupOrderRequest } from "@/features/storefront/lib/data/orders";
 import { formatMoney } from "@/features/storefront/lib/format";
 import { CART_EVENT, CART_LIMITS, CART_STORAGE_KEY, cartQuantity, loadCartLines, removeCartLines, saveCartLines } from "@/features/storefront/lib/cart/storage";
@@ -212,103 +212,121 @@ export function CheckoutClient() {
     : !lines.length
       ? "Cart empty"
       : quotePending
-        ? "Pricing current menu…"
+        ? "Pricing…"
         : pickupMinutes
-          ? `Pickup estimate · ${pickupMinutes} min`
+          ? `Ready in about ${pickupMinutes} min`
           : "Price unavailable";
 
   return (
-    <main className="sf-container py-8 sm:py-10">
-      <div className="sf-page-head">
-        <Link href="/#board" className="sf-back-link">
-          ← Keep shopping
-        </Link>
-        <p className="text-sm text-[var(--sf-ink-muted)]" role="status" aria-live="polite">{statusText}</p>
+    <main className="sf-container sf-page">
+      <Link href="/#menu" className="sf-back-link">
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        Menu
+      </Link>
+      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <h1 className="sf-display sf-page-title">Checkout</h1>
+        <p className="sf-status text-sm font-semibold" role="status" aria-live="polite">
+          {lines.length && cartLoaded ? <span className={`sf-dot ${quotePending ? "sf-dot-active" : quote ? "sf-dot-open" : "sf-dot-closed"}`} aria-hidden="true" /> : null}
+          {statusText}
+        </p>
       </div>
 
-      <div className="sf-split mt-8">
-        <section>
-          <p className="sf-kicker">Pickup checkout</p>
-          <h1 className="sf-display mt-3 text-[var(--sf-text-display-s)] leading-[0.92] [overflow-wrap:anywhere]">
-            Review your ticket.
-          </h1>
-          <p className="mt-4 max-w-xl text-[var(--sf-ink-muted)] leading-relaxed">
-            Confirm drinks and contact details. The cafe will accept the request before it enters the bar queue.
-          </p>
-
-          <div className="mt-8">
+      <div className="sf-split mt-6">
+        <section className="sf-ticket min-w-0" aria-labelledby="order-lines-title">
+          <div className="sf-ticket-section">
+            <h2 id="order-lines-title" className="sf-label mb-4">
+              Your order{totalQuantity ? <span className="sf-mono"> · {totalQuantity} {totalQuantity === 1 ? "item" : "items"}</span> : null}
+            </h2>
             {lines.map((line, index) => (
-              <article key={line.cartId} className="border-t border-[var(--sf-rule)] py-5 first:border-t-0 first:pt-0">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex min-w-0 gap-4">
-                    <StorefrontMedia
-                      item={{ name: line.name, imageUrl: line.imageUrl, primaryImageUrl: line.imageUrl }}
-                      className="h-20 w-20 shrink-0 border border-[var(--sf-rule)]"
-                      imageClassName="object-cover"
-                    />
-                    <div className="min-w-0">
-                      <h2 className="text-lg font-semibold [overflow-wrap:anywhere]">{line.name}</h2>
-                      {line.modifierNames.length > 0 ? (
-                        <p className="mt-1 text-sm text-[var(--sf-ink-muted)]">{line.modifierNames.join(", ")}</p>
-                      ) : null}
-                      {line.notes ? <p className="mt-2 text-sm text-[var(--sf-accent)] [overflow-wrap:anywhere]">Note: {line.notes}</p> : null}
-                    </div>
+              <article key={line.cartId} className="sf-line">
+                <StorefrontMedia
+                  item={{ name: line.name, imageUrl: line.imageUrl, primaryImageUrl: line.imageUrl }}
+                  className="sf-line-media"
+                  sizes="64px"
+                />
+                <div className="min-w-0">
+                  <div className="sf-line-top">
+                    <h3 className="sf-line-name">{line.name}</h3>
+                    <p className="sf-mono shrink-0 font-semibold">{quote?.lines[index] ? formatMoney(quote.lines[index].lineTotal, currency) : "—"}</p>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-lg font-semibold sf-ticket">{quote?.lines[index] ? formatMoney(quote.lines[index].lineTotal, currency) : "—"}</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 sm:justify-end">
+                  {line.modifierNames.length > 0 ? <p className="sf-line-mods">{line.modifierNames.join(", ")}</p> : null}
+                  {line.notes ? <p className="sf-line-note">“{line.notes}”</p> : null}
+                  <div className="sf-line-actions">
+                    <div className="sf-stepper sf-stepper-sm">
                       <button
                         type="button"
                         aria-label={`Decrease ${line.name}`}
                         disabled={frozen || line.quantity <= 1}
                         onClick={() => updateQuantity(line.cartId, line.quantity - 1)}
-                        className="grid h-11 w-11 place-items-center border border-[var(--sf-rule)] bg-[var(--sf-paper-inset)] disabled:opacity-50"
                       >
-                        <Minus className="h-4 w-4" aria-hidden="true" />
+                        <Minus className="size-4" aria-hidden="true" />
                       </button>
-                      <span className="w-7 text-center font-semibold sf-ticket" aria-label={`Quantity ${line.quantity}`}>{line.quantity}</span>
+                      <span aria-label={`Quantity ${line.quantity}`}>{line.quantity}</span>
                       <button
                         type="button"
                         aria-label={`Increase ${line.name}`}
                         disabled={frozen || line.quantity >= CART_LIMITS.maxLineQuantity || totalQuantity >= CART_LIMITS.maxTotalQuantity}
                         onClick={() => updateQuantity(line.cartId, line.quantity + 1)}
-                        className="grid h-11 w-11 place-items-center border border-[var(--sf-rule)] bg-[var(--sf-paper-inset)] disabled:opacity-50"
                       >
-                        <Plus className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${line.name}`}
-                        disabled={frozen}
-                        onClick={() => removeLine(line.cartId)}
-                        className="sf-btn sf-btn-ghost ml-1 !min-h-11 !px-3 !text-[var(--sf-danger-ink)] disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        Remove
+                        <Plus className="size-4" aria-hidden="true" />
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${line.name}`}
+                      disabled={frozen}
+                      onClick={() => removeLine(line.cartId)}
+                      className="sf-btn sf-btn-ghost sf-btn-danger !border-transparent !px-3"
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                      Remove
+                    </button>
                   </div>
                 </div>
               </article>
             ))}
             {totalQuantity >= CART_LIMITS.maxTotalQuantity ? (
-              <p className="mt-2 text-sm text-[var(--sf-ink-muted)]">One pickup order can include up to {CART_LIMITS.maxTotalQuantity} items.</p>
+              <p className="sf-muted mt-2 text-sm">Limit {CART_LIMITS.maxTotalQuantity} items per order.</p>
             ) : null}
             {cartLoaded && !lines.length ? (
               <div className="sf-empty">
-                <p>Your pickup cart is empty.</p>
-                <Link href="/#board" className="sf-btn sf-btn-ghost mt-4">Browse the menu</Link>
+                <strong>Your cart is empty</strong>
+                <Link href="/#menu" className="sf-btn sf-btn-ghost mt-3">Browse the menu</Link>
               </div>
             ) : null}
+            {!cartLoaded ? <p className="sf-muted text-sm">Loading cart…</p> : null}
           </div>
+
+          {lines.length ? (
+            <>
+              <div className="sf-perf" aria-hidden="true" />
+
+              <div className="sf-ticket-section">
+                <dl className="sf-totals">
+                  <div>
+                    <dt>Subtotal</dt>
+                    <dd className="sf-mono">{quote ? formatMoney(quote.subtotal, currency) : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Tax</dt>
+                    <dd className="sf-mono">{quote ? formatMoney(quote.tax, currency) : "—"}</dd>
+                  </div>
+                  <div className="is-total">
+                    <dt>Total</dt>
+                    <dd className="sf-mono">{quote ? formatMoney(quote.total, currency) : "—"}</dd>
+                  </div>
+                </dl>
+                <p className="sf-muted mt-3 text-sm">Pay at pickup</p>
+              </div>
+            </>
+          ) : null}
         </section>
 
         <aside className="sf-panel sf-sticky-panel" aria-labelledby="pickup-details-title">
-          <h2 id="pickup-details-title" className="sf-display text-2xl">Pickup details</h2>
-          <p className="mt-2 text-sm text-[var(--sf-ink-muted)]">Pickup contact details and the current price. Pay at pickup.</p>
+          <h2 id="pickup-details-title" className="sf-display text-xl">Pickup details</h2>
 
           {attempt ? (
-            <div className="sf-alert-error mt-5 space-y-3" role="region" aria-label="Unconfirmed pickup request">
+            <div className="sf-alert-error mt-5 grid gap-3" role="region" aria-label="Unconfirmed pickup request">
               <p>
                 {attempt.orderId
                   ? "Your last pickup request was sent."
@@ -319,66 +337,52 @@ export function CheckoutClient() {
                   <Link href={receiptHref(attempt.orderId, attempt.receiptKey)} className="sf-btn sf-btn-ink">Open receipt</Link>
                 ) : (
                   <button type="button" className="sf-btn sf-btn-ink" disabled={pending} onClick={() => void send(attempt)}>
-                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                    <RotateCcw className="size-4" aria-hidden="true" />
                     {pending ? "Checking…" : "Retry original request"}
                   </button>
                 )}
-                <button type="button" className="sf-btn sf-btn-ghost" disabled={pending} onClick={discardAttempt}>
+                <button type="button" className="sf-btn" disabled={pending} onClick={discardAttempt}>
                   {attempt.orderId ? "Start a new order" : "Discard and edit"}
                 </button>
               </div>
               {!attempt.orderId ? (
-                <p className="text-xs">If the cafe may already have this request, contact them before discarding it and sending another.</p>
+                <p className="text-xs">If the cafe may already have this request, contact them before discarding it.</p>
               ) : null}
             </div>
           ) : null}
 
-          <form className="mt-5 space-y-3" onSubmit={submit}>
-            <fieldset disabled={frozen} className="space-y-3">
-              <label htmlFor="checkout-name" className="grid gap-1 text-sm font-medium">
-                Pickup name
+          <form className="mt-5 grid gap-4" onSubmit={submit}>
+            <fieldset disabled={frozen} className="grid gap-4">
+              <label htmlFor="checkout-name" className="sf-form-label">
+                Name for pickup
                 <input id="checkout-name" name="name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} autoComplete="name" required maxLength={200} className="sf-field" />
               </label>
-              <label htmlFor="checkout-email" className="grid gap-1 text-sm font-medium">
+              <label htmlFor="checkout-email" className="sf-form-label">
                 Email
-                <input id="checkout-email" name="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} type="email" autoComplete="email" required maxLength={320} className="sf-field" aria-describedby="checkout-email-help" />
-                <span id="checkout-email-help" className="text-xs font-normal text-[var(--sf-ink-muted)]">Used to identify this pickup request.</span>
+                <input id="checkout-email" name="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} type="email" autoComplete="email" required maxLength={320} className="sf-field" />
               </label>
-              <label htmlFor="checkout-phone" className="grid gap-1 text-sm font-medium">
-                Phone (optional)
+              <label htmlFor="checkout-phone" className="sf-form-label">
+                <span>Phone <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
                 <input id="checkout-phone" name="phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} type="tel" inputMode="tel" autoComplete="tel" maxLength={50} className="sf-field" />
               </label>
-              <label htmlFor="checkout-notes" className="grid gap-1 text-sm font-medium">
-                Order notes (optional)
+              <label htmlFor="checkout-notes" className="sf-form-label">
+                <span>Order notes <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
                 <textarea id="checkout-notes" name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} className="sf-field" />
               </label>
             </fieldset>
-
-            <hr className="sf-rule my-5" />
-
-            <dl className="space-y-2 text-sm text-[var(--sf-ink-muted)] sf-ticket">
-              <div className="flex justify-between gap-3">
-                <dt>Subtotal</dt>
-                <dd>{quote ? formatMoney(quote.subtotal, currency) : "—"}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt>Tax</dt>
-                <dd>{quote ? formatMoney(quote.tax, currency) : "—"}</dd>
-              </div>
-              <div className="flex justify-between gap-3 text-lg font-semibold text-[var(--sf-ink)]">
-                <dt>Total</dt>
-                <dd>{quote ? formatMoney(quote.total, currency) : "—"}</dd>
-              </div>
-            </dl>
 
             {!attempt ? (
               <button
                 type="submit"
                 disabled={!lines.length || !quote || quotePending || pending}
-                className="sf-btn sf-btn-ink mt-5 w-full"
+                className="sf-btn sf-btn-primary sf-btn-lg sf-btn-block mt-1"
               >
-                <Send className="h-4 w-4" aria-hidden="true" />
-                {!cartLoaded ? "Loading cart…" : !lines.length ? "Add an item first" : pending ? "Sending request…" : quotePending ? "Pricing…" : quote ? `Request pickup order · ${formatMoney(quote.total, currency)}` : "Price unavailable"}
+                {!cartLoaded ? "Loading cart…" : !lines.length ? "Add an item first" : pending ? "Sending…" : quotePending ? "Pricing…" : quote ? (
+                  <>
+                    <span>Place pickup order</span>
+                    <span className="sf-mono opacity-80">{formatMoney(quote.total, currency)}</span>
+                  </>
+                ) : "Price unavailable"}
               </button>
             ) : null}
           </form>
@@ -386,7 +390,7 @@ export function CheckoutClient() {
           {quoteError && !attempt ? (
             <div className="sf-alert-error mt-3" role="alert">
               <p>{quoteError}</p>
-              <button type="button" className="mt-2 font-semibold underline underline-offset-4" onClick={() => setQuoteRetry((value) => value + 1)}>Try pricing again</button>
+              <button type="button" className="mt-1 inline-flex min-h-11 items-center font-semibold underline underline-offset-4" onClick={() => setQuoteRetry((value) => value + 1)}>Try pricing again</button>
             </div>
           ) : null}
           {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error mt-3" role="alert">{error}</div> : null}

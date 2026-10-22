@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type 
 import { Save, Store } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -256,17 +255,12 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6 p-4 md:p-6" aria-describedby="store-settings-status">
+    <form onSubmit={submit} className="space-y-6 px-4 pt-6 md:px-6" aria-describedby="store-settings-status">
       {!isConfigured ? (
-        <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
           <div className="flex items-start gap-3">
             <Store className="mt-0.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <div>
-              <p className="font-medium">No store is configured.</p>
-              <p className="mt-1 text-muted-foreground">
-                Enter your business details below. Until they are saved, the storefront shows that it is not available yet.
-              </p>
-            </div>
+            <p className="font-medium">Store not configured. The storefront is unavailable until these settings are saved.</p>
           </div>
         </div>
       ) : null}
@@ -275,7 +269,7 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         {status ? (
           <div
             className={cn(
-              "rounded-md border p-3 text-sm",
+              "rounded-xl border p-3 text-sm",
               status.kind === "success"
                 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
                 : "border-destructive/30 bg-destructive/10 text-destructive",
@@ -301,13 +295,23 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         ) : null}
       </div>
 
-      <fieldset disabled={isPending} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Store logo</CardTitle>
-            <CardDescription>Shown in your storefront header and footer. The logo colour also sets the storefront accent colour.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <fieldset disabled={isPending} className="divide-y divide-border">
+        <SettingsSection title="Identity">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="name" label="Store name" required error={fieldErrors.name}>
+              <Input id={FIELD_IDS.name} required maxLength={200} value={form.name} onChange={(event) => update("name", event.target.value)} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined} />
+            </Field>
+            <Field id="tagline" label="Tagline" error={fieldErrors.tagline}>
+              <Input id={FIELD_IDS.tagline} maxLength={300} value={form.tagline} onChange={(event) => update("tagline", event.target.value)} aria-invalid={Boolean(fieldErrors.tagline)} aria-describedby={fieldErrors.tagline ? "tagline-error" : undefined} />
+            </Field>
+            <Field id="description" label="Description" className="sm:col-span-2" error={fieldErrors.description}>
+              <Textarea id={FIELD_IDS.description} maxLength={2000} value={form.description} onChange={(event) => update("description", event.target.value)} rows={3} aria-invalid={Boolean(fieldErrors.description)} aria-describedby={fieldErrors.description ? "description-error" : undefined} />
+            </Field>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title="Logo">
+          <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-start">
             <div id={FIELD_IDS.logoIcon} tabIndex={-1} className="outline-none">
               <LogoPicker
                 value={form.logoIcon}
@@ -318,7 +322,9 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
               <FieldError id="logoIcon" message={fieldErrors.logoIcon} />
             </div>
             <div>
-              <Label htmlFor={FIELD_IDS.logoColor}>Logo colour · {form.logoColor}°</Label>
+              <Label htmlFor={FIELD_IDS.logoColor} className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Colour · <span className="tabular-nums">{form.logoColor}°</span>
+              </Label>
               <input
                 id={FIELD_IDS.logoColor}
                 type="range"
@@ -327,82 +333,75 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
                 value={form.logoColor}
                 onChange={(event) => update("logoColor", event.target.value)}
                 aria-valuetext={`${form.logoColor} degrees`}
-                className="mt-2 min-h-11 w-full"
+                className="mt-2 min-h-11 w-full cursor-pointer accent-foreground"
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SettingsSection>
 
-        <div className="grid gap-6 xl:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Identity and contact</CardTitle>
-              <CardDescription>Shown on your storefront, receipts, and visit information.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Field id="name" label="Store name" required error={fieldErrors.name}>
-                <Input id={FIELD_IDS.name} required maxLength={200} value={form.name} onChange={(event) => update("name", event.target.value)} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined} />
-              </Field>
-              <Field id="tagline" label="Tagline" error={fieldErrors.tagline}>
-                <Input id={FIELD_IDS.tagline} maxLength={300} value={form.tagline} onChange={(event) => update("tagline", event.target.value)} aria-invalid={Boolean(fieldErrors.tagline)} aria-describedby={fieldErrors.tagline ? "tagline-error" : undefined} />
-              </Field>
-              <Field id="description" label="Description" className="sm:col-span-2" error={fieldErrors.description}>
-                <Textarea id={FIELD_IDS.description} maxLength={2000} value={form.description} onChange={(event) => update("description", event.target.value)} rows={4} aria-invalid={Boolean(fieldErrors.description)} aria-describedby={fieldErrors.description ? "description-error" : undefined} />
-              </Field>
-              <Field id="address" label="Address" required className="sm:col-span-2" error={fieldErrors.address}>
-                <Input id={FIELD_IDS.address} required maxLength={500} autoComplete="street-address" value={form.address} onChange={(event) => update("address", event.target.value)} aria-invalid={Boolean(fieldErrors.address)} aria-describedby={fieldErrors.address ? "address-error" : undefined} />
-              </Field>
-              <Field id="phone" label="Phone" error={fieldErrors.phone}>
-                <Input id={FIELD_IDS.phone} type="tel" maxLength={100} autoComplete="tel" value={form.phone} onChange={(event) => update("phone", event.target.value)} aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "phone-error" : undefined} />
-              </Field>
-              <Field id="contactEmail" label="Contact email" required error={fieldErrors.contactEmail}>
-                <Input id={FIELD_IDS.contactEmail} type="email" required autoComplete="email" value={form.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} aria-invalid={Boolean(fieldErrors.contactEmail)} aria-describedby={fieldErrors.contactEmail ? "contactEmail-error" : undefined} />
-              </Field>
-            </CardContent>
-          </Card>
+        <SettingsSection title="Contact and location">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="address" label="Address" required className="sm:col-span-2" error={fieldErrors.address}>
+              <Input id={FIELD_IDS.address} required maxLength={500} autoComplete="street-address" value={form.address} onChange={(event) => update("address", event.target.value)} aria-invalid={Boolean(fieldErrors.address)} aria-describedby={fieldErrors.address ? "address-error" : undefined} />
+            </Field>
+            <Field id="phone" label="Phone" error={fieldErrors.phone}>
+              <Input id={FIELD_IDS.phone} type="tel" maxLength={100} autoComplete="tel" value={form.phone} onChange={(event) => update("phone", event.target.value)} aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "phone-error" : undefined} />
+            </Field>
+            <Field id="contactEmail" label="Contact email" required error={fieldErrors.contactEmail}>
+              <Input id={FIELD_IDS.contactEmail} type="email" required autoComplete="email" value={form.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} aria-invalid={Boolean(fieldErrors.contactEmail)} aria-describedby={fieldErrors.contactEmail ? "contactEmail-error" : undefined} />
+            </Field>
+            <Field id="timezone" label="Timezone" required className="sm:col-span-2" hint="e.g. America/New_York" error={fieldErrors.timezone}>
+              <Input id={FIELD_IDS.timezone} required value={form.timezone} onChange={(event) => update("timezone", event.target.value)} aria-invalid={Boolean(fieldErrors.timezone)} aria-describedby={fieldErrors.timezone ? "timezone-error" : "timezone-hint"} />
+            </Field>
+          </div>
+        </SettingsSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Pickup and tax</CardTitle>
-              <CardDescription>Prices are in US dollars. Pickup times use the store timezone.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Field id="currencyCode" label="Currency">
-                <Input id="store-currency" value={form.currencyCode} readOnly aria-readonly="true" />
-              </Field>
-              <Field id="locale" label="Locale">
-                <Input id="store-locale" value={form.locale} readOnly aria-readonly="true" />
-              </Field>
-              <Field id="timezone" label="Timezone" required className="sm:col-span-2" hint="For example America/New_York" error={fieldErrors.timezone}>
-                <Input id={FIELD_IDS.timezone} required value={form.timezone} onChange={(event) => update("timezone", event.target.value)} aria-invalid={Boolean(fieldErrors.timezone)} aria-describedby={fieldErrors.timezone ? "timezone-error" : "timezone-hint"} />
-              </Field>
-              <NumberField field="pickupLeadTimeMinutes" label="Pickup lead time (minutes)" value={form.pickupLeadTimeMinutes} error={fieldErrors.pickupLeadTimeMinutes} onChange={(value) => update("pickupLeadTimeMinutes", value)} />
-              <NumberField field="pickupWindowMinutes" label="Pickup window (minutes)" value={form.pickupWindowMinutes} error={fieldErrors.pickupWindowMinutes} onChange={(value) => update("pickupWindowMinutes", value)} />
-              <NumberField field="pickupCapacityPerWindow" label="Orders per pickup window" value={form.pickupCapacityPerWindow} error={fieldErrors.pickupCapacityPerWindow} onChange={(value) => update("pickupCapacityPerWindow", value)} />
-              <NumberField field="taxRateBasisPoints" label="Sales tax rate (basis points)" hint="875 = 8.75%" value={form.taxRateBasisPoints} error={fieldErrors.taxRateBasisPoints} onChange={(value) => update("taxRateBasisPoints", value)} />
-            </CardContent>
-          </Card>
-        </div>
+        <SettingsSection title="Hours">
+          <div id={FIELD_IDS.weeklyHours} tabIndex={-1} className="outline-none">
+            <WeeklyHoursEditor
+              hours={form.hours}
+              timezone={form.timezone}
+              error={fieldErrors.weeklyHours ?? null}
+              disabled={isPending}
+              onChange={(hours) => update("hours", hours)}
+            />
+          </div>
+        </SettingsSection>
 
-        <div id={FIELD_IDS.weeklyHours} tabIndex={-1} className="outline-none">
-          <WeeklyHoursEditor
-            hours={form.hours}
-            timezone={form.timezone}
-            error={fieldErrors.weeklyHours ?? null}
-            disabled={isPending}
-            onChange={(hours) => update("hours", hours)}
-          />
-        </div>
+        <SettingsSection title="Pickup and tax">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <NumberField field="pickupLeadTimeMinutes" label="Lead time (minutes)" value={form.pickupLeadTimeMinutes} error={fieldErrors.pickupLeadTimeMinutes} onChange={(value) => update("pickupLeadTimeMinutes", value)} />
+            <NumberField field="pickupWindowMinutes" label="Pickup window (minutes)" value={form.pickupWindowMinutes} error={fieldErrors.pickupWindowMinutes} onChange={(value) => update("pickupWindowMinutes", value)} />
+            <NumberField field="pickupCapacityPerWindow" label="Orders per window" value={form.pickupCapacityPerWindow} error={fieldErrors.pickupCapacityPerWindow} onChange={(value) => update("pickupCapacityPerWindow", value)} />
+            <NumberField field="taxRateBasisPoints" label="Sales tax (basis points)" hint="875 = 8.75%" value={form.taxRateBasisPoints} error={fieldErrors.taxRateBasisPoints} onChange={(value) => update("taxRateBasisPoints", value)} />
+            <Field id="currencyCode" label="Currency">
+              <Input id="store-currency" value={form.currencyCode} readOnly aria-readonly="true" className="bg-muted/50" />
+            </Field>
+            <Field id="locale" label="Locale">
+              <Input id="store-locale" value={form.locale} readOnly aria-readonly="true" className="bg-muted/50" />
+            </Field>
+          </div>
+        </SettingsSection>
       </fieldset>
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        {isDirty && !isPending ? <span className="text-sm text-muted-foreground">Unsaved changes</span> : null}
-        <Button type="submit" className="min-h-11" disabled={isPending}>
+      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-border bg-background/90 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+        {isDirty && !isPending ? <span className="mr-auto inline-flex items-center gap-2 text-sm text-muted-foreground"><span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />Unsaved changes</span> : null}
+        <Button type="submit" className="min-h-11 rounded-full px-5" disabled={isPending}>
           <Save className="mr-2 h-4 w-4" aria-hidden="true" />
           {isPending ? "Saving…" : isConfigured ? "Save changes" : "Configure store"}
         </Button>
       </div>
     </form>
+  );
+}
+
+function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
+  const id = `settings-${title.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+  return (
+    <section aria-labelledby={id} className="grid gap-4 py-6 first:pt-0 md:grid-cols-[12rem_minmax(0,1fr)] md:gap-8">
+      <h2 id={id} className="text-sm font-semibold">{title}</h2>
+      <div className="min-w-0 max-w-3xl">{children}</div>
+    </section>
   );
 }
 

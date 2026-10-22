@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { CalendarPlus, PackageCheck, PackagePlus, Soup, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PillButton, PillTrack } from "@/features/platform/components/PillTabs";
+import { StatusTitle } from "@/features/platform/components/StatusTitle";
 import { formatStoreDateTime } from "@/lib/date-time";
 import {
   completePrepBatchAction,
@@ -42,6 +44,7 @@ type WasteDraft = { sourceKind: "inventory" | "prep"; source: Pick | null; quant
 type ShiftDraft = { staff: Pick | null; role: string; startsLocal: string; endsLocal: string; notes: string; pending: Pending | null };
 type Drafts = { purchase: PurchaseDraft; prep: PrepDraft; waste: WasteDraft; shift: ShiftDraft; transitions: Record<string, string> };
 type FormKind = "purchase" | "prep" | "waste" | "shift" | "receive" | "transition";
+type TaskTab = "receive" | "prep" | "waste" | "purchase" | "shift";
 
 const EMPTY_DRAFTS: Drafts = {
   purchase: { supplier: null, item: null, quantity: "", unitCost: "", expectedDate: "", notes: "", pending: null },
@@ -51,9 +54,9 @@ const EMPTY_DRAFTS: Drafts = {
   transitions: {},
 };
 
-const SAVE_FAILED = "The change was not saved. Your entry is kept — check the details and submit again. Resubmitting the same details will not create a duplicate.";
-const UNREACHABLE = "The server could not be reached, so the result is unknown. Your entry is kept; submit again to finish safely without creating a duplicate.";
-const STORAGE_FAILED = "This browser could not keep a retry record for this change, so it was not sent. Allow site storage for this dashboard and try again.";
+const SAVE_FAILED = "Not saved. Your entry is kept; check it and submit again. Resubmitting won't create a duplicate.";
+const UNREACHABLE = "Server unreachable; result unknown. Your entry is kept; submit again. It won't create a duplicate.";
+const STORAGE_FAILED = "Not sent: this browser can't keep a retry record. Allow site storage and try again.";
 
 function restoreDrafts(raw: string | null): Drafts {
   if (!raw) return EMPTY_DRAFTS;
@@ -119,7 +122,7 @@ function parseCents(text: string): { value: number } | { error: string } {
 function localTimeMessage(label: string, resolution: StaffShiftTimeResolution) {
   switch (resolution.status) {
     case "ready": return `${label} in store time: ${resolution.storePreview}`;
-    case "empty": return `${label}: enter a date and time to preview it in store time.`;
+    case "empty": return `${label}: not set`;
     case "invalid-store-timezone": return "Set a valid store timezone in Store Settings before entering times.";
     case "invalid-device-timezone": return "This device's timezone could not be determined, so times cannot be entered here.";
     case "invalid-local-time": return `${label}: enter a valid date and time.`;
@@ -141,7 +144,7 @@ function Field({ id, label, children, hint }: { id: string; label: string; child
 function FormMessage({ error, status }: { error: string | null; status: string | null }) {
   return (
     <div aria-live="polite" className="sm:col-span-2">
-      {error ? <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">{error}</p> : null}
+      {error ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error}</p> : null}
       {!error && status ? <p role="status" className="text-sm text-muted-foreground">{status}</p> : null}
     </div>
   );
@@ -203,7 +206,7 @@ function OptionPicker(props: {
               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }}
               className="min-w-0"
             />
-            <Button type="button" variant="outline" onClick={runSearch}>Search</Button>
+            <Button type="button" variant="outline" className="rounded-full" onClick={runSearch}>Search</Button>
           </div>
         </Field>
       </div>
@@ -215,10 +218,10 @@ function OptionPicker(props: {
           </p>
         ) : !options.length ? (
           <p role="status" className="mr-auto text-muted-foreground">
-            {props.urlState[props.cursorParam] ? `No more ${props.noun} choices.` : currentSearch ? `No ${props.noun} matches “${currentSearch}”.` : `No ${props.noun} choices are available.`}
+            {props.urlState[props.cursorParam] ? `No more ${props.noun} choices.` : currentSearch ? `No ${props.noun} matches “${currentSearch}”.` : `No ${props.noun} choices.`}
           </p>
         ) : (
-          <p className="mr-auto text-muted-foreground">{props.page.hasMore ? `Showing ${options.length}; more are available.` : `Showing ${options.length}.`}{props.selected ? " Your selection is kept while you search." : ""}</p>
+          <p className="mr-auto text-xs text-muted-foreground">{options.length} shown{props.page.hasMore ? " · more available" : ""}</p>
         )}
         {props.urlState[props.cursorParam] ? <Button asChild size="sm" variant="ghost"><Link href={operationsHref(props.urlState, { [props.cursorParam]: null })} scroll={false}>First page</Link></Button> : null}
         {props.page.hasMore && props.page.nextCursor ? <Button asChild size="sm" variant="outline"><Link href={operationsHref(props.urlState, { [props.cursorParam]: props.page.nextCursor })} scroll={false}>More {props.noun} choices</Link></Button> : null}
@@ -238,6 +241,8 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
   const [receiving, setReceiving] = React.useState<ReceiptPurchaseOrder | null>(null);
   const [receiveExpiry, setReceiveExpiry] = React.useState("");
   const [receiveConfirmed, setReceiveConfirmed] = React.useState(false);
+  // Receiving waiting deliveries comes first when any are waiting.
+  const [tab, setTab] = React.useState<TaskTab>(() => (data.receiptPurchaseOrders.items.length ? "receive" : sections.inventoryManage ? "prep" : "shift"));
   React.useEffect(() => setDeviceTimeZone(getDeviceTimeZone()), []);
 
   const tz = data.storeTimezone;
@@ -390,19 +395,36 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
     run("receive", () => receivePurchaseOrderAction(order.id, receiveExpiryResolution.status === "ready" ? receiveExpiryResolution.instant : undefined), () => setReceiving(null), `${order.poNumber} received.`);
   }
 
-  if (!sections.inventoryManage && !sections.staffing) return null;
   const receipts = data.receiptPurchaseOrders;
   const shifts = data.activeStaffShifts;
+  const tasks = [
+    ...(sections.inventoryManage ? [
+      { value: "receive", label: "Receive", count: receipts.items.length || undefined },
+      { value: "prep", label: "Prep" },
+      { value: "waste", label: "Waste" },
+      { value: "purchase", label: "Order stock" },
+    ] : []),
+    ...(sections.staffing ? [{ value: "shift", label: "Shifts", count: shifts.totalCount ?? undefined }] : []),
+  ] as Array<{ value: TaskTab; label: string; count?: number }>;
+  const activeTab: TaskTab = tasks.some((task) => task.value === tab) ? tab : tasks[0]?.value ?? "receive";
+
+  if (!sections.inventoryManage && !sections.staffing) return null;
 
   return (
     <section aria-labelledby="operations-tasks" className="space-y-4">
-      <h2 id="operations-tasks" className="text-xl font-semibold">Today’s tasks</h2>
-      <div className="grid gap-4 xl:grid-cols-2">
-        {sections.inventoryManage ? (
-          <Card className="min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 id="operations-tasks" className="text-base font-semibold tracking-tight">Today</h2>
+        <PillTrack label="Task">
+          {tasks.map((task) => (
+            <PillButton key={task.value} size="md" active={activeTab === task.value} count={task.count} onClick={() => setTab(task.value)}>{task.label}</PillButton>
+          ))}
+        </PillTrack>
+      </div>
+      <div className="min-w-0">
+        {sections.inventoryManage && activeTab === "purchase" ? (
+          <Card className="min-w-0 max-w-3xl rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><PackagePlus className="size-5" aria-hidden="true" /> Order stock</CardTitle>
-              <CardDescription>Place a purchase order with a supplier. Receive it below when it arrives.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base"><PackagePlus className="size-4 text-muted-foreground" aria-hidden="true" /> Order stock</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={submitPurchase} className="grid gap-3 sm:grid-cols-2" noValidate>
@@ -414,42 +436,43 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 <Field id="po-cost" label="Unit cost (USD)">
                   <Input id="po-cost" inputMode="decimal" value={purchase.unitCost} onChange={(event) => setPurchase({ unitCost: event.currentTarget.value })} required />
                 </Field>
-                <Field id="po-expected" label="Expected delivery date" hint="A store calendar date.">
-                  <Input id="po-expected" type="date" value={purchase.expectedDate} onChange={(event) => setPurchase({ expectedDate: event.currentTarget.value })} aria-describedby="po-expected-hint" />
+                <Field id="po-expected" label="Expected delivery date">
+                  <Input id="po-expected" type="date" value={purchase.expectedDate} onChange={(event) => setPurchase({ expectedDate: event.currentTarget.value })} />
                 </Field>
                 <Field id="po-notes" label="Notes">
                   <Input id="po-notes" maxLength={500} value={purchase.notes} onChange={(event) => setPurchase({ notes: event.currentTarget.value })} />
                 </Field>
                 <FormMessage error={errors.purchase ?? null} status={statuses.purchase ?? null} />
                 <div className="flex flex-wrap gap-2 sm:col-span-2">
-                  <Button type="submit" disabled={pending}>Create purchase order</Button>
-                  <Button type="button" variant="ghost" disabled={pending} onClick={() => { setPurchase(EMPTY_DRAFTS.purchase); setError("purchase", null); }}>Clear</Button>
+                  <Button type="submit" className="min-h-10 rounded-full" disabled={pending}>Create purchase order</Button>
+                  <Button type="button" variant="ghost" className="min-h-10 rounded-full" disabled={pending} onClick={() => { setPurchase(EMPTY_DRAFTS.purchase); setError("purchase", null); }}>Clear</Button>
                 </div>
               </form>
             </CardContent>
           </Card>
         ) : null}
 
-        {sections.inventoryManage ? (
-          <Card className="min-w-0">
+        {sections.inventoryManage && activeTab === "receive" ? (
+          <Card className="min-w-0 max-w-3xl rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><PackageCheck className="size-5" aria-hidden="true" /> Receive deliveries</CardTitle>
-              <CardDescription>Submitted purchase orders awaiting delivery, oldest first.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base"><PackageCheck className="size-4 text-muted-foreground" aria-hidden="true" /> Awaiting delivery</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {receipts.loadError ? (
                 <p role="alert" className="text-sm text-destructive">Orders awaiting delivery could not be loaded. <Link className="underline" href={operationsHref(urlState, { receiptCursor: null })}>Try again</Link></p>
               ) : <>
                 {receipts.items.map((order) => (
-                  <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+                  <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm">
                     <div className="min-w-0">
-                      <div className="font-mono">{order.poNumber}</div>
-                      <div className="break-words text-muted-foreground">{order.supplier?.name || "No supplier"} · {order.inventoryItem?.name || "No item"} · {order.orderedQuantity ?? 0} {order.inventoryItem?.unit || ""}</div>
+                      <StatusTitle as="p" tone="amber" status={<span className="font-mono">{order.poNumber}</span>} className="font-medium">
+                        {order.inventoryItem?.name || "No item"} · <span className="tabular-nums">{order.orderedQuantity ?? 0} {order.inventoryItem?.unit || ""}</span>
+                      </StatusTitle>
+                      <div className="break-words pl-4 text-muted-foreground">{order.supplier?.name || "No supplier"}{order.expectedAt ? ` · Expected ${order.expectedAt.slice(0, 10)}` : ""}</div>
                     </div>
-                    <Button size="sm" variant="outline" disabled={pending} onClick={() => openReceive(order)} aria-label={`Receive ${order.poNumber}`}>Receive</Button>
+                    <Button className="min-h-10 rounded-full" disabled={pending} onClick={() => openReceive(order)} aria-label={`Receive ${order.poNumber}`}>Receive</Button>
                   </div>
                 ))}
-                {!receipts.items.length ? <p className="text-sm text-muted-foreground">{urlState.receiptCursor ? "No more orders awaiting delivery." : "No purchase orders are awaiting delivery."}</p> : null}
+                {!receipts.items.length ? <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">{urlState.receiptCursor ? "No more deliveries." : "Nothing awaiting delivery."}</p> : null}
                 <div className="flex flex-wrap gap-2">
                   {urlState.receiptCursor ? <Button asChild size="sm" variant="ghost"><Link href={operationsHref(urlState, { receiptCursor: null })} scroll={false}>Oldest first</Link></Button> : null}
                   {receipts.hasMore && receipts.nextCursor ? <Button asChild size="sm" variant="outline"><Link href={operationsHref(urlState, { receiptCursor: receipts.nextCursor })} scroll={false}>More orders</Link></Button> : null}
@@ -460,11 +483,10 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
           </Card>
         ) : null}
 
-        {sections.inventoryManage ? (
-          <Card className="min-w-0">
+        {sections.inventoryManage && activeTab === "prep" ? (
+          <Card className="min-w-0 max-w-3xl rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Soup className="size-5" aria-hidden="true" /> Record prep</CardTitle>
-              <CardDescription>Uses the recipe’s ingredients from stock and creates a prepared batch.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base"><Soup className="size-4 text-muted-foreground" aria-hidden="true" /> Record prep</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={submitPrep} className="grid gap-3 sm:grid-cols-2" noValidate>
@@ -472,7 +494,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 <Field id="prep-quantity" label={`Quantity made${prep.recipe?.unit ? ` (${prep.recipe.unit})` : ""}`}>
                   <Input id="prep-quantity" inputMode="decimal" value={prep.quantity} onChange={(event) => setPrep({ quantity: event.currentTarget.value })} required />
                 </Field>
-                <Field id="prep-expires" label="Use by (this device’s time)" hint={prep.expiresLocal ? localTimeMessage("Use by", prepExpiry) : "Optional. Leave blank if no use-by time applies."}>
+                <Field id="prep-expires" label="Use by (this device’s time)" hint={prep.expiresLocal ? localTimeMessage("Use by", prepExpiry) : "Optional"}>
                   <Input id="prep-expires" type="datetime-local" value={prep.expiresLocal} disabled={!timesAvailable} onChange={(event) => setPrep({ expiresLocal: event.currentTarget.value })} aria-describedby="prep-expires-hint" />
                 </Field>
                 <Field id="prep-notes" label="Notes">
@@ -480,26 +502,25 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 </Field>
                 <FormMessage error={errors.prep ?? null} status={statuses.prep ?? null} />
                 <div className="flex flex-wrap gap-2 sm:col-span-2">
-                  <Button type="submit" disabled={pending}>Record prep batch</Button>
-                  <Button type="button" variant="ghost" disabled={pending} onClick={() => { setPrep(EMPTY_DRAFTS.prep); setError("prep", null); }}>Clear</Button>
+                  <Button type="submit" className="min-h-10 rounded-full" disabled={pending}>Record prep batch</Button>
+                  <Button type="button" variant="ghost" className="min-h-10 rounded-full" disabled={pending} onClick={() => { setPrep(EMPTY_DRAFTS.prep); setError("prep", null); }}>Clear</Button>
                 </div>
               </form>
             </CardContent>
           </Card>
         ) : null}
 
-        {sections.inventoryManage ? (
-          <Card className="min-w-0">
+        {sections.inventoryManage && activeTab === "waste" ? (
+          <Card className="min-w-0 max-w-3xl rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Trash2 className="size-5" aria-hidden="true" /> Record waste</CardTitle>
-              <CardDescription>Remove spoiled or unusable stock or prepared food.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base"><Trash2 className="size-4 text-muted-foreground" aria-hidden="true" /> Record waste</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={submitWaste} className="grid gap-3 sm:grid-cols-2" noValidate>
-                <div className="flex flex-wrap gap-2 sm:col-span-2" role="group" aria-label="Waste from">
-                  <Button type="button" size="sm" variant={waste.sourceKind === "inventory" ? "default" : "outline"} aria-pressed={waste.sourceKind === "inventory"} onClick={() => setWaste({ sourceKind: "inventory", source: null })}>Inventory item</Button>
-                  <Button type="button" size="sm" variant={waste.sourceKind === "prep" ? "default" : "outline"} aria-pressed={waste.sourceKind === "prep"} onClick={() => setWaste({ sourceKind: "prep", source: null })}>Prepared batch</Button>
-                </div>
+                <PillTrack label="Waste from" className="sm:col-span-2">
+                  <PillButton active={waste.sourceKind === "inventory"} onClick={() => setWaste({ sourceKind: "inventory", source: null })}>Inventory item</PillButton>
+                  <PillButton active={waste.sourceKind === "prep"} onClick={() => setWaste({ sourceKind: "prep", source: null })}>Prepared batch</PillButton>
+                </PillTrack>
                 {waste.sourceKind === "inventory" ? (
                   <OptionPicker id="waste-item" label="Inventory item" noun="item" page={data.inventoryWasteItems} selected={waste.source} onSelect={(source) => setWaste({ source })} searchParam="inventoryWasteSearch" cursorParam="inventoryWasteCursor" urlState={urlState} describe={(option) => `${option.name} · ${option.currentStock ?? 0} ${option.unit ?? ""} in stock`} />
                 ) : (
@@ -521,19 +542,18 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 </div>
                 <FormMessage error={errors.waste ?? null} status={statuses.waste ?? null} />
                 <div className="flex flex-wrap gap-2 sm:col-span-2">
-                  <Button type="submit" variant="destructive" disabled={pending}>Record waste</Button>
-                  <Button type="button" variant="ghost" disabled={pending} onClick={() => { setWaste(EMPTY_DRAFTS.waste); setError("waste", null); }}>Clear</Button>
+                  <Button type="submit" className="min-h-10 rounded-full" variant="destructive" disabled={pending}>Record waste</Button>
+                  <Button type="button" variant="ghost" className="min-h-10 rounded-full" disabled={pending} onClick={() => { setWaste(EMPTY_DRAFTS.waste); setError("waste", null); }}>Clear</Button>
                 </div>
               </form>
             </CardContent>
           </Card>
         ) : null}
 
-        {sections.staffing ? (
-          <Card className="min-w-0 xl:col-span-2">
+        {sections.staffing && activeTab === "shift" ? (
+          <Card className="min-w-0 rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><CalendarPlus className="size-5" aria-hidden="true" /> Staff shifts</CardTitle>
-              <CardDescription>Schedule shifts, then clock staff in and out.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base"><CalendarPlus className="size-4 text-muted-foreground" aria-hidden="true" /> Staff shifts</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-6 lg:grid-cols-2">
               <form onSubmit={submitShift} className="grid content-start gap-3 sm:grid-cols-2" noValidate>
@@ -558,33 +578,35 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 </Field>
                 <FormMessage error={errors.shift ?? null} status={statuses.shift ?? null} />
                 <div className="flex flex-wrap gap-2 sm:col-span-2">
-                  <Button type="submit" disabled={pending || !timesAvailable}>Schedule shift</Button>
-                  <Button type="button" variant="ghost" disabled={pending} onClick={() => { setShift(EMPTY_DRAFTS.shift); setError("shift", null); }}>Clear</Button>
+                  <Button type="submit" className="min-h-10 rounded-full" disabled={pending || !timesAvailable}>Schedule shift</Button>
+                  <Button type="button" variant="ghost" className="min-h-10 rounded-full" disabled={pending} onClick={() => { setShift(EMPTY_DRAFTS.shift); setError("shift", null); }}>Clear</Button>
                 </div>
               </form>
 
               <div className="min-w-0 space-y-3">
                 <h3 className="text-sm font-semibold">
-                  Scheduled and clocked-in shifts{shifts.totalCount != null ? ` (${shifts.totalCount})` : ""}
+                  On the schedule{shifts.totalCount != null ? <span className="ml-1.5 font-normal tabular-nums text-muted-foreground">{shifts.totalCount}</span> : null}
                 </h3>
                 {shifts.loadError ? (
                   <p role="alert" className="text-sm text-destructive">Shifts could not be loaded. <Link className="underline" href={operationsHref(urlState, { shiftCursor: null })}>Try again</Link></p>
                 ) : <>
                   {shifts.items.map((item) => (
-                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm">
                       <div className="min-w-0">
-                        <div className="break-words font-medium">{item.staff?.name || item.staff?.email || "Unassigned"} <span className="font-mono text-xs text-muted-foreground">{item.shiftNumber}</span></div>
-                        <div className="capitalize text-muted-foreground">{item.role.replaceAll("_", " ")} · {item.status.replaceAll("_", " ")}</div>
-                        <div className="text-xs text-muted-foreground">{item.startsAt ? formatStoreDateTime(item.startsAt, tz) : "No start time"}{item.endsAt ? ` – ${formatStoreDateTime(item.endsAt, tz)}` : ""}</div>
+                        <StatusTitle as="p" tone={item.status === "clocked_in" ? "green" : "blue"} pulse={item.status === "clocked_in"} status={<span className="capitalize">{item.status.replaceAll("_", " ")}</span>} className="font-medium">
+                          {item.staff?.name || item.staff?.email || "Unassigned"}
+                        </StatusTitle>
+                        <div className="pl-4 text-muted-foreground"><span className="capitalize">{item.role.replaceAll("_", " ")}</span> · <span className="font-mono text-xs">{item.shiftNumber}</span></div>
+                        <div className="pl-4 text-xs text-muted-foreground">{item.startsAt ? formatStoreDateTime(item.startsAt, tz) : "No start time"}{item.endsAt ? ` – ${formatStoreDateTime(item.endsAt, tz)}` : ""}</div>
                       </div>
                       <div className="flex gap-2">
                         {item.actions.map((action) => (
-                          <Button key={action.status} size="sm" disabled={pending} onClick={() => transition(item.id, action.status as "clocked_in" | "completed", item.status)} aria-label={`${action.label}: ${item.staff?.name || item.shiftNumber}`}>{action.label}</Button>
+                          <Button key={action.status} className="min-h-10 rounded-full" disabled={pending} onClick={() => transition(item.id, action.status as "clocked_in" | "completed", item.status)} aria-label={`${action.label}: ${item.staff?.name || item.shiftNumber}`}>{action.label}</Button>
                         ))}
                       </div>
                     </div>
                   ))}
-                  {!shifts.items.length ? <p className="text-sm text-muted-foreground">{urlState.shiftCursor ? "No more open shifts." : "No shifts are scheduled or in progress."}</p> : null}
+                  {!shifts.items.length ? <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">{urlState.shiftCursor ? "No more open shifts." : "No shifts scheduled or in progress."}</p> : null}
                   <div className="flex flex-wrap gap-2">
                     {urlState.shiftCursor ? <Button asChild size="sm" variant="ghost"><Link href={operationsHref(urlState, { shiftCursor: null })} scroll={false}>Oldest first</Link></Button> : null}
                     {shifts.hasMore && shifts.nextCursor ? <Button asChild size="sm" variant="outline"><Link href={operationsHref(urlState, { shiftCursor: shifts.nextCursor })} scroll={false}>More shifts</Link></Button> : null}
@@ -604,7 +626,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
           <form onSubmit={submitReceive} className="space-y-4" noValidate>
             <DialogHeader>
               <DialogTitle>Receive {receiving?.poNumber}</DialogTitle>
-              <DialogDescription>Check the delivery against this order before adding it to stock.</DialogDescription>
+              <DialogDescription className="sr-only">Delivery details</DialogDescription>
             </DialogHeader>
             {receiving ? (
               <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
@@ -615,17 +637,17 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 <dt className="text-muted-foreground">Subtotal</dt><dd className="tabular-nums">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((receiving.subtotalCents ?? 0) / 100)}</dd>
               </dl>
             ) : null}
-            <Field id="receive-expiry" label="Expiry printed on the delivery (this device’s time)" hint={receiveExpiry ? localTimeMessage("Expiry", receiveExpiryResolution) : "Optional. Leave blank if the delivery has no expiry; it is recorded as unknown."}>
+            <Field id="receive-expiry" label="Expiry printed on the delivery (this device’s time)" hint={receiveExpiry ? localTimeMessage("Expiry", receiveExpiryResolution) : "Optional"}>
               <Input id="receive-expiry" type="datetime-local" value={receiveExpiry} disabled={!timesAvailable} onChange={(event) => setReceiveExpiry(event.currentTarget.value)} aria-describedby="receive-expiry-hint" />
             </Field>
             <div className="flex items-start gap-2">
               <Checkbox id="receive-confirm" checked={receiveConfirmed} onCheckedChange={(checked) => setReceiveConfirmed(checked === true)} />
-              <Label htmlFor="receive-confirm" className="font-normal leading-snug">The full ordered quantity arrived. Partial deliveries can’t be recorded here yet.</Label>
+              <Label htmlFor="receive-confirm" className="font-normal leading-snug">Full ordered quantity arrived (partial deliveries aren’t supported)</Label>
             </div>
             <FormMessage error={errors.receive ?? null} status={receiving ? statuses.receive ?? null : null} />
             <DialogFooter>
               <Button type="button" variant="outline" disabled={pending} onClick={() => setReceiving(null)}>Cancel</Button>
-              <Button type="submit" disabled={pending || !receiveConfirmed}>Add to stock</Button>
+              <Button type="submit" className="min-h-10 rounded-full" disabled={pending || !receiveConfirmed}>Add to stock</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -11,10 +11,10 @@ export default async function RootHomePage({ searchParams }: { searchParams?: Pr
     <StorefrontFrame requireStore={false}>
       {result.kind === "unavailable" ? (
         <StorefrontShell>
-          <main className="sf-container py-16">
+          <main className="sf-container sf-page">
             <div className="sf-empty" role="alert">
-              <p>The menu is temporarily unavailable.</p>
-              <Link href="/" className="sf-btn sf-btn-ghost mt-4">Try again</Link>
+              <strong>Menu unavailable</strong>
+              <Link href="/" className="sf-btn sf-btn-ghost mt-3">Try again</Link>
             </div>
           </main>
         </StorefrontShell>

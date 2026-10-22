@@ -9,8 +9,8 @@ export function ReceiptRefreshButton({ label = "Refresh status" }: { label?: str
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
-    <button type="button" className="sf-btn sf-btn-ghost" disabled={pending} onClick={() => startTransition(() => router.refresh())}>
-      <RotateCcw className="h-4 w-4" aria-hidden="true" />
+    <button type="button" className="sf-btn" disabled={pending} onClick={() => startTransition(() => router.refresh())}>
+      <RotateCcw className="size-4" aria-hidden="true" />
       {pending ? "Refreshing…" : label}
     </button>
   );

@@ -1,11 +1,12 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
+import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
+import { PlatformEmpty, PlatformHeader, PlatformSection } from "@/features/platform/components/PlatformPage";
+import { StatusTitle } from "@/features/platform/components/StatusTitle";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 import { formatStoreDateTime } from "@/lib/date-time";
 import { addBusinessDays, isBusinessDate } from "../lib/businessDate";
@@ -101,54 +102,65 @@ function pct(numerator: number, denominator: number) {
 function periodLabel(period: ReportsProjection["period"]) {
   const option = PERIOD_OPTIONS.find((candidate) => candidate.value === period.period);
   const range = period.startDate === period.endDate ? period.startDate : `${period.startDate} to ${period.endDate}`;
-  return `${option && option.value !== "custom" ? `${option.label} · ` : ""}${range} · ${period.timezoneConfigured ? `store time (${period.timezone})` : "UTC (store timezone not set)"}`;
+  return `${option && option.value !== "custom" ? `${option.label} · ` : ""}${range} · ${period.timezoneConfigured ? period.timezone : "UTC (store timezone not set)"}`;
 }
 
 function PeriodForm({ input, error }: { input: PeriodInput; error: string | null }) {
+  const custom = input.period === "custom";
   return (
-    <form method="get" action="/dashboard/platform/reports" className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,12rem)_minmax(0,11rem)_minmax(0,11rem)_auto] lg:items-end">
-      <div className="grid gap-1.5">
-        <Label htmlFor="report-period">Period</Label>
-        <select id="report-period" name="period" defaultValue={input.period} className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground">
-          {PERIOD_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="report-start">Start date (custom)</Label>
-        <Input id="report-start" name="startDate" type="date" defaultValue={input.startDate} aria-describedby={error ? "report-period-error" : undefined} />
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="report-end">End date (custom)</Label>
-        <Input id="report-end" name="endDate" type="date" defaultValue={input.endDate} aria-describedby={error ? "report-period-error" : undefined} />
-      </div>
-      <Button type="submit">Show period</Button>
-      {error ? <p id="report-period-error" role="alert" className="text-sm text-destructive sm:col-span-2 lg:col-span-4">{error}</p> : null}
-    </form>
-  );
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="min-w-0 rounded-lg border bg-card p-4">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-words text-2xl font-semibold tabular-nums text-foreground">{value}</dd>
-      {hint ? <dd className="mt-1 text-xs text-muted-foreground">{hint}</dd> : null}
+    <div className="space-y-3">
+      <nav aria-label="Period">
+        <PillTrack label="Period">
+          {PERIOD_OPTIONS.map((option) => (
+            <PillLink key={option.value} size="md" href={reportHref({ ...input, lowStockPage: 0 }, { period: option.value })} active={input.period === option.value}>{option.label}</PillLink>
+          ))}
+        </PillTrack>
+      </nav>
+      {custom ? (
+        <form method="get" action="/dashboard/platform/reports" className="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="period" value="custom" />
+          <div className="grid gap-1.5">
+            <Label htmlFor="report-start">Start</Label>
+            <Input id="report-start" name="startDate" type="date" defaultValue={input.startDate} aria-describedby={error ? "report-period-error" : undefined} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="report-end">End</Label>
+            <Input id="report-end" name="endDate" type="date" defaultValue={input.endDate} aria-describedby={error ? "report-period-error" : undefined} />
+          </div>
+          <Button type="submit" className="rounded-full">Apply</Button>
+          {error ? <p id="report-period-error" role="alert" className="basis-full text-sm text-destructive">{error}</p> : null}
+        </form>
+      ) : null}
     </div>
   );
 }
 
-function EmptyLine({ text }: { text: string }) {
-  return <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">{text}</p>;
+function Figure({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="min-w-0 bg-card px-4 py-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 break-words text-lg font-semibold tabular-nums tracking-tight text-foreground">{value}</dd>
+      {sub ? <dd className="text-xs tabular-nums text-muted-foreground">{sub}</dd> : null}
+    </div>
+  );
+}
+
+function Bar({ value, max, tone = "bg-primary" }: { value: number; max: number; tone?: string }) {
+  return (
+    <div className="h-1.5 rounded-full bg-muted" aria-hidden="true">
+      <div className={`h-1.5 rounded-full ${tone}`} style={{ width: pct(value, max) }} />
+    </div>
+  );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <PageContainer
       title="Analytics"
-      header={<div><h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Analytics</h1><p className="text-sm text-muted-foreground">Sales, collections, stock and loyalty for a selected store business period.</p></div>}
+      header={<PlatformHeader title="Analytics" />}
       breadcrumbs={[{ type: "link", label: "Dashboard", href: "/dashboard" }, { type: "page", label: "Analytics" }]}
     >
-      <div className="space-y-6 px-4 pb-8 md:px-6">{children}</div>
+      <div className="space-y-8 px-4 pb-10 md:px-6">{children}</div>
     </PageContainer>
   );
 }
@@ -170,8 +182,9 @@ export async function CafeReportsPage({ searchParams }: { searchParams?: Promise
     return (
       <Shell>
         <PeriodForm input={input} error={null} />
-        <div role="alert" className="rounded-lg border border-destructive/40 bg-card p-4 text-sm text-foreground">
-          Analytics are unavailable right now. No figures are shown. <Link className="font-medium underline" href={reportHref(input, {})}>Try again</Link>
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <p className="font-medium">Analytics unavailable.</p>
+          <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={reportHref(input, {})}>Try again</Link></Button>
         </div>
       </Shell>
     );
@@ -182,166 +195,155 @@ export async function CafeReportsPage({ searchParams }: { searchParams?: Promise
   const currency = collections?.currencyCode || "USD";
   const nothingVisible = !sales && !collections && !lowStock && !loyalty;
   const maxStation = Math.max(1, ...(sales?.stationProduction.map((station) => station.quantity) ?? []));
+  const maxItemRevenue = Math.max(1, ...(sales?.topItems.map((item) => item.revenueCents) ?? []));
+  const mismatch = Boolean(collections?.currencyMismatch);
+  const headline = collections
+    ? { label: "Net collected", value: mismatch ? "Unavailable" : money(collections.netCollectedCents, currency), sub: `${count(collections.paymentCount)} payments` }
+    : sales ? { label: "Gross sales", value: money(sales.grossSalesCents, currency), sub: `${count(sales.completedCount)} completed orders` } : null;
 
   return (
     <Shell>
-      <PeriodForm input={input} error={null} />
-      <p role="status" className="text-sm text-muted-foreground">{periodLabel(report.period)}</p>
-      {nothingVisible ? <EmptyLine text="Your role does not include any analytics sections." /> : null}
+      <div className="space-y-2">
+        <PeriodForm input={input} error={null} />
+        <p role="status" className="text-xs text-muted-foreground">{periodLabel(report.period)}</p>
+      </div>
+      {nothingVisible ? <PlatformEmpty>No analytics sections for your role.</PlatformEmpty> : null}
 
-      {sales || collections ? (
-        <section aria-labelledby="sales-heading" className="space-y-3">
-          <h2 id="sales-heading" className="text-lg font-semibold">Sales and collections</h2>
-          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {headline ? (
+        <section aria-labelledby="sales-heading" className="space-y-4">
+          <h2 id="sales-heading" className="sr-only">Sales and collections</h2>
+          <div>
+            <p className="text-sm text-muted-foreground">{headline.label}</p>
+            <p className="text-4xl font-semibold tabular-nums tracking-tight md:text-5xl">{headline.value}</p>
+            <p className="mt-1 text-sm tabular-nums text-muted-foreground">{headline.sub}</p>
+          </div>
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 xl:grid-cols-5">
             {collections ? <>
-              <Stat label="Net collected" value={collections.currencyMismatch ? "Unavailable" : money(collections.netCollectedCents, currency)} hint="Captured payments minus refunds, by payment date" />
-              <Stat label="Collected before refunds" value={collections.currencyMismatch ? "Unavailable" : money(collections.grossCollectedCents, currency)} hint={`${count(collections.paymentCount)} payments`} />
-              <Stat label="Refunded" value={collections.currencyMismatch ? "Unavailable" : money(collections.refundedCents, currency)} />
+              <Figure label="Collected before refunds" value={mismatch ? "Unavailable" : money(collections.grossCollectedCents, currency)} />
+              <Figure label="Refunded" value={mismatch ? "Unavailable" : money(collections.refundedCents, currency)} />
             </> : null}
             {sales ? <>
-              <Stat label="Gross sales" value={money(sales.grossSalesCents, currency)} hint={`Item subtotal of ${count(sales.completedCount)} completed orders`} />
-              <Stat label="Tax" value={money(sales.taxCents, currency)} hint="On completed orders" />
-              <Stat label="Tips" value={money(sales.tipCents, currency)} hint="On completed orders" />
-              <Stat label="Discounts" value={money(sales.discountCents, currency)} hint="On completed orders" />
-              <Stat label="Orders placed" value={count(sales.orderCount)} hint={`${count(sales.cancelledCount)} cancelled`} />
-              <Stat label="Completion rate" value={`${sales.completionRatePercent}%`} />
-              <Stat label="Average fulfillment" value={sales.averageFulfillmentMinutes == null ? "No completed orders" : `${sales.averageFulfillmentMinutes} min`} hint={sales.fulfillmentSampleCount ? `Across ${count(sales.fulfillmentSampleCount)} completed orders` : undefined} />
-              <Stat label="Open tickets now" value={count(sales.openTicketCount)} hint={`${count(sales.readyTicketCount)} ready for pickup · current, not period-based`} />
+              {collections ? <Figure label="Gross sales" value={money(sales.grossSalesCents, currency)} sub={`${count(sales.completedCount)} completed`} /> : null}
+              <Figure label="Tax" value={money(sales.taxCents, currency)} />
+              <Figure label="Tips" value={money(sales.tipCents, currency)} />
+              <Figure label="Discounts" value={money(sales.discountCents, currency)} />
+              <Figure label="Orders placed" value={count(sales.orderCount)} sub={`${count(sales.cancelledCount)} cancelled`} />
+              <Figure label="Completion" value={`${sales.completionRatePercent}%`} />
+              <Figure label="Avg fulfillment" value={sales.averageFulfillmentMinutes == null ? "—" : `${sales.averageFulfillmentMinutes} min`} sub={sales.fulfillmentSampleCount ? `${count(sales.fulfillmentSampleCount)} orders` : undefined} />
+              <Figure label="Open tickets now" value={count(sales.openTicketCount)} sub={`${count(sales.readyTicketCount)} ready`} />
             </> : null}
           </dl>
-          {collections?.currencyMismatch ? <p role="alert" className="text-sm text-destructive">Payments in this period use more than one currency, so collected totals cannot be combined. Review payments before relying on these figures.</p> : null}
-          {collections && collections.needsReviewCount > 0 ? <p role="status" className="text-sm text-muted-foreground">{count(collections.needsReviewCount)} payments in this period have refund details that need review; they are included as recorded.</p> : null}
+          {mismatch ? <p role="alert" className="text-sm text-destructive">Payments use more than one currency; collected totals can’t be combined.</p> : null}
+          {collections && collections.needsReviewCount > 0 ? <p role="status" className="text-sm text-muted-foreground">{count(collections.needsReviewCount)} payments have refund details needing review; included as recorded.</p> : null}
         </section>
       ) : null}
 
       {sales ? (
-        <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
-          <Card className="min-w-0">
-            <CardHeader>
-              <CardTitle>Top items</CardTitle>
-              <CardDescription>Top {sales.topItems.length || 8} products by line sales on completed orders in this period, grouped by menu item.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {sales.topItems.length ? (
-                <div className="overflow-x-auto rounded-lg border">
-                  <Table aria-label="Top items">
-                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Sold</TableHead><TableHead className="text-right">Line sales</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {sales.topItems.map((item) => (
-                        <TableRow key={item.key}>
-                          <TableCell className="min-w-0 break-words font-medium">{item.name}</TableCell>
-                          <TableCell className="text-right tabular-nums">{count(item.quantity)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{money(item.revenueCents, currency)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : <EmptyLine text="No completed orders in this period." />}
-              {sales.topItemsTruncated ? <p role="status" className="mt-2 text-xs text-muted-foreground">This period has an unusually large number of price variants; rankings use the first 5,000.</p> : null}
-            </CardContent>
-          </Card>
+        <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
+          <PlatformSection id="top-items-heading" title="Product mix" meta="Completed orders">
+            {sales.topItems.length ? (
+              <ol className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card" aria-label="Top items">
+                {sales.topItems.map((item, index) => (
+                  <li key={item.key} className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3">
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">{index + 1}</span>
+                    <span className="min-w-0 break-words text-sm font-medium">{item.name}</span>
+                    <span className="text-right text-sm font-semibold tabular-nums">{money(item.revenueCents, currency)}</span>
+                    <span aria-hidden="true" />
+                    <Bar value={item.revenueCents} max={maxItemRevenue} />
+                    <span className="text-right text-xs tabular-nums text-muted-foreground">{count(item.quantity)} sold</span>
+                  </li>
+                ))}
+              </ol>
+            ) : <PlatformEmpty>No completed orders in this period.</PlatformEmpty>}
+            {sales.topItemsTruncated ? <p role="status" className="text-xs text-muted-foreground">Rankings use the first 5,000 price variants.</p> : null}
+          </PlatformSection>
 
-          <Card className="min-w-0">
-            <CardHeader>
-              <CardTitle>Items produced by station</CardTitle>
-              <CardDescription>Items on completed orders in this period. For current station work, use the KDS.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {sales.stationProduction.map((station) => (
-                <div key={station.station} className="rounded-lg border p-3">
-                  <div className="mb-2 flex flex-wrap justify-between gap-2 text-sm">
-                    <span className="font-medium capitalize">{station.station.replaceAll("_", " ")}</span>
-                    <span className="tabular-nums">{count(station.quantity)} items</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted" aria-hidden="true">
-                    <div className="h-2 rounded-full bg-primary" style={{ width: pct(station.quantity, maxStation) }} />
-                  </div>
-                </div>
-              ))}
-              {!sales.stationProduction.length ? <EmptyLine text="No completed items in this period." /> : null}
-            </CardContent>
-          </Card>
-        </section>
+          <PlatformSection id="stations-heading" title="By station" meta="Items made">
+            {sales.stationProduction.length ? (
+              <ul className="space-y-3 rounded-xl border border-border bg-card p-4">
+                {sales.stationProduction.map((station) => (
+                  <li key={station.station} className="space-y-1.5">
+                    <div className="flex justify-between gap-2 text-sm">
+                      <span className="font-medium capitalize">{station.station.replaceAll("_", " ")}</span>
+                      <span className="tabular-nums text-muted-foreground">{count(station.quantity)}</span>
+                    </div>
+                    <Bar value={station.quantity} max={maxStation} />
+                  </li>
+                ))}
+              </ul>
+            ) : <PlatformEmpty>No completed items in this period.</PlatformEmpty>}
+          </PlatformSection>
+        </div>
       ) : null}
 
       {lowStock || loyalty ? (
-        <section className="grid min-w-0 gap-6 xl:grid-cols-2">
+        <div className="grid min-w-0 gap-8 xl:grid-cols-2">
           {lowStock ? (
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle>Low-stock watchlist</CardTitle>
-                <CardDescription>
-                  {lowStock.totalCount
-                    ? `${count(lowStock.totalCount)} items at or below their reorder point, or under 35% of par. Lowest stock first.`
-                    : "Items at or below their reorder point, or under 35% of par."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {lowStock.items.map((item) => (
-                  <div key={item.id} className="rounded-lg border p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="break-words font-medium">{item.name}</div>
-                        <div className="mt-1 text-sm capitalize text-muted-foreground">{item.category || "Uncategorized"} · {item.supplierName || "No supplier"}</div>
-                      </div>
-                      <div className="text-right text-sm">
-                        <div className="font-semibold tabular-nums">{quantity(item.currentStock)} {item.unit}</div>
-                        <div className="text-muted-foreground">reorder at {quantity(item.reorderPoint)}</div>
-                      </div>
-                    </div>
-                    {item.parLevel > 0 ? (
-                      <div className="mt-3 h-2 rounded-full bg-muted" aria-hidden="true">
-                        <div className="h-2 rounded-full bg-destructive" style={{ width: pct(Math.max(0, Math.min(item.currentStock, item.parLevel)), item.parLevel) }} />
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-                {!lowStock.items.length ? <EmptyLine text={lowStock.page > 0 ? "No more low-stock items on this page." : "No items are low on stock."} /> : null}
-                {lowStock.totalCount > lowStock.pageSize || lowStock.page > 0 ? (
-                  <nav aria-label="Low-stock pages" className="flex flex-wrap items-center gap-2">
-                    <p className="mr-auto text-sm text-muted-foreground">
-                      {lowStock.items.length ? `Showing ${count(lowStock.page * lowStock.pageSize + 1)}–${count(lowStock.page * lowStock.pageSize + lowStock.items.length)} of ${count(lowStock.totalCount)}` : `${count(lowStock.totalCount)} total`}
-                    </p>
-                    {lowStock.page > 0 ? <Button asChild size="sm" variant="outline"><Link href={reportHref(input, { lowStockPage: lowStock.page - 1 })}>Previous</Link></Button> : null}
-                    {(lowStock.page + 1) * lowStock.pageSize < lowStock.totalCount ? <Button asChild size="sm" variant="outline"><Link href={reportHref(input, { lowStockPage: lowStock.page + 1 })}>Next</Link></Button> : null}
-                  </nav>
-                ) : null}
-              </CardContent>
-            </Card>
+            <PlatformSection
+              id="low-stock-heading"
+              title="Low stock"
+              meta={lowStock.totalCount ? count(lowStock.totalCount) : undefined}
+              actions={lowStock.totalCount > lowStock.pageSize || lowStock.page > 0 ? (
+                <nav aria-label="Low-stock pages" className="flex items-center gap-1">
+                  {lowStock.page > 0 ? <Button asChild size="sm" variant="ghost" className="rounded-full"><Link href={reportHref(input, { lowStockPage: lowStock.page - 1 })}>Previous</Link></Button> : null}
+                  {(lowStock.page + 1) * lowStock.pageSize < lowStock.totalCount ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={reportHref(input, { lowStockPage: lowStock.page + 1 })}>Next</Link></Button> : null}
+                </nav>
+              ) : null}
+            >
+              {lowStock.items.length ? (
+                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+                  {lowStock.items.map((item) => {
+                    const out = item.currentStock <= 0;
+                    return (
+                      <li key={item.id} className="space-y-2 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <StatusTitle as="p" tone={out ? "red" : "amber"} status={out ? "Out" : null} className="text-sm font-medium">{item.name}</StatusTitle>
+                            <p className="pl-4 text-xs capitalize text-muted-foreground">{item.category || "Uncategorized"} · {item.supplierName || "No supplier"}</p>
+                          </div>
+                          <div className="shrink-0 text-right text-sm">
+                            <p className="font-semibold tabular-nums">{quantity(item.currentStock)} {item.unit}</p>
+                            <p className="text-xs tabular-nums text-muted-foreground">Reorder at {quantity(item.reorderPoint)}</p>
+                          </div>
+                        </div>
+                        {item.parLevel > 0 ? <div className="pl-4"><Bar value={Math.max(0, Math.min(item.currentStock, item.parLevel))} max={item.parLevel} tone="bg-destructive" /></div> : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : <PlatformEmpty>{lowStock.page > 0 ? "No more low-stock items." : "Nothing low on stock."}</PlatformEmpty>}
+              {lowStock.items.length && (lowStock.totalCount > lowStock.pageSize || lowStock.page > 0) ? (
+                <p className="text-xs tabular-nums text-muted-foreground">{count(lowStock.page * lowStock.pageSize + 1)}–{count(lowStock.page * lowStock.pageSize + lowStock.items.length)} of {count(lowStock.totalCount)}</p>
+              ) : null}
+            </PlatformSection>
           ) : null}
 
           {loyalty ? (
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle>Loyalty</CardTitle>
-                <CardDescription>Totals cover every store loyalty account. The six accounts with the most lifetime points are listed.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <Stat label="Accounts" value={count(loyalty.accountCount)} />
-                  <Stat label="Visits" value={count(loyalty.totalVisits)} />
-                  <Stat label="Unredeemed drink credits" value={count(loyalty.outstandingDrinkCredits)} />
-                </dl>
-                <div className="space-y-3">
+            <PlatformSection id="loyalty-heading" title="Loyalty" meta="All time">
+              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border">
+                <Figure label="Accounts" value={count(loyalty.accountCount)} />
+                <Figure label="Visits" value={count(loyalty.totalVisits)} />
+                <Figure label="Unredeemed credits" value={count(loyalty.outstandingDrinkCredits)} />
+              </dl>
+              {loyalty.topAccounts.length ? (
+                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                   {loyalty.topAccounts.map((account) => (
-                    <div key={account.id} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-3">
+                    <li key={account.id} className="flex items-start justify-between gap-3 px-4 py-3">
                       <div className="min-w-0">
-                        <div className="break-words font-medium">{account.customerName || account.customerEmail || "Guest account"}</div>
-                        <div className="text-sm capitalize text-muted-foreground">{(account.tier || "regular").replaceAll("_", " ")} · last visit {formatStoreDateTime(account.lastVisitAt, report.storeTimezone)}</div>
+                        <p className="break-words text-sm font-medium">{account.customerName || account.customerEmail || "Guest account"}</p>
+                        <p className="text-xs text-muted-foreground"><span className="capitalize">{(account.tier || "regular").replaceAll("_", " ")}</span> · Last visit {formatStoreDateTime(account.lastVisitAt, report.storeTimezone)}</p>
                       </div>
-                      <div className="text-right text-sm">
-                        <div className="font-semibold tabular-nums">{count(account.lifetimePoints || 0)} pts</div>
-                        <div className="text-muted-foreground">{count(account.drinkCredits || 0)} credits</div>
+                      <div className="shrink-0 text-right text-sm">
+                        <p className="font-semibold tabular-nums">{count(account.lifetimePoints || 0)} pts</p>
+                        <p className="text-xs tabular-nums text-muted-foreground">{count(account.drinkCredits || 0)} credits</p>
                       </div>
-                    </div>
+                    </li>
                   ))}
-                  {!loyalty.topAccounts.length ? <EmptyLine text="No loyalty accounts yet." /> : null}
-                </div>
-              </CardContent>
-            </Card>
+                </ul>
+              ) : <PlatformEmpty>No loyalty accounts yet.</PlatformEmpty>}
+            </PlatformSection>
           ) : null}
-        </section>
+        </div>
       ) : null}
     </Shell>
   );

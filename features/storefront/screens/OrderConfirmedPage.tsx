@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { formatModifierAdjustment, formatMoney, formatPickupTime } from "@/features/storefront/lib/format";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 import { StorefrontShell } from "@/features/storefront/components/StorefrontShell";
@@ -20,6 +21,23 @@ const ORDER_QUERY = `
   }
 `;
 
+// Customer-facing progress. "paid" sits with "accepted": payment doesn't move the drink along.
+const PROGRESS = [
+  { label: "Received", statuses: ["open"] },
+  { label: "Accepted", statuses: ["accepted", "paid"] },
+  { label: "In queue", statuses: ["in_bar_queue"] },
+  { label: "Preparing", statuses: ["preparing"] },
+  { label: "Ready", statuses: ["ready"] },
+  { label: "Picked up", statuses: ["completed"] },
+];
+
+function statusDot(status: string) {
+  if (status === "ready") return "sf-dot-ready";
+  if (status === "completed") return "sf-dot-done";
+  if (status === "cancelled" || status === "refunded") return "sf-dot-cancelled";
+  return PROGRESS.some((step) => step.statuses.includes(status)) ? "sf-dot-active" : "";
+}
+
 export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secretKey?: string }) {
   // The receipt is authorized on its own; current public store settings are optional context, never a gate.
   const [response, storeResult] = await Promise.all([
@@ -34,128 +52,147 @@ export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secre
   const order = confirmation.kind === "found" ? confirmation.order : null;
   const statusCopy = order ? getCustomerOrderStatusCopy(order.status) : null;
   const failureCopy = confirmation.kind === "found" ? null : getOrderConfirmationFailureCopy(confirmation.kind);
+  const stepIndex = order ? PROGRESS.findIndex((step) => step.statuses.includes(order.status)) : -1;
 
   return (
     <StorefrontShell>
-      <main className="sf-container py-8 sm:py-10">
+      <main className="sf-container sf-page">
+        <Link href="/" className="sf-back-link">
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          Menu
+        </Link>
+
         {order ? (
-          <section className="space-y-10">
-            <div className="border-b border-[var(--sf-rule)] pb-8">
-              <p className="sf-kicker">{statusCopy?.label}</p>
-              <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <h1 className="sf-display text-[var(--sf-text-display)] leading-[0.9] [overflow-wrap:anywhere]">#{order.orderNumber}</h1>
-                  <p className="mt-4 max-w-xl text-[var(--sf-ink-muted)] leading-relaxed">
-                    For {order.pickupName || "Guest"} · {statusCopy?.message}
-                  </p>
+          <div className="sf-split mt-2">
+            <section className="sf-ticket min-w-0" aria-labelledby="receipt-title">
+              <div className="sf-ticket-section">
+                <h1 id="receipt-title" className="sf-display sf-page-title sf-status [overflow-wrap:anywhere]">
+                  <span className={`sf-dot !size-3 ${statusDot(order.status)}`} aria-hidden="true" />
+                  <span>{statusCopy?.label}</span>
+                </h1>
+                <p className="sf-muted mt-2">{statusCopy?.message}</p>
+                <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+                  <div>
+                    <dt className="sf-label">Order</dt>
+                    <dd className="sf-mono font-semibold">#{order.orderNumber}</dd>
+                  </div>
+                  <div>
+                    <dt className="sf-label">Name</dt>
+                    <dd className="font-semibold [overflow-wrap:anywhere]">{order.pickupName || "Guest"}</dd>
+                  </div>
                   {statusCopy?.showPickupEstimate ? (
-                    <p className="mt-2 text-sm text-[var(--sf-ink-muted)]">
-                      {order.status === "open" ? "Requested pickup time" : "Pickup time"}: {formatPickupTime(order.promisedAt, store?.timezone)}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 text-xs text-[var(--sf-ink-muted)]">
-                    Status as of {loadedAt}. Email or text notification delivery is not confirmed here.
-                  </p>
-                  <div className="mt-4">
-                    <ReceiptRefreshButton />
-                  </div>
-                </div>
-                <div>
-                  <p className="sf-kicker">Handoff code</p>
-                  <p className="sf-handoff sf-ticket mt-2">{order.handoffCode || "—"}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="sf-split">
-              <div>
-                <h2 className="sf-display text-[var(--sf-text-display-s)]">{order.status === "open" ? "Requested items" : "Order items"}</h2>
-                <div className="mt-4 divide-y divide-[var(--sf-rule)] border-t border-[var(--sf-rule)]">
-                  {order.orderItems?.map((item: CafeOrderItemSnapshot) => (
-                    <div key={item.id} className="flex justify-between gap-4 py-4">
-                      <div className="flex min-w-0 gap-4">
-                        <StorefrontMedia
-                          item={{
-                            name: item.itemNameSnapshot || "Menu item",
-                            imageUrl: item.imagePathSnapshot,
-                            primaryImageUrl: item.imagePathSnapshot,
-                          }}
-                          className="h-16 w-16 shrink-0 border border-[var(--sf-rule)]"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-semibold">
-                            {item.quantity}× {item.itemNameSnapshot}
-                          </p>
-                          {item.modifierSnapshot?.length ? (
-                            <ul className="mt-1 space-y-0.5 text-sm text-[var(--sf-ink-muted)]">
-                              {item.modifierSnapshot.map((modifier) => (
-                                <li key={`${modifier.id}:${modifier.name}`}>
-                                  {modifier.name}
-                                  {modifier.priceAdjustment ? ` · ${formatModifierAdjustment(modifier.priceAdjustment, order.currencyCode)}` : ""}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : item.customizationsSummary ? (
-                            <p className="mt-1 text-sm text-[var(--sf-ink-muted)]">{item.customizationsSummary}</p>
-                          ) : null}
-                          {item.specialInstructions ? (
-                            <p className="mt-2 text-sm italic text-[var(--sf-ink-muted)]">Note: {item.specialInstructions}</p>
-                          ) : null}
-                        </div>
-                      </div>
-                      <p className="sf-ticket font-semibold">{formatMoney(item.price * item.quantity, order.currencyCode)}</p>
+                    <div>
+                      <dt className="sf-label">{order.status === "open" ? "Requested pickup" : "Pickup"}</dt>
+                      <dd className="font-semibold">{formatPickupTime(order.promisedAt, store?.timezone)}</dd>
                     </div>
-                  ))}
-                </div>
+                  ) : null}
+                </dl>
               </div>
 
-              <aside className="sf-panel sf-sticky-panel">
-                <p className="sf-kicker">Order reference</p>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--sf-ink-muted)]">
-                  This handoff code is associated with this order.
-                </p>
+              {stepIndex >= 0 ? (
+                <div className="sf-ticket-section !pt-0">
+                  <ol className="sf-steps" aria-label="Order progress">
+                    {PROGRESS.map((step, index) => (
+                      <li
+                        key={step.label}
+                        className={`sf-step ${index < stepIndex ? "is-done" : ""} ${index === stepIndex ? "is-current is-done" : ""}`}
+                        aria-current={index === stepIndex ? "step" : undefined}
+                      >
+                        <span className="sf-dot" aria-hidden="true" />
+                        {step.label}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
 
-                <hr className="sf-rule my-5" />
+              <div className="sf-perf" aria-hidden="true" />
 
-                <p className="sf-kicker">Totals</p>
-                <div className="mt-4 space-y-2 text-sm text-[var(--sf-ink-muted)] sf-ticket">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{formatMoney(order.subtotal, order.currencyCode)}</span>
+              <div className="sf-ticket-section">
+                <h2 className="sf-label mb-4">{order.status === "open" ? "Requested items" : "Items"}</h2>
+                {order.orderItems?.map((item: CafeOrderItemSnapshot) => (
+                  <div key={item.id} className="sf-line">
+                    <StorefrontMedia
+                      item={{
+                        name: item.itemNameSnapshot || "Menu item",
+                        imageUrl: item.imagePathSnapshot,
+                        primaryImageUrl: item.imagePathSnapshot,
+                      }}
+                      className="sf-line-media"
+                      sizes="64px"
+                    />
+                    <div className="min-w-0">
+                      <div className="sf-line-top">
+                        <p className="sf-line-name">
+                          <span className="sf-mono">{item.quantity}×</span> {item.itemNameSnapshot}
+                        </p>
+                        <p className="sf-mono shrink-0 font-semibold">{formatMoney(item.price * item.quantity, order.currencyCode)}</p>
+                      </div>
+                      {item.modifierSnapshot?.length ? (
+                        <ul className="sf-line-mods">
+                          {item.modifierSnapshot.map((modifier) => (
+                            <li key={`${modifier.id}:${modifier.name}`}>
+                              {modifier.name}
+                              {modifier.priceAdjustment ? ` · ${formatModifierAdjustment(modifier.priceAdjustment, order.currencyCode)}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : item.customizationsSummary ? (
+                        <p className="sf-line-mods">{item.customizationsSummary}</p>
+                      ) : null}
+                      {item.specialInstructions ? <p className="sf-line-note">“{item.specialInstructions}”</p> : null}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Tax</span>
-                    <span>{formatMoney(order.tax, order.currencyCode)}</span>
+                ))}
+              </div>
+
+              <div className="sf-perf" aria-hidden="true" />
+
+              <div className="sf-ticket-section">
+                <dl className="sf-totals">
+                  <div>
+                    <dt>Subtotal</dt>
+                    <dd className="sf-mono">{formatMoney(order.subtotal, order.currencyCode)}</dd>
+                  </div>
+                  <div>
+                    <dt>Tax</dt>
+                    <dd className="sf-mono">{formatMoney(order.tax, order.currencyCode)}</dd>
                   </div>
                   {order.tip ? (
-                    <div className="flex justify-between">
-                      <span>Tip</span>
-                      <span>{formatMoney(order.tip, order.currencyCode)}</span>
+                    <div>
+                      <dt>Tip</dt>
+                      <dd className="sf-mono">{formatMoney(order.tip, order.currencyCode)}</dd>
                     </div>
                   ) : null}
-                  <div className="flex justify-between pt-2 text-lg font-semibold text-[var(--sf-ink)]">
-                    <span>Total</span>
-                    <span>{formatMoney(order.total, order.currencyCode)}</span>
+                  <div className="is-total">
+                    <dt>Total</dt>
+                    <dd className="sf-mono">{formatMoney(order.total, order.currencyCode)}</dd>
                   </div>
-                </div>
-              </aside>
-            </div>
-          </section>
+                </dl>
+              </div>
+            </section>
+
+            <aside className="sf-panel sf-sticky-panel text-center" aria-labelledby="handoff-title">
+              <h2 id="handoff-title" className="sf-label">Handoff code</h2>
+              <p className="sf-handoff mt-3 [overflow-wrap:anywhere]">{order.handoffCode || "—"}</p>
+              <p className="sf-muted mt-3 text-sm">Show this at the counter</p>
+              <div className="mt-5 grid justify-items-center gap-2">
+                <ReceiptRefreshButton />
+                <p className="text-xs text-[var(--sf-ink-faint)]">Status as of {loadedAt}</p>
+              </div>
+            </aside>
+          </div>
         ) : failureCopy ? (
-          <div className="sf-panel text-center">
-            <h1 className="sf-display text-[var(--sf-text-display-s)]">{failureCopy.title}</h1>
-            <p className="mt-3 text-sm text-[var(--sf-ink-muted)]">{failureCopy.message}</p>
+          <div className="sf-empty mt-4">
+            <h1 className="sf-display text-2xl text-[var(--sf-ink)]">{failureCopy.title}</h1>
+            <p className="max-w-md">{failureCopy.message}</p>
             {confirmation.kind === "unavailable" ? (
-              <div className="mt-5 flex justify-center">
+              <div className="mt-3">
                 <ReceiptRefreshButton label="Try again" />
               </div>
             ) : null}
           </div>
         ) : null}
-
-        <Link href="/" className="sf-back-link mt-8 inline-flex">
-          ← Back to menu
-        </Link>
       </main>
     </StorefrontShell>
   );

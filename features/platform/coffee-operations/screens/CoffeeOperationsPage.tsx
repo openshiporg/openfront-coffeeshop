@@ -1,11 +1,12 @@
 import Link from 'next/link';
 
-import { Badge } from '@/components/ui/badge';
+import { ArrowUpRight } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageContainer } from '@/features/dashboard/components/PageContainer';
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient';
+import { PlatformHeader, PlatformSection } from '@/features/platform/components/PlatformPage';
+import { StatusTitle, type StatusTone } from '@/features/platform/components/StatusTitle';
 import { formatStoreDateTime } from '@/lib/date-time';
 import { loadCoffeeOperations } from '../lib/operationsResponse';
 import { OPERATIONS_PARAMS, operationsHref, readOperationsUrlState, type CoffeeOperationsData } from '../lib/operationsTypes';
@@ -54,22 +55,42 @@ function label(value?: string | null) {
   return (value || '').replaceAll('_', ' ');
 }
 
-function EmptyRow({ colSpan, text }: { colSpan: number; text: string }) {
-  return <TableRow><TableCell colSpan={colSpan} className="py-8 text-center text-sm text-muted-foreground">{text}</TableCell></TableRow>;
+const GOOD = new Set(['active', 'completed', 'received', 'paid', 'approved', 'confirmed', 'in_stock']);
+const BAD = new Set(['cancelled', 'expired', 'missed', 'void', 'voided', 'refunded', 'inactive', 'discarded', 'depleted']);
+
+function tone(status?: string | null): StatusTone {
+  if (!status) return 'zinc';
+  if (GOOD.has(status)) return 'green';
+  if (BAD.has(status)) return 'red';
+  return 'amber';
 }
 
-function RecentCard({ title, description, href, linkLabel, children }: { title: string; description: string; href: string; linkLabel: string; children: React.ReactNode }) {
+type RecordRow = { id: string; title: string; status?: string | null; detail: React.ReactNode; value?: React.ReactNode };
+
+/** Recent records as stacked rows: identifier and status on the title line, details below. */
+function RecordList({ id, title, href, rows, empty }: { id: string; title: string; href: string; rows: RecordRow[]; empty: string }) {
   return (
-    <Card className="min-w-0">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
-        <div className="min-w-0 space-y-1.5">
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
-        <Button asChild size="sm" variant="outline"><Link href={href}>{linkLabel}</Link></Button>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+    <section aria-labelledby={id} className="min-w-0 overflow-hidden rounded-xl border border-border bg-card">
+      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+        <h3 id={id} className="text-sm font-semibold">{title}</h3>
+        <Button asChild size="sm" variant="ghost" className="-mr-2 rounded-full text-muted-foreground"><Link href={href}>All<ArrowUpRight aria-hidden="true" /></Link></Button>
+      </header>
+      {rows.length ? (
+        <ul className="divide-y divide-border">
+          {rows.map((row) => (
+            <li key={row.id} className="flex min-w-0 items-start justify-between gap-3 px-4 py-2.5">
+              <div className="min-w-0">
+                <StatusTitle as="p" tone={tone(row.status)} status={row.status ? <span className="capitalize">{label(row.status)}</span> : null} className="text-sm font-medium">
+                  {row.title}
+                </StatusTitle>
+                <div className="break-words pl-4 text-xs text-muted-foreground">{row.detail}</div>
+              </div>
+              {row.value != null ? <div className="shrink-0 text-right text-sm tabular-nums">{row.value}</div> : null}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="px-4 py-6 text-center text-sm text-muted-foreground">{empty}</p>}
+    </section>
   );
 }
 
@@ -77,10 +98,10 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <PageContainer
       title="Coffee Operations"
-      header={<div><h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Coffee Operations</h1><p className="text-sm text-muted-foreground">Purchasing, receiving, prep, waste and staff shifts.</p></div>}
+      header={<PlatformHeader title="Coffee Operations" />}
       breadcrumbs={[{ type: 'link', label: 'Dashboard', href: '/dashboard' }, { type: 'page', label: 'Coffee Operations' }]}
     >
-      <div className="space-y-6 px-4 pb-8 md:px-6">{children}</div>
+      <div className="space-y-8 px-4 pb-10 md:px-6">{children}</div>
     </PageContainer>
   );
 }
@@ -96,9 +117,9 @@ export async function CoffeeOperationsPage({ searchParams }: { searchParams: Pro
   if (result.kind !== 'ready') {
     return (
       <Shell>
-        <div role="alert" className="rounded-lg border border-destructive/40 bg-card p-4 text-sm text-foreground">
-          Coffee Operations is unavailable right now. No tasks or records are shown.{' '}
-          <Link className="font-medium underline" href={operationsHref({})}>Try again</Link>
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <p className="font-medium">Coffee Operations unavailable.</p>
+          <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={operationsHref({})}>Try again</Link></Button>
         </div>
       </Shell>
     );
@@ -107,156 +128,176 @@ export async function CoffeeOperationsPage({ searchParams }: { searchParams: Pro
   const data = result.data;
   const { sections } = data;
   const tz = data.storeTimezone;
+  const hasRecords = sections.inventory || sections.products || sections.staffing || sections.payments || sections.subscriptions || sections.catering;
 
   return (
     <Shell>
       <OperationsTaskPanel data={data} urlState={urlState} />
 
-      {sections.inventory ? (
-        <div className="grid gap-4 xl:grid-cols-2">
-          <RecentCard title="Recent inventory lots" description="The 8 most recently received lots." href="/dashboard/inventory-lots" linkLabel="All lots">
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>Lot</TableHead><TableHead>Item</TableHead><TableHead>Remaining</TableHead><TableHead>Expires</TableHead></TableRow></TableHeader>
-                <TableBody>{data.inventoryLots.length ? data.inventoryLots.map((lot) => (
-                  <TableRow key={lot.id}>
-                    <TableCell><div className="font-mono text-xs">{lot.lotNumber}</div><Badge className="mt-1 capitalize" variant={lot.status === 'active' ? 'default' : 'secondary'}>{label(lot.status)}</Badge></TableCell>
-                    <TableCell><div>{lot.inventoryItem?.name ?? 'No item'}</div><div className="text-xs text-muted-foreground">{lot.supplier?.name ?? 'No supplier'}</div></TableCell>
-                    <TableCell className="tabular-nums">{quantity(lot.quantityRemaining)} / {quantity(lot.quantityReceived)}</TableCell>
-                    <TableCell className="text-xs">{lot.expiresAt ? formatStoreDateTime(lot.expiresAt, tz) : 'Not recorded'}</TableCell>
-                  </TableRow>
-                )) : <EmptyRow colSpan={4} text="No lots received yet." />}</TableBody>
-              </Table>
-            </div>
-          </RecentCard>
+      {hasRecords ? (
+        <PlatformSection id="operations-records" title="Recent records" className="border-t border-border pt-8">
+          <div className="grid items-start gap-4 lg:grid-cols-2">
+            {sections.inventory ? (
+              <>
+                <RecordList
+                  id="ops-lots"
+                  title="Inventory lots"
+                  href="/dashboard/inventory-lots"
+                  empty="No lots received."
+                  rows={data.inventoryLots.map((lot) => ({
+                    id: lot.id,
+                    title: lot.inventoryItem?.name ?? 'No item',
+                    status: lot.status,
+                    detail: <><span className="font-mono">{lot.lotNumber}</span> · {lot.supplier?.name ?? 'No supplier'} · {lot.expiresAt ? `Expires ${formatStoreDateTime(lot.expiresAt, tz)}` : 'No expiry'}</>,
+                    value: <>{quantity(lot.quantityRemaining)}<span className="text-muted-foreground"> / {quantity(lot.quantityReceived)}</span></>,
+                  }))}
+                />
+                <RecordList
+                  id="ops-pos"
+                  title="Purchase orders"
+                  href="/dashboard/purchase-orders"
+                  empty="No purchase orders."
+                  rows={data.purchaseOrders.map((po) => ({
+                    id: po.id,
+                    title: po.poNumber,
+                    status: po.status,
+                    detail: po.supplier?.name ?? 'No supplier',
+                    value: money(po.subtotalCents),
+                  }))}
+                />
+                <RecordList
+                  id="ops-prep"
+                  title="Prep batches"
+                  href="/dashboard/prep-batches"
+                  empty="No prep batches."
+                  rows={data.prepBatches.map((batch) => ({
+                    id: batch.id,
+                    title: batch.recipe?.name ?? 'No recipe',
+                    status: batch.status,
+                    detail: <><span className="font-mono">{batch.batchNumber}</span> · {batch.expiresAt ? `Expires ${formatStoreDateTime(batch.expiresAt, tz)}` : 'No expiry'}</>,
+                    value: quantity(batch.quantityMade),
+                  }))}
+                />
+                <RecordList
+                  id="ops-waste"
+                  title="Waste"
+                  href="/dashboard/waste-logs"
+                  empty="No waste recorded."
+                  rows={data.wasteLogs.map((waste) => ({
+                    id: waste.id,
+                    title: waste.inventoryItem?.name ?? waste.prepBatch?.batchNumber ?? 'Unknown source',
+                    detail: <><span className="font-mono">{waste.logNumber}</span> · <span className="capitalize">{label(waste.reason)}</span> · {quantity(waste.quantity)} {waste.unit}</>,
+                    value: money(waste.costCents),
+                  }))}
+                />
+                <RecordList
+                  id="ops-suppliers"
+                  title="Suppliers"
+                  href="/dashboard/suppliers"
+                  empty="No suppliers."
+                  rows={data.suppliers.map((supplier) => ({
+                    id: supplier.id,
+                    title: supplier.name,
+                    status: supplier.status,
+                    detail: <>{supplier.contactName || 'No contact'} · {supplier.email || supplier.phone || 'No contact details'}</>,
+                    value: <span className="text-muted-foreground">{supplier.leadTimeDays ?? 0}d lead</span>,
+                  }))}
+                />
+              </>
+            ) : null}
 
-          <RecentCard title="Recent purchase orders" description="The 8 most recently created purchase orders." href="/dashboard/purchase-orders" linkLabel="All purchase orders">
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>Order</TableHead><TableHead>Supplier</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Subtotal</TableHead></TableRow></TableHeader>
-                <TableBody>{data.purchaseOrders.length ? data.purchaseOrders.map((po) => (
-                  <TableRow key={po.id}>
-                    <TableCell className="font-mono text-xs">{po.poNumber}</TableCell>
-                    <TableCell>{po.supplier?.name ?? 'No supplier'}</TableCell>
-                    <TableCell className="capitalize">{label(po.status)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(po.subtotalCents)}</TableCell>
-                  </TableRow>
-                )) : <EmptyRow colSpan={4} text="No purchase orders yet." />}</TableBody>
-              </Table>
-            </div>
-          </RecentCard>
+            {sections.products ? (
+              <div className="space-y-3">
+                <RecordList
+                  id="ops-recipes"
+                  title="Recipes"
+                  href="/dashboard/recipes"
+                  empty="No recipes."
+                  rows={data.recipes.map((recipe) => ({
+                    id: recipe.id,
+                    title: recipe.name,
+                    status: recipe.active ? recipe.status : recipe.status || 'inactive',
+                    detail: <>{recipe.menuItem?.name ?? 'No menu item'} · Yields {quantity(recipe.yieldQuantity)} {recipe.yieldUnit ?? ''}</>,
+                    value: <Link href={`/dashboard/recipes/${recipe.id}`} className="inline-flex items-center gap-0.5 text-sm font-medium underline-offset-4 hover:underline">Open<ArrowUpRight className="size-3.5" aria-hidden="true" /></Link>,
+                  }))}
+                />
+                {data.ingredients.length ? (
+                  <ul className="flex flex-wrap gap-1.5" aria-label="Recent ingredients">
+                    {data.ingredients.map((ingredient) => (
+                      <li key={ingredient.id} className="rounded-full bg-muted px-3 py-1 text-xs">
+                        <span className="font-medium">{ingredient.name}</span>
+                        <span className="text-muted-foreground"> · {quantity(ingredient.quantity)} {ingredient.unit} · {ingredient.recipe?.name ?? 'No recipe'}{ingredient.optional ? ' · optional' : ''}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
 
-          <RecentCard title="Recent prep batches" description="The 8 most recently completed batches." href="/dashboard/prep-batches" linkLabel="All prep batches">
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>Batch</TableHead><TableHead>Recipe</TableHead><TableHead>Made</TableHead><TableHead>Expires</TableHead></TableRow></TableHeader>
-                <TableBody>{data.prepBatches.length ? data.prepBatches.map((batch) => (
-                  <TableRow key={batch.id}>
-                    <TableCell><div className="font-mono text-xs">{batch.batchNumber}</div><div className="text-xs capitalize text-muted-foreground">{label(batch.status)}</div></TableCell>
-                    <TableCell>{batch.recipe?.name ?? 'No recipe'}</TableCell>
-                    <TableCell className="tabular-nums">{quantity(batch.quantityMade)}</TableCell>
-                    <TableCell className="text-xs">{batch.expiresAt ? formatStoreDateTime(batch.expiresAt, tz) : 'Not recorded'}</TableCell>
-                  </TableRow>
-                )) : <EmptyRow colSpan={4} text="No prep batches yet." />}</TableBody>
-              </Table>
-            </div>
-          </RecentCard>
+            {sections.staffing ? (
+              <RecordList
+                id="ops-shifts"
+                title="Shift history"
+                href="/dashboard/staff-shifts"
+                empty="No completed or missed shifts."
+                rows={data.recentStaffShifts.map((item) => ({
+                  id: item.id,
+                  title: item.staff?.name || item.staff?.email || 'Unassigned',
+                  status: item.status,
+                  detail: <><span className="font-mono">{item.shiftNumber}</span> · <span className="capitalize">{label(item.role)}</span> · {item.startsAt ? formatStoreDateTime(item.startsAt, tz) : 'No start time'}</>,
+                }))}
+              />
+            ) : null}
 
-          <RecentCard title="Recent waste" description="The 8 most recently recorded waste entries." href="/dashboard/waste-logs" linkLabel="All waste">
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>Entry</TableHead><TableHead>Source</TableHead><TableHead>Quantity</TableHead><TableHead className="text-right">Cost</TableHead></TableRow></TableHeader>
-                <TableBody>{data.wasteLogs.length ? data.wasteLogs.map((waste) => (
-                  <TableRow key={waste.id}>
-                    <TableCell><div className="font-mono text-xs">{waste.logNumber}</div><div className="text-xs capitalize text-muted-foreground">{label(waste.reason)}</div></TableCell>
-                    <TableCell>{waste.inventoryItem?.name ?? waste.prepBatch?.batchNumber ?? 'Unknown source'}</TableCell>
-                    <TableCell className="tabular-nums">{quantity(waste.quantity)} {waste.unit}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(waste.costCents)}</TableCell>
-                  </TableRow>
-                )) : <EmptyRow colSpan={4} text="No waste recorded yet." />}</TableBody>
-              </Table>
-            </div>
-          </RecentCard>
+            {sections.payments ? (
+              <RecordList
+                id="ops-register"
+                title="Register sales"
+                href="/dashboard/pos-orders"
+                empty="No register sales."
+                rows={data.posOrders.map((order) => ({
+                  id: order.id,
+                  title: order.receiptNumber,
+                  status: order.status,
+                  detail: <>{order.registerName || 'No register'} · {order.cashier?.name ?? 'No cashier'}</>,
+                  value: money(order.totalCents),
+                }))}
+              />
+            ) : null}
 
-          <RecentCard title="Recently added suppliers" description="The 8 most recently added suppliers." href="/dashboard/suppliers" linkLabel="All suppliers">
-            <div className="grid gap-3 md:grid-cols-2">
-              {data.suppliers.map((supplier) => <div key={supplier.id} className="min-w-0 rounded-lg border p-4"><div className="break-words font-medium">{supplier.name}</div><p className="text-sm capitalize text-muted-foreground">{label(supplier.status)} · {supplier.contactName || 'No contact'} · {supplier.leadTimeDays ?? 0}d lead time</p><p className="mt-1 break-words text-xs text-muted-foreground">{supplier.email || supplier.phone || 'No contact details'}</p></div>)}
-              {!data.suppliers.length ? <p className="text-sm text-muted-foreground">No suppliers yet.</p> : null}
-            </div>
-          </RecentCard>
-        </div>
-      ) : null}
+            {sections.subscriptions ? (
+              <RecordList
+                id="ops-subscriptions"
+                title="Subscriptions · view only"
+                href="/dashboard/subscriptions"
+                empty="No subscriptions."
+                rows={data.subscriptions.map((item) => ({
+                  id: item.id,
+                  title: item.planName || item.subscriptionNumber,
+                  status: item.status,
+                  detail: <><span className="font-mono">{item.subscriptionNumber}</span> · <span className="capitalize">{label(item.billingInterval)}</span></>,
+                  value: money(item.priceCents),
+                }))}
+              />
+            ) : null}
 
-      {sections.products ? (
-        <RecentCard title="Recent recipes" description="The 8 most recently added recipes and ingredients." href="/dashboard/recipes" linkLabel="All recipes">
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader><TableRow><TableHead>Recipe</TableHead><TableHead>Status</TableHead><TableHead>Yield</TableHead><TableHead className="text-right">Details</TableHead></TableRow></TableHeader>
-              <TableBody>{data.recipes.length ? data.recipes.map((recipe) => (
-                <TableRow key={recipe.id}>
-                  <TableCell><div className="font-medium">{recipe.name}</div><div className="text-xs text-muted-foreground">{recipe.menuItem?.name ?? 'No menu item'}</div></TableCell>
-                  <TableCell><Badge className="capitalize" variant={recipe.active ? 'default' : 'secondary'}>{label(recipe.status)}</Badge></TableCell>
-                  <TableCell className="tabular-nums">{quantity(recipe.yieldQuantity)} {recipe.yieldUnit ?? ''}</TableCell>
-                  <TableCell className="text-right"><Button asChild size="sm" variant="ghost"><Link href={`/dashboard/recipes/${recipe.id}`}>Open</Link></Button></TableCell>
-                </TableRow>
-              )) : <EmptyRow colSpan={4} text="No recipes yet." />}</TableBody>
-            </Table>
+            {sections.catering ? (
+              <RecordList
+                id="ops-catering"
+                title="Catering · view only"
+                href="/dashboard/catering-orders"
+                empty="No catering inquiries."
+                rows={data.cateringOrders.map((item) => ({
+                  id: item.id,
+                  title: item.customerName || item.cateringNumber,
+                  status: item.status,
+                  detail: <><span className="font-mono">{item.cateringNumber}</span> · {item.guestCount ?? 0} guests</>,
+                  value: money(item.subtotalCents),
+                }))}
+              />
+            ) : null}
           </div>
-          {data.ingredients.length ? (
-            <ul className="mt-4 grid gap-2 md:grid-cols-2">
-              {data.ingredients.map((ingredient) => <li key={ingredient.id} className="min-w-0 rounded-lg border p-3 text-sm"><span className="font-medium">{ingredient.name}</span> <span className="text-muted-foreground">· {quantity(ingredient.quantity)} {ingredient.unit} · {ingredient.recipe?.name ?? 'No recipe'}{ingredient.optional ? ' · optional' : ''}</span></li>)}
-            </ul>
-          ) : null}
-        </RecentCard>
-      ) : null}
-
-      {sections.staffing ? (
-        <RecentCard title="Recent shift history" description="The 8 most recent completed or missed shifts." href="/dashboard/staff-shifts" linkLabel="All shifts">
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader><TableRow><TableHead>Shift</TableHead><TableHead>Staff</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{data.recentStaffShifts.length ? data.recentStaffShifts.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell><div className="font-mono text-xs">{item.shiftNumber}</div><div className="text-xs text-muted-foreground">{item.startsAt ? formatStoreDateTime(item.startsAt, tz) : 'No start time'}</div></TableCell>
-                  <TableCell>{item.staff?.name || item.staff?.email || 'Unassigned'}</TableCell>
-                  <TableCell className="capitalize">{label(item.role)}</TableCell>
-                  <TableCell><Badge className="capitalize" variant={item.status === 'completed' ? 'default' : 'secondary'}>{label(item.status)}</Badge></TableCell>
-                </TableRow>
-              )) : <EmptyRow colSpan={4} text="No completed or missed shifts yet." />}</TableBody>
-            </Table>
-          </div>
-        </RecentCard>
-      ) : null}
-
-      {sections.payments ? (
-        <RecentCard title="Recent register sales" description="The 8 most recent register receipts." href="/dashboard/pos-orders" linkLabel="All register sales">
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader><TableRow><TableHead>Receipt</TableHead><TableHead>Register</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-              <TableBody>{data.posOrders.length ? data.posOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell><div className="font-mono text-xs">{order.receiptNumber}</div><div className="text-xs text-muted-foreground">{order.cashier?.name ?? 'No cashier'}</div></TableCell>
-                  <TableCell>{order.registerName || 'No register'}</TableCell>
-                  <TableCell className="capitalize">{label(order.status)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{money(order.totalCents)}</TableCell>
-                </TableRow>
-              )) : <EmptyRow colSpan={4} text="No register sales yet." />}</TableBody>
-            </Table>
-          </div>
-        </RecentCard>
-      ) : null}
-
-      {sections.subscriptions || sections.catering ? (
-        <Card className="min-w-0">
-          <CardHeader>
-            <CardTitle>Subscriptions and catering</CardTitle>
-            <CardDescription>View only. Subscription billing and catering bookings are not taken through this dashboard yet.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {sections.subscriptions ? <div><h3 className="mb-2 text-sm font-semibold">Recent subscriptions</h3><div className="space-y-2">{data.subscriptions.map((item) => <div key={item.id} className="rounded-lg border p-3 text-sm"><div className="font-mono text-xs">{item.subscriptionNumber}</div><div className="text-muted-foreground">{item.planName} · {label(item.billingInterval)} · {money(item.priceCents)} · <span className="capitalize">{label(item.status)}</span></div></div>)}{!data.subscriptions.length ? <p className="text-sm text-muted-foreground">No subscriptions.</p> : null}</div></div> : null}
-            {sections.catering ? <div><h3 className="mb-2 text-sm font-semibold">Recent catering inquiries</h3><div className="space-y-2">{data.cateringOrders.map((item) => <div key={item.id} className="rounded-lg border p-3 text-sm"><div className="font-mono text-xs">{item.cateringNumber}</div><div className="text-muted-foreground">{item.customerName} · {item.guestCount ?? 0} guests · {money(item.subtotalCents)} · <span className="capitalize">{label(item.status)}</span></div></div>)}{!data.cateringOrders.length ? <p className="text-sm text-muted-foreground">No catering inquiries.</p> : null}</div></div> : null}
-          </CardContent>
-        </Card>
+        </PlatformSection>
       ) : null}
     </Shell>
   );

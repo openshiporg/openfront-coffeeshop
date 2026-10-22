@@ -1,4 +1,5 @@
 import { PageBreadcrumbs } from "@/features/dashboard/components/PageBreadcrumbs";
+import { PlatformHeader } from "@/features/platform/components/PlatformPage";
 import { getCoffeeStoreSettingsAction } from "../actions/store-settings";
 import { StoreSettingsForm } from "../components/StoreSettingsForm";
 
@@ -15,8 +16,7 @@ export async function StoreSettingsPage() {
         ]}
       />
       <div className="border-b border-border px-4 py-4 md:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Store Settings</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Business details, branding, pickup policy, and opening hours.</p>
+        <PlatformHeader title="Store Settings" />
       </div>
       <StoreSettingsForm
         initialSettings={result.success ? result.data : null}
