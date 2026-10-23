@@ -13,7 +13,7 @@ const UNAVAILABLE_MESSAGE = "This item can’t be added right now. It may be sol
 // Single-choice groups this small read best as a segmented control (size, milk temperature).
 const SEGMENT_MAX_OPTIONS = 4;
 
-export function AddToCartCustomizer({ item, compact = false, orderingAvailable = true }: { item: StorefrontMenuItem; compact?: boolean; orderingAvailable?: boolean }) {
+export function AddToCartCustomizer({ item, compact = false, orderingAvailable = true, notes: allowNotes = true }: { item: StorefrontMenuItem; compact?: boolean; orderingAvailable?: boolean; notes?: boolean }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedModifiers, setSelectedModifiers] = useState<string[]>(() => defaultModifierIds(item));
   const [notes, setNotes] = useState("");
@@ -48,7 +48,7 @@ export function AddToCartCustomizer({ item, compact = false, orderingAvailable =
       const result = await quoteCafePickupOrder([{ menuItemId: item.id, quantity, modifierIds: selectedModifiers, specialInstructions: notes || undefined }]);
       if (requestId !== request.current) return;
       if (!result.success || !result.quote) {
-        setError(UNAVAILABLE_MESSAGE);
+        setError((!result.success && result.customerMessage) || UNAVAILABLE_MESSAGE);
         return;
       }
       const line = buildQuotedCartLine(item, result.quote, selectedModifiers, crypto.randomUUID(), quantity);
@@ -128,22 +128,24 @@ export function AddToCartCustomizer({ item, compact = false, orderingAvailable =
           );
         })}
 
-        <div className="sf-group">
-          <label htmlFor={`barista-notes-${item.id}`} className="sf-form-label">
-            Notes for the barista
-            <textarea
-              id={`barista-notes-${item.id}`}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              className="sf-field !min-h-[4.5rem]"
-              maxLength={500}
-              placeholder="Optional"
-            />
-          </label>
-        </div>
+        {allowNotes ? (
+          <div className="sf-group">
+            <label htmlFor={`barista-notes-${item.id}`} className="sf-form-label">
+              Notes for the barista
+              <textarea
+                id={`barista-notes-${item.id}`}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                className="sf-field !min-h-[4.5rem]"
+                maxLength={500}
+                placeholder="Optional"
+              />
+            </label>
+          </div>
+        ) : null}
 
         <div aria-live="polite" className="grid gap-3 [&:not(:empty)]:mt-1">
-          {!orderingAvailable ? <p className="sf-alert-error">Not available to order right now.</p> : null}
+          {!orderingAvailable ? <p className="sf-alert-error">{item.availability === "sold_out" ? "Sold out right now." : "Not available to order right now."}</p> : null}
           {error ? <p className="sf-alert-error" role="alert">{error}</p> : null}
           {unavailableGroups.length > 0 ? <p className="sf-alert-error">{unavailableGroups.join(", ")} sold out. This item can’t be added.</p> : null}
           {unmetGroups.length > 0 && unavailableGroups.length === 0 ? <p className="sf-alert-error">Choose {unmetGroups.map((group) => group.label).join(", ")}.</p> : null}
@@ -179,7 +181,7 @@ export function AddToCartCustomizer({ item, compact = false, orderingAvailable =
             </button>
           </div>
           <button type="button" onClick={addToCart} disabled={blocked} className="sf-btn sf-btn-primary sf-btn-lg">
-            {!orderingAvailable ? "Unavailable" : pending ? "Adding…" : (
+            {!orderingAvailable ? (item.availability === "sold_out" ? "Sold out" : "Unavailable") : pending ? "Adding…" : (
               <>
                 <span>Add to cart</span>
                 <span className="sf-mono opacity-80">{formatMoney(unitPrice * quantity)}</span>

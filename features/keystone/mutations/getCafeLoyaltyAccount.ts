@@ -30,7 +30,10 @@ type CafeOrderLoyaltyProof = {
 
 type LoyaltyLookupContext = {
   session?: Session;
-  prisma: { storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> } };
+  prisma: {
+    storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> };
+    user: { findUnique(args: Record<string, unknown>): Promise<{ email: string | null } | null> };
+  };
   sudo(): {
     query: {
       CafeOrder: {
@@ -61,6 +64,19 @@ export default async function getCafeLoyaltyAccount(_root: unknown, args: Lookup
     permissions.canManageLoyalty({ session: context.session });
 
   if (!isStaff) {
+    // A signed-in customer may read the rewards on their own account email.
+    if (!args.orderId && context.session?.listKey === "User" && context.session.itemId) {
+      const user = await context.prisma.user.findUnique({ where: { id: context.session.itemId }, select: { email: true } });
+      if (normalizeEmail(user?.email) !== email) return null;
+      const store = await context.prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true } });
+      if (!store?.id) return null;
+      const own = await context.sudo().query.LoyaltyAccount.findMany({
+        where: { customerEmail: { equals: email }, store: { id: { equals: store.id } } },
+        take: 1,
+        query: "id customerEmail pointsBalance drinkCredits nextRewardProgress",
+      });
+      return own[0] || null;
+    }
     if (!args.orderId || !args.secretKey) return null;
 
     // Proof fields only; no loyalty data is read until the order secret and email match.

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, PackageCheck, PackagePlus, Soup, Trash2 } from "lucide-react";
+import { CalendarPlus, ClipboardCheck, PackageCheck, PackagePlus, Soup, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
   completePrepBatchAction,
   createPurchaseOrderAction,
   receivePurchaseOrderAction,
+  recordStockCountAction,
   recordWasteAction,
   scheduleStaffShiftAction,
   updateStaffShiftAction,
@@ -41,15 +42,17 @@ type Pending = { key: string; fingerprint: string };
 type PurchaseDraft = { supplier: Pick | null; item: Pick | null; quantity: string; unitCost: string; expectedDate: string; notes: string; pending: Pending | null };
 type PrepDraft = { recipe: Pick | null; quantity: string; expiresLocal: string; notes: string; pending: Pending | null };
 type WasteDraft = { sourceKind: "inventory" | "prep"; source: Pick | null; quantity: string; reason: string; notes: string; pending: Pending | null };
+type CountDraft = { item: Pick | null; quantity: string; notes: string; pending: Pending | null };
 type ShiftDraft = { staff: Pick | null; role: string; startsLocal: string; endsLocal: string; notes: string; pending: Pending | null };
-type Drafts = { purchase: PurchaseDraft; prep: PrepDraft; waste: WasteDraft; shift: ShiftDraft; transitions: Record<string, string> };
-type FormKind = "purchase" | "prep" | "waste" | "shift" | "receive" | "transition";
-type TaskTab = "receive" | "prep" | "waste" | "purchase" | "shift";
+type Drafts = { purchase: PurchaseDraft; prep: PrepDraft; waste: WasteDraft; count: CountDraft; shift: ShiftDraft; transitions: Record<string, string> };
+type FormKind = "purchase" | "prep" | "waste" | "count" | "shift" | "receive" | "transition";
+type TaskTab = "receive" | "prep" | "waste" | "count" | "purchase" | "shift";
 
 const EMPTY_DRAFTS: Drafts = {
   purchase: { supplier: null, item: null, quantity: "", unitCost: "", expectedDate: "", notes: "", pending: null },
   prep: { recipe: null, quantity: "", expiresLocal: "", notes: "", pending: null },
   waste: { sourceKind: "inventory", source: null, quantity: "", reason: "", notes: "", pending: null },
+  count: { item: null, quantity: "", notes: "", pending: null },
   shift: { staff: null, role: "barista", startsLocal: "", endsLocal: "", notes: "", pending: null },
   transitions: {},
 };
@@ -66,6 +69,7 @@ function restoreDrafts(raw: string | null): Drafts {
       purchase: { ...EMPTY_DRAFTS.purchase, ...(parsed.purchase || {}) },
       prep: { ...EMPTY_DRAFTS.prep, ...(parsed.prep || {}) },
       waste: { ...EMPTY_DRAFTS.waste, ...(parsed.waste || {}) },
+      count: { ...EMPTY_DRAFTS.count, ...(parsed.count || {}) },
       shift: { ...EMPTY_DRAFTS.shift, ...(parsed.shift || {}) },
       transitions: parsed.transitions && typeof parsed.transitions === "object" ? parsed.transitions : {},
     };
@@ -103,11 +107,11 @@ function useOperationsDrafts(scope: string) {
   return { drafts, ref, commit, update };
 }
 
-function parseQuantity(text: string, label: string, unit?: string | null): { value: number } | { error: string } {
+function parseQuantity(text: string, label: string, unit?: string | null, allowZero = false): { value: number } | { error: string } {
   const trimmed = text.trim();
   if (!/^\d+(\.\d{1,4})?$/.test(trimmed)) return { error: `${label}: enter a number with up to 4 decimal places.` };
   const value = Number(trimmed);
-  if (!(value > 0)) return { error: `${label} must be greater than zero.` };
+  if (!(value > 0) && !(allowZero && value === 0)) return { error: `${label} must be greater than zero.` };
   if (value > 1_000_000) return { error: `${label} is too large.` };
   if (unit === "each" && !Number.isInteger(value)) return { error: `${label} must be a whole number of items.` };
   return { value };
@@ -275,7 +279,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
   }
 
   /** One key per logical request: reused for retries of the same details, replaced only when the details change. */
-  function dispatch<K extends "purchase" | "prep" | "waste" | "shift", I extends Record<string, unknown>>(
+  function dispatch<K extends "purchase" | "prep" | "waste" | "count" | "shift", I extends Record<string, unknown>>(
     kind: K,
     input: I,
     action: (payload: I & { idempotencyKey: string }) => Promise<ActionResult>,
@@ -345,6 +349,27 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
     }, recordWasteAction, "Waste recorded.");
   }
 
+  const count = drafts.count;
+  const setCount = (changes: Partial<CountDraft>) => update((current) => ({ ...current, count: { ...current.count, ...changes } }));
+  function submitCount(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!count.item) return setError("count", "Choose an inventory item.");
+    const quantity = parseQuantity(count.quantity, "On hand", count.item.unit, true);
+    if ("error" in quantity) return setError("count", quantity.error);
+    dispatch("count", {
+      inventoryItemId: count.item.id,
+      countedQuantity: quantity.value,
+      ...(count.notes.trim() ? { notes: count.notes.trim() } : {}),
+    }, recordStockCountAction, "Stock count saved.");
+  }
+  // Live difference against the listed stock, in 0.0001 units to avoid float drift.
+  const countOnFile = count.item ? data.inventoryWasteItems.items.find((option) => option.id === count.item?.id)?.currentStock : undefined;
+  const countParsed = count.item && countOnFile != null && count.quantity.trim() ? parseQuantity(count.quantity, "On hand", count.item.unit, true) : null;
+  const countDelta = countParsed && "value" in countParsed ? (Math.round(countParsed.value * 10_000) - Math.round(Number(countOnFile) * 10_000)) / 10_000 : null;
+  const countChange = countDelta == null || !Number.isFinite(countDelta) ? undefined
+    : countDelta === 0 ? "No change"
+    : `Change ${countDelta > 0 ? "+" : "−"}${Math.abs(countDelta)} ${count.item?.unit ?? ""}`.trim();
+
   const shift = drafts.shift;
   const setShift = (changes: Partial<ShiftDraft>) => update((current) => ({ ...current, shift: { ...current.shift, ...changes } }));
   const shiftStart = resolveLocal(shift.startsLocal);
@@ -402,6 +427,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
       { value: "receive", label: "Receive", count: receipts.items.length || undefined },
       { value: "prep", label: "Prep" },
       { value: "waste", label: "Waste" },
+      { value: "count", label: "Count stock" },
       { value: "purchase", label: "Order stock" },
     ] : []),
     ...(sections.staffing ? [{ value: "shift", label: "Shifts", count: shifts.totalCount ?? undefined }] : []),
@@ -544,6 +570,30 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 <div className="flex flex-wrap gap-2 sm:col-span-2">
                   <Button type="submit" className="min-h-10 rounded-full" variant="destructive" disabled={pending}>Record waste</Button>
                   <Button type="button" variant="ghost" className="min-h-10 rounded-full" disabled={pending} onClick={() => { setWaste(EMPTY_DRAFTS.waste); setError("waste", null); }}>Clear</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {sections.inventoryManage && activeTab === "count" ? (
+          <Card className="min-w-0 max-w-3xl rounded-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="size-4 text-muted-foreground" aria-hidden="true" /> Count stock</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={submitCount} className="grid gap-3 sm:grid-cols-2" noValidate>
+                <OptionPicker id="count-item" label="Inventory item" noun="item" page={data.inventoryWasteItems} selected={count.item} onSelect={(item) => setCount({ item })} searchParam="inventoryWasteSearch" cursorParam="inventoryWasteCursor" urlState={urlState} describe={(option) => `${option.name} · ${option.currentStock ?? 0} ${option.unit ?? ""} in stock`} />
+                <Field id="count-quantity" label={`On hand${count.item?.unit ? ` (${count.item.unit})` : ""}`} hint={countChange}>
+                  <Input id="count-quantity" inputMode="decimal" value={count.quantity} onChange={(event) => setCount({ quantity: event.currentTarget.value })} aria-describedby={countChange ? "count-quantity-hint" : undefined} required />
+                </Field>
+                <Field id="count-notes" label="Notes">
+                  <Input id="count-notes" maxLength={500} value={count.notes} onChange={(event) => setCount({ notes: event.currentTarget.value })} />
+                </Field>
+                <FormMessage error={errors.count ?? null} status={statuses.count ?? null} />
+                <div className="flex flex-wrap gap-2 sm:col-span-2">
+                  <Button type="submit" className="min-h-10 rounded-full" disabled={pending}>Save count</Button>
+                  <Button type="button" variant="ghost" className="min-h-10 rounded-full" disabled={pending} onClick={() => { setCount(EMPTY_DRAFTS.count); setError("count", null); }}>Clear</Button>
                 </div>
               </form>
             </CardContent>

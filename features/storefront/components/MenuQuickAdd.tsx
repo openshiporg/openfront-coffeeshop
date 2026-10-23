@@ -18,7 +18,7 @@ export function MenuQuickAdd({ item }: { item: StorefrontMenuItem }) {
   if (!item.available) {
     return (
       <div className="sf-quick">
-        <span className="sf-quick-btn !cursor-default !bg-[var(--sf-inset)] !text-[var(--sf-ink-muted)] !shadow-none">Unavailable</span>
+        <span className="sf-quick-btn sf-quick-btn-off">{item.availability === "sold_out" ? "Sold out" : "Unavailable"}</span>
       </div>
     );
   }
@@ -45,7 +45,7 @@ export function MenuQuickAdd({ item }: { item: StorefrontMenuItem }) {
       const result = await quoteCafePickupOrder([{ menuItemId: item.id, quantity: 1, modifierIds }]);
       if (requestId !== request.current) return;
       if (!result.success || !result.quote) {
-        setError("Can’t add this right now.");
+        setError((!result.success && result.customerMessage) || "Can’t add this right now.");
         return;
       }
       const reason = addCartLine(buildQuotedCartLine(item, result.quote, modifierIds, crypto.randomUUID()));

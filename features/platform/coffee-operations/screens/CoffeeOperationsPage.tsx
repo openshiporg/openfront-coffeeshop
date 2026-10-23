@@ -101,7 +101,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       header={<PlatformHeader title="Coffee Operations" />}
       breadcrumbs={[{ type: 'link', label: 'Dashboard', href: '/dashboard' }, { type: 'page', label: 'Coffee Operations' }]}
     >
-      <div className="space-y-8 px-4 pb-10 md:px-6">{children}</div>
+      {/* Bottom padding lets the last cards scroll clear of the floating assistant button. */}
+      <div className="space-y-8 px-4 pb-24 md:px-6">{children}</div>
     </PageContainer>
   );
 }

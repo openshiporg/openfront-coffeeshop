@@ -56,7 +56,7 @@ export function CustomSetupSteps({ draft: customJson, onDraftChange: setCustomJs
     return `I need help customizing my coffee shop configuration. I've pasted the base setup JSON.
 
 Start by telling me what this configuration currently contains, then ask me what I want to change.
-Only use details I give you for my store name, address, phone, email and sales tax rate (taxRateBasisPoints, e.g. 875 = 8.75%); leave anything you don't know for me to fill in.
+Only use details I give you for my store name, address, phone, email and sales tax rate (taxRateBasisPoints, e.g. 887.5 = 8.875%); leave anything you don't know for me to fill in.
 When I'm done, return the complete updated JSON so I can paste it back into setup.
 Keep the same JSON shape and keys: storeInfo, categories, menuItems, modifiers, inventoryItems, paymentProviders, suppliers, recipes, ingredients, purchaseOrders, staffShifts, loyaltyAccounts, cateringOrders.`;
   };

@@ -6,6 +6,7 @@ import { assertCoffeeOrderingAvailable } from "./coffeeAvailability";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
 
 type Args = { orderId: string; idempotencyKey?: string | null };
 type Context = {
@@ -70,7 +71,7 @@ export function assertCafePickupAcceptanceAvailability(
   for (const line of lines) {
     const item = line.menuItem;
     const itemName = String(item?.name || "Menu item");
-    if (!item?.id || item.available !== true) throw new Error(`${itemName} is currently unavailable`);
+    if (!item?.id || item.available !== true) throw cafeCustomerError(`${itemName} is currently unavailable`);
     const serviceWindows = Array.isArray(item.serviceWindows) ? item.serviceWindows.map(String) : ["all_day"];
     assertCoffeeOrderingAvailable(settings, at, serviceWindows);
     assertCoffeeOrderingAvailable(settings, promisedAt, serviceWindows);
@@ -81,7 +82,7 @@ export function assertCafePickupAcceptanceAvailability(
     for (const snapshot of snapshots) {
       const modifier = currentModifiers.find((candidate) => String(candidate.id) === String(snapshot?.id ?? ""));
       if (!modifier || modifier.inStock !== true) {
-        throw new Error(`${String(modifier?.name || "A selected option")} is currently unavailable`);
+        throw cafeCustomerError(`${String(modifier?.name || "A selected option")} is currently unavailable`);
       }
       // The order was priced and described from this snapshot; admit it only if the option still matches.
       if (
@@ -143,7 +144,7 @@ export async function admitOpenCafeOrder(tx: AdmissionTx, order: Record<string, 
   if (Math.max(5, Number(locked.pickupWindowMinutes || 15)) !== windowMinutes) throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
   if (promisedAt !== requestedPromisedAt && Math.max(5, Number(locked.pickupLeadTimeMinutes || 12)) !== Math.max(5, Number(settings.pickupLeadTimeMinutes || 12))) throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
   const reservations = await tx.cafeOrder.count({ where: { storeId, id: { not: order.id }, fulfillmentType: "pickup", promisedAt: { gte: windowStart, lt: windowEnd }, status: { in: ["accepted", "paid", "in_bar_queue", "preparing", "ready"] } } });
-  if (reservations >= Math.max(1, Number(locked.pickupCapacityPerWindow || 20))) throw new Error("The requested pickup window is at capacity");
+  if (reservations >= Math.max(1, Number(locked.pickupCapacityPerWindow || 20))) throw cafeCustomerError("The requested pickup window is at capacity");
   assertCafePickupAcceptanceAvailability(settings, orderLines, now, promisedAt);
   return promisedAt;
 }

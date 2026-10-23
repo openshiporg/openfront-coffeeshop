@@ -866,9 +866,17 @@ textarea.sf-field {
   }
 }
 
-@media (min-width: 1200px) {
-  .sf-item-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+/* Desktop: categories flow as two board columns, so short categories don't leave the width empty. */
+@media (min-width: 1024px) {
+  .sf-menu-sections {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    column-gap: 3rem;
+  }
+
+  .sf-menu-sections .sf-item-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -998,6 +1006,13 @@ textarea.sf-field {
 .sf-quick-btn:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.sf-quick-btn-off {
+  background: var(--sf-inset);
+  color: var(--sf-ink-muted);
+  box-shadow: none;
+  cursor: default;
 }
 
 .sf-quick-btn.is-added {
@@ -1378,7 +1393,7 @@ textarea.sf-field {
 
 @media (min-width: 1024px) {
   .sf-has-addbar {
-    padding-bottom: 0;
+    padding-bottom: 5rem;
   }
 }
 

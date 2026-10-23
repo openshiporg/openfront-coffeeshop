@@ -12,13 +12,13 @@ function validatedStoreTimeZone(value?: string | null): StoreTimeZone {
   return { timeZone: "UTC", storeZone: null };
 }
 
-function formatInStoreTimeZone(instant: Date, storeTimeZone: StoreTimeZone, options: Intl.DateTimeFormatOptions) {
+function formatInStoreTimeZone(instant: Date, storeTimeZone: StoreTimeZone, options: Intl.DateTimeFormatOptions, zoneName = true) {
   const formatted = new Intl.DateTimeFormat("en-US", {
     ...options,
     timeZone: storeTimeZone.timeZone,
     timeZoneName: "short",
   }).format(instant);
-  return storeTimeZone.storeZone && storeTimeZone.storeZone !== "UTC"
+  return zoneName && storeTimeZone.storeZone && storeTimeZone.storeZone !== "UTC"
     ? `${formatted} (${storeTimeZone.storeZone})`
     : formatted;
 }
@@ -31,6 +31,17 @@ export function formatPickupTime(value?: string | null, storeTimeZone?: string |
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+/** Compact staff-screen variant: short zone only ("5:45 PM EDT"), no IANA name. */
+export function formatStaffPickupTime(value?: string | null, storeTimeZone?: string | null) {
+  if (!value) return "soon";
+  const instant = new Date(value);
+  if (!Number.isFinite(instant.getTime())) return "time unavailable";
+  return formatInStoreTimeZone(instant, validatedStoreTimeZone(storeTimeZone), {
+    hour: "numeric",
+    minute: "2-digit",
+  }, false);
 }
 
 export function formatStoreDateTime(value?: string | null, storeTimeZone?: string | null) {

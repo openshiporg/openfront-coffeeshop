@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import { formatPickupTime } from "@/lib/date-time";
+import { formatStaffPickupTime } from "@/lib/date-time";
 import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
 import { PlatformEmpty, PlatformHeader, PlatformSection } from "@/features/platform/components/PlatformPage";
 import { StatusTitle, type StatusTone } from "@/features/platform/components/StatusTitle";
@@ -133,12 +133,12 @@ function OrderTicketCard({ order, capabilities, storeTimezone }: { order: CafeOr
             status={STATUS_LABELS[order.status] || order.status}
             className="text-base font-semibold tracking-tight"
           >
-            #{order.orderNumber}
+            <span className="block truncate" title={`#${order.orderNumber}`}>#{order.orderNumber}</span>
           </StatusTitle>
           <p className="truncate text-sm font-medium">{order.pickupName || order.customerName || "Guest"}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-sm font-semibold tabular-nums">{order.promisedAt ? formatPickupTime(order.promisedAt, storeTimezone) : "ASAP"}</p>
+          <p className="text-sm font-semibold tabular-nums">{order.promisedAt ? formatStaffPickupTime(order.promisedAt, storeTimezone) : "ASAP"}</p>
           <p className="text-sm tabular-nums text-muted-foreground">{money(order.total)}</p>
         </div>
       </header>
@@ -232,10 +232,12 @@ export async function OrderListPage({
       breadcrumbs={[{ type: "link", label: "Dashboard", href: "/dashboard" }, { type: "page", label: "Platform" }, { type: "page", label: "Orders" }]}
     >
       <OrderQueueAutoRefresh />
-      <div className="space-y-8 px-4 pb-10 md:px-6">
+      {/* Bottom padding lets the last tickets scroll clear of the floating assistant button. */}
+      <div className="space-y-8 px-4 pb-24 md:px-6">
         <div className="space-y-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <nav aria-label="Status">
+          {/* Wraps instead of overflowing: fulfilment drops to its own row when both tracks don't fit. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <nav aria-label="Status" className="min-w-0 max-w-full">
               <PillTrack label="Status">
                 {STATUS_TABS.map((tab) => (
                   <PillLink key={tab.value} href={orderQueueHref({ ...view, status: tab.value })} active={tab.value === status} count={queue ? tab.count(queue.summary) : undefined}>
@@ -244,7 +246,7 @@ export async function OrderListPage({
                 ))}
               </PillTrack>
             </nav>
-            <nav aria-label="Fulfillment">
+            <nav aria-label="Fulfillment" className="min-w-0 max-w-full">
               <PillTrack label="Fulfillment">
                 {FULFILLMENT_TABS.map((tab) => (
                   <PillLink key={tab.value} href={orderQueueHref({ ...view, fulfillment: tab.value })} active={tab.value === fulfillment}>

@@ -3,12 +3,13 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
-import { assertCoffeeOrderingAvailable } from "./coffeeAvailability";
+import { COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { assertCafeMoneyCents, cafeQuoteFingerprint, calculateCafeTotals } from "./coffeePricing";
 import { PICKUP_SETTINGS_CHANGED_MESSAGE, readLockedPickupSettings, requireCafeTenderOperator, validateCafeModifierSelections, validateCafeOrderLines } from "./coffeeOrderPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeRequirementsInStock, cafeEarliestPickupMinutes, cafeMenuItemImageReference, cafeReceiptKeyMatches, isPublishedMenuItem, normalizeCafeReceiptKey } from "./cafeStorefrontPolicy";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
 
 interface CafePickupOrderItemInput {
   menuItemId: string;
@@ -240,8 +241,8 @@ async function createOrderTransaction({
       tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", customerEmail, createdAt: { gte: new Date(Date.now() - 60 * 60_000) } } }),
       tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open" } }),
     ]);
-    if (recentForContact >= 3) throw new Error("This email already has the maximum number of open pickup requests");
-    if (totalOpenRequests >= Math.max(50, Number(settings.pickupCapacityPerWindow || 20) * 3)) throw new Error("Online pickup requests are temporarily paused while the cafe catches up");
+    if (recentForContact >= 3) throw cafeCustomerError("This email already has the maximum number of open pickup requests");
+    if (totalOpenRequests >= Math.max(50, Number(settings.pickupCapacityPerWindow || 20) * 3)) throw cafeCustomerError("Online pickup requests are temporarily paused while the cafe catches up");
   }
 
   const normalizedItems = items.map((item) => {
@@ -249,13 +250,13 @@ async function createOrderTransaction({
     if (!menuItem) throw new Error(`Menu item not found: ${item.menuItemId}`);
     assertCoffeeStoreOwnership(menuItem.storeId, storeId, `Menu item ${menuItem.name}`);
     if (menuItem.inventoryItem) assertCoffeeStoreOwnership(menuItem.inventoryItem.storeId, storeId, `Inventory for ${menuItem.name}`);
-    if (!menuItem.available) throw new Error(`${menuItem.name} is currently unavailable`);
-    if (!isStaff && !isPublishedMenuItem(menuItem)) throw new Error(`${menuItem.name} is currently unavailable`);
+    if (!menuItem.available) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
+    if (!isStaff && !isPublishedMenuItem(menuItem)) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
 
     const selectedModifiers = (item.modifierIds || []).map((id) => {
       const modifier = menuItem.modifiers.find((candidate) => candidate.id === id);
       if (!modifier || modifier.menuItemId !== menuItem.id) throw new Error(`Modifier ${id} is not valid for ${menuItem.name}`);
-      if (modifier.inStock === false) throw new Error(`${modifier.name} is currently unavailable`);
+      if (modifier.inStock === false) throw cafeCustomerError(`${modifier.name} is currently unavailable`);
       return modifier;
     });
     validateCafeModifierSelections(menuItem, selectedModifiers);
@@ -285,15 +286,15 @@ async function createOrderTransaction({
   if (!isStaff) {
     // Same earliest-pickup rule as quoteCafeOrder; a request may be later, never earlier.
     const earliest = cafeEarliestPickupMinutes(Number(settings.pickupLeadTimeMinutes) || 12, normalizedItems.map((item) => item.menuItem.prepTimeMinutes));
-    leadMinutes = args.requestedPickupMinutes ?? earliest;
-    if (leadMinutes < earliest) throw new Error("The requested pickup time is earlier than the cafe can prepare this order. Review the pickup estimate and submit again.");
+    const firstOpen = coffeeFirstPickupMinutes(settings, earliest, normalizedItems.map((item) => item.menuItem.serviceWindows));
+    if (firstOpen == null) throw cafeCustomerError("Pickup isn't available in the next two days");
+    leadMinutes = args.requestedPickupMinutes ?? firstOpen;
+    if (leadMinutes < earliest) throw cafeCustomerError("The requested pickup time is earlier than the cafe can prepare this order. Review the pickup estimate and submit again.");
   }
   const promisedAt = new Date(Date.now() + leadMinutes * 60_000);
   if (!isStaff) {
-    for (const item of normalizedItems) {
-      assertCoffeeOrderingAvailable(settings, new Date(), item.menuItem.serviceWindows);
-      assertCoffeeOrderingAvailable(settings, promisedAt, item.menuItem.serviceWindows);
-    }
+    // A closed cafe takes requests for a pickup inside its hours (order ahead); the pickup time itself must be open.
+    for (const item of normalizedItems) assertCoffeeOrderingAvailable(settings, promisedAt, item.menuItem.serviceWindows);
   }
 
   if (fulfillmentType === "pickup") {
@@ -310,7 +311,7 @@ async function createOrderTransaction({
     // Lead time, window and capacity come from the settings row held under this lock.
     const locked = await readLockedPickupSettings(tx);
     if (Math.max(5, Number(locked.pickupWindowMinutes || 15)) !== windowMinutes || (Number(locked.pickupLeadTimeMinutes) || 12) !== (Number(settings.pickupLeadTimeMinutes) || 12)) {
-      throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
+      throw cafeCustomerError(PICKUP_SETTINGS_CHANGED_MESSAGE);
     }
     const capacity = Math.max(1, Number(locked.pickupCapacityPerWindow || 20));
     const reservations = await tx.cafeOrder.count({
@@ -321,7 +322,7 @@ async function createOrderTransaction({
         status: { in: ["accepted", "paid", "in_bar_queue", "preparing", "ready"] },
       },
     });
-    if (reservations >= capacity) throw new Error("The requested pickup window is at capacity");
+    if (reservations >= capacity) throw cafeCustomerError("The requested pickup window is at capacity");
   }
 
   const inventoryRequirements = await getCafeInventoryRequirements(tx, storeId, normalizedItems.map((item) => ({
@@ -337,7 +338,7 @@ async function createOrderTransaction({
   const { subtotal, tax, tip, total } = calculateCafeTotals(pricedLines, taxRateBasisPoints, isStaff ? Number(args.tipCents || 0) : 0);
   if (args.quoteFingerprint) {
     const current = cafeQuoteFingerprint({ storeId, currencyCode: settings.currencyCode, taxRateBasisPoints, lines: pricedLines, subtotal, tax, tip, total });
-    if (current !== args.quoteFingerprint) throw new Error("Prices or tax changed since this ticket was reviewed. Review the updated total and submit again.");
+    if (current !== args.quoteFingerprint) throw cafeCustomerError("Prices or tax changed since this ticket was reviewed. Review the updated total and submit again.");
   }
   // A zero-total ticket needs no tender: no payment row, no card or cash movement.
   const tenderRequired = isImmediateTender && total > 0;
@@ -549,8 +550,8 @@ export default async function createCafePickupOrder(
   if (!isStaff && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(args.customerEmail))) throw new Error("A valid email is required for online pickup requests");
   if ((args.customerPhone?.trim().length || 0) > 50) throw new Error("Customer phone cannot exceed 50 characters");
   if ((args.specialInstructions?.trim().length || 0) > 2000) throw new Error("Order instructions cannot exceed 2000 characters");
-  if (args.requestedPickupMinutes != null && (!Number.isSafeInteger(args.requestedPickupMinutes) || args.requestedPickupMinutes < 5 || args.requestedPickupMinutes > 240)) {
-    throw new Error("Requested pickup time must be an integer between 5 and 240 minutes");
+  if (args.requestedPickupMinutes != null && (!Number.isSafeInteger(args.requestedPickupMinutes) || args.requestedPickupMinutes < 5 || args.requestedPickupMinutes > COFFEE_PICKUP_SCHEDULE_MAX_MINUTES)) {
+    throw cafeCustomerError("Choose a pickup time within the next two days");
   }
 
   const clientKey = normalizeIdempotencyKey(args.idempotencyKey);

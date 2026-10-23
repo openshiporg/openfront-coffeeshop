@@ -235,14 +235,14 @@ function MenuItemCard({ item, categories, canManage, commands, notify }: { item:
   }
 
   const [optionsOpen, setOptionsOpen] = React.useState(false);
-  const outCount = item.modifiers.filter((modifier) => !modifier.inStock).length;
+  const outCount = item.modifiers.filter((modifier) => !modifier.inStock || modifier.stockOut).length;
   const optionsId = `menu-item-${item.id}-options`;
 
   return (
     <li className="min-w-0">
       <div className="grid min-w-0 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0 space-y-1">
-          <StatusTitle as="h3" tone={item.available ? "green" : "zinc"} status={item.available ? null : "Unavailable"} className="text-base font-semibold">
+          <StatusTitle as="h3" tone={!item.available ? "zinc" : item.soldOut ? "red" : "green"} status={!item.available ? "Unavailable" : item.soldOut ? "Out of stock" : null} className="text-base font-semibold">
             {item.name}
           </StatusTitle>
           <p className="pl-4 text-sm text-muted-foreground">
@@ -280,10 +280,15 @@ function MenuItemCard({ item, categories, canManage, commands, notify }: { item:
         </Button>
         {canManage && (
           <>
-            <PillTrack label={`${item.name} flags`}>
-              <PillButton active={item.featured} disabled={busy} onClick={() => update("featured", { featured: !item.featured }, item.updatedAt, `${item.name} featured setting saved`)}>Featured</PillButton>
-              <PillButton active={item.popular} disabled={busy} onClick={() => update("popular", { popular: !item.popular }, item.updatedAt, `${item.name} popular setting saved`)}>Popular</PillButton>
-            </PillTrack>
+            {/* Independent on/off flags, so each gets its own switch rather than a segmented choice. */}
+            <label className="flex min-h-9 items-center gap-2 text-sm font-medium">
+              <Switch checked={item.featured} disabled={busy} onCheckedChange={() => update("featured", { featured: !item.featured }, item.updatedAt, `${item.name} featured setting saved`)} />
+              Featured
+            </label>
+            <label className="flex min-h-9 items-center gap-2 text-sm font-medium">
+              <Switch checked={item.popular} disabled={busy} onCheckedChange={() => update("popular", { popular: !item.popular }, item.updatedAt, `${item.name} popular setting saved`)} />
+              Popular
+            </label>
             <Button type="button" size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => setDetailsOpen(true)}>Edit details</Button>
             <Button asChild size="sm" variant="ghost" className="rounded-full text-muted-foreground"><Link href={`/dashboard/menu-items/${item.id}`}>Full record<ArrowUpRight aria-hidden="true" /></Link></Button>
           </>
@@ -580,7 +585,7 @@ function ModifierSummary({ modifier }: { modifier: MenuModifier }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg bg-card px-3 py-2.5 text-sm ring-1 ring-foreground/5">
       <div className="min-w-0">
-        <StatusTitle as="p" tone={modifier.inStock ? "green" : "red"} status={modifier.inStock ? null : "Out of stock"} className="font-medium">
+        <StatusTitle as="p" tone={modifier.inStock && !modifier.stockOut ? "green" : "red"} status={!modifier.inStock ? "Out of stock" : modifier.stockOut ? "No inventory" : null} className="font-medium">
           {modifier.name}
         </StatusTitle>
         <p className="pl-4 text-xs text-muted-foreground">
@@ -679,7 +684,7 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
     <div className="grid gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <StatusTitle as="p" tone={modifier.inStock ? "green" : "red"} status={modifier.inStock ? null : "Out of stock"} className="text-sm font-medium">
+          <StatusTitle as="p" tone={modifier.inStock && !modifier.stockOut ? "green" : "red"} status={!modifier.inStock ? "Out of stock" : modifier.stockOut ? "No inventory" : null} className="text-sm font-medium">
             {modifier.name}
           </StatusTitle>
           <p className="pl-4 text-xs text-muted-foreground">

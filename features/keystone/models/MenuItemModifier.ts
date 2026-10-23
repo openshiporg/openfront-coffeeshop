@@ -40,6 +40,7 @@ export const MenuItemModifier = list({
         { label: "Ice", value: "ice" },
         { label: "Topping", value: "topping" },
         { label: "Bakery Prep", value: "bakery_prep" },
+        { label: "Grind", value: "grind" },
       ],
       defaultValue: "milk",
     }),

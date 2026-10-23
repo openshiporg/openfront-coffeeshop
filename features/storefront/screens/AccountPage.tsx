@@ -4,6 +4,7 @@ import { StorefrontShell } from "../components/StorefrontShell";
 import { CustomerAccountForm } from "../components/CustomerAccountForm";
 import { CustomerProfileForm } from "../components/CustomerProfileForm";
 import { customerSignOut, getCustomerAccount } from "../lib/data/account";
+import { lookupCafeLoyalty } from "../lib/data/loyalty";
 import { formatMoney } from "../lib/format";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -21,6 +22,32 @@ function statusDot(status: string) {
 function orderDate(value: string) {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date) : "";
+}
+
+async function RewardsPanel({ email }: { email: string }) {
+  const result = await lookupCafeLoyalty(email).catch(() => null);
+  const rewards = result?.success ? result.account : null;
+  return (
+    <section className="sf-panel" aria-labelledby="rewards-title">
+      <h2 id="rewards-title" className="sf-display text-xl">Rewards</h2>
+      {!result?.success ? (
+        <p className="sf-muted mt-3 text-sm">Rewards unavailable</p>
+      ) : rewards ? (
+        <dl className="sf-totals mt-4">
+          <div>
+            <dt>Points</dt>
+            <dd className="sf-mono">{rewards.pointsBalance || 0} / 100</dd>
+          </div>
+          <div>
+            <dt>Drink credits</dt>
+            <dd className="sf-mono">{rewards.drinkCredits || 0}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="sf-muted mt-3 text-sm">No rewards yet</p>
+      )}
+    </section>
+  );
 }
 
 async function AccountContent({ searchParams }: { searchParams: Promise<{ after?: string }> }) {
@@ -44,7 +71,7 @@ async function AccountContent({ searchParams }: { searchParams: Promise<{ after?
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <div className="min-w-0">
           <h1 className="sf-display sf-page-title">Orders</h1>
-          <p className="sf-muted mt-1 [overflow-wrap:anywhere]">{account.user.name}</p>
+          <p className="sf-muted mt-1 [overflow-wrap:anywhere]">{account.user.name}{account.user.email ? ` · ${account.user.email}` : ""}</p>
         </div>
         <form action={customerSignOut}><button className="sf-btn sf-btn-ghost">Sign out</button></form>
       </div>
@@ -85,7 +112,10 @@ async function AccountContent({ searchParams }: { searchParams: Promise<{ after?
             </div>
           ) : null}
         </section>
-        <CustomerProfileForm name={account.user.name} phone={account.user.phone} />
+        <div className="grid content-start gap-6">
+          {account.user.email ? <RewardsPanel email={account.user.email} /> : null}
+          <CustomerProfileForm name={account.user.name} phone={account.user.phone} />
+        </div>
       </div>
     </main>
   );

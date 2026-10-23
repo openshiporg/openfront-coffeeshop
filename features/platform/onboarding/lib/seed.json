@@ -3,7 +3,7 @@
     "storeInfo": {
       "name": "Neighborhood Roast", "tagline": "Seasonal coffee, pastries, and pantry staples.",
       "description": "A neighborhood coffee bar for espresso, pastries, and order-ahead pickup.",
-      "address": "128 Market Street, Brooklyn, NY 11201", "phone": "+1 (718) 555-0112", "contactEmail": "hello@neighborhoodroast.local",
+      "address": "128 Market Street, Brooklyn, NY 11201", "phone": "", "contactEmail": "hello@neighborhoodroast.local",
       "currencyCode": "USD", "locale": "en-US", "timezone": "America/New_York",
       "weeklyHours": [
         { "day": "Monday", "open": "07:00", "close": "17:00" }, { "day": "Tuesday", "open": "07:00", "close": "17:00" },
@@ -11,7 +11,7 @@
         { "day": "Friday", "open": "07:00", "close": "17:00" }, { "day": "Saturday", "open": "08:00", "close": "16:00" },
         { "day": "Sunday", "open": "08:00", "close": "15:00" }
       ],
-      "pickupLeadTimeMinutes": 12, "pickupWindowMinutes": 15, "pickupCapacityPerWindow": 20, "taxRateBasisPoints": 887
+      "pickupLeadTimeMinutes": 12, "pickupWindowMinutes": 15, "pickupCapacityPerWindow": 20, "taxRateBasisPoints": 887.5
     },
     "categories": [
       { "name": "Espresso", "description": "Core espresso bar drinks.", "sortOrder": 1 },
@@ -29,11 +29,11 @@
       { "menuItemName": "Vanilla Latte", "name": "Oat Milk", "modifierGroup": "milk", "modifierGroupLabel": "Milk", "priceAdjustment": 80, "defaultSelected": false, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "substitute", "inventoryItemName": "Oat Milk", "replacesInventoryItemName": "Whole Milk" }
     ],
     "inventoryItems": [
-      { "name": "Espresso Beans", "sku": "COF-BEAN-G", "unit": "g", "parLevel": "12000", "reorderPoint": "8000", "costPerUnit": 2 },
-      { "name": "Whole Milk", "sku": "MIL-WHOLE-GL", "unit": "gal", "parLevel": "8", "reorderPoint": "4", "costPerUnit": 480 },
-      { "name": "Almond Croissant", "sku": "PAS-ALM-EA", "unit": "each", "parLevel": "24", "reorderPoint": "12", "costPerUnit": 185 },
-      { "name": "Oat Milk", "sku": "MIL-OAT-GL", "unit": "gal", "parLevel": "6", "reorderPoint": "3", "costPerUnit": 720 },
-      { "name": "Vanilla Syrup", "sku": "SYR-VAN-L", "unit": "l", "parLevel": "4", "reorderPoint": "2", "costPerUnit": 925 }
+      { "name": "Espresso Beans", "sku": "COF-BEAN-G", "unit": "g", "currentStock": "12000", "parLevel": "12000", "reorderPoint": "8000", "costPerUnit": 2 },
+      { "name": "Whole Milk", "sku": "MIL-WHOLE-GL", "unit": "gal", "currentStock": "8", "parLevel": "8", "reorderPoint": "4", "costPerUnit": 480 },
+      { "name": "Almond Croissant", "sku": "PAS-ALM-EA", "unit": "each", "currentStock": "24", "parLevel": "24", "reorderPoint": "12", "costPerUnit": 185 },
+      { "name": "Oat Milk", "sku": "MIL-OAT-GL", "unit": "gal", "currentStock": "6", "parLevel": "6", "reorderPoint": "3", "costPerUnit": 720 },
+      { "name": "Vanilla Syrup", "sku": "SYR-VAN-L", "unit": "l", "currentStock": "4", "parLevel": "4", "reorderPoint": "2", "costPerUnit": 925 }
     ],
     "paymentProviders": [
       { "name": "Stripe", "code": "pp_stripe_stripe", "isInstalled": false },
@@ -56,7 +56,7 @@
     "storeInfo": {
       "name": "Neighborhood Roast", "tagline": "Seasonal coffee, pastries, and pantry staples.",
       "description": "A neighborhood coffee bar for espresso, pastries, and order-ahead pickup.",
-      "address": "128 Market Street, Brooklyn, NY 11201", "phone": "+1 (718) 555-0112", "contactEmail": "hello@neighborhoodroast.local",
+      "address": "128 Market Street, Brooklyn, NY 11201", "phone": "", "contactEmail": "hello@neighborhoodroast.local",
       "currencyCode": "USD", "locale": "en-US", "timezone": "America/New_York",
       "weeklyHours": [
         { "day": "Monday", "open": "07:00", "close": "17:00" }, { "day": "Tuesday", "open": "07:00", "close": "17:00" },
@@ -64,7 +64,7 @@
         { "day": "Friday", "open": "07:00", "close": "17:00" }, { "day": "Saturday", "open": "08:00", "close": "16:00" },
         { "day": "Sunday", "open": "08:00", "close": "15:00" }
       ],
-      "pickupLeadTimeMinutes": 12, "pickupWindowMinutes": 15, "pickupCapacityPerWindow": 20, "taxRateBasisPoints": 887
+      "pickupLeadTimeMinutes": 12, "pickupWindowMinutes": 15, "pickupCapacityPerWindow": 20, "taxRateBasisPoints": 887.5
     },
     "categories": [
       { "name": "Espresso", "description": "Core espresso bar drinks.", "sortOrder": 1 },
@@ -77,7 +77,7 @@
       { "name": "Vanilla Latte", "shortDescription": "Espresso, milk, and house vanilla.", "price": 625, "prepTimeMinutes": 5, "barStation": "espresso_bar", "featured": true, "popular": true, "categoryName": "Signature Drinks", "imageUrl": "/images/vanilla-latte.jpg" },
       { "name": "Cardamom Cold Brew", "shortDescription": "Slow-steeped cold brew with sweet spice.", "price": 575, "prepTimeMinutes": 3, "barStation": "cold_bar", "featured": true, "popular": false, "categoryName": "Signature Drinks", "imageUrl": "/images/cardamom-cold-brew.jpg" },
       { "name": "Almond Croissant", "shortDescription": "Butter croissant with almond cream.", "price": 495, "prepTimeMinutes": 2, "barStation": "pastry_case", "featured": false, "popular": true, "categoryName": "Pastries", "imageUrl": "/images/almond-croissant.jpg" },
-      { "name": "House Blend Beans", "shortDescription": "12 oz whole-bean bag for home brew.", "price": 1800, "prepTimeMinutes": 1, "barStation": "retail_shelf", "featured": false, "popular": false, "categoryName": "Retail Beans", "imageUrl": "/images/house-blend-beans.jpg" }
+      { "name": "House Blend Beans", "shortDescription": "12 oz whole-bean bag for home brew.", "price": 1800, "prepTimeMinutes": 0, "barStation": "retail_shelf", "featured": false, "popular": false, "categoryName": "Retail Beans", "imageUrl": "/images/house-blend-beans.jpg" }
     ],
     "modifiers": [
       { "menuItemName": "Americano", "name": "12 oz", "modifierGroup": "size", "modifierGroupLabel": "Size", "priceAdjustment": 0, "defaultSelected": true, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "none" },
@@ -86,17 +86,20 @@
       { "menuItemName": "Vanilla Latte", "name": "Whole Milk", "modifierGroup": "milk", "modifierGroupLabel": "Milk", "priceAdjustment": 0, "defaultSelected": true, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "none" },
       { "menuItemName": "Vanilla Latte", "name": "Oat Milk", "modifierGroup": "milk", "modifierGroupLabel": "Milk", "priceAdjustment": 80, "defaultSelected": false, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "substitute", "inventoryItemName": "Oat Milk", "replacesInventoryItemName": "Whole Milk" },
       { "menuItemName": "Cardamom Cold Brew", "name": "Regular Ice", "modifierGroup": "ice", "modifierGroupLabel": "Ice", "priceAdjustment": 0, "defaultSelected": true, "required": false, "minSelections": 0, "maxSelections": 1, "inventoryAction": "none" },
-      { "menuItemName": "Cardamom Cold Brew", "name": "Light Ice", "modifierGroup": "ice", "modifierGroupLabel": "Ice", "priceAdjustment": 0, "defaultSelected": false, "required": false, "minSelections": 0, "maxSelections": 1, "inventoryAction": "none" }
+      { "menuItemName": "Cardamom Cold Brew", "name": "Light Ice", "modifierGroup": "ice", "modifierGroupLabel": "Ice", "priceAdjustment": 0, "defaultSelected": false, "required": false, "minSelections": 0, "maxSelections": 1, "inventoryAction": "none" },
+      { "menuItemName": "House Blend Beans", "name": "Whole bean", "modifierGroup": "grind", "modifierGroupLabel": "Grind", "priceAdjustment": 0, "defaultSelected": true, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "none" },
+      { "menuItemName": "House Blend Beans", "name": "Drip", "modifierGroup": "grind", "modifierGroupLabel": "Grind", "priceAdjustment": 0, "defaultSelected": false, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "none" },
+      { "menuItemName": "House Blend Beans", "name": "Espresso", "modifierGroup": "grind", "modifierGroupLabel": "Grind", "priceAdjustment": 0, "defaultSelected": false, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "none" }
     ],
     "inventoryItems": [
-      { "name": "Espresso Beans", "sku": "COF-BEAN-G", "unit": "g", "parLevel": "12000", "reorderPoint": "8000", "costPerUnit": 2 },
-      { "name": "Whole Milk", "sku": "MIL-WHOLE-GL", "unit": "gal", "parLevel": "8", "reorderPoint": "4", "costPerUnit": 480 },
-      { "name": "Oat Milk", "sku": "MIL-OAT-GL", "unit": "gal", "parLevel": "12", "reorderPoint": "6", "costPerUnit": 720 },
-      { "name": "Vanilla Syrup", "sku": "SYR-VAN-L", "unit": "l", "parLevel": "4", "reorderPoint": "2", "costPerUnit": 925 },
-      { "name": "Cardamom Syrup", "sku": "SYR-CARD-L", "unit": "l", "parLevel": "2", "reorderPoint": "1", "costPerUnit": 1000 },
-      { "name": "Almond Croissant", "sku": "PAS-ALM-EA", "unit": "each", "parLevel": "24", "reorderPoint": "12", "costPerUnit": 185 },
-      { "name": "Cold Brew Concentrate", "sku": "COF-COLD-GL", "unit": "gal", "parLevel": "4", "reorderPoint": "2", "costPerUnit": 1850 },
-      { "name": "House Blend Beans", "sku": "COF-HOUSE-12", "unit": "each", "parLevel": "18", "reorderPoint": "8", "costPerUnit": 920 }
+      { "name": "Espresso Beans", "sku": "COF-BEAN-G", "unit": "g", "supplierName": "Common Thread Coffee Supply", "currentStock": "12000", "parLevel": "12000", "reorderPoint": "8000", "costPerUnit": 2 },
+      { "name": "Whole Milk", "sku": "MIL-WHOLE-GL", "unit": "gal", "supplierName": "Common Thread Coffee Supply", "currentStock": "8", "parLevel": "8", "reorderPoint": "4", "costPerUnit": 480 },
+      { "name": "Oat Milk", "sku": "MIL-OAT-GL", "unit": "gal", "supplierName": "Common Thread Coffee Supply", "currentStock": "12", "parLevel": "12", "reorderPoint": "6", "costPerUnit": 720 },
+      { "name": "Vanilla Syrup", "sku": "SYR-VAN-L", "unit": "l", "supplierName": "Common Thread Coffee Supply", "currentStock": "4", "parLevel": "4", "reorderPoint": "2", "costPerUnit": 925 },
+      { "name": "Cardamom Syrup", "sku": "SYR-CARD-L", "unit": "l", "supplierName": "Common Thread Coffee Supply", "currentStock": "2", "parLevel": "2", "reorderPoint": "1", "costPerUnit": 1000 },
+      { "name": "Almond Croissant", "sku": "PAS-ALM-EA", "unit": "each", "supplierName": "Common Thread Coffee Supply", "currentStock": "24", "parLevel": "24", "reorderPoint": "12", "costPerUnit": 185 },
+      { "name": "Cold Brew Concentrate", "sku": "COF-COLD-GL", "unit": "gal", "supplierName": "Common Thread Coffee Supply", "currentStock": "4", "parLevel": "4", "reorderPoint": "2", "costPerUnit": 1850 },
+      { "name": "House Blend Beans", "sku": "COF-HOUSE-12", "unit": "each", "category": "retail", "supplierName": "Common Thread Coffee Supply", "currentStock": "18", "parLevel": "18", "reorderPoint": "8", "costPerUnit": 920 }
     ],
     "paymentProviders": [
       { "name": "Stripe", "code": "pp_stripe_stripe", "isInstalled": false },

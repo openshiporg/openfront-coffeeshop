@@ -22,6 +22,8 @@ export type MenuModifier = {
   maxSelections: number;
   defaultSelected: boolean;
   inStock: boolean;
+  /** Marked in stock, but current inventory can't cover it. */
+  stockOut?: boolean | null;
   updatedAt: string;
   /** Private to product managers; null for read-only staff. */
   inventoryAction?: string | null;
@@ -42,6 +44,8 @@ export type MenuManagerItem = {
   barStation?: string | null;
   updatedAt: string;
   category?: { id: string; name: string } | null;
+  /** Available, but current inventory can't cover one serving. */
+  soldOut?: boolean | null;
   modifiers: MenuModifier[];
   modifiersHasMore: boolean;
 };
@@ -79,4 +83,5 @@ export const MODIFIER_GROUPS = [
   { value: "ice", label: "Ice" },
   { value: "topping", label: "Topping" },
   { value: "bakery_prep", label: "Bakery prep" },
+  { value: "grind", label: "Grind" },
 ] as const;

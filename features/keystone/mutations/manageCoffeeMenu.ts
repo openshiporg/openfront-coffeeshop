@@ -25,7 +25,7 @@ type TransactionClient = {
 
 const TX_OPTIONS = { maxWait: 5000, timeout: 10000, isolationLevel: "Serializable" };
 const STATIONS = new Set(["espresso_bar", "cold_bar", "brew_bar", "pastry_case", "retail_shelf"]);
-const MODIFIER_GROUPS = new Set(["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep"]);
+const MODIFIER_GROUPS = new Set(["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep", "grind"]);
 const STALE_MESSAGE = "This menu entry changed since you opened it. Reload to see the latest version before saving.";
 const REUSED_KEY_MESSAGE = "This menu change was already submitted with different details. Reload and try again.";
 

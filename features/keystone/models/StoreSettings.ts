@@ -1,6 +1,6 @@
 import { list } from "@keystone-6/core";
 import { denyAll } from "@keystone-6/core/access";
-import { integer, json, relationship, select, text } from "@keystone-6/core/fields";
+import { decimal, integer, json, relationship, select, text } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
 import { COFFEE_CURRENCY_CODE_PATTERN, validCoffeeTimezone } from "../lib/store-locale-policy";
@@ -37,7 +37,8 @@ export const StoreSetting = list({
     hideCreate: true,
     label: "Store settings",
     singular: "Store settings",
-    plural: "Store settings",
+    // The dashboard derives GraphQL names from this plural; it must spell the list key (StoreSettings).
+    plural: "Store Settings",
     listView: {
       initialColumns: ["name", "address", "contactEmail", "phone"],
     },
@@ -99,7 +100,7 @@ export const StoreSetting = list({
     pickupLeadTimeMinutes: integer({ defaultValue: 12, validation: { ...PICKUP_LIMITS.pickupLeadTimeMinutes } }),
     pickupWindowMinutes: integer({ defaultValue: 15, validation: { ...PICKUP_LIMITS.pickupWindowMinutes } }),
     pickupCapacityPerWindow: integer({ defaultValue: 20, validation: { ...PICKUP_LIMITS.pickupCapacityPerWindow } }),
-    taxRateBasisPoints: integer({ defaultValue: 875, validation: { isRequired: true, min: 0, max: 10000 }, ui: { description: "Store pickup sales-tax rate in basis points (875 = 8.75%)" } }),
+    taxRateBasisPoints: decimal({ precision: 7, scale: 2, defaultValue: "875", validation: { isRequired: true, min: "0", max: "10000" }, ui: { description: "Store pickup sales-tax rate in basis points (887.5 = 8.875%)" } }),
     menuCategories: relationship({ ref: "MenuCategory.store", many: true, access: { create: denyAll, update: denyAll } }),
     menuItems: relationship({ ref: "MenuItem.store", many: true, access: { create: denyAll, update: denyAll } }),
     menuItemModifiers: relationship({ ref: "MenuItemModifier.store", many: true, access: { create: denyAll, update: denyAll } }),

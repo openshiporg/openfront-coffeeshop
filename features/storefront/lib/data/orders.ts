@@ -1,6 +1,6 @@
 "use server";
 
-import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { cafeRequest } from "./cafeRequest";
 
 export type PickupOrderItemInput = {
   menuItemId: string;
@@ -73,8 +73,8 @@ export type CafeOrderQuote = {
 };
 
 const QUOTE_CAFE_ORDER_QUERY = `
-  query QuoteCafeOrder($items: [CafePickupOrderItemInput!]!, $tipCents: Int) {
-    quoteCafeOrder(items: $items, tipCents: $tipCents) {
+  query QuoteCafeOrder($items: [CafePickupOrderItemInput!]!, $tipCents: Int, $requestedPickupMinutes: Int) {
+    quoteCafeOrder(items: $items, tipCents: $tipCents, requestedPickupMinutes: $requestedPickupMinutes) {
       subtotal tax tip total currencyCode quoteFingerprint estimatedPickupMinutes
       lines { index menuItemId name quantity unitPrice lineTotal }
     }
@@ -134,18 +134,18 @@ const CREATE_PICKUP_ORDER_MUTATION = `
   }
 `;
 
-export async function quoteCafePickupOrder(items: PickupOrderItemInput[], tipCents = 0) {
+export async function quoteCafePickupOrder(items: PickupOrderItemInput[], options: { requestedPickupMinutes?: number } = {}) {
   if (!items.length) return { success: true as const, quote: null };
-  const response = await keystoneClient<{ quoteCafeOrder: CafeOrderQuote }>(QUOTE_CAFE_ORDER_QUERY, { items, tipCents }, { cache: "no-store" });
-  if (!response.success) return { success: false as const, error: response.error };
+  const response = await cafeRequest<{ quoteCafeOrder: CafeOrderQuote }>(QUOTE_CAFE_ORDER_QUERY, { items, tipCents: 0, requestedPickupMinutes: options.requestedPickupMinutes ?? null });
+  if (!response.success) return { success: false as const, error: response.error, customerMessage: response.customerMessage };
   return { success: true as const, quote: response.data.quoteCafeOrder };
 }
 
 export async function createCafePickupOrder(input: PickupOrderInput) {
-  const response = await keystoneClient<{ createCafePickupOrder: CafePickupOrder }>(CREATE_PICKUP_ORDER_MUTATION, input, { cache: "no-store" });
+  const response = await cafeRequest<{ createCafePickupOrder: CafePickupOrder }>(CREATE_PICKUP_ORDER_MUTATION, input);
 
   if (!response.success) {
-    return { success: false as const, error: response.error };
+    return { success: false as const, error: response.error, customerMessage: response.customerMessage };
   }
 
   return { success: true as const, order: response.data.createCafePickupOrder };

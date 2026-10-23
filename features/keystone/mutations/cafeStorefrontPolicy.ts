@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { fingerprintInput } from "./idempotency";
 import type { InventoryRequirement } from "./coffeeInventoryConsumption";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
 
 /** Shared storefront rules so the quote, menu and order creation agree. */
 
@@ -56,7 +57,7 @@ export async function assertCafeRequirementsInStock(client: StockReader, storeId
   const stock = new Map(rows.map((row) => [String(row.id), Number(row.currentStock)]));
   for (const requirement of inventory) {
     const available = stock.get(requirement.inventoryItemId);
-    if (available === undefined || !Number.isFinite(available) || available < requirement.quantity) throw new Error("Part of this order is sold out right now");
+    if (available === undefined || !Number.isFinite(available) || available < requirement.quantity) throw cafeCustomerError("Part of this order is sold out right now");
   }
 }
 

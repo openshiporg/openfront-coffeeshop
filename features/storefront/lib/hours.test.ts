@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatClock, hoursRows, openState } from "./hours";
+import { formatClock, formatPickupTime, hoursRows, isOpenAt, openState, pickupSlots } from "./hours";
 
 const week = [
   { day: "Sunday", open: "08:00", close: "15:00" },
@@ -42,4 +42,21 @@ test("openState skips closed days to the next opening", () => {
 test("openState reports unknown without hours", () => {
   assert.equal(openState(undefined, "UTC").kind, "unknown");
   assert.equal(openState(week, "Not/AZone", new Date("2026-10-19T09:00:00Z")).kind, "open");
+});
+
+test("pickupSlots keeps the earliest time and only open window starts", () => {
+  // Monday 16:40 in Chicago; the store closes at 17:00.
+  const earliest = new Date("2026-10-19T21:40:00Z");
+  const slots = pickupSlots(week, "America/Chicago", earliest, 15);
+  assert.equal(slots[0].toISOString(), earliest.toISOString());
+  assert.equal(slots[1].toISOString(), "2026-10-19T21:45:00.000Z");
+  // After 16:45 the next open start is Tuesday 07:00.
+  assert.equal(slots[2].toISOString(), "2026-10-20T12:00:00.000Z");
+  assert.equal(isOpenAt(week, "America/Chicago", new Date("2026-10-19T22:00:00Z")), false);
+});
+
+test("formatPickupTime names tomorrow in the store time zone", () => {
+  const now = new Date("2026-10-19T22:30:00Z");
+  assert.equal(formatPickupTime(new Date("2026-10-19T22:45:00Z"), "America/Chicago", now), "5:45 PM");
+  assert.equal(formatPickupTime(new Date("2026-10-20T12:00:00Z"), "America/Chicago", now), "Tomorrow 7:00 AM");
 });

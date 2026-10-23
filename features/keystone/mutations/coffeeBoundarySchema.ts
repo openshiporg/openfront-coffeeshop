@@ -27,6 +27,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     shortDescription: String
     price: Int!
     available: Boolean!
+    availability: String
     featured: Boolean
     popular: Boolean
     imageUrl: String
@@ -59,6 +60,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     maxSelections: Int!
     defaultSelected: Boolean!
     inStock: Boolean!
+    stockOut: Boolean
     updatedAt: String!
     inventoryAction: String
     inventoryQuantity: Float
@@ -77,6 +79,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     barStation: String
     updatedAt: String!
     category: CoffeeNamedRef
+    soldOut: Boolean
     modifiers: [CoffeeManagedMenuModifier!]!
     modifiersHasMore: Boolean!
   }
@@ -406,7 +409,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     getCoffeeMenuManager(search: String, categoryId: ID, cursor: String, limit: Int = 50): CoffeeManagedMenuProjection!
     getCoffeeMenuInventoryOptions(search: String, limit: Int = 25): CoffeeMenuInventoryOptions!
     getCoffeePosRegister(search: String, categoryId: ID, cursor: String, limit: Int = 48): CoffeePosProjection!
-    quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int): CafeOrderQuote!
+    quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int, requestedPickupMinutes: Int): CafeOrderQuote!
     getCoffeeReports(period: String, startDate: String, endDate: String, lowStockPage: Int): CoffeeReportsProjection!
     getCoffeeOperations(receiptCursor: String, purchaseSupplierSearch: String, purchaseSupplierCursor: String, purchaseInventorySearch: String, purchaseInventoryCursor: String, inventoryWasteSearch: String, inventoryWasteCursor: String, prepBatchSearch: String, prepBatchCursor: String, recipeSearch: String, recipeCursor: String, staffSearch: String, staffCursor: String, shiftCursor: String): CoffeeOperationsProjection!
   }

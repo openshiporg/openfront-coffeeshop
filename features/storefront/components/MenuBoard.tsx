@@ -22,7 +22,6 @@ function MenuItemRow({ item }: { item: StorefrontMenuItem }) {
           <span className="sf-item-price sf-mono">{formatMoney(item.price)}</span>
           {item.popular ? <span className="sf-item-tag sf-item-tag-accent">Popular</span> : null}
           {item.caffeineMg ? <span className="sf-item-tag">{item.caffeineMg} mg caffeine</span> : null}
-          {!item.available ? <span className="sf-item-tag">Unavailable</span> : null}
         </div>
       </div>
       <div className="sf-item-figure">
@@ -119,7 +118,7 @@ export function MenuBoard({
             <Link href={filterHref(search, UNCATEGORIZED)} className="sf-track-item" aria-current={categoryId === UNCATEGORIZED ? "page" : undefined}>{UNCATEGORIZED_LABEL}</Link>
           ) : null}
         </nav>
-        <form className="sf-search" action="/" method="get" role="search">
+        <form className="sf-search" action="/#menu" method="get" role="search">
           <Search className="size-4" aria-hidden="true" />
           <label htmlFor="menu-search" className="sr-only">Search the menu</label>
           <input id="menu-search" name="q" type="search" defaultValue={search} maxLength={100} placeholder="Search menu" />
@@ -135,7 +134,7 @@ export function MenuBoard({
         </p>
       ) : null}
 
-      {sections.length > 0 ? sections.map((section) => (
+      {sections.length > 0 ? <div className="sf-menu-sections">{sections.map((section) => (
         <section key={section.id} className="sf-menu-section" aria-labelledby={`menu-section-${section.id}`}>
           <div className="sf-menu-section-head">
             <div className="min-w-0">
@@ -146,7 +145,7 @@ export function MenuBoard({
           </div>
           <div className="sf-item-grid">{section.items.map((item) => <MenuItemRow key={item.id} item={item} />)}</div>
         </section>
-      )) : (
+      ))}</div> : (
         <div className="sf-empty mt-6">
           {filtered ? (
             <>

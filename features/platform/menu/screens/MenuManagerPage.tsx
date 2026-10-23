@@ -18,11 +18,11 @@ const MENU_MANAGER_QUERY = `
       hasMore
       nextCursor
       items {
-        id name shortDescription price available featured popular prepTimeMinutes barStation updatedAt
+        id name shortDescription price available featured popular prepTimeMinutes barStation updatedAt soldOut
         category { id name }
         modifiersHasMore
         modifiers {
-          id name modifierGroup modifierGroupLabel priceAdjustment required minSelections maxSelections defaultSelected inStock updatedAt
+          id name modifierGroup modifierGroupLabel priceAdjustment required minSelections maxSelections defaultSelected inStock stockOut updatedAt
           inventoryAction inventoryQuantity
           inventoryItem { id name unit }
           replacesInventoryItem { id name unit }

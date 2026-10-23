@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Zap } from "lucide-react";
-import { formatPickupTime } from "@/lib/date-time";
+import { formatStaffPickupTime } from "@/lib/date-time";
 import { PillButton, PillTrack } from "@/features/platform/components/PillTabs";
 import { StatusDot, type StatusTone } from "@/features/platform/components/StatusTitle";
 
@@ -172,7 +172,7 @@ export function KdsBoard({
                   <article key={item.id} className={`rounded-xl bg-card p-4 text-card-foreground shadow-sm ring-1 ${item.order.isRush ? "ring-red-500/40" : "ring-foreground/10"}`}>
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="font-mono font-semibold">#{item.order.orderNumber}</span>
+                        <span className="min-w-0 truncate font-mono font-semibold" title={`#${item.order.orderNumber}`}>#{item.order.orderNumber}</span>
                         {item.order.isRush && <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400"><Zap className="size-3" aria-hidden="true" />Rush</span>}
                       </span>
                       <span className={`shrink-0 font-mono tabular-nums ${late ? "font-semibold text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
@@ -183,7 +183,7 @@ export function KdsBoard({
                       <span className="inline-flex h-[1lh] shrink-0 items-center"><StatusDot tone={BAR_STATUS_TONES[item.barStatus] || "zinc"} className="translate-y-0" /></span>
                       <span className="min-w-0 [overflow-wrap:anywhere]"><span className="font-mono">{item.quantity}×</span> {item.itemNameSnapshot}</span>
                     </h3>
-                    <p className="mt-1 pl-[1.125rem] text-sm text-muted-foreground"><span className="capitalize">{item.barStatus.replaceAll("_", " ")}</span> · {item.order.pickupName || "Guest"} · {item.order.promisedAt ? formatPickupTime(item.order.promisedAt, storeTimezone) : "ASAP"}</p>
+                    <p className="mt-1 pl-[1.125rem] text-sm text-muted-foreground"><span className="capitalize">{item.barStatus.replaceAll("_", " ")}</span> · {item.order.pickupName || "Guest"} · {item.order.promisedAt ? formatStaffPickupTime(item.order.promisedAt, storeTimezone) : "ASAP"}</p>
                     {item.customizationsSummary && <p className="mt-3 text-base font-medium leading-snug [overflow-wrap:anywhere]">{item.customizationsSummary}</p>}
                     {item.specialInstructions && <p className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-900 dark:text-amber-200 [overflow-wrap:anywhere]">{item.specialInstructions}</p>}
                     {next && (

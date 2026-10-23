@@ -1210,11 +1210,12 @@ function storeSettingRecordErrors(record) {
     pickupLeadTimeMinutes: record.pickupLeadTimeMinutes,
     pickupWindowMinutes: record.pickupWindowMinutes,
     pickupCapacityPerWindow: record.pickupCapacityPerWindow,
-    taxRateBasisPoints: record.taxRateBasisPoints
+    // Decimal fields arrive as strings or Decimal objects.
+    taxRateBasisPoints: record.taxRateBasisPoints == null ? record.taxRateBasisPoints : Number(String(record.taxRateBasisPoints))
   });
   return result.success ? [] : result.error.issues.map((issue) => issue.message);
 }
-var import_zod, WEEKDAYS, PICKUP_LIMITS, timeValue, minutesOf, weeklyHoursSchema, boundedInt, coffeeStoreSettingsInputSchema, effectiveRecordSchema;
+var import_zod, WEEKDAYS, PICKUP_LIMITS, timeValue, minutesOf, weeklyHoursSchema, boundedInt, taxBasisPoints, coffeeStoreSettingsInputSchema, effectiveRecordSchema;
 var init_store_settings_input = __esm({
   "features/keystone/lib/store-settings-input.ts"() {
     "use strict";
@@ -1252,6 +1253,7 @@ var init_store_settings_input = __esm({
       }
     });
     boundedInt = (key, label) => import_zod.z.number({ invalid_type_error: `${label} must be a whole number` }).int(`${label} must be a whole number`).min(PICKUP_LIMITS[key].min, `${label} must be at least ${PICKUP_LIMITS[key].min}`).max(PICKUP_LIMITS[key].max, `${label} must be at most ${PICKUP_LIMITS[key].max}`);
+    taxBasisPoints = import_zod.z.number({ invalid_type_error: "Tax rate must be a number" }).min(PICKUP_LIMITS.taxRateBasisPoints.min, "Tax rate can't be negative").max(PICKUP_LIMITS.taxRateBasisPoints.max, "Tax rate must be at most 100%").refine((value) => Math.abs(Math.round(value * 100) - value * 100) < 1e-6, "Tax rate allows at most three decimals of a percent");
     coffeeStoreSettingsInputSchema = import_zod.z.object({
       name: import_zod.z.string().trim().min(1, "Store name is required").max(200),
       tagline: import_zod.z.string().trim().max(300).default(""),
@@ -1270,7 +1272,7 @@ var init_store_settings_input = __esm({
       pickupLeadTimeMinutes: boundedInt("pickupLeadTimeMinutes", "Pickup lead time"),
       pickupWindowMinutes: boundedInt("pickupWindowMinutes", "Pickup window"),
       pickupCapacityPerWindow: boundedInt("pickupCapacityPerWindow", "Capacity per window"),
-      taxRateBasisPoints: boundedInt("taxRateBasisPoints", "Tax rate")
+      taxRateBasisPoints: taxBasisPoints
     }).strict();
     effectiveRecordSchema = import_zod.z.object({
       contactEmail: import_zod.z.string().trim().email("Enter a valid contact email"),
@@ -1279,7 +1281,7 @@ var init_store_settings_input = __esm({
       pickupLeadTimeMinutes: boundedInt("pickupLeadTimeMinutes", "Pickup lead time"),
       pickupWindowMinutes: boundedInt("pickupWindowMinutes", "Pickup window"),
       pickupCapacityPerWindow: boundedInt("pickupCapacityPerWindow", "Capacity per window"),
-      taxRateBasisPoints: boundedInt("taxRateBasisPoints", "Tax rate")
+      taxRateBasisPoints: taxBasisPoints
     });
   }
 });
@@ -1322,7 +1324,8 @@ var init_StoreSettings = __esm({
         hideCreate: true,
         label: "Store settings",
         singular: "Store settings",
-        plural: "Store settings",
+        // The dashboard derives GraphQL names from this plural; it must spell the list key (StoreSettings).
+        plural: "Store Settings",
         listView: {
           initialColumns: ["name", "address", "contactEmail", "phone"]
         }
@@ -1384,7 +1387,7 @@ var init_StoreSettings = __esm({
         pickupLeadTimeMinutes: (0, import_fields22.integer)({ defaultValue: 12, validation: { ...PICKUP_LIMITS.pickupLeadTimeMinutes } }),
         pickupWindowMinutes: (0, import_fields22.integer)({ defaultValue: 15, validation: { ...PICKUP_LIMITS.pickupWindowMinutes } }),
         pickupCapacityPerWindow: (0, import_fields22.integer)({ defaultValue: 20, validation: { ...PICKUP_LIMITS.pickupCapacityPerWindow } }),
-        taxRateBasisPoints: (0, import_fields22.integer)({ defaultValue: 875, validation: { isRequired: true, min: 0, max: 1e4 }, ui: { description: "Store pickup sales-tax rate in basis points (875 = 8.75%)" } }),
+        taxRateBasisPoints: (0, import_fields22.decimal)({ precision: 7, scale: 2, defaultValue: "875", validation: { isRequired: true, min: "0", max: "10000" }, ui: { description: "Store pickup sales-tax rate in basis points (887.5 = 8.875%)" } }),
         menuCategories: (0, import_fields22.relationship)({ ref: "MenuCategory.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
         menuItems: (0, import_fields22.relationship)({ ref: "MenuItem.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
         menuItemModifiers: (0, import_fields22.relationship)({ ref: "MenuItemModifier.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
@@ -1644,7 +1647,8 @@ var init_MenuItemModifier = __esm({
             { label: "Temperature", value: "temperature" },
             { label: "Ice", value: "ice" },
             { label: "Topping", value: "topping" },
-            { label: "Bakery Prep", value: "bakery_prep" }
+            { label: "Bakery Prep", value: "bakery_prep" },
+            { label: "Grind", value: "grind" }
           ],
           defaultValue: "milk"
         }),
@@ -2542,6 +2546,7 @@ var init_coffeeBoundarySchema = __esm({
     shortDescription: String
     price: Int!
     available: Boolean!
+    availability: String
     featured: Boolean
     popular: Boolean
     imageUrl: String
@@ -2574,6 +2579,7 @@ var init_coffeeBoundarySchema = __esm({
     maxSelections: Int!
     defaultSelected: Boolean!
     inStock: Boolean!
+    stockOut: Boolean
     updatedAt: String!
     inventoryAction: String
     inventoryQuantity: Float
@@ -2592,6 +2598,7 @@ var init_coffeeBoundarySchema = __esm({
     barStation: String
     updatedAt: String!
     category: CoffeeNamedRef
+    soldOut: Boolean
     modifiers: [CoffeeManagedMenuModifier!]!
     modifiersHasMore: Boolean!
   }
@@ -2921,7 +2928,7 @@ var init_coffeeBoundarySchema = __esm({
     getCoffeeMenuManager(search: String, categoryId: ID, cursor: String, limit: Int = 50): CoffeeManagedMenuProjection!
     getCoffeeMenuInventoryOptions(search: String, limit: Int = 25): CoffeeMenuInventoryOptions!
     getCoffeePosRegister(search: String, categoryId: ID, cursor: String, limit: Int = 48): CoffeePosProjection!
-    quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int): CafeOrderQuote!
+    quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int, requestedPickupMinutes: Int): CafeOrderQuote!
     getCoffeeReports(period: String, startDate: String, endDate: String, lowStockPage: Int): CoffeeReportsProjection!
     getCoffeeOperations(receiptCursor: String, purchaseSupplierSearch: String, purchaseSupplierCursor: String, purchaseInventorySearch: String, purchaseInventoryCursor: String, inventoryWasteSearch: String, inventoryWasteCursor: String, prepBatchSearch: String, prepBatchCursor: String, recipeSearch: String, recipeCursor: String, staffSearch: String, staffCursor: String, shiftCursor: String): CoffeeOperationsProjection!
   }
@@ -3126,6 +3133,19 @@ var init_transitionPolicy = __esm({
   }
 });
 
+// features/keystone/lib/cafeCustomerError.ts
+function cafeCustomerError(message) {
+  return new import_graphql.GraphQLError(message, { extensions: { code: CAFE_CUSTOMER_ERROR_CODE } });
+}
+var import_graphql, CAFE_CUSTOMER_ERROR_CODE;
+var init_cafeCustomerError = __esm({
+  "features/keystone/lib/cafeCustomerError.ts"() {
+    "use strict";
+    import_graphql = require("graphql");
+    CAFE_CUSTOMER_ERROR_CODE = "CAFE_CUSTOMER_ERROR";
+  }
+});
+
 // features/keystone/mutations/coffeeAvailability.ts
 function minutes(value) {
   const match = /^(\d{2}):(\d{2})$/.exec(value || "");
@@ -3178,16 +3198,39 @@ function getCoffeeOrderingAvailability(settings, at = /* @__PURE__ */ new Date()
     pickupLeadTimeMinutes: Math.max(5, Number(settings.pickupLeadTimeMinutes || 12))
   };
 }
+function openAtMinute(hours, day, minuteOfDay, serviceWindows) {
+  const entry = hours.find((candidate) => candidate.day === day);
+  const openMinute = minutes(entry?.open);
+  const closeMinute = minutes(entry?.close);
+  if (!entry || entry.closed || openMinute == null || closeMinute == null || minuteOfDay < openMinute || minuteOfDay >= closeMinute) return false;
+  return !serviceWindows.length || serviceWindows.includes("all_day") || serviceWindows.some((window) => {
+    const range = SERVICE_WINDOWS[window];
+    return Boolean(range && minuteOfDay >= range[0] && minuteOfDay < range[1]);
+  });
+}
+function coffeeFirstPickupMinutes(settings, earliestMinutes, serviceWindowSets = [["all_day"]], at = /* @__PURE__ */ new Date()) {
+  const { day, minuteOfDay } = zonedParts(at, settings.timezone || "America/New_York");
+  const hours = normalizeWeeklyHours(settings.weeklyHours);
+  const dayIndex = DAY_NAMES.indexOf(day);
+  if (dayIndex === -1) return null;
+  for (let offset = Math.max(0, Math.ceil(earliestMinutes)); offset <= COFFEE_PICKUP_SCHEDULE_MAX_MINUTES; offset++) {
+    const total = minuteOfDay + offset;
+    const candidateDay = DAY_NAMES[(dayIndex + Math.floor(total / 1440)) % 7];
+    if (serviceWindowSets.every((windows) => openAtMinute(hours, candidateDay, total % 1440, windows))) return offset;
+  }
+  return null;
+}
 function assertCoffeeOrderingAvailable(settings, at = /* @__PURE__ */ new Date(), serviceWindows = ["all_day"]) {
   const availability = getCoffeeOrderingAvailability(settings, at, serviceWindows);
-  if (!availability.storeOpen) throw new Error("Pickup ordering is closed for the store's current hours");
-  if (!availability.itemOpen) throw new Error("A selected menu item is unavailable in the current service window");
+  if (!availability.storeOpen) throw cafeCustomerError("The cafe is closed for pickup at that time");
+  if (!availability.itemOpen) throw cafeCustomerError("A selected item isn't served at that time");
   return availability;
 }
-var DAY_NAMES, SERVICE_WINDOWS;
+var DAY_NAMES, SERVICE_WINDOWS, COFFEE_PICKUP_SCHEDULE_MAX_MINUTES;
 var init_coffeeAvailability = __esm({
   "features/keystone/mutations/coffeeAvailability.ts"() {
     "use strict";
+    init_cafeCustomerError();
     DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     SERVICE_WINDOWS = {
       morning: [5 * 60, 11 * 60],
@@ -3195,6 +3238,7 @@ var init_coffeeAvailability = __esm({
       afternoon: [14 * 60, 18 * 60],
       all_day: [0, 24 * 60]
     };
+    COFFEE_PICKUP_SCHEDULE_MAX_MINUTES = 48 * 60;
   }
 });
 
@@ -3233,7 +3277,9 @@ var init_idempotency = __esm({
 // features/keystone/mutations/coffeePricing.ts
 function normalizeCafeTaxBasisPoints(value) {
   const basisPoints = Number(value);
-  if (!Number.isSafeInteger(basisPoints) || basisPoints < 0 || basisPoints > 1e4) throw new Error("Store tax rate must be an integer between 0 and 10000 basis points");
+  if (!Number.isFinite(basisPoints) || basisPoints < 0 || basisPoints > 1e4 || Math.abs(Math.round(basisPoints * 100) - basisPoints * 100) > 1e-6) {
+    throw new Error("Store tax rate must be between 0 and 10000 basis points, with at most two decimals");
+  }
   return basisPoints;
 }
 function assertCafeMoneyCents(value, label) {
@@ -3376,6 +3422,10 @@ function stockDecimal(units) {
 }
 function stockNumber(units) {
   return Number(stockDecimal(units));
+}
+function planStockCount(currentStock, countedUnits) {
+  const previousUnits = storedStockUnits(currentStock);
+  return { previousUnits, deltaUnits: countedUnits - previousUnits };
 }
 function stockCostCents(units, unitCostCents) {
   const cents2 = Math.round(units * unitCostCents / STOCK_SCALE);
@@ -3555,7 +3605,7 @@ async function assertCafeRequirementsInStock(client, storeId, requirements) {
   const stock = new Map(rows.map((row) => [String(row.id), Number(row.currentStock)]));
   for (const requirement of inventory) {
     const available = stock.get(requirement.inventoryItemId);
-    if (available === void 0 || !Number.isFinite(available) || available < requirement.quantity) throw new Error("Part of this order is sold out right now");
+    if (available === void 0 || !Number.isFinite(available) || available < requirement.quantity) throw cafeCustomerError("Part of this order is sold out right now");
   }
 }
 function normalizeCafeReceiptKey(value) {
@@ -3598,6 +3648,7 @@ var init_cafeStorefrontPolicy = __esm({
     "use strict";
     import_node_crypto3 = require("node:crypto");
     init_idempotency();
+    init_cafeCustomerError();
     CAFE_PICKUP_PREP_BUFFER_MINUTES = 5;
     PUBLISHED_MENU_ITEM_WHERE = {
       available: true,
@@ -3606,6 +3657,77 @@ var init_cafeStorefrontPolicy = __esm({
     RECEIPT_KEY_PATTERN = /^[0-9a-f]{64}$/;
     IMAGE_REFERENCE_PREFIX = "keystone-image:my_images/";
     IMAGE_EXTENSIONS = ["jpg", "png", "webp", "gif"];
+  }
+});
+
+// features/keystone/mutations/cafeMenuStock.ts
+function positive2(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+async function cafeMenuStock(client, storeId, items) {
+  const soldOut = /* @__PURE__ */ new Set();
+  const modifiersOut = /* @__PURE__ */ new Set();
+  if (!items.length) return { soldOut, modifiersOut };
+  const recipes = await client.recipe.findMany({
+    where: { storeId, menuItemId: { in: items.map((item) => item.id) }, status: "active", active: true },
+    select: { id: true, menuItemId: true, yieldQuantity: true, from_Ingredient_recipe: { select: { quantity: true, optional: true, inventoryItemId: true } } }
+  });
+  const recipeByItem = new Map(recipes.map((recipe) => [String(recipe.menuItemId), recipe]));
+  const inventoryIds = /* @__PURE__ */ new Set();
+  for (const item of items) {
+    if (item.inventoryItemId) inventoryIds.add(item.inventoryItemId);
+    for (const modifier of item.modifiers) if (modifier.inventoryItemId) inventoryIds.add(modifier.inventoryItemId);
+  }
+  for (const recipe of recipes) {
+    for (const ingredient of recipe.from_Ingredient_recipe || []) {
+      if (typeof ingredient.inventoryItemId === "string") inventoryIds.add(ingredient.inventoryItemId);
+    }
+  }
+  const [stockRows, batches] = await Promise.all([
+    inventoryIds.size ? client.inventoryItem.findMany({ where: { storeId, id: { in: [...inventoryIds] } }, select: { id: true, currentStock: true } }) : Promise.resolve([]),
+    recipes.length ? client.prepBatch.findMany({ where: { storeId, recipeId: { in: recipes.map((recipe) => String(recipe.id)) }, status: "completed", quantityRemaining: { gt: 0 }, OR: [{ expiresAt: null }, { expiresAt: { gt: /* @__PURE__ */ new Date() } }] }, select: { recipeId: true } }) : Promise.resolve([])
+  ]);
+  const stock = new Map(stockRows.map((row) => [String(row.id), Number(row.currentStock)]));
+  const prepared = new Set(batches.map((batch) => String(batch.recipeId)));
+  const covers = (inventoryItemId, quantity) => (stock.get(inventoryItemId) ?? 0) >= quantity - 1e-9;
+  for (const item of items) {
+    const recipe = recipeByItem.get(item.id);
+    const needs = /* @__PURE__ */ new Map();
+    if (!recipe) {
+      if (item.inventoryItemId) needs.set(item.inventoryItemId, 1);
+    } else {
+      const yieldQuantity = positive2(recipe.yieldQuantity) || 1;
+      for (const ingredient of recipe.from_Ingredient_recipe || []) {
+        if (ingredient.optional || typeof ingredient.inventoryItemId !== "string") continue;
+        needs.set(ingredient.inventoryItemId, (needs.get(ingredient.inventoryItemId) || 0) + positive2(ingredient.quantity) / yieldQuantity);
+      }
+    }
+    for (const modifier of item.modifiers) {
+      if (modifier.inventoryAction === "add" && modifier.inventoryItemId && !covers(modifier.inventoryItemId, positive2(modifier.inventoryQuantity))) modifiersOut.add(modifier.id);
+      if (modifier.inventoryAction === "substitute" && modifier.inventoryItemId && modifier.replacesInventoryItemId) {
+        const replaced = needs.get(modifier.replacesInventoryItemId);
+        if (replaced !== void 0 && !covers(modifier.inventoryItemId, replaced)) modifiersOut.add(modifier.id);
+      }
+    }
+    if (recipe && prepared.has(String(recipe.id))) continue;
+    for (const [inventoryItemId, quantity] of needs) {
+      if (covers(inventoryItemId, quantity)) continue;
+      const substitute = item.modifiers.some((modifier) => modifier.inventoryAction === "substitute" && modifier.replacesInventoryItemId === inventoryItemId && !modifiersOut.has(modifier.id));
+      if (!substitute) {
+        soldOut.add(item.id);
+        break;
+      }
+    }
+  }
+  return { soldOut, modifiersOut };
+}
+var MENU_STOCK_ITEM_SELECT, MENU_STOCK_MODIFIER_SELECT;
+var init_cafeMenuStock = __esm({
+  "features/keystone/mutations/cafeMenuStock.ts"() {
+    "use strict";
+    MENU_STOCK_ITEM_SELECT = { inventoryItemId: true };
+    MENU_STOCK_MODIFIER_SELECT = { inventoryAction: true, inventoryQuantity: true, inventoryItemId: true, replacesInventoryItemId: true };
   }
 });
 
@@ -4486,6 +4608,11 @@ async function getCoffeeMenuManager(_root, args, context) {
   ]);
   const hasMore = rows.length > limit;
   const items = rows.slice(0, limit);
+  const stock = await cafeMenuStock(context.prisma, store.id, items.map((item) => ({
+    id: item.id,
+    inventoryItemId: item.inventoryItemId ?? null,
+    modifiers: Array.isArray(item.modifiers) ? item.modifiers : []
+  })));
   return {
     canManageProducts,
     categories: categoryRows.slice(0, MENU_MANAGER_CATEGORY_LIMIT),
@@ -4499,10 +4626,12 @@ async function getCoffeeMenuManager(_root, args, context) {
       return {
         ...item,
         updatedAt: menuRevision(item.updatedAt),
+        soldOut: stock.soldOut.has(item.id),
         modifiersHasMore: modifiers.length > MENU_MANAGER_MODIFIER_LIMIT,
         modifiers: modifiers.slice(0, MENU_MANAGER_MODIFIER_LIMIT).map((modifier) => ({
           ...modifier,
           updatedAt: menuRevision(modifier.updatedAt),
+          stockOut: stock.modifiersOut.has(modifier.id),
           inventoryAction: canManageProducts ? modifier.inventoryAction || "unreviewed" : null,
           inventoryQuantity: canManageProducts ? Number(modifier.inventoryQuantity || 0) : null,
           inventoryItem: canManageProducts ? modifier.inventoryItem || null : null,
@@ -4574,18 +4703,13 @@ async function quoteCafeOrder(_root, args, context) {
     const menuItem = byId.get(item.menuItemId);
     if (!menuItem) throw new Error(`Menu item not found: ${item.menuItemId}`);
     assertCoffeeStoreOwnership(menuItem.storeId, store.id, `Menu item ${menuItem.name}`);
-    if (!menuItem.available) throw new Error(`${menuItem.name} is currently unavailable`);
-    if (!isStaff && !isPublishedMenuItem(menuItem)) throw new Error(`${menuItem.name} is currently unavailable`);
-    if (!isStaff) {
-      const pickupAt = new Date(Date.now() + Math.max(store.pickupLeadTimeMinutes, number(menuItem.prepTimeMinutes) + 5) * 6e4);
-      assertCoffeeOrderingAvailable(store, /* @__PURE__ */ new Date(), menuItem.serviceWindows);
-      assertCoffeeOrderingAvailable(store, pickupAt, menuItem.serviceWindows);
-    }
+    if (!menuItem.available) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
+    if (!isStaff && !isPublishedMenuItem(menuItem)) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
     const modifierIds = [...new Set(item.modifierIds || [])];
     const selected = modifierIds.map((id) => {
       const modifier = menuItem.modifiers.find((candidate) => candidate.id === id && candidate.menuItemId === menuItem.id);
       if (!modifier) throw new Error(`Modifier ${id} is not valid for ${menuItem.name}`);
-      if (modifier.inStock === false) throw new Error(`${modifier.name} is currently unavailable`);
+      if (modifier.inStock === false) throw cafeCustomerError(`${modifier.name} is currently unavailable`);
       return modifier;
     });
     validateModifierSelections(menuItem, selected);
@@ -4601,7 +4725,23 @@ async function quoteCafeOrder(_root, args, context) {
     const requirements = await getCafeInventoryRequirements(context.prisma, store.id, lines.map((line) => ({ menuItemId: line.menuItemId, quantity: line.quantity, modifierIds: line.modifierIds, fallbackInventoryItemId: byId.get(line.menuItemId)?.inventoryItem?.id })));
     await assertCafeRequirementsInStock(context.prisma, store.id, requirements);
   }
-  const estimatedPickupMinutes = cafeEarliestPickupMinutes(store.pickupLeadTimeMinutes, items.map((item) => byId.get(item.menuItemId)?.prepTimeMinutes));
+  const earliestPickupMinutes = cafeEarliestPickupMinutes(store.pickupLeadTimeMinutes, items.map((item) => byId.get(item.menuItemId)?.prepTimeMinutes));
+  let estimatedPickupMinutes = earliestPickupMinutes;
+  if (!isStaff) {
+    const serviceWindowSets = menuItems.map((item) => Array.isArray(item.serviceWindows) ? item.serviceWindows : ["all_day"]);
+    const requested = args.requestedPickupMinutes;
+    if (requested != null) {
+      if (!Number.isSafeInteger(requested) || requested > COFFEE_PICKUP_SCHEDULE_MAX_MINUTES) throw cafeCustomerError("Choose a pickup time within the next two days");
+      if (requested < earliestPickupMinutes) throw cafeCustomerError("That pickup time is earlier than the cafe can prepare this order");
+      const pickupAt = new Date(Date.now() + requested * 6e4);
+      for (const windows of serviceWindowSets) assertCoffeeOrderingAvailable(store, pickupAt, windows);
+      estimatedPickupMinutes = requested;
+    } else {
+      const first = coffeeFirstPickupMinutes(store, earliestPickupMinutes, serviceWindowSets);
+      if (first == null) throw cafeCustomerError("Pickup isn't available in the next two days");
+      estimatedPickupMinutes = first;
+    }
+  }
   return {
     subtotal: totals.subtotal,
     tax: totals.tax,
@@ -4626,6 +4766,8 @@ var init_coffeeBoundaryQueries = __esm({
     init_coffeeOrderPolicy();
     init_coffeeInventoryConsumption();
     init_cafeStorefrontPolicy();
+    init_cafeCustomerError();
+    init_cafeMenuStock();
     init_coffeeReportsQuery();
     init_getCoffeeOperationsSnapshot();
     statusLabels = {
@@ -4665,11 +4807,12 @@ var init_coffeeBoundaryQueries = __esm({
       prepTimeMinutes: true,
       barStation: true,
       updatedAt: true,
+      ...MENU_STOCK_ITEM_SELECT,
       category: { select: { id: true, name: true } },
       modifiers: {
         orderBy: [{ modifierGroup: "asc" }, { name: "asc" }, { id: "asc" }],
         take: MENU_MANAGER_MODIFIER_LIMIT + 1,
-        select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true, updatedAt: true, inventoryAction: true, inventoryQuantity: true, inventoryItem: menuInventoryRefSelect, replacesInventoryItem: menuInventoryRefSelect }
+        select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true, updatedAt: true, inventoryAction: true, inventoryQuantity: true, inventoryItem: menuInventoryRefSelect, replacesInventoryItem: menuInventoryRefSelect, inventoryItemId: true, replacesInventoryItemId: true }
       }
     };
     POS_CATALOG_PAGE_SIZE = 48;
@@ -4783,20 +4926,20 @@ async function createOrderTransaction({
       tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", customerEmail, createdAt: { gte: new Date(Date.now() - 60 * 6e4) } } }),
       tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open" } })
     ]);
-    if (recentForContact >= 3) throw new Error("This email already has the maximum number of open pickup requests");
-    if (totalOpenRequests >= Math.max(50, Number(settings.pickupCapacityPerWindow || 20) * 3)) throw new Error("Online pickup requests are temporarily paused while the cafe catches up");
+    if (recentForContact >= 3) throw cafeCustomerError("This email already has the maximum number of open pickup requests");
+    if (totalOpenRequests >= Math.max(50, Number(settings.pickupCapacityPerWindow || 20) * 3)) throw cafeCustomerError("Online pickup requests are temporarily paused while the cafe catches up");
   }
   const normalizedItems = items.map((item) => {
     const menuItem = menuItemMap.get(item.menuItemId);
     if (!menuItem) throw new Error(`Menu item not found: ${item.menuItemId}`);
     assertCoffeeStoreOwnership(menuItem.storeId, storeId, `Menu item ${menuItem.name}`);
     if (menuItem.inventoryItem) assertCoffeeStoreOwnership(menuItem.inventoryItem.storeId, storeId, `Inventory for ${menuItem.name}`);
-    if (!menuItem.available) throw new Error(`${menuItem.name} is currently unavailable`);
-    if (!isStaff && !isPublishedMenuItem(menuItem)) throw new Error(`${menuItem.name} is currently unavailable`);
+    if (!menuItem.available) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
+    if (!isStaff && !isPublishedMenuItem(menuItem)) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
     const selectedModifiers = (item.modifierIds || []).map((id) => {
       const modifier = menuItem.modifiers.find((candidate) => candidate.id === id);
       if (!modifier || modifier.menuItemId !== menuItem.id) throw new Error(`Modifier ${id} is not valid for ${menuItem.name}`);
-      if (modifier.inStock === false) throw new Error(`${modifier.name} is currently unavailable`);
+      if (modifier.inStock === false) throw cafeCustomerError(`${modifier.name} is currently unavailable`);
       return modifier;
     });
     validateCafeModifierSelections(menuItem, selectedModifiers);
@@ -4823,15 +4966,14 @@ async function createOrderTransaction({
   let leadMinutes = Math.max(5, Number(args.requestedPickupMinutes || settings.pickupLeadTimeMinutes || 12));
   if (!isStaff) {
     const earliest = cafeEarliestPickupMinutes(Number(settings.pickupLeadTimeMinutes) || 12, normalizedItems.map((item) => item.menuItem.prepTimeMinutes));
-    leadMinutes = args.requestedPickupMinutes ?? earliest;
-    if (leadMinutes < earliest) throw new Error("The requested pickup time is earlier than the cafe can prepare this order. Review the pickup estimate and submit again.");
+    const firstOpen = coffeeFirstPickupMinutes(settings, earliest, normalizedItems.map((item) => item.menuItem.serviceWindows));
+    if (firstOpen == null) throw cafeCustomerError("Pickup isn't available in the next two days");
+    leadMinutes = args.requestedPickupMinutes ?? firstOpen;
+    if (leadMinutes < earliest) throw cafeCustomerError("The requested pickup time is earlier than the cafe can prepare this order. Review the pickup estimate and submit again.");
   }
   const promisedAt = new Date(Date.now() + leadMinutes * 6e4);
   if (!isStaff) {
-    for (const item of normalizedItems) {
-      assertCoffeeOrderingAvailable(settings, /* @__PURE__ */ new Date(), item.menuItem.serviceWindows);
-      assertCoffeeOrderingAvailable(settings, promisedAt, item.menuItem.serviceWindows);
-    }
+    for (const item of normalizedItems) assertCoffeeOrderingAvailable(settings, promisedAt, item.menuItem.serviceWindows);
   }
   if (fulfillmentType === "pickup") {
     const windowMinutes = Math.max(5, Number(settings?.pickupWindowMinutes || 15));
@@ -4846,7 +4988,7 @@ async function createOrderTransaction({
     );
     const locked = await readLockedPickupSettings(tx);
     if (Math.max(5, Number(locked.pickupWindowMinutes || 15)) !== windowMinutes || (Number(locked.pickupLeadTimeMinutes) || 12) !== (Number(settings.pickupLeadTimeMinutes) || 12)) {
-      throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
+      throw cafeCustomerError(PICKUP_SETTINGS_CHANGED_MESSAGE);
     }
     const capacity = Math.max(1, Number(locked.pickupCapacityPerWindow || 20));
     const reservations = await tx.cafeOrder.count({
@@ -4857,7 +4999,7 @@ async function createOrderTransaction({
         status: { in: ["accepted", "paid", "in_bar_queue", "preparing", "ready"] }
       }
     });
-    if (reservations >= capacity) throw new Error("The requested pickup window is at capacity");
+    if (reservations >= capacity) throw cafeCustomerError("The requested pickup window is at capacity");
   }
   const inventoryRequirements = await getCafeInventoryRequirements(tx, storeId, normalizedItems.map((item) => ({
     menuItemId: item.menuItem.id,
@@ -4871,7 +5013,7 @@ async function createOrderTransaction({
   const { subtotal, tax, tip, total } = calculateCafeTotals(pricedLines, taxRateBasisPoints, isStaff ? Number(args.tipCents || 0) : 0);
   if (args.quoteFingerprint) {
     const current = cafeQuoteFingerprint({ storeId, currencyCode: settings.currencyCode, taxRateBasisPoints, lines: pricedLines, subtotal, tax, tip, total });
-    if (current !== args.quoteFingerprint) throw new Error("Prices or tax changed since this ticket was reviewed. Review the updated total and submit again.");
+    if (current !== args.quoteFingerprint) throw cafeCustomerError("Prices or tax changed since this ticket was reviewed. Review the updated total and submit again.");
   }
   const tenderRequired = isImmediateTender && total > 0;
   const externalCardReference = paymentMethod === "manual_card" ? args.externalCardReference?.trim() || "" : "";
@@ -5061,8 +5203,8 @@ async function createCafePickupOrder(_root, args, context) {
   if (!isStaff && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(args.customerEmail))) throw new Error("A valid email is required for online pickup requests");
   if ((args.customerPhone?.trim().length || 0) > 50) throw new Error("Customer phone cannot exceed 50 characters");
   if ((args.specialInstructions?.trim().length || 0) > 2e3) throw new Error("Order instructions cannot exceed 2000 characters");
-  if (args.requestedPickupMinutes != null && (!Number.isSafeInteger(args.requestedPickupMinutes) || args.requestedPickupMinutes < 5 || args.requestedPickupMinutes > 240)) {
-    throw new Error("Requested pickup time must be an integer between 5 and 240 minutes");
+  if (args.requestedPickupMinutes != null && (!Number.isSafeInteger(args.requestedPickupMinutes) || args.requestedPickupMinutes < 5 || args.requestedPickupMinutes > COFFEE_PICKUP_SCHEDULE_MAX_MINUTES)) {
+    throw cafeCustomerError("Choose a pickup time within the next two days");
   }
   const clientKey = normalizeIdempotencyKey(args.idempotencyKey);
   const scope = !isStaff ? "storefront" : context.session?.listKey === "User" ? context.session.itemId : "guest";
@@ -5129,6 +5271,7 @@ var init_createCafePickupOrder = __esm({
     init_coffeeOrderPolicy();
     init_coffeeKdsAuthority();
     init_cafeStorefrontPolicy();
+    init_cafeCustomerError();
     ORDER_RETURN_QUERY = `
   id orderNumber status handoffCode customerName pickupName promisedAt subtotal tax tip total currencyCode secretKey requestFingerprint
   orderItems { id quantity itemNameSnapshot imagePathSnapshot customizationsSummary modifierSnapshot specialInstructions price }
@@ -5476,6 +5619,18 @@ async function getCafeLoyaltyAccount(_root, args, context) {
   if (!email) return null;
   const isStaff = permissions.canReadLoyalty({ session: context.session }) || permissions.canManageLoyalty({ session: context.session });
   if (!isStaff) {
+    if (!args.orderId && context.session?.listKey === "User" && context.session.itemId) {
+      const user = await context.prisma.user.findUnique({ where: { id: context.session.itemId }, select: { email: true } });
+      if (normalizeEmail2(user?.email) !== email) return null;
+      const store2 = await context.prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true } });
+      if (!store2?.id) return null;
+      const own = await context.sudo().query.LoyaltyAccount.findMany({
+        where: { customerEmail: { equals: email }, store: { id: { equals: store2.id } } },
+        take: 1,
+        query: "id customerEmail pointsBalance drinkCredits nextRewardProgress"
+      });
+      return own[0] || null;
+    }
     if (!args.orderId || !args.secretKey) return null;
     const proof = await context.sudo().query.CafeOrder.findOne({
       where: { id: args.orderId },
@@ -6093,17 +6248,36 @@ var init_getCoffeeStore = __esm({
 });
 
 // features/keystone/mutations/getCoffeeMenu.ts
-async function storefrontItem(context, item, store) {
+function itemAvailability(item, store, stock) {
+  if (!item.available) return "unavailable";
+  if (stock.soldOut.has(String(item.id))) return "sold_out";
+  const windows = Array.isArray(item.serviceWindows) ? item.serviceWindows : ["all_day"];
+  if (getCoffeeOrderingAvailability(store, /* @__PURE__ */ new Date(), windows).orderingOpen) return "now";
+  const earliest = cafeEarliestPickupMinutes(Number(store.pickupLeadTimeMinutes) || 12, [item.prepTimeMinutes]);
+  return coffeeFirstPickupMinutes(store, earliest, [windows]) == null ? "unavailable" : "later";
+}
+async function readMenuStock(context, storeId, rows) {
+  return cafeMenuStock(context.prisma, storeId, rows.map((row) => ({
+    id: String(row.id),
+    inventoryItemId: row.inventoryItemId ?? null,
+    modifiers: Array.isArray(row.modifiers) ? row.modifiers : []
+  })));
+}
+async function storefrontItem(context, item, store, stock) {
   if (!item) return null;
   const category = item.category;
+  const availability = itemAvailability(item, store, stock);
+  const modifiers = Array.isArray(item.modifiers) ? item.modifiers : [];
   return {
     ...item,
-    available: Boolean(item.available) && getCoffeeOrderingAvailability(store, /* @__PURE__ */ new Date(), Array.isArray(item.serviceWindows) ? item.serviceWindows : ["all_day"]).orderingOpen,
+    available: availability === "now" || availability === "later",
+    availability,
     serviceWindows: void 0,
+    inventoryItemId: void 0,
     category: category ? { id: category.id, name: category.name } : null,
     temperatureOptions: Array.isArray(item.temperatureOptions) ? item.temperatureOptions : [],
     dietaryFlags: Array.isArray(item.dietaryFlags) ? item.dietaryFlags : [],
-    modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+    modifiers: modifiers.map((modifier) => ({ ...modifier, inStock: Boolean(modifier.inStock) && !stock.modifiersOut.has(String(modifier.id)) })),
     primaryImageUrl: await resolveCafeImageUrl(context, cafeMenuItemImageReference(item)),
     menuItemImages: void 0
   };
@@ -6131,7 +6305,7 @@ async function getCoffeeMenu(_root, args, context) {
       where: { id: args.menuItemId, storeId, ...PUBLISHED_MENU_ITEM_WHERE },
       select: itemSelect
     });
-    return { item: await storefrontItem(context, item, store) };
+    return { item: await storefrontItem(context, item, store, await readMenuStock(context, storeId, item ? [item] : [])) };
   }
   const search = (args.search || "").trim().slice(0, 100);
   const categoryId = (args.categoryId || "").trim().slice(0, 255);
@@ -6166,9 +6340,10 @@ async function getCoffeeMenu(_root, args, context) {
   ]);
   const page = rows.slice(0, STOREFRONT_MENU_PAGE_SIZE);
   const last = page[page.length - 1];
+  const stock = await readMenuStock(context, storeId, page);
   return {
     categories,
-    items: await Promise.all(page.map((item) => storefrontItem(context, item, store))),
+    items: await Promise.all(page.map((item) => storefrontItem(context, item, store, stock))),
     nextCursor: rows.length > STOREFRONT_MENU_PAGE_SIZE && last ? encodeCursor2({ storeId, search, categoryId, name: String(last.name), id: String(last.id) }) : null,
     hasUncategorized: uncategorizedCount > 0
   };
@@ -6178,6 +6353,7 @@ var init_getCoffeeMenu = __esm({
   "features/keystone/mutations/getCoffeeMenu.ts"() {
     "use strict";
     init_coffeeAvailability();
+    init_cafeMenuStock();
     init_cafeStorefrontPolicy();
     STOREFRONT_MENU_PAGE_SIZE = 48;
     MAX_CATEGORIES = 100;
@@ -6197,6 +6373,7 @@ var init_getCoffeeMenu = __esm({
       temperatureOptions: true,
       dietaryFlags: true,
       serviceWindows: true,
+      ...MENU_STOCK_ITEM_SELECT,
       category: { select: { id: true, name: true, active: true } },
       modifiers: {
         orderBy: [{ modifierGroup: "asc" }, { name: "asc" }, { id: "asc" }],
@@ -6210,7 +6387,8 @@ var init_getCoffeeMenu = __esm({
           minSelections: true,
           maxSelections: true,
           defaultSelected: true,
-          inStock: true
+          inStock: true,
+          ...MENU_STOCK_MODIFIER_SELECT
         }
       },
       menuItemImages: { orderBy: { order: "asc" }, take: 1, select: { imagePath: true, image_id: true, image_extension: true } }
@@ -6804,7 +6982,7 @@ var init_manageCoffeeMenu = __esm({
     init_idempotency();
     TX_OPTIONS7 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     STATIONS = /* @__PURE__ */ new Set(["espresso_bar", "cold_bar", "brew_bar", "pastry_case", "retail_shelf"]);
-    MODIFIER_GROUPS = /* @__PURE__ */ new Set(["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep"]);
+    MODIFIER_GROUPS = /* @__PURE__ */ new Set(["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep", "grind"]);
     STALE_MESSAGE = "This menu entry changed since you opened it. Reload to see the latest version before saving.";
     REUSED_KEY_MESSAGE = "This menu change was already submitted with different details. Reload and try again.";
   }
@@ -6819,7 +6997,7 @@ function assertCafePickupAcceptanceAvailability(settings, lines, at, promisedAt)
   for (const line of lines) {
     const item = line.menuItem;
     const itemName2 = String(item?.name || "Menu item");
-    if (!item?.id || item.available !== true) throw new Error(`${itemName2} is currently unavailable`);
+    if (!item?.id || item.available !== true) throw cafeCustomerError(`${itemName2} is currently unavailable`);
     const serviceWindows = Array.isArray(item.serviceWindows) ? item.serviceWindows.map(String) : ["all_day"];
     assertCoffeeOrderingAvailable(settings, at, serviceWindows);
     assertCoffeeOrderingAvailable(settings, promisedAt, serviceWindows);
@@ -6829,7 +7007,7 @@ function assertCafePickupAcceptanceAvailability(settings, lines, at, promisedAt)
     for (const snapshot of snapshots) {
       const modifier = currentModifiers.find((candidate) => String(candidate.id) === String(snapshot?.id ?? ""));
       if (!modifier || modifier.inStock !== true) {
-        throw new Error(`${String(modifier?.name || "A selected option")} is currently unavailable`);
+        throw cafeCustomerError(`${String(modifier?.name || "A selected option")} is currently unavailable`);
       }
       if (String(modifier.name ?? "") !== String(snapshot.name ?? "") || (modifier.modifierGroup || "default") !== String(snapshot.group ?? "") || Number(modifier.priceAdjustment || 0) !== Number(snapshot.priceAdjustment || 0)) throw new Error(OPTIONS_CHANGED_MESSAGE);
       selected.push(modifier);
@@ -6871,7 +7049,7 @@ async function admitOpenCafeOrder(tx, order, storeId) {
   if (Math.max(5, Number(locked.pickupWindowMinutes || 15)) !== windowMinutes) throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
   if (promisedAt !== requestedPromisedAt && Math.max(5, Number(locked.pickupLeadTimeMinutes || 12)) !== Math.max(5, Number(settings.pickupLeadTimeMinutes || 12))) throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
   const reservations = await tx.cafeOrder.count({ where: { storeId, id: { not: order.id }, fulfillmentType: "pickup", promisedAt: { gte: windowStart, lt: windowEnd }, status: { in: ["accepted", "paid", "in_bar_queue", "preparing", "ready"] } } });
-  if (reservations >= Math.max(1, Number(locked.pickupCapacityPerWindow || 20))) throw new Error("The requested pickup window is at capacity");
+  if (reservations >= Math.max(1, Number(locked.pickupCapacityPerWindow || 20))) throw cafeCustomerError("The requested pickup window is at capacity");
   assertCafePickupAcceptanceAvailability(settings, orderLines, now, promisedAt);
   return promisedAt;
 }
@@ -6951,6 +7129,7 @@ var init_acceptCafePickupOrder = __esm({
     init_coffeeInventoryConsumption();
     init_idempotency();
     init_coffeeKdsAuthority();
+    init_cafeCustomerError();
     ORDER_QUERY2 = "id orderNumber status fulfillmentType pickupName promisedAt total orderItems { id quantity itemNameSnapshot modifierSnapshot menuItem { id } }";
     OPTIONS_CHANGED_MESSAGE = "The options on this order changed since it was placed; ask the customer to review it.";
     ADMISSION_ORDER_ITEMS_SELECT = { select: { quantity: true, modifierSnapshot: true, menuItem: { select: { id: true, name: true, available: true, inventoryItemId: true, serviceWindows: true, modifiers: { select: { id: true, name: true, inStock: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inventoryAction: true } } } } } };
@@ -7121,7 +7300,7 @@ var init_seed = __esm({
           tagline: "Seasonal coffee, pastries, and pantry staples.",
           description: "A neighborhood coffee bar for espresso, pastries, and order-ahead pickup.",
           address: "128 Market Street, Brooklyn, NY 11201",
-          phone: "+1 (718) 555-0112",
+          phone: "",
           contactEmail: "hello@neighborhoodroast.local",
           currencyCode: "USD",
           locale: "en-US",
@@ -7138,7 +7317,7 @@ var init_seed = __esm({
           pickupLeadTimeMinutes: 12,
           pickupWindowMinutes: 15,
           pickupCapacityPerWindow: 20,
-          taxRateBasisPoints: 887
+          taxRateBasisPoints: 887.5
         },
         categories: [
           { name: "Espresso", description: "Core espresso bar drinks.", sortOrder: 1 },
@@ -7156,11 +7335,11 @@ var init_seed = __esm({
           { menuItemName: "Vanilla Latte", name: "Oat Milk", modifierGroup: "milk", modifierGroupLabel: "Milk", priceAdjustment: 80, defaultSelected: false, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "substitute", inventoryItemName: "Oat Milk", replacesInventoryItemName: "Whole Milk" }
         ],
         inventoryItems: [
-          { name: "Espresso Beans", sku: "COF-BEAN-G", unit: "g", parLevel: "12000", reorderPoint: "8000", costPerUnit: 2 },
-          { name: "Whole Milk", sku: "MIL-WHOLE-GL", unit: "gal", parLevel: "8", reorderPoint: "4", costPerUnit: 480 },
-          { name: "Almond Croissant", sku: "PAS-ALM-EA", unit: "each", parLevel: "24", reorderPoint: "12", costPerUnit: 185 },
-          { name: "Oat Milk", sku: "MIL-OAT-GL", unit: "gal", parLevel: "6", reorderPoint: "3", costPerUnit: 720 },
-          { name: "Vanilla Syrup", sku: "SYR-VAN-L", unit: "l", parLevel: "4", reorderPoint: "2", costPerUnit: 925 }
+          { name: "Espresso Beans", sku: "COF-BEAN-G", unit: "g", currentStock: "12000", parLevel: "12000", reorderPoint: "8000", costPerUnit: 2 },
+          { name: "Whole Milk", sku: "MIL-WHOLE-GL", unit: "gal", currentStock: "8", parLevel: "8", reorderPoint: "4", costPerUnit: 480 },
+          { name: "Almond Croissant", sku: "PAS-ALM-EA", unit: "each", currentStock: "24", parLevel: "24", reorderPoint: "12", costPerUnit: 185 },
+          { name: "Oat Milk", sku: "MIL-OAT-GL", unit: "gal", currentStock: "6", parLevel: "6", reorderPoint: "3", costPerUnit: 720 },
+          { name: "Vanilla Syrup", sku: "SYR-VAN-L", unit: "l", currentStock: "4", parLevel: "4", reorderPoint: "2", costPerUnit: 925 }
         ],
         paymentProviders: [
           { name: "Stripe", code: "pp_stripe_stripe", isInstalled: false },
@@ -7189,7 +7368,7 @@ var init_seed = __esm({
           tagline: "Seasonal coffee, pastries, and pantry staples.",
           description: "A neighborhood coffee bar for espresso, pastries, and order-ahead pickup.",
           address: "128 Market Street, Brooklyn, NY 11201",
-          phone: "+1 (718) 555-0112",
+          phone: "",
           contactEmail: "hello@neighborhoodroast.local",
           currencyCode: "USD",
           locale: "en-US",
@@ -7206,7 +7385,7 @@ var init_seed = __esm({
           pickupLeadTimeMinutes: 12,
           pickupWindowMinutes: 15,
           pickupCapacityPerWindow: 20,
-          taxRateBasisPoints: 887
+          taxRateBasisPoints: 887.5
         },
         categories: [
           { name: "Espresso", description: "Core espresso bar drinks.", sortOrder: 1 },
@@ -7219,7 +7398,7 @@ var init_seed = __esm({
           { name: "Vanilla Latte", shortDescription: "Espresso, milk, and house vanilla.", price: 625, prepTimeMinutes: 5, barStation: "espresso_bar", featured: true, popular: true, categoryName: "Signature Drinks", imageUrl: "/images/vanilla-latte.jpg" },
           { name: "Cardamom Cold Brew", shortDescription: "Slow-steeped cold brew with sweet spice.", price: 575, prepTimeMinutes: 3, barStation: "cold_bar", featured: true, popular: false, categoryName: "Signature Drinks", imageUrl: "/images/cardamom-cold-brew.jpg" },
           { name: "Almond Croissant", shortDescription: "Butter croissant with almond cream.", price: 495, prepTimeMinutes: 2, barStation: "pastry_case", featured: false, popular: true, categoryName: "Pastries", imageUrl: "/images/almond-croissant.jpg" },
-          { name: "House Blend Beans", shortDescription: "12 oz whole-bean bag for home brew.", price: 1800, prepTimeMinutes: 1, barStation: "retail_shelf", featured: false, popular: false, categoryName: "Retail Beans", imageUrl: "/images/house-blend-beans.jpg" }
+          { name: "House Blend Beans", shortDescription: "12 oz whole-bean bag for home brew.", price: 1800, prepTimeMinutes: 0, barStation: "retail_shelf", featured: false, popular: false, categoryName: "Retail Beans", imageUrl: "/images/house-blend-beans.jpg" }
         ],
         modifiers: [
           { menuItemName: "Americano", name: "12 oz", modifierGroup: "size", modifierGroupLabel: "Size", priceAdjustment: 0, defaultSelected: true, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "none" },
@@ -7228,17 +7407,20 @@ var init_seed = __esm({
           { menuItemName: "Vanilla Latte", name: "Whole Milk", modifierGroup: "milk", modifierGroupLabel: "Milk", priceAdjustment: 0, defaultSelected: true, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "none" },
           { menuItemName: "Vanilla Latte", name: "Oat Milk", modifierGroup: "milk", modifierGroupLabel: "Milk", priceAdjustment: 80, defaultSelected: false, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "substitute", inventoryItemName: "Oat Milk", replacesInventoryItemName: "Whole Milk" },
           { menuItemName: "Cardamom Cold Brew", name: "Regular Ice", modifierGroup: "ice", modifierGroupLabel: "Ice", priceAdjustment: 0, defaultSelected: true, required: false, minSelections: 0, maxSelections: 1, inventoryAction: "none" },
-          { menuItemName: "Cardamom Cold Brew", name: "Light Ice", modifierGroup: "ice", modifierGroupLabel: "Ice", priceAdjustment: 0, defaultSelected: false, required: false, minSelections: 0, maxSelections: 1, inventoryAction: "none" }
+          { menuItemName: "Cardamom Cold Brew", name: "Light Ice", modifierGroup: "ice", modifierGroupLabel: "Ice", priceAdjustment: 0, defaultSelected: false, required: false, minSelections: 0, maxSelections: 1, inventoryAction: "none" },
+          { menuItemName: "House Blend Beans", name: "Whole bean", modifierGroup: "grind", modifierGroupLabel: "Grind", priceAdjustment: 0, defaultSelected: true, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "none" },
+          { menuItemName: "House Blend Beans", name: "Drip", modifierGroup: "grind", modifierGroupLabel: "Grind", priceAdjustment: 0, defaultSelected: false, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "none" },
+          { menuItemName: "House Blend Beans", name: "Espresso", modifierGroup: "grind", modifierGroupLabel: "Grind", priceAdjustment: 0, defaultSelected: false, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "none" }
         ],
         inventoryItems: [
-          { name: "Espresso Beans", sku: "COF-BEAN-G", unit: "g", parLevel: "12000", reorderPoint: "8000", costPerUnit: 2 },
-          { name: "Whole Milk", sku: "MIL-WHOLE-GL", unit: "gal", parLevel: "8", reorderPoint: "4", costPerUnit: 480 },
-          { name: "Oat Milk", sku: "MIL-OAT-GL", unit: "gal", parLevel: "12", reorderPoint: "6", costPerUnit: 720 },
-          { name: "Vanilla Syrup", sku: "SYR-VAN-L", unit: "l", parLevel: "4", reorderPoint: "2", costPerUnit: 925 },
-          { name: "Cardamom Syrup", sku: "SYR-CARD-L", unit: "l", parLevel: "2", reorderPoint: "1", costPerUnit: 1e3 },
-          { name: "Almond Croissant", sku: "PAS-ALM-EA", unit: "each", parLevel: "24", reorderPoint: "12", costPerUnit: 185 },
-          { name: "Cold Brew Concentrate", sku: "COF-COLD-GL", unit: "gal", parLevel: "4", reorderPoint: "2", costPerUnit: 1850 },
-          { name: "House Blend Beans", sku: "COF-HOUSE-12", unit: "each", parLevel: "18", reorderPoint: "8", costPerUnit: 920 }
+          { name: "Espresso Beans", sku: "COF-BEAN-G", unit: "g", supplierName: "Common Thread Coffee Supply", currentStock: "12000", parLevel: "12000", reorderPoint: "8000", costPerUnit: 2 },
+          { name: "Whole Milk", sku: "MIL-WHOLE-GL", unit: "gal", supplierName: "Common Thread Coffee Supply", currentStock: "8", parLevel: "8", reorderPoint: "4", costPerUnit: 480 },
+          { name: "Oat Milk", sku: "MIL-OAT-GL", unit: "gal", supplierName: "Common Thread Coffee Supply", currentStock: "12", parLevel: "12", reorderPoint: "6", costPerUnit: 720 },
+          { name: "Vanilla Syrup", sku: "SYR-VAN-L", unit: "l", supplierName: "Common Thread Coffee Supply", currentStock: "4", parLevel: "4", reorderPoint: "2", costPerUnit: 925 },
+          { name: "Cardamom Syrup", sku: "SYR-CARD-L", unit: "l", supplierName: "Common Thread Coffee Supply", currentStock: "2", parLevel: "2", reorderPoint: "1", costPerUnit: 1e3 },
+          { name: "Almond Croissant", sku: "PAS-ALM-EA", unit: "each", supplierName: "Common Thread Coffee Supply", currentStock: "24", parLevel: "24", reorderPoint: "12", costPerUnit: 185 },
+          { name: "Cold Brew Concentrate", sku: "COF-COLD-GL", unit: "gal", supplierName: "Common Thread Coffee Supply", currentStock: "4", parLevel: "4", reorderPoint: "2", costPerUnit: 1850 },
+          { name: "House Blend Beans", sku: "COF-HOUSE-12", unit: "each", category: "retail", supplierName: "Common Thread Coffee Supply", currentStock: "18", parLevel: "18", reorderPoint: "8", costPerUnit: 920 }
         ],
         paymentProviders: [
           { name: "Stripe", code: "pp_stripe_stripe", isInstalled: false },
@@ -7338,7 +7520,7 @@ function parseOnboardingData(input) {
   const errors = onboardingDataErrors(parsed.data);
   return errors.length ? { success: false, errors } : { success: true, data: parsed.data };
 }
-var import_zod3, BAR_STATIONS, MODIFIER_GROUPS2, INVENTORY_UNITS, SUPPLIER_STATUSES, RECIPE_STATUSES, STAFF_ROLES, LOYALTY_STATUSES, LOYALTY_TIERS, MAX_QUANTITY, decimalString, int2, text34, name, storeInfoSchema, categorySchema, menuItemSchema, modifierSchema, inventorySchema, providerSchema, supplierSchema, recipeSchema, ingredientSchema, purchaseOrderSchema, staffShiftSchema, loyaltyAccountSchema, cateringOrderSchema, onboardingSchema;
+var import_zod3, BAR_STATIONS, MODIFIER_GROUPS2, INVENTORY_UNITS, INVENTORY_CATEGORIES, SUPPLIER_STATUSES, RECIPE_STATUSES, STAFF_ROLES, LOYALTY_STATUSES, LOYALTY_TIERS, MAX_QUANTITY, decimalString, int2, text34, name, storeInfoSchema, categorySchema, menuItemSchema, modifierSchema, inventorySchema, providerSchema, supplierSchema, recipeSchema, ingredientSchema, purchaseOrderSchema, staffShiftSchema, loyaltyAccountSchema, cateringOrderSchema, onboardingSchema;
 var init_onboardingSchema = __esm({
   "features/platform/onboarding/lib/onboardingSchema.ts"() {
     "use strict";
@@ -7349,18 +7531,19 @@ var init_onboardingSchema = __esm({
     init_sanitize_store_logo();
     init_store_logo();
     BAR_STATIONS = ["espresso_bar", "cold_bar", "brew_bar", "pastry_case", "retail_shelf"];
-    MODIFIER_GROUPS2 = ["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep"];
+    MODIFIER_GROUPS2 = ["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep", "grind"];
     INVENTORY_UNITS = ["each", "lb", "oz", "g", "gal", "l"];
+    INVENTORY_CATEGORIES = ["coffee", "milk", "syrup", "tea", "bakery", "retail", "packaging"];
     SUPPLIER_STATUSES = ["active", "paused", "archived"];
     RECIPE_STATUSES = ["draft", "active", "archived"];
     STAFF_ROLES = ["barista", "shift_lead", "kitchen", "manager"];
     LOYALTY_STATUSES = ["active", "paused", "closed"];
     LOYALTY_TIERS = ["regular", "neighborhood", "house_account"];
     MAX_QUANTITY = 1e9;
-    decimalString = (label, { positive: positive2 = false } = {}) => import_zod3.z.string().trim().regex(/^\d{1,10}(\.\d{1,4})?$/, `${label} must be a number with up to 4 decimal places`).refine((value) => {
+    decimalString = (label, { positive: positive3 = false } = {}) => import_zod3.z.string().trim().regex(/^\d{1,10}(\.\d{1,4})?$/, `${label} must be a number with up to 4 decimal places`).refine((value) => {
       const numeric = Number(value);
-      return Number.isFinite(numeric) && numeric <= MAX_QUANTITY && (!positive2 || numeric > 0);
-    }, positive2 ? `${label} must be greater than 0` : `${label} is too large`);
+      return Number.isFinite(numeric) && numeric <= MAX_QUANTITY && (!positive3 || numeric > 0);
+    }, positive3 ? `${label} must be greater than 0` : `${label} is too large`);
     int2 = (min, max) => import_zod3.z.number().int().min(min).max(max);
     text34 = (max) => import_zod3.z.string().trim().max(max);
     name = import_zod3.z.string().trim().min(1).max(200);
@@ -7382,7 +7565,7 @@ var init_onboardingSchema = __esm({
       pickupWindowMinutes: int2(PICKUP_LIMITS.pickupWindowMinutes.min, PICKUP_LIMITS.pickupWindowMinutes.max).default(15),
       pickupCapacityPerWindow: int2(PICKUP_LIMITS.pickupCapacityPerWindow.min, PICKUP_LIMITS.pickupCapacityPerWindow.max).default(20),
       // The merchant's own sales-tax rate; setup never assumes one.
-      taxRateBasisPoints: int2(PICKUP_LIMITS.taxRateBasisPoints.min, PICKUP_LIMITS.taxRateBasisPoints.max)
+      taxRateBasisPoints: import_zod3.z.number().min(PICKUP_LIMITS.taxRateBasisPoints.min).max(PICKUP_LIMITS.taxRateBasisPoints.max).refine((value) => Math.abs(Math.round(value * 100) - value * 100) < 1e-6, "Tax rate allows at most two decimals of a basis point")
     }).strict();
     categorySchema = import_zod3.z.object({ name, description: text34(2e3).default(""), sortOrder: int2(0, 1e4).default(0) }).strict();
     menuItemSchema = import_zod3.z.object({
@@ -7417,6 +7600,8 @@ var init_onboardingSchema = __esm({
       name,
       sku: text34(100).default(""),
       unit: import_zod3.z.enum(INVENTORY_UNITS).default("each"),
+      category: import_zod3.z.enum(INVENTORY_CATEGORIES).optional(),
+      supplierName: text34(200).optional(),
       quantityOnHand: decimalString("Quantity on hand").optional(),
       currentStock: decimalString("Current stock").optional(),
       parLevel: decimalString("Par level").default("0"),
@@ -7537,7 +7722,7 @@ async function upsertNamed(list33, storeId, name2, data) {
   if (existing) return { ...existing, created: false };
   return { ...await list33.create({ data, select: { id: true } }), created: true };
 }
-async function runInTransaction(rawTx, data, userId, session) {
+async function runInTransaction(rawTx, data, userId, session, template) {
   await requireCurrentCoffeeCapability(rawTx, session, ["canManageOnboarding"], "You do not have permission to run coffee shop onboarding");
   const tx = rawTx;
   await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", "coffee-onboarding");
@@ -7551,7 +7736,9 @@ async function runInTransaction(rawTx, data, userId, session) {
     if (existingStore.logoColor == null || existingStore.logoColor === "") repair.logoColor = data.storeInfo.logoColor;
     if (Object.keys(repair).length) await tx.storeSetting.update({ where: { id: storeId }, data: repair, select: { id: true } });
   } else {
-    storeId = (await tx.storeSetting.create({ data: { singletonKey: "primary", ...data.storeInfo }, select: { id: true } })).id;
+    const operator = template === "custom" ? null : await tx.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const storeInfo = operator?.email ? { ...data.storeInfo, contactEmail: operator.email } : data.storeInfo;
+    storeId = (await tx.storeSetting.create({ data: { singletonKey: "primary", ...storeInfo }, select: { id: true } })).id;
     bump(counts, "storeSettings");
   }
   const categoryIds = /* @__PURE__ */ new Map();
@@ -7567,7 +7754,8 @@ async function runInTransaction(rawTx, data, userId, session) {
       name: inventory.name,
       storeId,
       sku: inventory.sku,
-      category: categoryForInventory(inventory.name),
+      category: inventory.category || categoryForInventory(inventory.name),
+      supplierName: inventory.supplierName || null,
       unit: inventory.unit,
       parLevel: inventory.parLevel,
       reorderPoint: inventory.reorderPoint,
@@ -7599,6 +7787,8 @@ async function runInTransaction(rawTx, data, userId, session) {
       price: item.price,
       prepTimeMinutes: item.prepTimeMinutes,
       barStation: item.barStation,
+      // Pastries and retail goods aren't served at a temperature.
+      ...item.barStation === "retail_shelf" || item.barStation === "pastry_case" ? { temperatureOptions: [] } : {},
       featured: item.featured,
       popular: item.popular,
       imageUrl: item.imageUrl || null,
@@ -7729,7 +7919,7 @@ async function runCoffeeOnboarding(_root, args, context) {
   if (!(/* @__PURE__ */ new Set(["minimal", "full", "custom"])).has(args.template)) throw new Error("Invalid onboarding template");
   const data = selectedData(args);
   const counts = await context.prisma.$transaction(
-    (tx) => runInTransaction(tx, data, userId, context.session),
+    (tx) => runInTransaction(tx, data, userId, context.session, args.template),
     // Bounded below the GraphQL execution deadline so a timed-out request rolls back
     // instead of committing after the response was already sent.
     { maxWait: 2e3, timeout: 7e3, isolationLevel: "Serializable" }
@@ -8468,6 +8658,59 @@ async function recordCoffeeWaste(_root, args, context) {
     return waste;
   });
 }
+async function recordCoffeeStockCount(_root, args, context) {
+  requireInventoryManager(context);
+  const key = scopedKey4(context, "coffee-stock-count", args.idempotencyKey);
+  const inventoryItemId = requiredId(args.inventoryItemId, "Inventory item");
+  const countedUnits = stockUnits(args.countedQuantity, "Counted quantity", { allowZero: true });
+  const notes = notesText(args.notes);
+  const eventKey = `stock-count:${(0, import_node_crypto12.createHash)("sha256").update(key).digest("hex")}`;
+  return serializable(context, async (tx) => {
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
+    const { actorId, storeId } = await currentInventoryScope(tx, context);
+    const requestFingerprint = fingerprintInput({ purpose: "stock-count", storeId, actorId, inventoryItemId, countedUnits, notes });
+    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    if (receipt) {
+      const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
+      if (receipt.storeId !== storeId || receipt.aggregateId !== inventoryItemId || payload.requestFingerprint !== requestFingerprint) {
+        throw new Error("This stock count request was already submitted with different details. Refresh the page and submit the new details again.");
+      }
+      const recorded = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
+      if (!recorded) throw new Error("Inventory item not found");
+      return recorded;
+    }
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
+    const inventory = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId }, select: { storeId: true, currentStock: true, unit: true } });
+    if (!inventory) throw new Error("Inventory item not found");
+    assertCoffeeStoreOwnership(inventory.storeId, storeId, "Inventory item");
+    const unit = String(inventory.unit || "each");
+    stockUnits(stockNumber(countedUnits), "Counted quantity", { allowZero: true, unit });
+    const { previousUnits, deltaUnits } = planStockCount(inventory.currentStock, countedUnits);
+    const reason = "Stock count";
+    const movementIds = [];
+    if (deltaUnits !== 0) {
+      const allocations = deltaUnits < 0 ? allocationUnits(await consumeActiveInventoryLots(tx, inventoryItemId, stockNumber(-deltaUnits), { openingStock: inventory.currentStock, waste: true })).map((allocation) => ({ ...allocation, units: -allocation.units })) : [{ inventoryLotId: null, units: deltaUnits }];
+      for (const [index, allocation] of allocations.entries()) {
+        const movement = await tx.stockMovement.create({
+          data: { idempotencyKey: index === 0 ? key : `${key}:${index}`, storeId, inventoryItemId, inventoryLotId: allocation.inventoryLotId, type: "adjustment", quantity: stockDecimal(allocation.units), reason, notes, createdById: actorId }
+        });
+        movementIds.push(String(movement.id));
+      }
+      await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: stockDecimal(countedUnits) } });
+    }
+    await enqueueCoffeeDomainEvent(tx, {
+      storeId,
+      eventKey,
+      eventType: "inventory.counted",
+      aggregateType: "inventory_item",
+      aggregateId: inventoryItemId,
+      payload: { requestFingerprint, inventoryItemId, stockMovementIds: movementIds, previousQuantity: stockNumber(previousUnits), countedQuantity: stockNumber(countedUnits), adjustment: stockNumber(deltaUnits), unit, countedById: actorId }
+    });
+    const updated = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
+    if (!updated) throw new Error("Inventory item not found");
+    return updated;
+  });
+}
 var import_node_crypto12, TX_OPTIONS11, MAX_RETRIES, MAX_INT, WASTE_REASONS, WASTE_REASON_SET, COUNTED_OUTPUT_UNITS2, INSTANT2;
 var init_coffeeInventoryOperations = __esm({
   "features/keystone/mutations/coffeeInventoryOperations.ts"() {
@@ -8634,6 +8877,13 @@ function extendGraphqlSchema(baseSchema) {
           notes: String
           idempotencyKey: String!
         ): WasteLog!
+
+        recordCoffeeStockCount(
+          inventoryItemId: ID!
+          countedQuantity: Float!
+          notes: String
+          idempotencyKey: String!
+        ): InventoryItem!
 
         openRegisterShift(
           registerName: String!
@@ -8897,6 +9147,7 @@ function extendGraphqlSchema(baseSchema) {
         receiveCoffeePurchaseOrder,
         completeCoffeePrepBatch,
         recordCoffeeWaste,
+        recordCoffeeStockCount,
         openRegisterShift,
         recordRegisterCashMovement,
         closeRegisterShift,
@@ -9044,6 +9295,21 @@ var init_mail = __esm({
   }
 });
 
+// features/keystone/lib/s3-storage.ts
+function s3ForcePathStyle(endpoint2) {
+  let hostname = "";
+  try {
+    hostname = endpoint2 ? new URL(endpoint2).hostname : "";
+  } catch {
+  }
+  return !(hostname === "storageapi.dev" || hostname.endsWith(".storageapi.dev"));
+}
+var init_s3_storage = __esm({
+  "features/keystone/lib/s3-storage.ts"() {
+    "use strict";
+  }
+});
+
 // features/keystone/index.ts
 function productionEnv(name2, developmentFallback) {
   if (process.env[name2]) return process.env[name2];
@@ -9063,6 +9329,7 @@ var init_keystone = __esm({
     init_revocableSession();
     init_mutations();
     init_mail();
+    init_s3_storage();
     databaseURL = process.env.DATABASE_URL;
     if (!databaseURL) {
       throw new Error("DATABASE_URL is required");
@@ -9174,7 +9441,7 @@ model GraphQLRateLimitBucket {
             secretAccessKey,
             endpoint,
             signed: { expiry: 5e3 },
-            forcePathStyle: true
+            forcePathStyle: s3ForcePathStyle(endpoint)
           }
         },
         ui: {

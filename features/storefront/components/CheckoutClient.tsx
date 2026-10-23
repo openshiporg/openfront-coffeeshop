@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { createCafePickupOrder, quoteCafePickupOrder, type CafeOrderQuote, type PickupOrderRequest } from "@/features/storefront/lib/data/orders";
 import { formatMoney } from "@/features/storefront/lib/format";
+import { formatPickupTime, pickupSlots } from "@/features/storefront/lib/hours";
+import type { CheckoutCustomer } from "@/features/storefront/lib/data/account";
 import { CART_EVENT, CART_LIMITS, CART_STORAGE_KEY, cartQuantity, loadCartLines, removeCartLines, saveCartLines } from "@/features/storefront/lib/cart/storage";
 import type { CartLine } from "@/features/storefront/lib/cart/types";
 import {
@@ -20,6 +22,7 @@ import { StorefrontMedia } from "./StorefrontMedia";
 
 const UNCONFIRMED_MESSAGE = "We couldn’t confirm this pickup request. Retrying sends the same request, so it can’t create a second order.";
 const QUOTE_FAILED_MESSAGE = "We couldn’t price this cart right now. Some items may be unavailable or sold out. Try again, or remove an item.";
+const PICKUP_STEP_MINUTES = 15;
 
 function sessionStore(): Storage | null {
   try {
@@ -33,17 +36,21 @@ function quoteItems(lines: CartLine[]) {
   return lines.map((line) => ({ menuItemId: line.menuItemId, quantity: line.quantity, modifierIds: line.modifierIds, specialInstructions: line.notes || undefined }));
 }
 
-export function CheckoutClient() {
+type StoreHours = { weeklyHours: unknown; timezone: string };
+
+export function CheckoutClient({ customer = null, hours = null }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null }) {
   const router = useRouter();
   const [lines, setLines] = React.useState<CartLine[]>([]);
   const [cartLoaded, setCartLoaded] = React.useState(false);
-  const [customerName, setCustomerName] = React.useState("");
-  const [customerEmail, setCustomerEmail] = React.useState("");
-  const [customerPhone, setCustomerPhone] = React.useState("");
+  const [customerName, setCustomerName] = React.useState(customer?.name || "");
+  const [customerEmail, setCustomerEmail] = React.useState(customer?.email || "");
+  const [customerPhone, setCustomerPhone] = React.useState(customer?.phone || "");
   const [notes, setNotes] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [quotePending, setQuotePending] = React.useState(false);
   const [quote, setQuote] = React.useState<CafeOrderQuote | null>(null);
+  const [quotedAt, setQuotedAt] = React.useState(0);
+  const [pickupChoice, setPickupChoice] = React.useState<number | null>(null);
   const [quoteError, setQuoteError] = React.useState<string | null>(null);
   const [quoteRetry, setQuoteRetry] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
@@ -91,10 +98,11 @@ export function CheckoutClient() {
         if (requestId !== quoteRequest.current) return;
         if (result.success && result.quote) {
           setQuote(result.quote);
+          setQuotedAt(Date.now());
           setQuoteError(null);
         } else {
           setQuote(null);
-          setQuoteError(QUOTE_FAILED_MESSAGE);
+          setQuoteError((!result.success && result.customerMessage) || QUOTE_FAILED_MESSAGE);
         }
       } catch {
         if (requestId !== quoteRequest.current) return;
@@ -115,6 +123,14 @@ export function CheckoutClient() {
   const totalQuantity = cartQuantity(lines);
   const currency = quote?.currencyCode || "USD";
   const pickupMinutes = quote?.estimatedPickupMinutes ?? null;
+  // The quote gives the earliest pickup (the next opening when the cafe is closed); later windows are optional.
+  const slots = React.useMemo(() => {
+    if (!quote || !quotedAt) return [];
+    const earliest = new Date(quotedAt + quote.estimatedPickupMinutes * 60_000);
+    return hours ? pickupSlots(hours.weeklyHours, hours.timezone, earliest, PICKUP_STEP_MINUTES) : [earliest];
+  }, [quote, quotedAt, hours]);
+  const chosenSlot = slots.find((slot) => slot.getTime() === pickupChoice) || slots[0] || null;
+  const scheduled = Boolean(chosenSlot && (chosenSlot !== slots[0] || (pickupMinutes ?? 0) > 60));
 
   function updateQuantity(cartId: string, quantity: number) {
     if (frozen) return;
@@ -151,6 +167,12 @@ export function CheckoutClient() {
         finishSuccess(current, result.order.id);
         return;
       }
+      if (!result.success && result.customerMessage) {
+        // The cafe declined this request (sold out, closed, at capacity), so no order exists.
+        setPending(false);
+        setError(result.customerMessage);
+        return;
+      }
     } catch {
       // Transport failure: the request may or may not have reached the cafe.
     }
@@ -177,7 +199,9 @@ export function CheckoutClient() {
       customerEmail: customerEmail.trim(),
       customerPhone: customerPhone.trim() || undefined,
       pickupName: customerName.trim(),
-      requestedPickupMinutes: quote.estimatedPickupMinutes,
+      requestedPickupMinutes: chosenSlot && chosenSlot !== slots[0]
+        ? Math.max(quote.estimatedPickupMinutes, Math.ceil((chosenSlot.getTime() - Date.now()) / 60_000))
+        : quote.estimatedPickupMinutes,
       specialInstructions: notes.trim() || undefined,
       paymentMethod: "manual",
       quoteFingerprint: quote.quoteFingerprint,
@@ -213,9 +237,11 @@ export function CheckoutClient() {
       ? "Cart empty"
       : quotePending
         ? "Pricing…"
-        : pickupMinutes
-          ? `Ready in about ${pickupMinutes} min`
-          : "Price unavailable";
+        : chosenSlot && scheduled
+          ? `Pickup ${formatPickupTime(chosenSlot, hours?.timezone)}`
+          : pickupMinutes
+            ? `Ready in about ${pickupMinutes} min`
+            : "Price unavailable";
 
   return (
     <main className="sf-container sf-page">
@@ -365,6 +391,23 @@ export function CheckoutClient() {
                 <span>Phone <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
                 <input id="checkout-phone" name="phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} type="tel" inputMode="tel" autoComplete="tel" maxLength={50} className="sf-field" />
               </label>
+              {slots.length > 1 ? (
+                <label htmlFor="checkout-pickup" className="sf-form-label">
+                  Pickup time
+                  <select
+                    id="checkout-pickup"
+                    value={chosenSlot?.getTime() ?? ""}
+                    onChange={(event) => setPickupChoice(Number(event.target.value))}
+                    className="sf-field"
+                  >
+                    {slots.map((slot, index) => (
+                      <option key={slot.getTime()} value={slot.getTime()}>
+                        {formatPickupTime(slot, hours?.timezone)}{index === 0 ? " · earliest" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <label htmlFor="checkout-notes" className="sf-form-label">
                 <span>Order notes <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
                 <textarea id="checkout-notes" name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} className="sf-field" />

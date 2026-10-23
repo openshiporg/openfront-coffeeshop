@@ -427,7 +427,7 @@ type StoreSetting {
   pickupLeadTimeMinutes: Int
   pickupWindowMinutes: Int
   pickupCapacityPerWindow: Int
-  taxRateBasisPoints: Int
+  taxRateBasisPoints: Decimal
   menuCategories(where: MenuCategoryWhereInput! = {}, orderBy: [MenuCategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuCategoryWhereUniqueInput): [MenuCategory!]
   menuCategoriesCount(where: MenuCategoryWhereInput! = {}): Int
   menuItems(where: MenuItemWhereInput! = {}, orderBy: [MenuItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MenuItemWhereUniqueInput): [MenuItem!]
@@ -484,6 +484,8 @@ type StoreSetting {
   updatedAt: DateTime
 }
 
+scalar Decimal
+
 input StoreSettingWhereUniqueInput {
   id: ID
   singletonKey: String
@@ -510,7 +512,7 @@ input StoreSettingWhereInput {
   pickupLeadTimeMinutes: IntNullableFilter
   pickupWindowMinutes: IntNullableFilter
   pickupCapacityPerWindow: IntNullableFilter
-  taxRateBasisPoints: IntFilter
+  taxRateBasisPoints: DecimalFilter
   menuCategories: MenuCategoryManyRelationFilter
   menuItems: MenuItemManyRelationFilter
   menuItemModifiers: MenuItemModifierManyRelationFilter
@@ -552,15 +554,15 @@ input IntNullableFilter {
   not: IntNullableFilter
 }
 
-input IntFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: IntFilter
+input DecimalFilter {
+  equals: Decimal
+  in: [Decimal!]
+  notIn: [Decimal!]
+  lt: Decimal
+  lte: Decimal
+  gt: Decimal
+  gte: Decimal
+  not: DecimalFilter
 }
 
 input MenuCategoryManyRelationFilter {
@@ -748,7 +750,7 @@ input StoreSettingUpdateInput {
   pickupLeadTimeMinutes: Int
   pickupWindowMinutes: Int
   pickupCapacityPerWindow: Int
-  taxRateBasisPoints: Int
+  taxRateBasisPoints: Decimal
   menuCategories: MenuCategoryRelateToManyForUpdateInput
   menuItems: MenuItemRelateToManyForUpdateInput
   menuItemModifiers: MenuItemModifierRelateToManyForUpdateInput
@@ -970,7 +972,7 @@ input StoreSettingCreateInput {
   pickupLeadTimeMinutes: Int
   pickupWindowMinutes: Int
   pickupCapacityPerWindow: Int
-  taxRateBasisPoints: Int
+  taxRateBasisPoints: Decimal
   menuCategories: MenuCategoryRelateToManyForCreateInput
   menuItems: MenuItemRelateToManyForCreateInput
   menuItemModifiers: MenuItemModifierRelateToManyForCreateInput
@@ -1270,6 +1272,17 @@ input MenuItemWhereInput {
   updatedAt: DateTimeFilter
 }
 
+input IntFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntFilter
+}
+
 input MenuItemImageManyRelationFilter {
   every: MenuItemImageWhereInput
   some: MenuItemImageWhereInput
@@ -1497,8 +1510,6 @@ type MenuItemModifier {
   createdAt: DateTime
   updatedAt: DateTime
 }
-
-scalar Decimal
 
 input MenuItemModifierWhereUniqueInput {
   id: ID
@@ -2465,17 +2476,6 @@ input StockMovementWhereInput {
   createdBy: UserWhereInput
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
-}
-
-input DecimalFilter {
-  equals: Decimal
-  in: [Decimal!]
-  notIn: [Decimal!]
-  lt: Decimal
-  lte: Decimal
-  gt: Decimal
-  gte: Decimal
-  not: DecimalFilter
 }
 
 input StockMovementOrderByInput {
@@ -4589,6 +4589,7 @@ type Mutation {
   receiveCoffeePurchaseOrder(purchaseOrderId: ID!, expiresAt: String): InventoryLot!
   completeCoffeePrepBatch(recipeId: ID!, quantityMade: Float!, expiresAt: String, notes: String, idempotencyKey: String!): PrepBatch!
   recordCoffeeWaste(inventoryItemId: ID, prepBatchId: ID, quantity: Float!, reason: String!, notes: String, idempotencyKey: String!): WasteLog!
+  recordCoffeeStockCount(inventoryItemId: ID!, countedQuantity: Float!, notes: String, idempotencyKey: String!): InventoryItem!
   openRegisterShift(registerName: String!, openingCashCents: Int!, idempotencyKey: String!): RegisterShift!
   recordRegisterCashMovement(registerShiftId: ID!, type: String!, amountCents: Int!, reason: String!, idempotencyKey: String!): CashMovement!
   closeRegisterShift(registerShiftId: ID!, countedCashCents: Int!, idempotencyKey: String!): RegisterShift!
@@ -4742,7 +4743,7 @@ type Query {
   getCoffeeMenuManager(search: String, categoryId: ID, cursor: String, limit: Int = 50): CoffeeManagedMenuProjection!
   getCoffeeMenuInventoryOptions(search: String, limit: Int = 25): CoffeeMenuInventoryOptions!
   getCoffeePosRegister(search: String, categoryId: ID, cursor: String, limit: Int = 48): CoffeePosProjection!
-  quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int): CafeOrderQuote!
+  quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int, requestedPickupMinutes: Int): CafeOrderQuote!
   getCoffeeReports(period: String, startDate: String, endDate: String, lowStockPage: Int): CoffeeReportsProjection!
   getCoffeeOperations(receiptCursor: String, purchaseSupplierSearch: String, purchaseSupplierCursor: String, purchaseInventorySearch: String, purchaseInventoryCursor: String, inventoryWasteSearch: String, inventoryWasteCursor: String, prepBatchSearch: String, prepBatchCursor: String, recipeSearch: String, recipeCursor: String, staffSearch: String, staffCursor: String, shiftCursor: String): CoffeeOperationsProjection!
 }
@@ -5061,6 +5062,7 @@ type CoffeeMenuItemProjection {
   shortDescription: String
   price: Int!
   available: Boolean!
+  availability: String
   featured: Boolean
   popular: Boolean
   imageUrl: String
@@ -5104,6 +5106,7 @@ type CoffeeManagedMenuModifier {
   maxSelections: Int!
   defaultSelected: Boolean!
   inStock: Boolean!
+  stockOut: Boolean
   updatedAt: String!
   inventoryAction: String
   inventoryQuantity: Float
@@ -5123,6 +5126,7 @@ type CoffeeManagedMenuItem {
   barStation: String
   updatedAt: String!
   category: CoffeeNamedRef
+  soldOut: Boolean
   modifiers: [CoffeeManagedMenuModifier!]!
   modifiersHasMore: Boolean!
 }

@@ -6,7 +6,10 @@ export const MAX_CAFE_MONEY_CENTS = 2_147_483_647;
 
 export function normalizeCafeTaxBasisPoints(value: unknown) {
   const basisPoints = Number(value);
-  if (!Number.isSafeInteger(basisPoints) || basisPoints < 0 || basisPoints > 10_000) throw new Error("Store tax rate must be an integer between 0 and 10000 basis points");
+  // Hundredths of a basis point are kept so rates like 8.875% (887.5) are exact.
+  if (!Number.isFinite(basisPoints) || basisPoints < 0 || basisPoints > 10_000 || Math.abs(Math.round(basisPoints * 100) - basisPoints * 100) > 1e-6) {
+    throw new Error("Store tax rate must be between 0 and 10000 basis points, with at most two decimals");
+  }
   return basisPoints;
 }
 

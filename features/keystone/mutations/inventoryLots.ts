@@ -38,6 +38,12 @@ export function stockNumber(units: number) {
   return Number(stockDecimal(units));
 }
 
+/** A physical count replaces the counter; the signed difference is the adjustment. */
+export function planStockCount(currentStock: unknown, countedUnits: number) {
+  const previousUnits = storedStockUnits(currentStock);
+  return { previousUnits, deltaUnits: countedUnits - previousUnits };
+}
+
 /** Integer cents for a scaled quantity at an integer per-unit cost, rounded half up. */
 export function stockCostCents(units: number, unitCostCents: number) {
   const cents = Math.round(units * unitCostCents / STOCK_SCALE);

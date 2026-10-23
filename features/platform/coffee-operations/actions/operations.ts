@@ -43,6 +43,14 @@ export async function recordWasteAction(input: { inventoryItemId?: string; prepB
   `, input, { cache: "no-store" }));
 }
 
+export async function recordStockCountAction(input: { inventoryItemId: string; countedQuantity: number; notes?: string; idempotencyKey: string }) {
+  return refreshOperations(await keystoneClient(`
+    mutation RecordStockCount($inventoryItemId: ID!, $countedQuantity: Float!, $notes: String, $idempotencyKey: String!) {
+      recordCoffeeStockCount(inventoryItemId: $inventoryItemId, countedQuantity: $countedQuantity, notes: $notes, idempotencyKey: $idempotencyKey) { id name currentStock unit }
+    }
+  `, input, { cache: "no-store" }));
+}
+
 export async function scheduleStaffShiftAction(input: { staffId: string; role: string; startsAt: string; endsAt: string; notes?: string; idempotencyKey: string }) {
   return refreshOperations(await keystoneClient(`
     mutation ScheduleStaffShift($staffId: ID!, $role: String!, $startsAt: String!, $endsAt: String!, $notes: String, $idempotencyKey: String!) {

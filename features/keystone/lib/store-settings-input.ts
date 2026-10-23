@@ -47,6 +47,12 @@ const boundedInt = (key: keyof typeof PICKUP_LIMITS, label: string) =>
     .min(PICKUP_LIMITS[key].min, `${label} must be at least ${PICKUP_LIMITS[key].min}`)
     .max(PICKUP_LIMITS[key].max, `${label} must be at most ${PICKUP_LIMITS[key].max}`);
 
+/** Basis points with up to two decimals: 887.5 is 8.875%. */
+const taxBasisPoints = z.number({ invalid_type_error: "Tax rate must be a number" })
+  .min(PICKUP_LIMITS.taxRateBasisPoints.min, "Tax rate can't be negative")
+  .max(PICKUP_LIMITS.taxRateBasisPoints.max, "Tax rate must be at most 100%")
+  .refine((value) => Math.abs(Math.round(value * 100) - value * 100) < 1e-6, "Tax rate allows at most three decimals of a percent");
+
 export const coffeeStoreSettingsInputSchema = z.object({
   name: z.string().trim().min(1, "Store name is required").max(200),
   tagline: z.string().trim().max(300).default(""),
@@ -65,7 +71,7 @@ export const coffeeStoreSettingsInputSchema = z.object({
   pickupLeadTimeMinutes: boundedInt("pickupLeadTimeMinutes", "Pickup lead time"),
   pickupWindowMinutes: boundedInt("pickupWindowMinutes", "Pickup window"),
   pickupCapacityPerWindow: boundedInt("pickupCapacityPerWindow", "Capacity per window"),
-  taxRateBasisPoints: boundedInt("taxRateBasisPoints", "Tax rate"),
+  taxRateBasisPoints: taxBasisPoints,
 }).strict();
 
 export type CoffeeStoreSettingsInput = z.input<typeof coffeeStoreSettingsInputSchema>;
@@ -87,7 +93,7 @@ const effectiveRecordSchema = z.object({
   pickupLeadTimeMinutes: boundedInt("pickupLeadTimeMinutes", "Pickup lead time"),
   pickupWindowMinutes: boundedInt("pickupWindowMinutes", "Pickup window"),
   pickupCapacityPerWindow: boundedInt("pickupCapacityPerWindow", "Capacity per window"),
-  taxRateBasisPoints: boundedInt("taxRateBasisPoints", "Tax rate"),
+  taxRateBasisPoints: taxBasisPoints,
 });
 
 export function storeSettingRecordErrors(record: Record<string, unknown>): string[] {
@@ -98,7 +104,8 @@ export function storeSettingRecordErrors(record: Record<string, unknown>): strin
     pickupLeadTimeMinutes: record.pickupLeadTimeMinutes,
     pickupWindowMinutes: record.pickupWindowMinutes,
     pickupCapacityPerWindow: record.pickupCapacityPerWindow,
-    taxRateBasisPoints: record.taxRateBasisPoints,
+    // Decimal fields arrive as strings or Decimal objects.
+    taxRateBasisPoints: record.taxRateBasisPoints == null ? record.taxRateBasisPoints : Number(String(record.taxRateBasisPoints)),
   });
   return result.success ? [] : result.error.issues.map((issue) => issue.message);
 }

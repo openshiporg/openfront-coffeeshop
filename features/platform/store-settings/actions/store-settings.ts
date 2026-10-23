@@ -128,7 +128,8 @@ export async function saveCoffeeStoreSettingsAction(
     // brandColor is a retired palette; existing stored values are left untouched.
     const { brandColor: _retired, ...parsed } = parseCoffeeStoreSettingsInput(input);
     void _retired;
-    data = parsed;
+    // The tax rate is a Decimal field, sent as a string.
+    data = { ...parsed, taxRateBasisPoints: parsed.taxRateBasisPoints.toFixed(2) };
   } catch (error) {
     if (error instanceof ZodError) {
       return { success: false, error: error.issues[0]?.message || "Store settings are invalid." };

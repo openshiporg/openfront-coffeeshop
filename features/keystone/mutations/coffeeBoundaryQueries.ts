@@ -2,11 +2,13 @@ import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership } from "../lib/coffeeDomainOutbox";
 import { KDS_ITEM_TRANSITIONS, type KdsItemStatus } from "./kdsPolicy";
 import { CAFE_ORDER_TRANSITIONS } from "./transitionPolicy";
-import { assertCoffeeOrderingAvailable } from "./coffeeAvailability";
+import { COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
 import { cafeQuoteFingerprint, calculateCafeTotals } from "./coffeePricing";
 import { validateCafeOrderLines, hasCafeSettlement } from "./coffeeOrderPolicy";
 import { getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { assertCafeRequirementsInStock, cafeEarliestPickupMinutes, isPublishedMenuItem } from "./cafeStorefrontPolicy";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
+import { MENU_STOCK_ITEM_SELECT, cafeMenuStock, type MenuStockItem } from "./cafeMenuStock";
 
 type ListRow = Record<string, unknown> & { id: string };
 type ListModel = { findMany(args: Record<string, unknown>): Promise<ListRow[]> };
@@ -384,11 +386,12 @@ const MENU_MANAGER_CATEGORY_LIMIT = 200;
 const menuInventoryRefSelect = { select: { id: true, name: true, unit: true } };
 const managedMenuItemSelect = {
   id: true, name: true, shortDescription: true, price: true, available: true, featured: true, popular: true, prepTimeMinutes: true, barStation: true, updatedAt: true,
+  ...MENU_STOCK_ITEM_SELECT,
   category: { select: { id: true, name: true } },
   modifiers: {
     orderBy: [{ modifierGroup: "asc" }, { name: "asc" }, { id: "asc" }],
     take: MENU_MANAGER_MODIFIER_LIMIT + 1,
-    select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true, updatedAt: true, inventoryAction: true, inventoryQuantity: true, inventoryItem: menuInventoryRefSelect, replacesInventoryItem: menuInventoryRefSelect },
+    select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true, updatedAt: true, inventoryAction: true, inventoryQuantity: true, inventoryItem: menuInventoryRefSelect, replacesInventoryItem: menuInventoryRefSelect, inventoryItemId: true, replacesInventoryItemId: true },
   },
 };
 function encodeMenuManagerCursor(row: ListRow) {
@@ -435,6 +438,12 @@ export async function getCoffeeMenuManager(_root: unknown, args: { search?: stri
   ]);
   const hasMore = rows.length > limit;
   const items = rows.slice(0, limit);
+  // Same display-time stock read as the storefront, so the manager shows what customers see.
+  const stock = await cafeMenuStock(context.prisma as never, store.id, items.map((item): MenuStockItem => ({
+    id: item.id,
+    inventoryItemId: (item.inventoryItemId as string | null) ?? null,
+    modifiers: (Array.isArray(item.modifiers) ? item.modifiers : []) as MenuStockItem["modifiers"],
+  })));
   return {
     canManageProducts,
     categories: categoryRows.slice(0, MENU_MANAGER_CATEGORY_LIMIT),
@@ -448,10 +457,12 @@ export async function getCoffeeMenuManager(_root: unknown, args: { search?: stri
       return {
         ...item,
         updatedAt: menuRevision(item.updatedAt),
+        soldOut: stock.soldOut.has(item.id),
         modifiersHasMore: modifiers.length > MENU_MANAGER_MODIFIER_LIMIT,
         modifiers: modifiers.slice(0, MENU_MANAGER_MODIFIER_LIMIT).map((modifier) => ({
           ...modifier,
           updatedAt: menuRevision(modifier.updatedAt),
+          stockOut: stock.modifiersOut.has(modifier.id),
           inventoryAction: canManageProducts ? modifier.inventoryAction || "unreviewed" : null,
           inventoryQuantity: canManageProducts ? Number(modifier.inventoryQuantity || 0) : null,
           inventoryItem: canManageProducts ? modifier.inventoryItem || null : null,
@@ -525,7 +536,7 @@ export async function getCoffeePosRegister(_root: unknown, args: { search?: stri
   return { operatorId: String(context.session?.itemId || ""), storeId: store.id, items, hasMore, nextCursor, categories, openShift: shifts[0] || null };
 }
 
-export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[] | null; tipCents?: number | null }, context: Context) {
+export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[] | null; tipCents?: number | null; requestedPickupMinutes?: number | null }, context: Context) {
   const items = validateCafeOrderLines(args.items || []);
   const isStaff = permissions.canManageOrders({ session: context.session });
   const tipCents = isStaff ? Number(args.tipCents || 0) : 0;
@@ -538,18 +549,13 @@ export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[]
     const menuItem = byId.get(item.menuItemId);
     if (!menuItem) throw new Error(`Menu item not found: ${item.menuItemId}`);
     assertCoffeeStoreOwnership(menuItem.storeId, store.id, `Menu item ${menuItem.name}`);
-    if (!menuItem.available) throw new Error(`${menuItem.name} is currently unavailable`);
-    if (!isStaff && !isPublishedMenuItem(menuItem)) throw new Error(`${menuItem.name} is currently unavailable`);
-    if (!isStaff) {
-      const pickupAt = new Date(Date.now() + Math.max(store.pickupLeadTimeMinutes, number(menuItem.prepTimeMinutes) + 5) * 60_000);
-      assertCoffeeOrderingAvailable(store, new Date(), menuItem.serviceWindows);
-      assertCoffeeOrderingAvailable(store, pickupAt, menuItem.serviceWindows);
-    }
+    if (!menuItem.available) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
+    if (!isStaff && !isPublishedMenuItem(menuItem)) throw cafeCustomerError(`${menuItem.name} is currently unavailable`);
     const modifierIds = [...new Set(item.modifierIds || [])];
     const selected = modifierIds.map((id) => {
       const modifier = menuItem.modifiers.find((candidate) => candidate.id === id && candidate.menuItemId === menuItem.id);
       if (!modifier) throw new Error(`Modifier ${id} is not valid for ${menuItem.name}`);
-      if (modifier.inStock === false) throw new Error(`${modifier.name} is currently unavailable`);
+      if (modifier.inStock === false) throw cafeCustomerError(`${modifier.name} is currently unavailable`);
       return modifier;
     });
     validateModifierSelections(menuItem, selected);
@@ -566,7 +572,24 @@ export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[]
     const requirements = await getCafeInventoryRequirements(context.prisma as never, store.id, lines.map((line) => ({ menuItemId: line.menuItemId, quantity: line.quantity, modifierIds: line.modifierIds, fallbackInventoryItemId: byId.get(line.menuItemId)?.inventoryItem?.id })));
     await assertCafeRequirementsInStock(context.prisma, store.id, requirements);
   }
-  const estimatedPickupMinutes = cafeEarliestPickupMinutes(store.pickupLeadTimeMinutes, items.map((item) => byId.get(item.menuItemId)?.prepTimeMinutes));
+  const earliestPickupMinutes = cafeEarliestPickupMinutes(store.pickupLeadTimeMinutes, items.map((item) => byId.get(item.menuItemId)?.prepTimeMinutes));
+  let estimatedPickupMinutes = earliestPickupMinutes;
+  if (!isStaff) {
+    // Online pickup is booked for an open time: now when the cafe is open, or ahead when it is closed.
+    const serviceWindowSets = menuItems.map((item) => (Array.isArray(item.serviceWindows) ? item.serviceWindows : ["all_day"]));
+    const requested = args.requestedPickupMinutes;
+    if (requested != null) {
+      if (!Number.isSafeInteger(requested) || requested > COFFEE_PICKUP_SCHEDULE_MAX_MINUTES) throw cafeCustomerError("Choose a pickup time within the next two days");
+      if (requested < earliestPickupMinutes) throw cafeCustomerError("That pickup time is earlier than the cafe can prepare this order");
+      const pickupAt = new Date(Date.now() + requested * 60_000);
+      for (const windows of serviceWindowSets) assertCoffeeOrderingAvailable(store, pickupAt, windows);
+      estimatedPickupMinutes = requested;
+    } else {
+      const first = coffeeFirstPickupMinutes(store, earliestPickupMinutes, serviceWindowSets);
+      if (first == null) throw cafeCustomerError("Pickup isn't available in the next two days");
+      estimatedPickupMinutes = first;
+    }
+  }
   return {
     subtotal: totals.subtotal,
     tax: totals.tax,

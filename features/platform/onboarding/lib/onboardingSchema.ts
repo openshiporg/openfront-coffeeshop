@@ -13,8 +13,9 @@ import { DEFAULT_STORE_LOGO_COLOR, DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoCo
  */
 
 export const BAR_STATIONS = ["espresso_bar", "cold_bar", "brew_bar", "pastry_case", "retail_shelf"] as const;
-export const MODIFIER_GROUPS = ["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep"] as const;
+export const MODIFIER_GROUPS = ["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep", "grind"] as const;
 export const INVENTORY_UNITS = ["each", "lb", "oz", "g", "gal", "l"] as const;
+export const INVENTORY_CATEGORIES = ["coffee", "milk", "syrup", "tea", "bakery", "retail", "packaging"] as const;
 export const SUPPLIER_STATUSES = ["active", "paused", "archived"] as const;
 export const RECIPE_STATUSES = ["draft", "active", "archived"] as const;
 export const STAFF_ROLES = ["barista", "shift_lead", "kitchen", "manager"] as const;
@@ -54,7 +55,8 @@ export const storeInfoSchema = z.object({
   pickupWindowMinutes: int(PICKUP_LIMITS.pickupWindowMinutes.min, PICKUP_LIMITS.pickupWindowMinutes.max).default(15),
   pickupCapacityPerWindow: int(PICKUP_LIMITS.pickupCapacityPerWindow.min, PICKUP_LIMITS.pickupCapacityPerWindow.max).default(20),
   // The merchant's own sales-tax rate; setup never assumes one.
-  taxRateBasisPoints: int(PICKUP_LIMITS.taxRateBasisPoints.min, PICKUP_LIMITS.taxRateBasisPoints.max),
+  taxRateBasisPoints: z.number().min(PICKUP_LIMITS.taxRateBasisPoints.min).max(PICKUP_LIMITS.taxRateBasisPoints.max)
+    .refine((value) => Math.abs(Math.round(value * 100) - value * 100) < 1e-6, "Tax rate allows at most two decimals of a basis point"),
 }).strict();
 
 const categorySchema = z.object({ name, description: text(2000).default(""), sortOrder: int(0, 10_000).default(0) }).strict();
@@ -90,6 +92,8 @@ const inventorySchema = z.object({
   name,
   sku: text(100).default(""),
   unit: z.enum(INVENTORY_UNITS).default("each"),
+  category: z.enum(INVENTORY_CATEGORIES).optional(),
+  supplierName: text(200).optional(),
   quantityOnHand: decimalString("Quantity on hand").optional(),
   currentStock: decimalString("Current stock").optional(),
   parLevel: decimalString("Par level").default("0"),

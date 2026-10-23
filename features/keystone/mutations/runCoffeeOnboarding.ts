@@ -29,7 +29,7 @@ type TransactionClient = {
   loyaltyAccount: { findFirst(args: Record<string, unknown>): Promise<{ id: string } | null>; create(args: Record<string, unknown>): Promise<{ id: string }> };
   cateringOrder: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null>; create(args: Record<string, unknown>): Promise<{ id: string }> };
   stockMovement: { create(args: Record<string, unknown>): Promise<{ id: string }> };
-  user: { update(args: Record<string, unknown>): Promise<{ id: string }> };
+  user: { findUnique(args: Record<string, unknown>): Promise<{ email: string | null } | null>; update(args: Record<string, unknown>): Promise<{ id: string }> };
 };
 type Context = {
   session?: Session;
@@ -74,7 +74,7 @@ async function upsertNamed(
   return { ...(await list.create({ data, select: { id: true } })), created: true };
 }
 
-async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: string, session: Session | undefined) {
+async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: string, session: Session | undefined, template: Args["template"]) {
   await requireCurrentCoffeeCapability(rawTx as never, session, ["canManageOnboarding"], "You do not have permission to run coffee shop onboarding");
   const tx = rawTx as TransactionClient;
   await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", "coffee-onboarding");
@@ -91,7 +91,10 @@ async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: st
     if (existingStore.logoColor == null || existingStore.logoColor === "") repair.logoColor = data.storeInfo.logoColor;
     if (Object.keys(repair).length) await tx.storeSetting.update({ where: { id: storeId }, data: repair, select: { id: true } });
   } else {
-    storeId = (await tx.storeSetting.create({ data: { singletonKey: "primary", ...data.storeInfo }, select: { id: true } })).id;
+    // Template stores publish the operator's own address, never the sample one.
+    const operator = template === "custom" ? null : await tx.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const storeInfo = operator?.email ? { ...data.storeInfo, contactEmail: operator.email } : data.storeInfo;
+    storeId = (await tx.storeSetting.create({ data: { singletonKey: "primary", ...storeInfo }, select: { id: true } })).id;
     bump(counts, "storeSettings");
   }
 
@@ -109,7 +112,8 @@ async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: st
       name: inventory.name,
       storeId,
       sku: inventory.sku,
-      category: categoryForInventory(inventory.name),
+      category: inventory.category || categoryForInventory(inventory.name),
+      supplierName: inventory.supplierName || null,
       unit: inventory.unit,
       parLevel: inventory.parLevel,
       reorderPoint: inventory.reorderPoint,
@@ -145,6 +149,8 @@ async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: st
       price: item.price,
       prepTimeMinutes: item.prepTimeMinutes,
       barStation: item.barStation,
+      // Pastries and retail goods aren't served at a temperature.
+      ...(item.barStation === "retail_shelf" || item.barStation === "pastry_case" ? { temperatureOptions: [] } : {}),
       featured: item.featured,
       popular: item.popular,
       imageUrl: item.imageUrl || null,
@@ -282,7 +288,7 @@ export default async function runCoffeeOnboarding(_root: unknown, args: Args, co
   if (!new Set(["minimal", "full", "custom"]).has(args.template)) throw new Error("Invalid onboarding template");
   const data = selectedData(args);
   const counts = await context.prisma.$transaction(
-    (tx) => runInTransaction(tx, data, userId, context.session),
+    (tx) => runInTransaction(tx, data, userId, context.session, args.template),
     // Bounded below the GraphQL execution deadline so a timed-out request rolls back
     // instead of committing after the response was already sent.
     { maxWait: 2000, timeout: 7000, isolationLevel: "Serializable" },

@@ -27,6 +27,8 @@ export async function MenuItemPage({ id }: { id: string }) {
     );
   }
   const item = result.item;
+  // Retail goods (bagged beans) skip the drink details and barista notes.
+  const retail = item.barStation === "retail_shelf";
 
   return (
     <StorefrontShell cartBar={false}>
@@ -49,9 +51,11 @@ export async function MenuItemPage({ id }: { id: string }) {
               {item.shortDescription ? <p className="sf-muted mt-3 max-w-2xl text-[var(--sf-text-lg)]">{item.shortDescription}</p> : null}
 
               <div className="sf-chips mt-5">
-                {item.prepTimeMinutes ? <span className="sf-chip">{item.prepTimeMinutes} min prep</span> : null}
+                {item.availability === "later" ? <span className="sf-chip sf-status"><span className="sf-dot sf-dot-closed" aria-hidden="true" />Order ahead</span> : null}
+                {item.availability === "sold_out" ? <span className="sf-chip sf-status"><span className="sf-dot sf-dot-cancelled" aria-hidden="true" />Sold out</span> : null}
+                {item.prepTimeMinutes && !retail ? <span className="sf-chip">{item.prepTimeMinutes} min prep</span> : null}
                 {item.caffeineMg != null ? <span className="sf-chip">{item.caffeineMg} mg caffeine</span> : null}
-                {item.temperatureOptions?.map((option) => <span key={option} className="sf-chip">{option}</span>)}
+                {retail ? null : item.temperatureOptions?.map((option) => <span key={option} className="sf-chip">{option}</span>)}
                 {item.dietaryFlags?.map((flag) => <span key={flag} className="sf-chip">{flag.replaceAll("_", " ")}</span>)}
               </div>
               {item.dietaryFlags?.length ? (
@@ -60,7 +64,7 @@ export async function MenuItemPage({ id }: { id: string }) {
             </div>
           </section>
 
-          <AddToCartCustomizer item={item} orderingAvailable={item.available} />
+          <AddToCartCustomizer item={item} orderingAvailable={item.available} notes={!retail} />
         </div>
       </main>
     </StorefrontShell>

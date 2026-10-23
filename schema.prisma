@@ -85,7 +85,7 @@ model StoreSetting {
   pickupLeadTimeMinutes   Int?                   @default(12)
   pickupWindowMinutes     Int?                   @default(15)
   pickupCapacityPerWindow Int?                   @default(20)
-  taxRateBasisPoints      Int                    @default(875)
+  taxRateBasisPoints      Decimal                @default("875") @postgresql.Decimal(7, 2)
   menuCategories          MenuCategory[]         @relation("MenuCategory_store")
   menuItems               MenuItem[]             @relation("MenuItem_store")
   menuItemModifiers       MenuItemModifier[]     @relation("MenuItemModifier_store")

@@ -88,3 +88,39 @@ export function openState(value: unknown, timeZone: string | null | undefined, n
   }
   return { kind: "closed", label: "Closed" };
 }
+
+/** Whether the store is open at `at`, in its own time zone. */
+export function isOpenAt(value: unknown, timeZone: string | null | undefined, at: Date) {
+  const clock = storeClock(at, timeZone);
+  const row = hoursRows(value).find((entry) => entry.day.toLowerCase() === clock.day.toLowerCase());
+  if (!row || !rowIsOpen(row)) return false;
+  return clock.minutes >= minutes(row.open)! && clock.minutes < minutes(row.close)!;
+}
+
+/** Pickup choices from the earliest pickup: that time, then each later window start while the store is open. */
+export function pickupSlots(value: unknown, timeZone: string | null | undefined, earliest: Date, windowMinutes: number, count = 8) {
+  const step = Math.max(5, windowMinutes) * 60_000;
+  const slots = [earliest];
+  for (let at = Math.ceil((earliest.getTime() + 60_000) / step) * step; slots.length < count && at - earliest.getTime() <= 24 * 60 * 60_000; at += step) {
+    if (isOpenAt(value, timeZone, new Date(at))) slots.push(new Date(at));
+  }
+  return slots;
+}
+
+/** "5:12 PM", "Tomorrow 8:15 AM" or "Sat 8:15 AM", in the store's time zone. */
+export function formatPickupTime(at: Date, timeZone: string | null | undefined, now = new Date()) {
+  let zone = "UTC";
+  try {
+    if (timeZone) {
+      new Intl.DateTimeFormat("en-US", { timeZone }).format(at);
+      zone = timeZone;
+    }
+  } catch {
+    // Invalid saved zone: stay on UTC, as storeClock does.
+  }
+  const time = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(at);
+  const dayKey = (date: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  if (dayKey(at) === dayKey(now)) return time;
+  if (dayKey(at) === dayKey(new Date(now.getTime() + 24 * 60 * 60_000))) return `Tomorrow ${time}`;
+  return `${new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short" }).format(at)} ${time}`;
+}

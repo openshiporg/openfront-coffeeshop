@@ -49,12 +49,20 @@ export async function customerSignOut() {
 
 export type CustomerOrder = { id: string; orderNumber: string; status: string; total: number; currencyCode: string; createdAt: string };
 export async function getCustomerAccount(after?: string) {
-  const identity = await keystoneClient<{ authenticatedItem: { id: string; name: string; phone?: string | null } | null }>(`query CustomerIdentity { authenticatedItem { ... on User { id name phone } } }`, {}, { cache: "no-store" });
+  const identity = await keystoneClient<{ authenticatedItem: { id: string; name: string; email?: string | null; phone?: string | null } | null }>(`query CustomerIdentity { authenticatedItem { ... on User { id name email phone } } }`, {}, { cache: "no-store" });
   if (!identity.success) throw new Error("Account is temporarily unavailable.");
   if (!identity.data.authenticatedItem) return null;
   const result = await keystoneClient<{ getCoffeeCustomerOrders: { orders: CustomerOrder[]; nextCursor: string | null } }>(`query CustomerOrders($after: ID) { getCoffeeCustomerOrders(after: $after) { orders { id orderNumber status total currencyCode createdAt } nextCursor } }`, { after: after || null }, { cache: "no-store" });
   if (!result.success) throw new Error("Orders could not be loaded.");
   return { user: identity.data.authenticatedItem, ...result.data.getCoffeeCustomerOrders };
+}
+
+export type CheckoutCustomer = { name: string; email: string; phone: string };
+/** The signed-in customer's details for checkout, or null for a guest. */
+export async function getCheckoutCustomer(): Promise<CheckoutCustomer | null> {
+  const identity = await keystoneClient<{ authenticatedItem: { name?: string | null; email?: string | null; phone?: string | null } | null }>(`query CheckoutCustomer { authenticatedItem { ... on User { name email phone } } }`, {}, { cache: "no-store" });
+  const user = identity.success ? identity.data.authenticatedItem : null;
+  return user ? { name: user.name || "", email: user.email || "", phone: user.phone || "" } : null;
 }
 
 export type ProfileState = { ok: boolean; message: string } | null;

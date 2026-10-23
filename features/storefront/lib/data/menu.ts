@@ -20,6 +20,8 @@ export type StorefrontMenuItem = {
   shortDescription?: string | null;
   price: number;
   available: boolean;
+  /** now: order for pickup today · later: closed, pickup booked for the next opening · sold_out · unavailable */
+  availability?: "now" | "later" | "sold_out" | "unavailable" | null;
   featured: boolean;
   popular: boolean;
   imageUrl?: string | null;
@@ -42,7 +44,7 @@ export type StorefrontMenuCategory = {
 };
 
 const MENU_ITEM_FIELDS = `
-  id name shortDescription price available featured popular imageUrl primaryImageUrl
+  id name shortDescription price available availability featured popular imageUrl primaryImageUrl
   prepTimeMinutes caffeineMg barStation temperatureOptions dietaryFlags
   category { id name }
   modifiers { id name modifierGroup modifierGroupLabel priceAdjustment required minSelections maxSelections defaultSelected inStock }

@@ -42,6 +42,7 @@ import {
   completeCoffeePrepBatch,
   createCoffeePurchaseOrder,
   receiveCoffeePurchaseOrder,
+  recordCoffeeStockCount,
   recordCoffeeWaste,
 } from "./coffeeInventoryOperations";
 
@@ -190,6 +191,13 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
           notes: String
           idempotencyKey: String!
         ): WasteLog!
+
+        recordCoffeeStockCount(
+          inventoryItemId: ID!
+          countedQuantity: Float!
+          notes: String
+          idempotencyKey: String!
+        ): InventoryItem!
 
         openRegisterShift(
           registerName: String!
@@ -453,6 +461,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         receiveCoffeePurchaseOrder,
         completeCoffeePrepBatch,
         recordCoffeeWaste,
+        recordCoffeeStockCount,
         openRegisterShift,
         recordRegisterCashMovement,
         closeRegisterShift,

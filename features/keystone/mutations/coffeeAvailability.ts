@@ -1,3 +1,5 @@
+import { cafeCustomerError } from "../lib/cafeCustomerError";
+
 export type WeeklyHour = { day: string; open?: string | null; close?: string | null; closed?: boolean | null };
 export type CoffeeAvailabilitySettings = {
   timezone?: string | null;
@@ -72,13 +74,47 @@ export function getCoffeeOrderingAvailability(
   };
 }
 
+/** Online pickup can be booked this far ahead, so a closed cafe still takes next-morning orders. */
+export const COFFEE_PICKUP_SCHEDULE_MAX_MINUTES = 48 * 60;
+
+function openAtMinute(hours: WeeklyHour[], day: string, minuteOfDay: number, serviceWindows: readonly string[]) {
+  const entry = hours.find((candidate) => candidate.day === day);
+  const openMinute = minutes(entry?.open);
+  const closeMinute = minutes(entry?.close);
+  if (!entry || entry.closed || openMinute == null || closeMinute == null || minuteOfDay < openMinute || minuteOfDay >= closeMinute) return false;
+  return !serviceWindows.length || serviceWindows.includes("all_day") || serviceWindows.some((window) => {
+    const range = SERVICE_WINDOWS[window];
+    return Boolean(range && minuteOfDay >= range[0] && minuteOfDay < range[1]);
+  });
+}
+
+/** Minutes from `at` to the first pickup the store can promise, at least `earliestMinutes` out and inside the
+ *  store hours and every item's service windows; null when nothing opens within the booking horizon. */
+export function coffeeFirstPickupMinutes(
+  settings: CoffeeAvailabilitySettings,
+  earliestMinutes: number,
+  serviceWindowSets: ReadonlyArray<readonly string[]> = [["all_day"]],
+  at = new Date(),
+) {
+  const { day, minuteOfDay } = zonedParts(at, settings.timezone || "America/New_York");
+  const hours = normalizeWeeklyHours(settings.weeklyHours);
+  const dayIndex = (DAY_NAMES as readonly string[]).indexOf(day);
+  if (dayIndex === -1) return null;
+  for (let offset = Math.max(0, Math.ceil(earliestMinutes)); offset <= COFFEE_PICKUP_SCHEDULE_MAX_MINUTES; offset++) {
+    const total = minuteOfDay + offset;
+    const candidateDay = DAY_NAMES[(dayIndex + Math.floor(total / 1440)) % 7];
+    if (serviceWindowSets.every((windows) => openAtMinute(hours, candidateDay, total % 1440, windows))) return offset;
+  }
+  return null;
+}
+
 export function assertCoffeeOrderingAvailable(
   settings: CoffeeAvailabilitySettings,
   at = new Date(),
   serviceWindows: readonly string[] = ["all_day"],
 ) {
   const availability = getCoffeeOrderingAvailability(settings, at, serviceWindows);
-  if (!availability.storeOpen) throw new Error("Pickup ordering is closed for the store's current hours");
-  if (!availability.itemOpen) throw new Error("A selected menu item is unavailable in the current service window");
+  if (!availability.storeOpen) throw cafeCustomerError("The cafe is closed for pickup at that time");
+  if (!availability.itemOpen) throw cafeCustomerError("A selected item isn't served at that time");
   return availability;
 }

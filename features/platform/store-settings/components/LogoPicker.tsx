@@ -36,7 +36,8 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
     () => LOGO_ICONS.find((icon) => icon.lightSvg === value),
     [value]
   )
-  const [isEditingCustom, setIsEditingCustom] = useState(!selectedIcon)
+  // The SVG editor stays collapsed until asked for, even when the saved logo is custom.
+  const [isEditingCustom, setIsEditingCustom] = useState(false)
   const [draft, setDraft] = useState(value)
   const safeDraft = useMemo(() => sanitizeStoreLogoSvg(draft), [draft])
   const hasValidDraft = safeDraft.length > 0
@@ -84,7 +85,8 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
               <span className="font-medium">Custom SVG</span>
             </span>
           </SelectItem>
-          {LOGO_ICONS.map((icon) => (
+          {/* Registry names are stock brand names; the picker shows neutral numbered labels. */}
+          {LOGO_ICONS.map((icon, index) => (
             <SelectItem key={icon.id} value={icon.id} className="min-h-11">
               <span className="flex items-center gap-3">
                 <span
@@ -93,7 +95,7 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
                   dangerouslySetInnerHTML={{ __html: icon.lightSvg }}
                   aria-hidden="true"
                 />
-                <span className="font-medium">{icon.name}</span>
+                <span className="font-medium">Mark {index + 1}</span>
               </span>
             </SelectItem>
           ))}

@@ -29,6 +29,15 @@ const DEFAULT_WEEKLY_HOURS: CoffeeStoreSettingsInput["weeklyHours"] = [
   { day: "Sunday", open: "08:00", close: "15:00" },
 ];
 
+function supportedTimeZones(): string[] {
+  try {
+    const intl = Intl as unknown as { supportedValuesOf?: (key: "timeZone") => string[] };
+    return intl.supportedValuesOf ? intl.supportedValuesOf("timeZone") : [];
+  } catch {
+    return [];
+  }
+}
+
 type FormState = {
   name: string;
   tagline: string;
@@ -84,7 +93,8 @@ function toFormState(settings: CoffeeStoreSettingsData | null): FormState {
     pickupLeadTimeMinutes: String(settings?.pickupLeadTimeMinutes ?? 12),
     pickupWindowMinutes: String(settings?.pickupWindowMinutes ?? 15),
     pickupCapacityPerWindow: String(settings?.pickupCapacityPerWindow ?? 20),
-    taxRateBasisPoints: String(settings?.taxRateBasisPoints ?? ""),
+    // Edited as a percent (8.875); stored as basis points (887.5).
+    taxRateBasisPoints: settings?.taxRateBasisPoints == null ? "" : String(Math.round(Number(settings.taxRateBasisPoints) * 100) / 10_000),
   };
 }
 
@@ -109,7 +119,7 @@ function toInput(form: FormState): CoffeeStoreSettingsInput {
     pickupLeadTimeMinutes: toNumber(form.pickupLeadTimeMinutes),
     pickupWindowMinutes: toNumber(form.pickupWindowMinutes),
     pickupCapacityPerWindow: toNumber(form.pickupCapacityPerWindow),
-    taxRateBasisPoints: toNumber(form.taxRateBasisPoints),
+    taxRateBasisPoints: Math.round(toNumber(form.taxRateBasisPoints) * 10_000) / 100,
   };
 }
 
@@ -129,6 +139,9 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
   const [form, setForm] = useState<FormState>(baseline);
   const [conflict, setConflict] = useState<CoffeeStoreSettingsData | null | undefined>(undefined);
   const [logoDraftPending, setLogoDraftPending] = useState(false);
+  // Filled after mount: server and browser ICU zone lists can differ.
+  const [timeZones, setTimeZones] = useState<string[]>([]);
+  useEffect(() => setTimeZones(supportedTimeZones()), []);
   const summaryRef = useRef<HTMLDivElement>(null);
 
   const isConfigured = Boolean(saved);
@@ -350,8 +363,20 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
             <Field id="contactEmail" label="Contact email" required error={fieldErrors.contactEmail}>
               <Input id={FIELD_IDS.contactEmail} type="email" required autoComplete="email" value={form.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} aria-invalid={Boolean(fieldErrors.contactEmail)} aria-describedby={fieldErrors.contactEmail ? "contactEmail-error" : undefined} />
             </Field>
-            <Field id="timezone" label="Timezone" required className="sm:col-span-2" hint="e.g. America/New_York" error={fieldErrors.timezone}>
-              <Input id={FIELD_IDS.timezone} required value={form.timezone} onChange={(event) => update("timezone", event.target.value)} aria-invalid={Boolean(fieldErrors.timezone)} aria-describedby={fieldErrors.timezone ? "timezone-error" : "timezone-hint"} />
+            <Field id="timezone" label="Timezone" required className="sm:col-span-2" error={fieldErrors.timezone}>
+              <select
+                id={FIELD_IDS.timezone}
+                required
+                value={form.timezone}
+                onChange={(event) => update("timezone", event.target.value)}
+                aria-invalid={Boolean(fieldErrors.timezone)}
+                aria-describedby={fieldErrors.timezone ? "timezone-error" : undefined}
+                className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              >
+                {form.timezone && !timeZones.includes(form.timezone) ? <option value={form.timezone}>{form.timezone}</option> : null}
+                {!form.timezone ? <option value="">Select timezone</option> : null}
+                {timeZones.map((zone) => <option key={zone} value={zone}>{zone.replaceAll("_", " ")}</option>)}
+              </select>
             </Field>
           </div>
         </SettingsSection>
@@ -373,7 +398,7 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
             <NumberField field="pickupLeadTimeMinutes" label="Lead time (minutes)" value={form.pickupLeadTimeMinutes} error={fieldErrors.pickupLeadTimeMinutes} onChange={(value) => update("pickupLeadTimeMinutes", value)} />
             <NumberField field="pickupWindowMinutes" label="Pickup window (minutes)" value={form.pickupWindowMinutes} error={fieldErrors.pickupWindowMinutes} onChange={(value) => update("pickupWindowMinutes", value)} />
             <NumberField field="pickupCapacityPerWindow" label="Orders per window" value={form.pickupCapacityPerWindow} error={fieldErrors.pickupCapacityPerWindow} onChange={(value) => update("pickupCapacityPerWindow", value)} />
-            <NumberField field="taxRateBasisPoints" label="Sales tax (basis points)" hint="875 = 8.75%" value={form.taxRateBasisPoints} error={fieldErrors.taxRateBasisPoints} onChange={(value) => update("taxRateBasisPoints", value)} />
+            <NumberField field="taxRateBasisPoints" label="Sales tax (%)" step={0.001} min={0} max={100} value={form.taxRateBasisPoints} error={fieldErrors.taxRateBasisPoints} onChange={(value) => update("taxRateBasisPoints", value)} />
             <Field id="currencyCode" label="Currency">
               <Input id="store-currency" value={form.currencyCode} readOnly aria-readonly="true" className="bg-muted/50" />
             </Field>
@@ -384,7 +409,8 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         </SettingsSection>
       </fieldset>
 
-      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-border bg-background/90 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+      {/* Right padding keeps Save clear of the floating assistant button (3rem at 0.75rem from the corner). */}
+      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-border bg-background/90 py-3 pl-4 pr-20 backdrop-blur md:-mx-6 md:pl-6">
         {isDirty && !isPending ? <span className="mr-auto inline-flex items-center gap-2 text-sm text-muted-foreground"><span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />Unsaved changes</span> : null}
         <Button type="submit" className="min-h-11 rounded-full px-5" disabled={isPending}>
           <Save className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -448,10 +474,16 @@ function NumberField({
   value,
   error,
   onChange,
+  step = 1,
+  min,
+  max,
 }: {
   field: keyof typeof PICKUP_LIMITS;
   label: string;
   hint?: string;
+  step?: number;
+  min?: number;
+  max?: number;
   value: string;
   error?: string;
   onChange(value: string): void;
@@ -462,11 +494,11 @@ function NumberField({
       <Input
         id={FIELD_IDS[field]}
         type="number"
-        inputMode="numeric"
+        inputMode={step < 1 ? "decimal" : "numeric"}
         required
-        step={1}
-        min={limits.min}
-        max={limits.max}
+        step={step}
+        min={min ?? limits.min}
+        max={max ?? limits.max}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}

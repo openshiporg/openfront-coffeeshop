@@ -181,6 +181,17 @@ function commandLabel(command: PosCommand) {
   }
 }
 
+/** Exact total, then the next whole-dollar and banknote amounts above it. */
+function cashQuickAmounts(totalCents: number) {
+  const amounts = [totalCents];
+  for (const step of [100, 500, 1000, 2000, 5000, 10000]) {
+    const next = Math.ceil(totalCents / step) * step;
+    const rounded = next === totalCents ? next + step : next;
+    if (!amounts.includes(rounded)) amounts.push(rounded);
+  }
+  return amounts.sort((a, b) => a - b).slice(0, 5);
+}
+
 function moneyError(parse: MoneyParse) {
   return parse.kind === "invalid" ? parse.message : null;
 }
@@ -204,6 +215,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
   const [tipInput, setTipInput] = React.useState("0.00");
   const [paymentMethod, setPaymentMethod] = React.useState<PosPaymentMethod>("cash");
   const [cardReference, setCardReference] = React.useState("");
+  const [cashTendered, setCashTendered] = React.useState("");
   const [approvedFingerprint, setApprovedFingerprint] = React.useState<string | null>(null);
   const [quoteState, setQuoteState] = React.useState<QuoteState>({ status: "idle" });
   const [quoteAttempt, setQuoteAttempt] = React.useState(0);
@@ -373,6 +385,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
         setTipInput("0.00");
         setCustomerName("Counter guest");
         setCardReference("");
+        setCashTendered("");
         setApprovedFingerprint(null);
         setPaymentMethod("cash");
       } else if (command.kind === "movement") {
@@ -405,7 +418,15 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
   const movementParse = parseMoneyInput(movementAmount, { allowZero: false });
   const effectiveMethod: PosPaymentMethod = quote?.total === 0 ? "cash" : paymentMethod;
   const cardReady = effectiveMethod !== "manual_card" || (TERMINAL_REFERENCE.test(cardReference.trim()) && !!quote && approvedFingerprint === quote.quoteFingerprint);
-  const canSubmitSale = !!openShift && !!quote && cart.length > 0 && cardReady && !writesBlocked && customerName.trim().length > 0;
+  // Cash received is display-only: the sale still records the exact total. Empty means exact.
+  const takesCash = effectiveMethod === "cash" && !!quote && quote.total > 0;
+  const tenderedParse = parseMoneyInput(cashTendered);
+  const tenderedCents = tenderedParse.kind === "valid" ? tenderedParse.cents : null;
+  const changeDueCents = takesCash && quote && tenderedCents !== null ? tenderedCents - quote.total : null;
+  const quickTenders = takesCash && quote ? cashQuickAmounts(quote.total) : [];
+  const cashShort = takesCash && (tenderedParse.kind === "invalid" || (changeDueCents !== null && changeDueCents < 0));
+  const cashReady = !takesCash || !cashShort;
+  const canSubmitSale = !!openShift && !!quote && cart.length > 0 && cardReady && cashReady && !writesBlocked && customerName.trim().length > 0;
 
   function submitSale() {
     if (!openShift || !quote || !canSubmitSale) return;
@@ -513,7 +534,8 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
   ) : null;
 
   return (
-    <div className="min-w-0 px-4 pb-28 md:px-6 lg:pb-8">
+    // The right gutter at lg keeps the sticky ticket's Record button out of the floating assistant's column (3rem at 0.75rem).
+    <div className="min-w-0 px-4 pb-28 md:px-6 lg:pb-8 lg:pr-20">
       {storageBlocked && (
         <div role="alert" className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
           Site storage is blocked, so sales and drawer actions are disabled. Allow site storage and reload.
@@ -705,6 +727,30 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
                   </PillTrack>
                 </div>
               )}
+              {takesCash && quote && (
+                <div className="space-y-2 rounded-xl bg-muted/60 p-3">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                    <div className="min-w-0 space-y-1.5">
+                      <Label htmlFor="pos-cash-tendered">Cash received</Label>
+                      <Input id="pos-cash-tendered" value={cashTendered} inputMode="decimal" placeholder={(quote.total / 100).toFixed(2)} autoComplete="off" disabled={ticketLocked} className="bg-background" aria-invalid={cashShort} aria-describedby="pos-cash-change" onChange={(event) => setCashTendered(event.target.value)} />
+                    </div>
+                    <p id="pos-cash-change" aria-live="polite" className="pb-2 text-right text-sm">
+                      {tenderedParse.kind === "invalid"
+                        ? <span className="text-destructive">{tenderedParse.message}</span>
+                        : changeDueCents !== null && changeDueCents < 0
+                          ? <span className="text-destructive">Short <span className="font-semibold tabular-nums">{formatMoney(-changeDueCents, quote.currencyCode)}</span></span>
+                          : <>Change <span className="font-semibold tabular-nums">{formatMoney(changeDueCents ?? 0, quote.currencyCode)}</span></>}
+                    </p>
+                  </div>
+                  <PillTrack label="Cash amount">
+                    {quickTenders.map((cents, index) => (
+                      <PillButton key={cents} active={tenderedCents === cents} disabled={ticketLocked} onClick={() => setCashTendered((cents / 100).toFixed(2))}>
+                        {index === 0 ? "Exact" : formatMoney(cents, quote.currencyCode).replace(/\.00$/, "")}
+                      </PillButton>
+                    ))}
+                  </PillTrack>
+                </div>
+              )}
               {effectiveMethod === "manual_card" && (
                 <div className="space-y-3 rounded-xl bg-muted/60 p-3">
                   <p className="text-xs text-muted-foreground">Run the card on the terminal first. Nothing is charged from here.</p>
@@ -766,7 +812,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
       {cart.length > 0 && (
         <a
           href="#pos-ticket"
-          className="fixed inset-x-4 bottom-4 z-20 flex min-h-12 items-center justify-between gap-3 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg lg:hidden"
+          className="fixed bottom-4 left-4 right-20 z-20 flex min-h-12 items-center justify-between gap-3 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg lg:hidden"
         >
           <span className="tabular-nums">Ticket · {lineCount} {lineCount === 1 ? "item" : "items"}</span>
           <span className="tabular-nums">{quote ? formatMoney(quote.total, quote.currencyCode) : "Pricing…"}</span>

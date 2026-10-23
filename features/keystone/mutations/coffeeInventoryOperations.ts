@@ -6,7 +6,7 @@ import { validCoffeeTimezone } from "../lib/store-locale-policy";
 import { isBusinessDate, storeDayStart } from "../../platform/reports/lib/businessDate";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
-import { consumeActiveInventoryLots, stockCostCents, stockDecimal, stockNumber, stockUnits, storedStockUnits, STOCK_SCALE } from "./inventoryLots";
+import { consumeActiveInventoryLots, planStockCount, stockCostCents, stockDecimal, stockNumber, stockUnits, storedStockUnits, STOCK_SCALE } from "./inventoryLots";
 
 type Context = {
   session?: Session;
@@ -44,6 +44,7 @@ type TransactionClient = {
     create(args: Record<string, unknown>): Promise<Record<string, unknown>>;
   };
   storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string; timezone?: unknown } | null> };
+  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
 };
 
 const TX_OPTIONS = { maxWait: 5000, timeout: 10000, isolationLevel: "Serializable" };
@@ -472,5 +473,71 @@ export async function recordCoffeeWaste(
       payload: { wasteId: String(waste.id), inventoryItemId, prepBatchId, stockMovementId, quantity: stockNumber(quantityUnits), unit, reason: args.reason, costCents },
     });
     return waste;
+  });
+}
+
+/** Set on hand from a physical count. A shortfall is drawn from lots like waste;
+ * a surplus is recorded as untracked stock. The domain event is the request receipt.
+ */
+export async function recordCoffeeStockCount(
+  _root: unknown,
+  args: { inventoryItemId: string; countedQuantity: number; notes?: string | null; idempotencyKey: string },
+  context: Context,
+) {
+  requireInventoryManager(context);
+  const key = scopedKey(context, "coffee-stock-count", args.idempotencyKey);
+  const inventoryItemId = requiredId(args.inventoryItemId, "Inventory item");
+  const countedUnits = stockUnits(args.countedQuantity, "Counted quantity", { allowZero: true });
+  const notes = notesText(args.notes);
+  const eventKey = `stock-count:${createHash("sha256").update(key).digest("hex")}`;
+
+  return serializable(context, async (tx) => {
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
+    const { actorId, storeId } = await currentInventoryScope(tx, context);
+    const requestFingerprint = fingerprintInput({ purpose: "stock-count", storeId, actorId, inventoryItemId, countedUnits, notes });
+    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    if (receipt) {
+      const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : {};
+      if (receipt.storeId !== storeId || receipt.aggregateId !== inventoryItemId || payload.requestFingerprint !== requestFingerprint) {
+        throw new Error("This stock count request was already submitted with different details. Refresh the page and submit the new details again.");
+      }
+      const recorded = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
+      if (!recorded) throw new Error("Inventory item not found");
+      return recorded;
+    }
+
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
+    const inventory = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId }, select: { storeId: true, currentStock: true, unit: true } });
+    if (!inventory) throw new Error("Inventory item not found");
+    assertCoffeeStoreOwnership(inventory.storeId, storeId, "Inventory item");
+    const unit = String(inventory.unit || "each");
+    stockUnits(stockNumber(countedUnits), "Counted quantity", { allowZero: true, unit });
+    const { previousUnits, deltaUnits } = planStockCount(inventory.currentStock, countedUnits);
+
+    const reason = "Stock count";
+    const movementIds: string[] = [];
+    if (deltaUnits !== 0) {
+      const allocations = deltaUnits < 0
+        ? allocationUnits(await consumeActiveInventoryLots(tx, inventoryItemId, stockNumber(-deltaUnits), { openingStock: inventory.currentStock, waste: true })).map((allocation) => ({ ...allocation, units: -allocation.units }))
+        : [{ inventoryLotId: null, units: deltaUnits }];
+      for (const [index, allocation] of allocations.entries()) {
+        const movement = await tx.stockMovement.create({
+          data: { idempotencyKey: index === 0 ? key : `${key}:${index}`, storeId, inventoryItemId, inventoryLotId: allocation.inventoryLotId, type: "adjustment", quantity: stockDecimal(allocation.units), reason, notes, createdById: actorId },
+        });
+        movementIds.push(String(movement.id));
+      }
+      await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: stockDecimal(countedUnits) } });
+    }
+    await enqueueCoffeeDomainEvent(tx as never, {
+      storeId,
+      eventKey,
+      eventType: "inventory.counted",
+      aggregateType: "inventory_item",
+      aggregateId: inventoryItemId,
+      payload: { requestFingerprint, inventoryItemId, stockMovementIds: movementIds, previousQuantity: stockNumber(previousUnits), countedQuantity: stockNumber(countedUnits), adjustment: stockNumber(deltaUnits), unit, countedById: actorId },
+    });
+    const updated = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
+    if (!updated) throw new Error("Inventory item not found");
+    return updated;
   });
 }
