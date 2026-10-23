@@ -1451,7 +1451,7 @@ var init_MenuItem = __esm({
         store: requiredStoreRelationship("StoreSetting.menuItems"),
         description: (0, import_fields_document.document)({ formatting: true, links: true }),
         shortDescription: (0, import_fields23.text)({ ui: { displayMode: "textarea" } }),
-        price: (0, import_fields23.integer)({ validation: { isRequired: true, min: 0 }, access: { update: () => false }, ui: { description: "Base price in cents" } }),
+        price: (0, import_fields23.integer)({ validation: { isRequired: true, min: 0 }, access: { update: () => false }, label: "Price (cents)", ui: { description: "In cents: 495 = $4.95. Platform Menu takes dollars." } }),
         available: (0, import_fields23.checkbox)({ defaultValue: true, access: { update: () => false } }),
         featured: (0, import_fields23.checkbox)({ defaultValue: false, access: { update: () => false } }),
         popular: (0, import_fields23.checkbox)({ defaultValue: false, access: { update: () => false } }),
@@ -2645,6 +2645,8 @@ var init_coffeeBoundarySchema = __esm({
     tip: Int
     total: Int!
     currencyCode: String!
+    specialInstructions: String
+    paidAt: String
     orderItems: [CafeOrderItemProjection!]!
   }
   type CafeOrderReceipt {
@@ -3564,13 +3566,15 @@ async function consumeCafeInventoryRequirements(tx, input) {
     if (requirement.kind === "prep") {
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-prep-batch:${requirement.prepBatchId}`);
       const batch = await tx.prepBatch.findUnique({ where: { id: requirement.prepBatchId }, select: { id: true, storeId: true, status: true, quantityRemaining: true, expiresAt: true } });
-      if (!batch || batch.storeId !== input.storeId || batch.status !== "completed" || batch.expiresAt && new Date(String(batch.expiresAt)).getTime() <= Date.now() || positive(batch.quantityRemaining) < requirement.quantity) throw new Error("A prepared batch in this order is expired or has insufficient quantity");
+      if (!batch || batch.storeId !== input.storeId) throw new Error("A prepared batch in this order is expired or has insufficient quantity");
+      if (batch.status !== "completed" || batch.expiresAt && new Date(String(batch.expiresAt)).getTime() <= Date.now() || positive(batch.quantityRemaining) < requirement.quantity) throw cafeCustomerError("A prepared batch in this order is expired or used up");
       await tx.prepBatch.update({ where: { id: requirement.prepBatchId }, data: { quantityRemaining: { decrement: requirement.quantity } } });
       await tx.prepBatchConsumption.create({ data: { idempotencyKey: `${input.orderId}:${requirement.prepBatchId}`, storeId: input.storeId, orderId: input.orderId, prepBatchId: requirement.prepBatchId, quantity: requirement.quantity } });
     } else {
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${requirement.inventoryItemId}`);
       const item = await tx.inventoryItem.findUnique({ where: { id: requirement.inventoryItemId }, select: { id: true, storeId: true, currentStock: true, unit: true, name: true } });
-      if (!item || item.storeId !== input.storeId || positive(item.currentStock) < requirement.quantity) throw new Error("Insufficient inventory for this order");
+      if (!item || item.storeId !== input.storeId) throw new Error("Insufficient inventory for this order");
+      if (positive(item.currentStock) < requirement.quantity) throw cafeCustomerError(`Not enough ${String(item.name || "stock")} on hand`);
       if (String(item.unit || "each") === "each" && Math.round(requirement.quantity * STOCK_SCALE) % STOCK_SCALE !== 0) {
         throw new Error(`This order would use a fraction of ${String(item.name || "a counted item")}; review the recipe or add-on quantity in Menu management`);
       }
@@ -3586,6 +3590,7 @@ var init_coffeeInventoryConsumption = __esm({
   "features/keystone/mutations/coffeeInventoryConsumption.ts"() {
     "use strict";
     init_inventoryLots();
+    init_cafeCustomerError();
     COUNTED_OUTPUT_UNITS = /* @__PURE__ */ new Set(["serving", "each"]);
   }
 });
@@ -4171,8 +4176,9 @@ async function getCoffeeOperations(_root, rawArgs, context) {
       search: searches.purchaseInventory,
       searchWhere: contains("name"),
       cursor: args.purchaseInventoryCursor,
-      select: { name: true, unit: true },
-      map: (row) => ({ ...optionMap(row), unit: typeof row.unit === "string" ? row.unit : null })
+      // Every item, including those at 0, so Count stock can bring a sold-out item back.
+      select: { name: true, unit: true, currentStock: true },
+      map: (row) => ({ ...optionMap(row), unit: typeof row.unit === "string" ? row.unit : null, currentStock: toNumber(row.currentStock) })
     }) : noPage(),
     sections.inventoryManage ? namePage({
       model: context.prisma.inventoryItem,
@@ -4685,9 +4691,20 @@ async function getCoffeePosRegister(_root, args, context) {
     context.prisma.registerShift.findMany({ where: { storeId: store.id, status: "open" }, orderBy: { openedAt: "desc" }, take: 1, select: { id: true, shiftNumber: true, registerName: true, status: true, openingCashCents: true, cashSalesCents: true, cardSalesCents: true, tipsCents: true, payInsCents: true, payOutsCents: true, expectedCashCents: true, openedAt: true } })
   ]);
   const hasMore = rows.length > limit;
-  const items = rows.slice(0, limit);
-  const last = items[items.length - 1];
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
   const nextCursor = hasMore && last ? Buffer.from(JSON.stringify({ kind: "pos-catalog", storeId: store.id, search, categoryId, name: String(last.name), id: last.id }), "utf8").toString("base64url") : null;
+  const stock = await cafeMenuStock(context.prisma, store.id, page.map((item) => ({
+    id: item.id,
+    inventoryItemId: item.inventoryItemId ?? null,
+    modifiers: item.modifiers
+  })));
+  const items = page.map((item) => ({
+    ...item,
+    inventoryItemId: void 0,
+    availability: stock.soldOut.has(item.id) ? "sold_out" : "now",
+    modifiers: item.modifiers.map((modifier) => ({ ...modifier, inStock: modifier.inStock !== false && !stock.modifiersOut.has(modifier.id) }))
+  }));
   return { operatorId: String(context.session?.itemId || ""), storeId: store.id, items, hasMore, nextCursor, categories, openShift: shifts[0] || null };
 }
 async function quoteCafeOrder(_root, args, context) {
@@ -4822,8 +4839,9 @@ var init_coffeeBoundaryQueries = __esm({
       name: true,
       price: true,
       available: true,
+      ...MENU_STOCK_ITEM_SELECT,
       category: { select: { id: true, name: true } },
-      modifiers: { orderBy: [{ modifierGroup: "asc" }, { name: "asc" }, { id: "asc" }], take: 100, select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true } }
+      modifiers: { orderBy: [{ modifierGroup: "asc" }, { name: "asc" }, { id: "asc" }], take: 100, select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true, ...MENU_STOCK_MODIFIER_SELECT } }
     };
   }
 });
@@ -5578,6 +5596,8 @@ async function getCafeOrder(_root, args, context) {
       tip
       total
       currencyCode
+      specialInstructions
+      paidAt
       customer { id }
       orderItems { id quantity itemNameSnapshot imagePathSnapshot customizationsSummary modifierSnapshot specialInstructions price }
     `
@@ -5595,6 +5615,8 @@ async function getCafeOrder(_root, args, context) {
     tip: order.tip || 0,
     total: order.total,
     currencyCode: order.currencyCode || "USD",
+    specialInstructions: order.specialInstructions || null,
+    paidAt: order.paidAt || null,
     orderItems: await Promise.all((order.orderItems || []).map(async (item) => ({
       ...item,
       imagePathSnapshot: await resolveCafeImageUrl(context, item.imagePathSnapshot),
@@ -7036,9 +7058,13 @@ async function admitOpenCafeOrder(tx, order, storeId) {
     return null;
   }
   const requestedPromisedAt = new Date(String(order.promisedAt || ""));
-  const promisedAt = Number.isFinite(requestedPromisedAt.getTime()) && requestedPromisedAt.getTime() > Date.now() ? requestedPromisedAt : new Date(Date.now() + Math.max(5, Number(settings.pickupLeadTimeMinutes || 12)) * 6e4);
-  if (!Number.isFinite(promisedAt.getTime())) throw new Error("Pickup capacity settings are invalid");
-  assertCoffeeOrderingAvailable(settings, now);
+  let promisedAt = requestedPromisedAt;
+  if (!Number.isFinite(requestedPromisedAt.getTime()) || requestedPromisedAt.getTime() <= now.getTime()) {
+    const serviceWindowSets = orderLines.map((line) => Array.isArray(line.menuItem?.serviceWindows) ? line.menuItem.serviceWindows.map(String) : ["all_day"]);
+    const offset = coffeeFirstPickupMinutes(settings, Math.max(5, Number(settings.pickupLeadTimeMinutes || 12)), serviceWindowSets, now);
+    if (offset == null) throw cafeCustomerError("The cafe is closed for pickup at that time");
+    promisedAt = new Date(now.getTime() + offset * 6e4);
+  }
   assertCoffeeOrderingAvailable(settings, promisedAt);
   const windowMinutes = Math.max(5, Number(settings.pickupWindowMinutes || 15));
   const windowMs = windowMinutes * 6e4;
@@ -7050,7 +7076,7 @@ async function admitOpenCafeOrder(tx, order, storeId) {
   if (promisedAt !== requestedPromisedAt && Math.max(5, Number(locked.pickupLeadTimeMinutes || 12)) !== Math.max(5, Number(settings.pickupLeadTimeMinutes || 12))) throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
   const reservations = await tx.cafeOrder.count({ where: { storeId, id: { not: order.id }, fulfillmentType: "pickup", promisedAt: { gte: windowStart, lt: windowEnd }, status: { in: ["accepted", "paid", "in_bar_queue", "preparing", "ready"] } } });
   if (reservations >= Math.max(1, Number(locked.pickupCapacityPerWindow || 20))) throw cafeCustomerError("The requested pickup window is at capacity");
-  assertCafePickupAcceptanceAvailability(settings, orderLines, now, promisedAt);
+  assertCafePickupAcceptanceAvailability(settings, orderLines, promisedAt, promisedAt);
   return promisedAt;
 }
 async function acceptCafePickupOrder(_root, args, context) {
@@ -7088,7 +7114,7 @@ async function acceptCafePickupOrder(_root, args, context) {
       }
       return String(order.id);
     }
-    if (["accepted", "paid", "in_bar_queue", "preparing", "ready", "completed"].includes(String(order.status))) throw new Error("This pickup request was already accepted. Refresh to see its current status.");
+    if (["accepted", "paid", "in_bar_queue", "preparing", "ready", "completed"].includes(String(order.status))) throw cafeCustomerError("This pickup request was already accepted. Refresh to see its current status.");
     if (order.status !== "open") throw new Error(`Only an open unpaid pickup request can be accepted; current status is ${String(order.status)}`);
     if (order.fulfillmentType !== "pickup") throw new Error("Only pickup requests use the acceptance workflow");
     const orderLines = await lockAndReadAdmissionLines(tx, String(order.id));

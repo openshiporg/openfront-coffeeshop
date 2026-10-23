@@ -17,6 +17,7 @@ export type PosMenuItem = {
   id: string;
   name: string;
   price: number;
+  availability?: string | null;
   category?: { id: string | null; name: string | null } | null;
   modifiers?: PosMenuModifier[] | null;
 };

@@ -12,4 +12,4 @@ export function formatModifierAdjustment(cents?: number | null, currency = "USD"
   return `${amount > 0 ? "+" : "−"}${formatMoney(Math.abs(amount), currency)}`;
 }
 
-export { formatPickupTime } from "@/lib/date-time";
+export { formatPickupTime, storeZoneAbbreviation } from "@/lib/date-time";

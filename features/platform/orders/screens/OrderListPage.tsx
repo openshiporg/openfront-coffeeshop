@@ -119,10 +119,11 @@ function OrderTicketCard({ order, capabilities, storeTimezone }: { order: CafeOr
   ].filter(Boolean);
   const hasActions = (capabilities.canManageOrders && (order.actions.length > 0 || (order.status === "open" && order.fulfillmentType === "pickup")))
     || order.canRecordPayment || order.refundablePayments.length > 0 || (order.canApplyLoyalty && order.customerEmail);
+  // Phone widths: a right gutter keeps the fixed assistant button (bottom-right, 48px) off card actions at any scroll position.
   return (
     <article
       aria-labelledby={`order-${order.id}-title`}
-      className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-xs ${order.isRush && live ? "border-red-500/40 ring-1 ring-red-500/20" : "border-border"}`}
+      className={`flex min-w-0 flex-col overflow-hidden max-sm:mr-12 rounded-xl border bg-card shadow-xs ${order.isRush && live ? "border-red-500/40 ring-1 ring-red-500/20" : "border-border"}`}
     >
       <header className="flex items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0 space-y-1">

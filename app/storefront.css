@@ -723,6 +723,26 @@ textarea.sf-field {
     padding-inline: 0;
     overflow: visible;
   }
+
+  /* Fewer than four picks: fill the row with side-by-side cards instead of leaving empty columns. */
+  .sf-rail[data-count="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sf-rail[data-count="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sf-rail[data-count="2"] .sf-rail-card,
+  .sf-rail[data-count="3"] .sf-rail-card {
+    grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .sf-rail[data-count="2"] .sf-rail-card {
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  }
 }
 
 .sf-rail-card {
@@ -866,13 +886,16 @@ textarea.sf-field {
   }
 }
 
-/* Desktop: categories flow as two board columns, so short categories don't leave the width empty. */
+/* Desktop: categories flow as two packed board columns, so short categories don't leave the width empty. */
 @media (min-width: 1024px) {
   .sf-menu-sections {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    columns: 2;
     column-gap: 3rem;
+  }
+
+  /* Pack categories down each column so a short one doesn't leave a gap beside a long one. */
+  .sf-menu-sections .sf-menu-section {
+    break-inside: avoid;
   }
 
   .sf-menu-sections .sf-item-grid {

@@ -58,6 +58,8 @@ export type CafePickupOrder = {
   total: number;
   currencyCode: string;
   secretKey?: string | null;
+  specialInstructions?: string | null;
+  paidAt?: string | null;
   orderItems?: CafeOrderItemSnapshot[];
 };
 

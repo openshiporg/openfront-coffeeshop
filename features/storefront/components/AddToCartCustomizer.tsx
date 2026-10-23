@@ -26,6 +26,8 @@ export function AddToCartCustomizer({ item, compact = false, orderingAvailable =
   const unitPrice = item.price + selectedModifierRecords.reduce((sum, modifier) => sum + Number(modifier.priceAdjustment || 0), 0);
   const unavailableGroups = unavailableRequiredModifierGroups(item);
   const unmetGroups = groups.filter((group) => group.modifiers.filter((modifier) => selectedModifiers.includes(modifier.id)).length < group.minimum);
+  const orderable = orderingAvailable && unavailableGroups.length === 0;
+  const unavailableLabel = item.availability === "sold_out" || unavailableGroups.length > 0 ? "Sold out" : "Unavailable";
   const blocked = !orderingAvailable || pending || unmetGroups.length > 0 || unavailableGroups.length > 0;
 
   function toggleModifier(id: string, maximum: number, groupMembers: string[]) {
@@ -66,7 +68,7 @@ export function AddToCartCustomizer({ item, compact = false, orderingAvailable =
   return (
     <div className="sf-sticky-panel">
       <div className="sf-panel">
-        {!compact ? <h2 className="sf-display mb-5 text-xl">Make it yours</h2> : null}
+        {!compact ? <h2 className="sf-display mb-5 text-xl">{orderable ? "Make it yours" : unavailableLabel}</h2> : null}
 
         {groups.map((group) => {
           const memberIds = group.modifiers.map((modifier) => modifier.id);
@@ -161,7 +163,7 @@ export function AddToCartCustomizer({ item, compact = false, orderingAvailable =
         </div>
 
         <div className="sf-addbar mt-0 lg:mt-5">
-          <div className="sf-stepper">
+          {orderable ? <div className="sf-stepper">
             <button
               type="button"
               aria-label="Decrease quantity"
@@ -179,9 +181,9 @@ export function AddToCartCustomizer({ item, compact = false, orderingAvailable =
             >
               <Plus className="size-4" aria-hidden="true" />
             </button>
-          </div>
+          </div> : null}
           <button type="button" onClick={addToCart} disabled={blocked} className="sf-btn sf-btn-primary sf-btn-lg">
-            {!orderingAvailable ? (item.availability === "sold_out" ? "Sold out" : "Unavailable") : pending ? "Adding…" : (
+            {!orderable ? unavailableLabel : pending ? "Adding…" : (
               <>
                 <span>Add to cart</span>
                 <span className="sf-mono opacity-80">{formatMoney(unitPrice * quantity)}</span>

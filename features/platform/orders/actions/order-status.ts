@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient';
+import { cafeRequest } from '@/features/storefront/lib/data/cafeRequest';
 
 const UPDATE_STATUS_MUTATION = `
   mutation UpdateCafeOrderStatus($orderId: ID!, $status: String!) {
@@ -18,18 +19,18 @@ const UPDATE_STATUS_MUTATION = `
 `;
 
 export async function updateCafeOrderStatusAction(orderId: string, status: string) {
-  const response = await keystoneClient(UPDATE_STATUS_MUTATION, { orderId, status }, { cache: 'no-store' });
+  const response = await cafeRequest(UPDATE_STATUS_MUTATION, { orderId, status });
   revalidatePath('/dashboard/platform/orders');
   revalidatePath('/dashboard/platform/pos');
   return response;
 }
 
 export async function acceptCafePickupOrderAction(orderId: string, idempotencyKey: string) {
-  const response = await keystoneClient(`
+  const response = await cafeRequest(`
     mutation AcceptCafePickupOrder($orderId: ID!, $idempotencyKey: String!) {
       acceptCafePickupOrder(orderId: $orderId, idempotencyKey: $idempotencyKey) { id orderNumber status }
     }
-  `, { orderId, idempotencyKey }, { cache: 'no-store' });
+  `, { orderId, idempotencyKey });
   revalidatePath('/dashboard/platform/orders');
   revalidatePath('/dashboard/platform/kds');
   return response;
@@ -41,7 +42,7 @@ export async function recordCafePaymentAction(
   idempotencyKey: string,
   card?: { externalCardReference: string; externalCardApproved: boolean },
 ) {
-  const response = await keystoneClient(`
+  const response = await cafeRequest(`
     mutation RecordCafePayment($orderId: ID!, $method: String!, $idempotencyKey: String!, $externalCardReference: String, $externalCardApproved: Boolean) {
       recordCafePayment(orderId: $orderId, method: $method, idempotencyKey: $idempotencyKey, externalCardReference: $externalCardReference, externalCardApproved: $externalCardApproved) {
         id status method amount order { id status }
@@ -53,7 +54,7 @@ export async function recordCafePaymentAction(
     idempotencyKey,
     externalCardReference: method === 'card' ? card?.externalCardReference ?? null : null,
     externalCardApproved: method === 'card' ? card?.externalCardApproved ?? null : null,
-  }, { cache: 'no-store' });
+  });
   revalidatePath('/dashboard/platform/orders');
   revalidatePath('/dashboard/platform/kds');
   revalidatePath('/dashboard/platform/reports');

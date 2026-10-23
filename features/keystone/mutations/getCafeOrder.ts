@@ -19,6 +19,8 @@ type CafeOrderLookupResult = {
   tip?: number | null;
   total: number;
   currencyCode?: string | null;
+  specialInstructions?: string | null;
+  paidAt?: string | null;
   customer?: { id: string } | null;
   orderItems?: Array<{
     id: string;
@@ -73,6 +75,8 @@ export default async function getCafeOrder(
       tip
       total
       currencyCode
+      specialInstructions
+      paidAt
       customer { id }
       orderItems { id quantity itemNameSnapshot imagePathSnapshot customizationsSummary modifierSnapshot specialInstructions price }
     `,
@@ -92,6 +96,8 @@ export default async function getCafeOrder(
     tip: order.tip || 0,
     total: order.total,
     currencyCode: order.currencyCode || "USD",
+    specialInstructions: order.specialInstructions || null,
+    paidAt: order.paidAt || null,
     orderItems: await Promise.all((order.orderItems || []).map(async (item) => ({
       ...item,
       imagePathSnapshot: await resolveCafeImageUrl(context, item.imagePathSnapshot),

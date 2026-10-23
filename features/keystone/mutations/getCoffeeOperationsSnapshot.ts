@@ -219,7 +219,8 @@ export default async function getCoffeeOperations(_root: unknown, rawArgs: unkno
     }) : noPage<Option>(),
     sections.inventoryManage ? namePage({
       model: context.prisma.inventoryItem, kind: "purchase-inventory-items", storeId, where: { storeId }, orderField: "name", search: searches.purchaseInventory, searchWhere: contains("name"), cursor: args.purchaseInventoryCursor,
-      select: { name: true, unit: true }, map: (row) => ({ ...optionMap(row), unit: typeof row.unit === "string" ? row.unit : null }),
+      // Every item, including those at 0, so Count stock can bring a sold-out item back.
+      select: { name: true, unit: true, currentStock: true }, map: (row) => ({ ...optionMap(row), unit: typeof row.unit === "string" ? row.unit : null, currentStock: toNumber(row.currentStock) }),
     }) : noPage<Option>(),
     sections.inventoryManage ? namePage({
       model: context.prisma.inventoryItem, kind: "positive-stock-inventory", storeId, where: { storeId, currentStock: { gt: 0 } }, orderField: "name", search: searches.inventoryWaste, searchWhere: contains("name"), cursor: args.inventoryWasteCursor,

@@ -1,12 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { StorefrontLayout } from "@/features/storefront/components/StorefrontLayout";
 import { StorefrontShell } from "@/features/storefront/components/StorefrontShell";
+import { getCoffeeStore } from "@/features/storefront/lib/data/store";
 import "./storefront.css";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const store = await getCoffeeStore().catch(() => null);
+  return { title: store?.name ? `Page not found · ${store.name}` : "Page not found" };
+}
 
 export default function NotFound() {
   return (
     <StorefrontLayout>
-      <title>Page not found</title>
       <StorefrontShell>
         <main className="sf-container sf-page">
           <div className="sf-empty">

@@ -12,7 +12,7 @@ import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, resolveOrd
 const ORDER_QUERY = `
   query ConfirmedCafeOrder($id: ID!, $secretKey: String) {
     getCafeOrder(orderId: $id, secretKey: $secretKey) {
-      id orderNumber status handoffCode pickupName promisedAt subtotal tax tip total currencyCode
+      id orderNumber status handoffCode pickupName promisedAt subtotal tax tip total currencyCode specialInstructions paidAt
       orderItems {
         id quantity itemNameSnapshot imagePathSnapshot customizationsSummary specialInstructions price
         modifierSnapshot { id name group groupLabel priceAdjustment }
@@ -30,6 +30,14 @@ const PROGRESS = [
   { label: "Ready", statuses: ["ready"] },
   { label: "Picked up", statuses: ["completed"] },
 ];
+
+function paymentLine(order: CafePickupOrder) {
+  const total = formatMoney(order.total, order.currencyCode);
+  if (order.status === "refunded") return `Refunded · ${total}`;
+  if (order.status === "cancelled") return null;
+  if (order.paidAt || order.status === "paid") return `Paid · ${total}`;
+  return order.status === "completed" ? null : `Pay at pickup · ${total}`;
+}
 
 function statusDot(status: string) {
   if (status === "ready") return "sf-dot-ready";
@@ -52,6 +60,7 @@ export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secre
   const order = confirmation.kind === "found" ? confirmation.order : null;
   const statusCopy = order ? getCustomerOrderStatusCopy(order.status) : null;
   const failureCopy = confirmation.kind === "found" ? null : getOrderConfirmationFailureCopy(confirmation.kind);
+  const payment = order ? paymentLine(order) : null;
   const stepIndex = order ? PROGRESS.findIndex((step) => step.statuses.includes(order.status)) : -1;
 
   return (
@@ -144,6 +153,12 @@ export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secre
                     </div>
                   </div>
                 ))}
+                {order.specialInstructions ? (
+                  <div className="mt-4">
+                    <h3 className="sf-label mb-1">Order notes</h3>
+                    <p className="sf-line-note">“{order.specialInstructions}”</p>
+                  </div>
+                ) : null}
               </div>
 
               <div className="sf-perf" aria-hidden="true" />
@@ -169,6 +184,7 @@ export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secre
                     <dd className="sf-mono">{formatMoney(order.total, order.currencyCode)}</dd>
                   </div>
                 </dl>
+                {payment ? <p className="sf-muted mt-3 text-sm font-semibold">{payment}</p> : null}
               </div>
             </section>
 

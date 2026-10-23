@@ -2,7 +2,7 @@ import { permissions, type Session } from "../access";
 import { PICKUP_SETTINGS_CHANGED_MESSAGE, lockCoffeeOrder, readLockedPickupSettings, validateCafeModifierSelections } from "./coffeeOrderPolicy";
 import { lockCoffeeMenuItem } from "./manageCoffeeMenu";
 import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
-import { assertCoffeeOrderingAvailable } from "./coffeeAvailability";
+import { assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
@@ -130,9 +130,15 @@ export async function admitOpenCafeOrder(tx: AdmissionTx, order: Record<string, 
     return null;
   }
   const requestedPromisedAt = new Date(String(order.promisedAt || ""));
-  const promisedAt = Number.isFinite(requestedPromisedAt.getTime()) && requestedPromisedAt.getTime() > Date.now() ? requestedPromisedAt : new Date(Date.now() + Math.max(5, Number(settings.pickupLeadTimeMinutes || 12)) * 60_000);
-  if (!Number.isFinite(promisedAt.getTime())) throw new Error("Pickup capacity settings are invalid");
-  assertCoffeeOrderingAvailable(settings, now);
+  // An order-ahead request is admitted against its pickup time, so staff can accept it while the cafe is closed.
+  // A request whose time has passed moves to the first pickup the cafe can still promise.
+  let promisedAt = requestedPromisedAt;
+  if (!Number.isFinite(requestedPromisedAt.getTime()) || requestedPromisedAt.getTime() <= now.getTime()) {
+    const serviceWindowSets = orderLines.map((line) => Array.isArray(line.menuItem?.serviceWindows) ? line.menuItem.serviceWindows.map(String) : ["all_day"]);
+    const offset = coffeeFirstPickupMinutes(settings, Math.max(5, Number(settings.pickupLeadTimeMinutes || 12)), serviceWindowSets, now);
+    if (offset == null) throw cafeCustomerError("The cafe is closed for pickup at that time");
+    promisedAt = new Date(now.getTime() + offset * 60_000);
+  }
   assertCoffeeOrderingAvailable(settings, promisedAt);
   const windowMinutes = Math.max(5, Number(settings.pickupWindowMinutes || 15));
   const windowMs = windowMinutes * 60_000;
@@ -145,7 +151,7 @@ export async function admitOpenCafeOrder(tx: AdmissionTx, order: Record<string, 
   if (promisedAt !== requestedPromisedAt && Math.max(5, Number(locked.pickupLeadTimeMinutes || 12)) !== Math.max(5, Number(settings.pickupLeadTimeMinutes || 12))) throw new Error(PICKUP_SETTINGS_CHANGED_MESSAGE);
   const reservations = await tx.cafeOrder.count({ where: { storeId, id: { not: order.id }, fulfillmentType: "pickup", promisedAt: { gte: windowStart, lt: windowEnd }, status: { in: ["accepted", "paid", "in_bar_queue", "preparing", "ready"] } } });
   if (reservations >= Math.max(1, Number(locked.pickupCapacityPerWindow || 20))) throw cafeCustomerError("The requested pickup window is at capacity");
-  assertCafePickupAcceptanceAvailability(settings, orderLines, now, promisedAt);
+  assertCafePickupAcceptanceAvailability(settings, orderLines, promisedAt, promisedAt);
   return promisedAt;
 }
 
@@ -186,7 +192,7 @@ export default async function acceptCafePickupOrder(_root: unknown, args: Args, 
       }
       return String(order.id);
     }
-    if (["accepted", "paid", "in_bar_queue", "preparing", "ready", "completed"].includes(String(order.status))) throw new Error("This pickup request was already accepted. Refresh to see its current status.");
+    if (["accepted", "paid", "in_bar_queue", "preparing", "ready", "completed"].includes(String(order.status))) throw cafeCustomerError("This pickup request was already accepted. Refresh to see its current status.");
     if (order.status !== "open") throw new Error(`Only an open unpaid pickup request can be accepted; current status is ${String(order.status)}`);
     if (order.fulfillmentType !== "pickup") throw new Error("Only pickup requests use the acceptance workflow");
 

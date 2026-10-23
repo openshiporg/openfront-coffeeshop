@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
 import type {
   PosCartItem,
   PosCashMovementRequest,
@@ -24,7 +25,7 @@ const POS_REGISTER_QUERY = `
       operatorId storeId hasMore nextCursor
       categories { id name }
       items {
-        id name price category { id name }
+        id name price availability category { id name }
         modifiers { id name modifierGroup modifierGroupLabel priceAdjustment defaultSelected inStock required minSelections maxSelections }
       }
       openShift { ${SHIFT_FIELDS} }
@@ -116,7 +117,8 @@ export async function quotePosOrderAction(items: PosCartItem[], tipCents: number
 }
 
 export async function createPosOrderAction(input: PosSaleRequest & { idempotencyKey: string }) {
-  const response = await keystoneClient<{ createCafePickupOrder: PosOrderReceipt }>(CREATE_POS_ORDER_MUTATION, {
+  // cafeRequest keeps a domain rejection's message (sold out, closed), which means nothing was recorded.
+  const response = await cafeRequest<{ createCafePickupOrder: PosOrderReceipt }>(CREATE_POS_ORDER_MUTATION, {
     customerName: input.customerName || "Counter guest",
     specialInstructions: input.notes || undefined,
     paymentMethod: input.paymentMethod,
@@ -127,7 +129,7 @@ export async function createPosOrderAction(input: PosSaleRequest & { idempotency
     externalCardReference: input.paymentMethod === "manual_card" ? input.externalCardReference : undefined,
     externalCardApproved: input.paymentMethod === "manual_card" ? input.externalCardApproved === true : undefined,
     items: input.items.map(lineInput),
-  }, { cache: "no-store" });
+  });
 
   revalidatePath("/dashboard/platform/orders");
   revalidatePath("/dashboard/platform/pos");

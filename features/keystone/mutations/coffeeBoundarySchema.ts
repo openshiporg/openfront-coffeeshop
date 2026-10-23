@@ -126,6 +126,8 @@ export const coffeeBoundaryTypeDefs = String.raw`
     tip: Int
     total: Int!
     currencyCode: String!
+    specialInstructions: String
+    paidAt: String
     orderItems: [CafeOrderItemProjection!]!
   }
   type CafeOrderReceipt {

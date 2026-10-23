@@ -1,4 +1,5 @@
 import { STOCK_SCALE, consumeActiveInventoryLots } from "./inventoryLots";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
 
 type ConsumptionLine = { menuItemId: string; quantity: number; fallbackInventoryItemId?: string | null; modifierIds?: string[] };
 type Reader = { findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>> };
@@ -99,13 +100,15 @@ export async function consumeCafeInventoryRequirements(tx: ConsumptionClient, in
     if (requirement.kind === "prep") {
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-prep-batch:${requirement.prepBatchId}`);
       const batch = await tx.prepBatch.findUnique({ where: { id: requirement.prepBatchId }, select: { id: true, storeId: true, status: true, quantityRemaining: true, expiresAt: true } });
-      if (!batch || batch.storeId !== input.storeId || batch.status !== "completed" || (batch.expiresAt && new Date(String(batch.expiresAt)).getTime() <= Date.now()) || positive(batch.quantityRemaining) < requirement.quantity) throw new Error("A prepared batch in this order is expired or has insufficient quantity");
+      if (!batch || batch.storeId !== input.storeId) throw new Error("A prepared batch in this order is expired or has insufficient quantity");
+      if (batch.status !== "completed" || (batch.expiresAt && new Date(String(batch.expiresAt)).getTime() <= Date.now()) || positive(batch.quantityRemaining) < requirement.quantity) throw cafeCustomerError("A prepared batch in this order is expired or used up");
       await tx.prepBatch.update({ where: { id: requirement.prepBatchId }, data: { quantityRemaining: { decrement: requirement.quantity } } });
       await tx.prepBatchConsumption.create({ data: { idempotencyKey: `${input.orderId}:${requirement.prepBatchId}`, storeId: input.storeId, orderId: input.orderId, prepBatchId: requirement.prepBatchId, quantity: requirement.quantity } });
     } else {
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${requirement.inventoryItemId}`);
       const item = await tx.inventoryItem.findUnique({ where: { id: requirement.inventoryItemId }, select: { id: true, storeId: true, currentStock: true, unit: true, name: true } });
-      if (!item || item.storeId !== input.storeId || positive(item.currentStock) < requirement.quantity) throw new Error("Insufficient inventory for this order");
+      if (!item || item.storeId !== input.storeId) throw new Error("Insufficient inventory for this order");
+      if (positive(item.currentStock) < requirement.quantity) throw cafeCustomerError(`Not enough ${String(item.name || "stock")} on hand`);
       // Counted items are sold whole: same whole-number rule as receiving, prep and waste.
       if (String(item.unit || "each") === "each" && Math.round(requirement.quantity * STOCK_SCALE) % STOCK_SCALE !== 0) {
         throw new Error(`This order would use a fraction of ${String(item.name || "a counted item")}; review the recipe or add-on quantity in Menu management`);

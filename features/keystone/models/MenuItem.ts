@@ -27,7 +27,7 @@ export const MenuItem = list({
     store: requiredStoreRelationship("StoreSetting.menuItems"),
     description: document({ formatting: true, links: true }),
     shortDescription: text({ ui: { displayMode: "textarea" } }),
-    price: integer({ validation: { isRequired: true, min: 0 }, access: { update: () => false }, ui: { description: "Base price in cents" } }),
+    price: integer({ validation: { isRequired: true, min: 0 }, access: { update: () => false }, label: "Price (cents)", ui: { description: "In cents: 495 = $4.95. Platform Menu takes dollars." } }),
     available: checkbox({ defaultValue: true, access: { update: () => false } }),
     featured: checkbox({ defaultValue: false, access: { update: () => false } }),
     popular: checkbox({ defaultValue: false, access: { update: () => false } }),

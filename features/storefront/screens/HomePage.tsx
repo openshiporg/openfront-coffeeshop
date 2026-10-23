@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import { getStorefrontMenu, type StorefrontMenuItem } from "@/features/storefront/lib/data/menu";
 import type { CoffeeStorefrontStore } from "@/features/storefront/lib/data/store";
-import { formatMoney } from "@/features/storefront/lib/format";
+import { formatMoney, storeZoneAbbreviation } from "@/features/storefront/lib/format";
 import { formatClock, hoursRows, openState, rowIsOpen, storeClock } from "@/features/storefront/lib/hours";
 import { StorefrontShell } from "@/features/storefront/components/StorefrontShell";
 import { StorefrontMedia } from "@/features/storefront/components/StorefrontMedia";
@@ -60,6 +60,7 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
   const status = openState(store.weeklyHours, store.timezone);
   const rows = hoursRows(store.weeklyHours);
   const today = storeClock(new Date(), store.timezone).day.toLowerCase();
+  const zoneLabel = storeZoneAbbreviation(store.timezone);
   const phone = publicPhone(store.phone);
   const email = publicEmail(store.contactEmail);
 
@@ -111,7 +112,7 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
           <section className="pb-6" aria-labelledby="popular-title">
             <div className="sf-container">
               <h2 id="popular-title" className="sf-display sf-section-title mb-4">Popular</h2>
-              <div className="sf-rail">
+              <div className="sf-rail" data-count={Math.min(rail.length, 4)}>
                 {rail.map((item) => <PopularCard key={item.id} item={item} />)}
               </div>
             </div>
@@ -144,7 +145,7 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
             <h2 id="visit-title" className="sf-display sf-section-title">Hours & location</h2>
             <div className="sf-visit-grid">
               <div>
-                <h3 className="sf-label mb-2">Hours{store.timezone ? ` · ${store.timezone.replaceAll("_", " ")}` : ""}</h3>
+                <h3 className="sf-label mb-2">Hours{zoneLabel ? ` · ${zoneLabel}` : ""}</h3>
                 {rows.length ? (
                   <table className="sf-hours">
                     <tbody>

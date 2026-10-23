@@ -8,7 +8,7 @@ import { validateCafeOrderLines, hasCafeSettlement } from "./coffeeOrderPolicy";
 import { getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { assertCafeRequirementsInStock, cafeEarliestPickupMinutes, isPublishedMenuItem } from "./cafeStorefrontPolicy";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
-import { MENU_STOCK_ITEM_SELECT, cafeMenuStock, type MenuStockItem } from "./cafeMenuStock";
+import { MENU_STOCK_ITEM_SELECT, MENU_STOCK_MODIFIER_SELECT, cafeMenuStock, type MenuStockItem } from "./cafeMenuStock";
 
 type ListRow = Record<string, unknown> & { id: string };
 type ListModel = { findMany(args: Record<string, unknown>): Promise<ListRow[]> };
@@ -504,8 +504,9 @@ function decodePosCatalogCursor(value: string, storeId: string, search: string, 
 }
 const posMenuItemSelect = {
   id: true, name: true, price: true, available: true,
+  ...MENU_STOCK_ITEM_SELECT,
   category: { select: { id: true, name: true } },
-  modifiers: { orderBy: [{ modifierGroup: "asc" }, { name: "asc" }, { id: "asc" }], take: 100, select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true } },
+  modifiers: { orderBy: [{ modifierGroup: "asc" }, { name: "asc" }, { id: "asc" }], take: 100, select: { id: true, name: true, modifierGroup: true, modifierGroupLabel: true, priceAdjustment: true, required: true, minSelections: true, maxSelections: true, inStock: true, defaultSelected: true, ...MENU_STOCK_MODIFIER_SELECT } },
 };
 
 export async function getCoffeePosRegister(_root: unknown, args: { search?: string | null; categoryId?: string | null; cursor?: string | null; limit?: number | null }, context: Context) {
@@ -528,11 +529,23 @@ export async function getCoffeePosRegister(_root: unknown, args: { search?: stri
     context.prisma.registerShift.findMany({ where: { storeId: store.id, status: "open" }, orderBy: { openedAt: "desc" }, take: 1, select: { id: true, shiftNumber: true, registerName: true, status: true, openingCashCents: true, cashSalesCents: true, cardSalesCents: true, tipsCents: true, payInsCents: true, payOutsCents: true, expectedCashCents: true, openedAt: true } }),
   ]);
   const hasMore = rows.length > limit;
-  const items = rows.slice(0, limit);
-  const last = items[items.length - 1];
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
   const nextCursor = hasMore && last
     ? Buffer.from(JSON.stringify({ kind: "pos-catalog", storeId: store.id, search, categoryId, name: String(last.name), id: last.id } satisfies PosCatalogCursor), "utf8").toString("base64url")
     : null;
+  // Same display-time stock read as the storefront, so the register shows sold-out tiles before a sale is rung up.
+  const stock = await cafeMenuStock(context.prisma as never, store.id, page.map((item): MenuStockItem => ({
+    id: item.id,
+    inventoryItemId: (item.inventoryItemId as string | null) ?? null,
+    modifiers: item.modifiers as MenuStockItem["modifiers"],
+  })));
+  const items = page.map((item) => ({
+    ...item,
+    inventoryItemId: undefined,
+    availability: stock.soldOut.has(item.id) ? "sold_out" : "now",
+    modifiers: (item.modifiers as Array<{ id: string; inStock: boolean }>).map((modifier) => ({ ...modifier, inStock: modifier.inStock !== false && !stock.modifiersOut.has(modifier.id) })),
+  }));
   return { operatorId: String(context.session?.itemId || ""), storeId: store.id, items, hasMore, nextCursor, categories, openShift: shifts[0] || null };
 }
 

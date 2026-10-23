@@ -5181,6 +5181,8 @@ type CafeOrderProjection {
   tip: Int
   total: Int!
   currencyCode: String!
+  specialInstructions: String
+  paidAt: String
   orderItems: [CafeOrderItemProjection!]!
 }
 

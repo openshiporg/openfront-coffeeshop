@@ -363,7 +363,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
     }, recordStockCountAction, "Stock count saved.");
   }
   // Live difference against the listed stock, in 0.0001 units to avoid float drift.
-  const countOnFile = count.item ? data.inventoryWasteItems.items.find((option) => option.id === count.item?.id)?.currentStock : undefined;
+  const countOnFile = count.item ? data.purchaseInventoryItems.items.find((option) => option.id === count.item?.id)?.currentStock : undefined;
   const countParsed = count.item && countOnFile != null && count.quantity.trim() ? parseQuantity(count.quantity, "On hand", count.item.unit, true) : null;
   const countDelta = countParsed && "value" in countParsed ? (Math.round(countParsed.value * 10_000) - Math.round(Number(countOnFile) * 10_000)) / 10_000 : null;
   const countChange = countDelta == null || !Number.isFinite(countDelta) ? undefined
@@ -583,7 +583,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
             </CardHeader>
             <CardContent>
               <form onSubmit={submitCount} className="grid gap-3 sm:grid-cols-2" noValidate>
-                <OptionPicker id="count-item" label="Inventory item" noun="item" page={data.inventoryWasteItems} selected={count.item} onSelect={(item) => setCount({ item })} searchParam="inventoryWasteSearch" cursorParam="inventoryWasteCursor" urlState={urlState} describe={(option) => `${option.name} · ${option.currentStock ?? 0} ${option.unit ?? ""} in stock`} />
+                <OptionPicker id="count-item" label="Inventory item" noun="item" page={data.purchaseInventoryItems} selected={count.item} onSelect={(item) => setCount({ item })} searchParam="purchaseInventorySearch" cursorParam="purchaseInventoryCursor" urlState={urlState} describe={(option) => `${option.name} · ${option.currentStock ?? 0} ${option.unit ?? ""} in stock`} />
                 <Field id="count-quantity" label={`On hand${count.item?.unit ? ` (${count.item.unit})` : ""}`} hint={countChange}>
                   <Input id="count-quantity" inputMode="decimal" value={count.quantity} onChange={(event) => setCount({ quantity: event.currentTarget.value })} aria-describedby={countChange ? "count-quantity-hint" : undefined} required />
                 </Field>

@@ -315,10 +315,12 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
     setCart((current) => current.map((item) => item.cartId === cartId ? { ...item, quantity: Math.min(MAX_LINE_QUANTITY, Math.max(1, quantity)) } : item));
   }
 
-  async function send(command: PosCommand): Promise<PosReceipt | null> {
+  async function send(command: PosCommand): Promise<PosReceipt | { rejected: string } | null> {
     switch (command.kind) {
       case "sale": {
         const response = await createPosOrderAction({ ...command.request, idempotencyKey: command.key });
+        // A domain rejection (sold out, unavailable) rolls the sale back, so it is definitely not recorded.
+        if (!response.success && response.customerMessage) return { rejected: response.customerMessage };
         const order = response.success ? response.data.createCafePickupOrder : null;
         if (!order?.orderNumber || order.total !== command.totalCents) return null;
         return { kind: "sale", orderNumber: order.orderNumber, handoffCode: order.handoffCode, totalCents: order.total, tender: command.totalCents === 0 ? "none" : command.request.paymentMethod, terminalReference: command.request.externalCardReference };
@@ -357,6 +359,13 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
     setInFlight(true);
     try {
       const receipt = await send(command);
+      if (receipt && "rejected" in receipt) {
+        releasePendingPosCommand(scope, command.key);
+        setPending(null);
+        setApprovedFingerprint(null);
+        setNotice({ tone: "error", text: `Sale not recorded. ${receipt.rejected}` });
+        return;
+      }
       if (!receipt) {
         let changed = false;
         if (command.kind === "sale") {
@@ -622,11 +631,13 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
               {catalog.items.map((item) => {
                 const inTicket = cart.filter((line) => line.menuItemId === item.id).reduce((sum, line) => sum + line.quantity, 0);
+                const soldOut = item.availability === "sold_out";
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    disabled={ticketLocked || !openShift}
+                    disabled={ticketLocked || !openShift || soldOut}
+                    aria-label={soldOut ? `${item.name}, sold out` : undefined}
                     onClick={() => item.modifiers?.length ? setCustomizing(item) : addItem(item)}
                     className="relative flex min-h-24 min-w-0 flex-col justify-between gap-3 rounded-xl border border-border bg-card p-3 text-left text-card-foreground shadow-xs transition-[background-color,transform] hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -636,7 +647,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
                     </span>
                     <span className="flex items-end justify-between gap-2">
                       <span className="text-sm font-semibold tabular-nums">{formatMoney(item.price)}</span>
-                      {item.modifiers?.length ? <span className="text-xs text-muted-foreground">Options</span> : null}
+                      {soldOut ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Sold out</span> : item.modifiers?.length ? <span className="text-xs text-muted-foreground">Options</span> : null}
                     </span>
                     {inTicket > 0 && <span className="absolute right-2 top-2 grid min-w-6 place-items-center rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-primary-foreground" aria-label={`${inTicket} on ticket`}>{inTicket}</span>}
                   </button>
