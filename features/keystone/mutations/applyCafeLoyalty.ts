@@ -3,6 +3,7 @@ import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeS
 import { hasCafeSettlement, lockCoffeeOrder, type SettlementEvidence } from "./coffeeOrderPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { fingerprintInput } from "./idempotency";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
 
 type ApplyCafeLoyaltyArgs = {
   orderId: string;
@@ -117,18 +118,20 @@ export default async function applyCafeLoyalty(
       },
     });
     if (!order) throw new Error("Order not found");
-    if (!isOperator && (!order.secretKey || !args.secretKey || args.secretKey !== order.secretKey)) {
+    // Customers prove the order with its receipt key, or by being its signed-in customer.
+    const isOrderCustomer = context.session?.listKey === "User" && Boolean(order.customerId) && order.customerId === context.session.itemId;
+    if (!isOperator && !isOrderCustomer && (!order.secretKey || !args.secretKey || args.secretKey !== order.secretKey)) {
       throw new Error("You do not have access to apply loyalty to this order");
     }
     const storeId = await getPrimaryCoffeeStoreId(tx as never);
     assertCoffeeStoreOwnership(order.storeId, storeId, "Order");
     const orderEmail = normalizeEmail(String(order.customerEmail || ""));
     if (!isOperator && (!orderEmail || email !== orderEmail)) {
-      throw new Error("Loyalty email must match the paid order");
+      throw cafeCustomerError("Use the email this order was placed with");
     }
     const payments = Array.isArray(order.payments) ? order.payments as SettlementEvidence[] : [];
     const payableAmount = Number(order.total || 0) - Number(order.discount || 0);
-    if (payableAmount <= 0 || !hasCafeSettlement(payments, payableAmount)) throw new Error("Loyalty earnings require one full, unreversed payment settlement");
+    if (payableAmount <= 0 || !hasCafeSettlement(payments, payableAmount)) throw cafeCustomerError("Rewards apply once the order is paid in full");
     if (order.loyaltyAccountId) {
       // Replay returns the original earning only for the same request; changed details conflict.
       const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
@@ -140,7 +143,7 @@ export default async function applyCafeLoyalty(
         const linked = await tx.loyaltyAccount.findUnique({ where: { id: String(order.loyaltyAccountId) }, select: { customerEmail: true } });
         matches = normalizeEmail(String(linked?.customerEmail || "")) === email;
       }
-      if (!matches) throw new Error("Rewards were already applied to this order with different details");
+      if (!matches) throw cafeCustomerError("Rewards were already applied to this order with different details");
       return String(order.loyaltyAccountId);
     }
 
@@ -157,10 +160,10 @@ export default async function applyCafeLoyalty(
       const ownerId = existing.customerId ? String(existing.customerId) : null;
       const isSignedInOwner = Boolean(ownerId) && context.session?.listKey === "User" && context.session.itemId === ownerId && String(order.customerId || "") === ownerId;
       if (!isOperator && !isSignedInOwner) {
-        throw new Error("This email already has a rewards account. Sign in to that account, or ask the cafe to apply this purchase.");
+        throw cafeCustomerError("This email already has a rewards account. Sign in to that account, or ask the cafe to apply this purchase.");
       }
       // Paused or closed accounts stay that way; a purchase is not consent to reopen them.
-      if ((existing.status || "active") !== "active") throw new Error("This rewards account is paused or closed, so the purchase was not applied");
+      if ((existing.status || "active") !== "active") throw cafeCustomerError("This rewards account is paused or closed, so the purchase was not applied");
       const pointsAfterEarn = Number(existing.pointsBalance || 0) + earnedPoints;
       newlyEarnedCredits = Math.floor(pointsAfterEarn / 100);
       const updated = await tx.loyaltyAccount.update({

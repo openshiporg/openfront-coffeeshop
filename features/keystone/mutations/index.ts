@@ -24,6 +24,7 @@ import initiateCafePaymentSession from "./initiateCafePaymentSession";
 import getCoffeeStore from "./getCoffeeStore";
 import getCoffeeMenu from "./getCoffeeMenu";
 import updateCateringOrderStatus from "./updateCateringOrderStatus";
+import { adjustCoffeeLoyaltyAccount, cancelCoffeePurchaseOrder, getCoffeeCustomerCatering, requestCafeCatering } from "./coffeeCoverageCommands";
 import updateSubscriptionStatus from "./updateSubscriptionStatus";
 import updatePosOrderStatus from "./updatePosOrderStatus";
 import refundCafePayment from "./refundCafePayment";
@@ -58,6 +59,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): CafeLoyaltyProjection
         getCoffeeKdsRecoveryScope: CoffeeKdsRecoveryScope
         getCoffeeCustomerOrders(after: ID): CoffeeCustomerOrderPage!
+        getCoffeeCustomerCatering: [CafeCateringReceipt!]!
         getCoffeeStore: CoffeeStorefrontSettings
         getCoffeeMenu(menuItemId: ID, search: String, categoryId: ID, after: String): CoffeeMenuProjection!
       }
@@ -101,6 +103,32 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
           cateringOrderId: ID!
           status: String!
         ): CateringOrder
+
+        requestCafeCatering(
+          customerName: String!
+          customerEmail: String!
+          customerPhone: String
+          eventAt: String!
+          guestCount: Int!
+          deliveryAddress: String
+          notes: String
+          idempotencyKey: String!
+        ): CafeCateringReceipt!
+
+        adjustCoffeeLoyaltyAccount(
+          accountId: ID!
+          pointsDelta: Int
+          drinkCreditsDelta: Int
+          status: String
+          tier: String
+          note: String!
+          idempotencyKey: String!
+        ): LoyaltyAccount
+
+        cancelCoffeePurchaseOrder(
+          purchaseOrderId: ID!
+          reason: String
+        ): PurchaseOrder!
 
         updateSubscriptionStatus(
           subscriptionId: ID!
@@ -427,6 +455,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
       Query: { 
         redirectToInit,
         getCoffeeCustomerOrders,
+        getCoffeeCustomerCatering,
         getCafeOrder,
         getCafeLoyaltyAccount,
         getCoffeeKdsRecoveryScope,
@@ -448,6 +477,9 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         updateCafeOrderStatus,
         updateCafeOrderItemStatus,
         updateCateringOrderStatus,
+        requestCafeCatering,
+        adjustCoffeeLoyaltyAccount,
+        cancelCoffeePurchaseOrder,
         updateSubscriptionStatus,
         updatePosOrderStatus,
         applyCafeLoyalty,

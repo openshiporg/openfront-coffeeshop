@@ -71,6 +71,7 @@ export async function StorefrontShell({
           <nav className="sf-nav items-center gap-1 text-sm font-semibold" aria-label="Storefront">
             <Link href="/#menu" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-[var(--sf-inset)]">Menu</Link>
             <Link href="/#visit" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-[var(--sf-inset)]">Hours & location</Link>
+            <Link href="/catering" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-[var(--sf-inset)]">Catering</Link>
             <Link href="/account" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-[var(--sf-inset)]">Orders</Link>
           </nav>
 
@@ -89,6 +90,7 @@ export async function StorefrontShell({
           <nav aria-label="Footer">
             <Link href="/#menu">Menu</Link>
             <Link href="/#visit">Hours & location</Link>
+            <Link href="/catering">Catering</Link>
             <Link href="/account">Account</Link>
             <Link href="/checkout">Checkout</Link>
           </nav>

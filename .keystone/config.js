@@ -31,12 +31,13 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // features/keystone/models/requiredRelationship.ts
-function requiredRelationship(ref, fieldName, targetModel, access) {
+function requiredRelationship(ref, fieldName, targetModel, access, hooks) {
   const escapedField = fieldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const escapedModel = targetModel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return (0, import_fields.relationship)({
     ref,
     ...access ? { access } : {},
+    ...hooks ? { hooks } : {},
     db: {
       extendPrismaSchema(field) {
         return field.replace(new RegExp(`(\\b${escapedField}\\s+${escapedModel})\\?`), "$1").replace(new RegExp(`(\\b${escapedField}Id\\s+String)\\?`), "$1");
@@ -45,7 +46,15 @@ function requiredRelationship(ref, fieldName, targetModel, access) {
   });
 }
 function requiredStoreRelationship(ref, access) {
-  return requiredRelationship(ref, "store", "StoreSetting", access);
+  return requiredRelationship(ref, "store", "StoreSetting", access, {
+    resolveInput: async ({ operation, resolvedData, fieldKey, context }) => {
+      const value = resolvedData[fieldKey];
+      if (operation !== "create" || value !== void 0 && value !== null) return value;
+      const store = await context.sudo().prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true } });
+      if (!store) throw new Error("Primary store is required before creating store records");
+      return { connect: { id: store.id } };
+    }
+  });
 }
 var import_fields;
 var init_requiredRelationship = __esm({
@@ -2647,8 +2656,22 @@ var init_coffeeBoundarySchema = __esm({
     currencyCode: String!
     specialInstructions: String
     paidAt: String
+    customerEmail: String
+    rewardsLinked: Boolean!
+    rewardsEligible: Boolean!
     orderItems: [CafeOrderItemProjection!]!
   }
+  type CafeCateringReceipt {
+    id: ID!
+    cateringNumber: String!
+    status: String!
+    eventAt: String
+    guestCount: Int!
+    deliveryAddress: String
+    quotedCents: Int
+    createdAt: String!
+  }
+
   type CafeOrderReceipt {
     id: ID!
     orderNumber: String!
@@ -3091,12 +3114,25 @@ var init_kdsPolicy = __esm({
   }
 });
 
+// features/keystone/lib/cafeCustomerError.ts
+function cafeCustomerError(message) {
+  return new import_graphql.GraphQLError(message, { extensions: { code: CAFE_CUSTOMER_ERROR_CODE } });
+}
+var import_graphql, CAFE_CUSTOMER_ERROR_CODE;
+var init_cafeCustomerError = __esm({
+  "features/keystone/lib/cafeCustomerError.ts"() {
+    "use strict";
+    import_graphql = require("graphql");
+    CAFE_CUSTOMER_ERROR_CODE = "CAFE_CUSTOMER_ERROR";
+  }
+});
+
 // features/keystone/mutations/transitionPolicy.ts
 function evaluateTransition(transitions, currentStatus, nextStatus) {
   if (currentStatus === nextStatus) return { replay: true };
   const allowed = transitions[currentStatus];
   if (!allowed?.includes(nextStatus)) {
-    throw new Error(`Cannot transition from ${currentStatus} to ${nextStatus}`);
+    throw cafeCustomerError(`Can't change from ${currentStatus.replaceAll("_", " ")} to ${nextStatus.replaceAll("_", " ")}. Refresh to see the current status.`);
   }
   return { replay: false };
 }
@@ -3104,6 +3140,7 @@ var CAFE_ORDER_TRANSITIONS, CATERING_ORDER_TRANSITIONS, SUBSCRIPTION_TRANSITIONS
 var init_transitionPolicy = __esm({
   "features/keystone/mutations/transitionPolicy.ts"() {
     "use strict";
+    init_cafeCustomerError();
     CAFE_ORDER_TRANSITIONS = {
       open: ["cancelled"],
       accepted: ["in_bar_queue", "cancelled"],
@@ -3134,19 +3171,6 @@ var init_transitionPolicy = __esm({
       voided: [],
       refunded: []
     };
-  }
-});
-
-// features/keystone/lib/cafeCustomerError.ts
-function cafeCustomerError(message) {
-  return new import_graphql.GraphQLError(message, { extensions: { code: CAFE_CUSTOMER_ERROR_CODE } });
-}
-var import_graphql, CAFE_CUSTOMER_ERROR_CODE;
-var init_cafeCustomerError = __esm({
-  "features/keystone/lib/cafeCustomerError.ts"() {
-    "use strict";
-    import_graphql = require("graphql");
-    CAFE_CUSTOMER_ERROR_CODE = "CAFE_CUSTOMER_ERROR";
   }
 });
 
@@ -4579,7 +4603,8 @@ async function getCoffeeKdsBoard(_root, args, context) {
   const due = (item) => new Date(String(item.order?.promisedAt ?? item.queuedAt ?? 0)).getTime() || 0;
   const items = rows.slice(0, limit).sort((a, b) => due(a) - due(b));
   const canManageOrders = permissions.canManageOrders({ session: context.session });
-  const nextScheduledAt = nextScheduled?.order?.promisedAt ? new Date(String(nextScheduled.order.promisedAt)).toISOString() : null;
+  const nextPromisedAt = nextScheduled?.order?.promisedAt;
+  const nextScheduledAt = nextPromisedAt ? new Date(String(nextPromisedAt)).toISOString() : null;
   return {
     activeCount,
     scheduledCount,
@@ -5627,6 +5652,10 @@ async function getCafeOrder(_root, args, context) {
       currencyCode
       specialInstructions
       paidAt
+      customerEmail
+      discount
+      loyaltyAccount { id }
+      payments { status amount refundIdempotencyKey }
       customer { id }
       orderItems { id quantity itemNameSnapshot imagePathSnapshot customizationsSummary modifierSnapshot specialInstructions price }
     `
@@ -5646,6 +5675,13 @@ async function getCafeOrder(_root, args, context) {
     currencyCode: order.currencyCode || "USD",
     specialInstructions: order.specialInstructions || null,
     paidAt: order.paidAt || null,
+    // Rewards state for the receipt: the same settlement rule applyCafeLoyalty enforces.
+    customerEmail: order.customerEmail || null,
+    rewardsLinked: Boolean(order.loyaltyAccount?.id),
+    rewardsEligible: (() => {
+      const payable = Number(order.total || 0) - Number(order.discount || 0);
+      return payable > 0 && hasCafeSettlement(Array.isArray(order.payments) ? order.payments : [], payable);
+    })(),
     orderItems: await Promise.all((order.orderItems || []).map(async (item) => ({
       ...item,
       imagePathSnapshot: await resolveCafeImageUrl(context, item.imagePathSnapshot),
@@ -5658,6 +5694,7 @@ var init_getCafeOrder = __esm({
     "use strict";
     init_access();
     init_cafeStorefrontPolicy();
+    init_coffeeOrderPolicy();
   }
 });
 
@@ -5764,18 +5801,19 @@ async function applyCafeLoyalty(_root, args, context) {
       }
     });
     if (!order) throw new Error("Order not found");
-    if (!isOperator && (!order.secretKey || !args.secretKey || args.secretKey !== order.secretKey)) {
+    const isOrderCustomer = context.session?.listKey === "User" && Boolean(order.customerId) && order.customerId === context.session.itemId;
+    if (!isOperator && !isOrderCustomer && (!order.secretKey || !args.secretKey || args.secretKey !== order.secretKey)) {
       throw new Error("You do not have access to apply loyalty to this order");
     }
     const storeId = await getPrimaryCoffeeStoreId(tx);
     assertCoffeeStoreOwnership(order.storeId, storeId, "Order");
     const orderEmail = normalizeEmail3(String(order.customerEmail || ""));
     if (!isOperator && (!orderEmail || email !== orderEmail)) {
-      throw new Error("Loyalty email must match the paid order");
+      throw cafeCustomerError("Use the email this order was placed with");
     }
     const payments = Array.isArray(order.payments) ? order.payments : [];
     const payableAmount = Number(order.total || 0) - Number(order.discount || 0);
-    if (payableAmount <= 0 || !hasCafeSettlement(payments, payableAmount)) throw new Error("Loyalty earnings require one full, unreversed payment settlement");
+    if (payableAmount <= 0 || !hasCafeSettlement(payments, payableAmount)) throw cafeCustomerError("Rewards apply once the order is paid in full");
     if (order.loyaltyAccountId) {
       const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
       const payload = receipt?.payload && typeof receipt.payload === "object" ? receipt.payload : null;
@@ -5786,7 +5824,7 @@ async function applyCafeLoyalty(_root, args, context) {
         const linked = await tx.loyaltyAccount.findUnique({ where: { id: String(order.loyaltyAccountId) }, select: { customerEmail: true } });
         matches = normalizeEmail3(String(linked?.customerEmail || "")) === email;
       }
-      if (!matches) throw new Error("Rewards were already applied to this order with different details");
+      if (!matches) throw cafeCustomerError("Rewards were already applied to this order with different details");
       return String(order.loyaltyAccountId);
     }
     const now = /* @__PURE__ */ new Date();
@@ -5799,9 +5837,9 @@ async function applyCafeLoyalty(_root, args, context) {
       const ownerId = existing.customerId ? String(existing.customerId) : null;
       const isSignedInOwner = Boolean(ownerId) && context.session?.listKey === "User" && context.session.itemId === ownerId && String(order.customerId || "") === ownerId;
       if (!isOperator && !isSignedInOwner) {
-        throw new Error("This email already has a rewards account. Sign in to that account, or ask the cafe to apply this purchase.");
+        throw cafeCustomerError("This email already has a rewards account. Sign in to that account, or ask the cafe to apply this purchase.");
       }
-      if ((existing.status || "active") !== "active") throw new Error("This rewards account is paused or closed, so the purchase was not applied");
+      if ((existing.status || "active") !== "active") throw cafeCustomerError("This rewards account is paused or closed, so the purchase was not applied");
       const pointsAfterEarn = Number(existing.pointsBalance || 0) + earnedPoints;
       newlyEarnedCredits = Math.floor(pointsAfterEarn / 100);
       const updated = await tx.loyaltyAccount.update({
@@ -5872,6 +5910,7 @@ var init_applyCafeLoyalty = __esm({
     init_coffeeOrderPolicy();
     init_coffeeKdsAuthority();
     init_idempotency();
+    init_cafeCustomerError();
     TX_OPTIONS3 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     ACCOUNT_QUERY = "id customerName customerEmail status tier pointsBalance lifetimePoints drinkCredits visits lastVisitAt nextRewardProgress";
     GUEST_ACCOUNT_QUERY = "id customerEmail pointsBalance drinkCredits nextRewardProgress";
@@ -6496,6 +6535,256 @@ var init_updateCateringOrderStatus = __esm({
   }
 });
 
+// features/keystone/mutations/coffeeCoverageCommands.ts
+function conflict(error) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
+}
+async function serializable(context, operation) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await context.prisma.$transaction((rawTx) => operation(rawTx), TX_OPTIONS5);
+    } catch (error) {
+      if (!conflict(error) || attempt === 3) throw error;
+    }
+  }
+  throw new Error("Transaction retry limit exceeded");
+}
+function requireKey(value, label) {
+  const key = normalizeIdempotencyKey(value);
+  if (!key) throw new Error(`${label} idempotency key is required`);
+  return key;
+}
+async function replayReceipt(tx, eventKey, storeId, requestFingerprint, message) {
+  const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+  if (!receipt) return null;
+  const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
+  if (receipt.storeId !== storeId || payload.requestFingerprint !== requestFingerprint) throw new Error(message);
+  return String(receipt.aggregateId);
+}
+function cateringNumber(timezone, at = /* @__PURE__ */ new Date()) {
+  let date = at.toISOString().slice(2, 10).replace(/-/g, "");
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone || "America/New_York", year: "2-digit", month: "2-digit", day: "2-digit" }).formatToParts(at);
+    const part = (type) => parts.find((entry) => entry.type === type)?.value || "";
+    date = `${part("year")}${part("month")}${part("day")}`;
+  } catch {
+  }
+  return `CAT-${date}-${(0, import_node_crypto8.randomBytes)(3).toString("hex").toUpperCase()}`;
+}
+function validCateringEventAt(value, now = /* @__PURE__ */ new Date()) {
+  const at = new Date(value);
+  if (!Number.isFinite(at.getTime())) return { ok: false, message: "Choose the event date and time" };
+  if (at.getTime() < now.getTime() + CATERING_LEAD_HOURS * 36e5) return { ok: false, message: "Catering needs at least 24 hours' notice" };
+  if (at.getTime() > now.getTime() + CATERING_HORIZON_DAYS * 864e5) return { ok: false, message: "Choose a date within the next year" };
+  return { ok: true, at };
+}
+function cateringReceipt(row) {
+  const status = String(row.status || "inquiry");
+  return {
+    id: String(row.id),
+    cateringNumber: String(row.cateringNumber),
+    status,
+    eventAt: row.eventAt instanceof Date ? row.eventAt.toISOString() : row.eventAt ? String(row.eventAt) : null,
+    guestCount: Number(row.guestCount || 0),
+    deliveryAddress: row.deliveryAddress ? String(row.deliveryAddress) : null,
+    // The amount is the customer's once it has been quoted.
+    quotedCents: status === "inquiry" || status === "cancelled" ? null : Number(row.subtotalCents || 0),
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt || "")
+  };
+}
+async function requestCafeCatering(_root, args, context) {
+  const parsed = cateringInput.safeParse(args);
+  if (!parsed.success) throw cafeCustomerError(parsed.error.issues[0]?.message || "Check the catering details");
+  const input = parsed.data;
+  const clientKey = requireKey(input.idempotencyKey, "Catering request");
+  const eventAt = validCateringEventAt(input.eventAt);
+  if (!eventAt.ok) throw cafeCustomerError(eventAt.message);
+  const scopedKey5 = buildScopedIdempotencyKey(`catering-request:${input.customerEmail}`, clientKey);
+  const eventKey = `catering-request:${scopedKey5}`;
+  const request = {
+    customerName: input.customerName,
+    customerEmail: input.customerEmail,
+    customerPhone: input.customerPhone || "",
+    eventAt: eventAt.at.toISOString(),
+    guestCount: input.guestCount,
+    deliveryAddress: input.deliveryAddress || "",
+    notes: input.notes || ""
+  };
+  const requestFingerprint = fingerprintInput(request);
+  const id = await serializable(context, async (tx) => {
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", eventKey);
+    const store = await tx.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true, timezone: true } });
+    if (!store) throw cafeCustomerError("Catering requests aren't available right now");
+    const storeId = String(store.id);
+    const replay = await replayReceipt(tx, eventKey, storeId, requestFingerprint, "This catering request was already sent with different details");
+    if (replay) return replay;
+    const open = await tx.cateringOrder.findMany({ where: { storeId, customerEmail: input.customerEmail, status: { in: ["inquiry", "quoted"] } }, select: { id: true }, take: 6 });
+    if (open.length >= 5) throw cafeCustomerError("This email already has 5 open catering requests. The cafe will be in touch about those first.");
+    const created = await tx.cateringOrder.create({
+      data: {
+        storeId,
+        cateringNumber: cateringNumber(store.timezone ? String(store.timezone) : null),
+        customerName: request.customerName,
+        customerEmail: request.customerEmail,
+        status: "inquiry",
+        eventAt: eventAt.at,
+        guestCount: request.guestCount,
+        deliveryAddress: request.deliveryAddress,
+        subtotalCents: 0,
+        notes: request.notes,
+        metadata: { source: "storefront", customerPhone: request.customerPhone, customerId: context.session?.listKey === "User" ? context.session.itemId : null }
+      }
+    });
+    await enqueueCoffeeDomainEvent(tx, {
+      storeId,
+      eventKey,
+      eventType: "catering.requested",
+      aggregateType: "catering_order",
+      aggregateId: String(created.id),
+      payload: { requestFingerprint, cateringOrderId: String(created.id), cateringNumber: String(created.cateringNumber), eventAt: request.eventAt, guestCount: request.guestCount }
+    });
+    return String(created.id);
+  });
+  const row = await context.prisma.cateringOrder.findUnique({ where: { id } });
+  if (!row) throw new Error("Catering request not found");
+  return cateringReceipt(row);
+}
+async function getCoffeeCustomerCatering(_root, _args, context) {
+  const customerId = context.session?.listKey === "User" ? context.session.itemId : null;
+  if (!customerId) throw new Error("Sign in to view catering requests");
+  const user = await context.prisma.user.findUnique({ where: { id: customerId }, select: { email: true } });
+  const email = String(user?.email || "").trim().toLowerCase();
+  if (!email) return [];
+  const rows = await context.prisma.cateringOrder.findMany({ where: { customerEmail: email }, orderBy: [{ eventAt: "desc" }, { id: "desc" }], take: 20 });
+  return rows.map(cateringReceipt);
+}
+function planLoyaltyAdjustment(account, pointsDelta, drinkCreditsDelta) {
+  const points = Number(account.pointsBalance || 0) + pointsDelta;
+  if (points < 0) return { ok: false, message: "That would take points below zero" };
+  const rolled = Math.floor(points / 100);
+  const credits = Number(account.drinkCredits || 0) + drinkCreditsDelta + rolled;
+  if (credits < 0) return { ok: false, message: "That would take drink credits below zero" };
+  return {
+    ok: true,
+    pointsBalance: points % 100,
+    drinkCredits: credits,
+    lifetimePoints: Number(account.lifetimePoints || 0) + Math.max(0, pointsDelta),
+    creditsDelta: drinkCreditsDelta + rolled
+  };
+}
+async function adjustCoffeeLoyaltyAccount(_root, args, context) {
+  if (!permissions.canManageLoyalty({ session: context.session })) throw new Error("Not authorized to manage rewards");
+  const clientKey = requireKey(args.idempotencyKey, "Rewards adjustment");
+  const pointsDelta = Number(args.pointsDelta || 0);
+  const drinkCreditsDelta = Number(args.drinkCreditsDelta || 0);
+  if (![pointsDelta, drinkCreditsDelta].every((value) => Number.isSafeInteger(value) && Math.abs(value) <= 1e5)) throw cafeCustomerError("Adjustments must be whole numbers");
+  const status = args.status ? String(args.status) : null;
+  const tier = args.tier ? String(args.tier) : null;
+  if (status && !LOYALTY_STATUSES.has(status)) throw cafeCustomerError("Choose active, paused or closed");
+  if (tier && !LOYALTY_TIERS.has(tier)) throw cafeCustomerError("Choose a listed tier");
+  const note = String(args.note || "").trim().slice(0, 500);
+  if (!note) throw cafeCustomerError("Enter a reason for the adjustment");
+  if (!pointsDelta && !drinkCreditsDelta && !status && !tier) throw cafeCustomerError("Nothing to change");
+  const id = await serializable(context, async (tx) => {
+    const actorId = await requireCurrentCoffeeCapability(tx, context.session, ["canManageLoyalty"], "Not authorized to manage rewards");
+    const eventKey = `loyalty-adjust:${buildScopedIdempotencyKey(`loyalty-adjust:${actorId}`, clientKey)}`;
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-loyalty:${args.accountId}`);
+    const storeId = await getPrimaryCoffeeStoreId(tx);
+    const requestFingerprint = fingerprintInput({ accountId: args.accountId, pointsDelta, drinkCreditsDelta, status, tier, note });
+    const replay = await replayReceipt(tx, eventKey, storeId, requestFingerprint, "This adjustment was already recorded with different details. Refresh and try again.");
+    if (replay) return replay;
+    const account = await tx.loyaltyAccount.findUnique({ where: { id: args.accountId } });
+    if (!account) throw new Error("Rewards account not found");
+    assertCoffeeStoreOwnership(account.storeId, storeId, "Rewards account");
+    const plan = planLoyaltyAdjustment(account, pointsDelta, drinkCreditsDelta);
+    if (!plan.ok) throw cafeCustomerError(plan.message);
+    await tx.loyaltyAccount.update({
+      where: { id: account.id },
+      data: {
+        pointsBalance: plan.pointsBalance,
+        drinkCredits: plan.drinkCredits,
+        lifetimePoints: plan.lifetimePoints,
+        ...status ? { status } : {},
+        ...tier ? { tier } : {}
+      }
+    });
+    const changes = [status && status !== account.status ? `status ${String(account.status)} \u2192 ${status}` : "", tier && tier !== account.tier ? `tier ${String(account.tier)} \u2192 ${tier}` : ""].filter(Boolean).join(", ");
+    await tx.loyaltyEvent.create({
+      data: {
+        accountId: account.id,
+        type: "manual_adjustment",
+        pointsDelta,
+        drinkCreditsDelta: plan.creditsDelta,
+        note: changes ? `${note} (${changes})` : note,
+        createdById: actorId
+      }
+    });
+    await enqueueCoffeeDomainEvent(tx, {
+      storeId,
+      eventKey,
+      eventType: "loyalty.adjusted",
+      aggregateType: "loyalty_account",
+      aggregateId: String(account.id),
+      payload: { requestFingerprint, accountId: String(account.id), pointsDelta, drinkCreditsDelta: plan.creditsDelta, status: status || String(account.status), tier: tier || String(account.tier) }
+    });
+    return String(account.id);
+  });
+  return context.sudo().query.LoyaltyAccount.findOne({ where: { id }, query: "id status tier pointsBalance lifetimePoints drinkCredits visits" });
+}
+async function cancelCoffeePurchaseOrder(_root, args, context) {
+  if (!permissions.canManageInventory({ session: context.session })) throw new Error("Not authorized to manage coffee inventory");
+  const reason = String(args.reason || "").trim().slice(0, 500);
+  return serializable(context, async (tx) => {
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-po:${args.purchaseOrderId}`);
+    const actorId = await requireCurrentCoffeeCapability(tx, context.session, ["canManageInventory"], "Not authorized to manage coffee inventory");
+    const storeId = await getPrimaryCoffeeStoreId(tx);
+    const order = await tx.purchaseOrder.findUnique({ where: { id: args.purchaseOrderId } });
+    if (!order) throw new Error("Purchase order not found");
+    assertCoffeeStoreOwnership(order.storeId, storeId, "Purchase order");
+    if (order.status === "cancelled") return order;
+    if (order.status !== "submitted" && order.status !== "draft") throw cafeCustomerError(`A ${String(order.status)} purchase order can't be cancelled`);
+    const notes = reason ? [String(order.notes || "").trim(), `Cancelled: ${reason}`].filter(Boolean).join("\n") : order.notes;
+    const updated = await tx.purchaseOrder.update({ where: { id: order.id }, data: { status: "cancelled", notes } });
+    await enqueueCoffeeDomainEvent(tx, {
+      storeId,
+      eventKey: `purchase-order:${String(order.id)}:cancelled:v1`,
+      eventType: "purchase_order.cancelled",
+      aggregateType: "purchase_order",
+      aggregateId: String(order.id),
+      payload: { purchaseOrderId: String(order.id), poNumber: String(order.poNumber), previousStatus: String(order.status), cancelledBy: actorId, reason }
+    });
+    return updated;
+  });
+}
+var import_node_crypto8, import_zod3, TX_OPTIONS5, CATERING_LEAD_HOURS, CATERING_HORIZON_DAYS, cateringInput, LOYALTY_STATUSES, LOYALTY_TIERS;
+var init_coffeeCoverageCommands = __esm({
+  "features/keystone/mutations/coffeeCoverageCommands.ts"() {
+    "use strict";
+    import_node_crypto8 = require("node:crypto");
+    import_zod3 = require("zod");
+    init_access();
+    init_coffeeDomainOutbox();
+    init_cafeCustomerError();
+    init_coffeeKdsAuthority();
+    init_idempotency();
+    TX_OPTIONS5 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    CATERING_LEAD_HOURS = 24;
+    CATERING_HORIZON_DAYS = 365;
+    cateringInput = import_zod3.z.object({
+      customerName: import_zod3.z.string().trim().min(1, "Enter your name").max(200),
+      customerEmail: import_zod3.z.string().trim().toLowerCase().email("Enter a valid email").max(320),
+      customerPhone: import_zod3.z.string().trim().max(50).optional().nullable(),
+      eventAt: import_zod3.z.string().trim().min(1, "Choose the event date and time"),
+      guestCount: import_zod3.z.number().int("Guests must be a whole number").min(1, "Enter at least 1 guest").max(1e3, "For more than 1000 guests, contact the cafe"),
+      deliveryAddress: import_zod3.z.string().trim().max(500).optional().nullable(),
+      notes: import_zod3.z.string().trim().max(2e3).optional().nullable(),
+      idempotencyKey: import_zod3.z.string()
+    });
+    LOYALTY_STATUSES = /* @__PURE__ */ new Set(["active", "paused", "closed"]);
+    LOYALTY_TIERS = /* @__PURE__ */ new Set(["regular", "neighborhood", "house_account"]);
+  }
+});
+
 // features/keystone/mutations/updateSubscriptionStatus.ts
 async function updateSubscriptionStatus(_root, args, context) {
   if (!permissions.canManageLoyalty({ session: context.session })) throw new Error("Not authorized to update subscription status");
@@ -6522,10 +6811,10 @@ async function updateSubscriptionStatus(_root, args, context) {
       payload: { subscriptionId: String(existing.id), subscriptionNumber: String(existing.subscriptionNumber), sequence, previousStatus: String(existing.status), status: args.status }
     });
     return String(existing.id);
-  }, TX_OPTIONS5);
+  }, TX_OPTIONS6);
   return context.sudo().query.Subscription.findOne({ where: { id }, query: query2 });
 }
-var TX_OPTIONS5, query2;
+var TX_OPTIONS6, query2;
 var init_updateSubscriptionStatus = __esm({
   "features/keystone/mutations/updateSubscriptionStatus.ts"() {
     "use strict";
@@ -6533,7 +6822,7 @@ var init_updateSubscriptionStatus = __esm({
     init_coffeeDomainOutbox();
     init_coffeeKdsAuthority();
     init_transitionPolicy();
-    TX_OPTIONS5 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS6 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     query2 = "id subscriptionNumber status cancelledAt store { id }";
   }
 });
@@ -6567,10 +6856,10 @@ async function updatePosOrderStatus(_root, args, context) {
       payload: { posOrderId: String(existing.id), receiptNumber: String(existing.receiptNumber), previousStatus: String(existing.status), status: args.status }
     });
     return String(existing.id);
-  }, TX_OPTIONS6);
+  }, TX_OPTIONS7);
   return context.sudo().query.PosOrder.findOne({ where: { id }, query: query3 });
 }
-var TX_OPTIONS6, query3;
+var TX_OPTIONS7, query3;
 var init_updatePosOrderStatus = __esm({
   "features/keystone/mutations/updatePosOrderStatus.ts"() {
     "use strict";
@@ -6578,7 +6867,7 @@ var init_updatePosOrderStatus = __esm({
     init_coffeeDomainOutbox();
     init_transitionPolicy();
     init_coffeeKdsAuthority();
-    TX_OPTIONS6 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS7 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     query3 = "id receiptNumber status closedAt store { id }";
   }
 });
@@ -6776,7 +7065,7 @@ async function createCoffeeMenuCategory(_root, args, context) {
       payload: { actorId, requestFingerprint, menuCategoryId: String(category.id), name: name2, description, sortOrder }
     });
     return category;
-  }, TX_OPTIONS7);
+  }, TX_OPTIONS8);
 }
 async function createCoffeeMenuItem(_root, args, context) {
   requireMenuManager(context);
@@ -6826,7 +7115,7 @@ async function createCoffeeMenuItem(_root, args, context) {
       payload: { actorId, requestFingerprint, menuItemId: String(item.id), ...intent }
     });
     return item;
-  }, TX_OPTIONS7);
+  }, TX_OPTIONS8);
 }
 async function updateCoffeeMenuItem(_root, args, context) {
   requireMenuManager(context);
@@ -6866,7 +7155,7 @@ async function updateCoffeeMenuItem(_root, args, context) {
       payload: { actorId, requestFingerprint, menuItemId: args.menuItemId, changes, previousRevision: revision(item.updatedAt) }
     });
     return updated;
-  }, TX_OPTIONS7);
+  }, TX_OPTIONS8);
 }
 function normalizedInventory(args) {
   const inventoryAction = args.inventoryAction || "unreviewed";
@@ -6948,7 +7237,7 @@ async function createCoffeeMenuModifier(_root, args, context) {
       payload: { actorId, requestFingerprint, modifierId: String(modifier.id), menuItemId: args.menuItemId, ...rule, ...inventory, inStock }
     });
     return modifier;
-  }, TX_OPTIONS7);
+  }, TX_OPTIONS8);
 }
 async function updateCoffeeMenuModifier(_root, args, context) {
   requireMenuManager(context);
@@ -6993,7 +7282,7 @@ async function updateCoffeeMenuModifier(_root, args, context) {
       payload: { actorId, requestFingerprint, modifierId: args.modifierId, menuItemId, ...rule, ...inventory, previousRevision: revision(modifier.updatedAt) }
     });
     return updated;
-  }, TX_OPTIONS7);
+  }, TX_OPTIONS8);
 }
 async function updateCoffeeModifierStock(_root, args, context) {
   requireMenuManager(context);
@@ -7024,9 +7313,9 @@ async function updateCoffeeModifierStock(_root, args, context) {
       payload: { actorId, requestFingerprint, modifierId: args.modifierId, menuItemId, inStock: args.inStock, previousRevision: revision(modifier.updatedAt) }
     });
     return updated;
-  }, TX_OPTIONS7);
+  }, TX_OPTIONS8);
 }
-var TX_OPTIONS7, STATIONS, MODIFIER_GROUPS, STALE_MESSAGE, REUSED_KEY_MESSAGE;
+var TX_OPTIONS8, STATIONS, MODIFIER_GROUPS, STALE_MESSAGE, REUSED_KEY_MESSAGE;
 var init_manageCoffeeMenu = __esm({
   "features/keystone/mutations/manageCoffeeMenu.ts"() {
     "use strict";
@@ -7034,7 +7323,7 @@ var init_manageCoffeeMenu = __esm({
     init_coffeeDomainOutbox();
     init_coffeeKdsAuthority();
     init_idempotency();
-    TX_OPTIONS7 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS8 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     STATIONS = /* @__PURE__ */ new Set(["espresso_bar", "cold_bar", "brew_bar", "pastry_case", "retail_shelf"]);
     MODIFIER_GROUPS = /* @__PURE__ */ new Set(["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep", "grind"]);
     STALE_MESSAGE = "This menu entry changed since you opened it. Reload to see the latest version before saving.";
@@ -7204,7 +7493,7 @@ async function recordCafePayment(_root, args, context) {
     if (args.externalCardApproved !== true) throw new Error("Confirm the card terminal approved this exact amount before recording the card payment");
     if (!/^[A-Za-z0-9#._:\/-]{4,64}$/.test(externalCardReference)) throw new Error("Enter the terminal approval or reference code (4-64 letters, numbers or #._:/-)");
   } else if (externalCardReference || args.externalCardApproved) throw new Error("A terminal reference applies only to an external card payment");
-  const providerPaymentId = args.method === "cash" ? `cash_${(0, import_node_crypto8.randomUUID)()}` : `external_terminal:${externalCardReference}`;
+  const providerPaymentId = args.method === "cash" ? `cash_${(0, import_node_crypto9.randomUUID)()}` : `external_terminal:${externalCardReference}`;
   const clientKey = normalizeIdempotencyKey(args.idempotencyKey);
   if (!clientKey) throw new Error("Recorded payment idempotency key is required");
   const scope = context.session?.listKey === "User" ? context.session.itemId : "operator";
@@ -7313,21 +7602,21 @@ async function recordCafePayment(_root, args, context) {
       payload: { paymentId: payment.id, orderId: String(order.id), orderNumber: String(order.orderNumber), registerShiftId: String(registerShift.id), recordedBy: actorId, method: args.method, amount, currencyCode: String(order.currencyCode || "USD"), externalCardReference: externalCardReference || null, requestFingerprint: fingerprintInput({ orderId: String(order.id), actorId, method: args.method, amount, externalCardReference: externalCardReference || null, externalCardApproved: args.method === "card" }) }
     });
     return payment.id;
-  }, TX_OPTIONS8);
+  }, TX_OPTIONS9);
   return context.sudo().query.Payment.findOne({ where: { id: paymentId }, query: PAYMENT_QUERY });
 }
-var import_node_crypto8, TX_OPTIONS8, PAYMENT_QUERY;
+var import_node_crypto9, TX_OPTIONS9, PAYMENT_QUERY;
 var init_recordCafePayment = __esm({
   "features/keystone/mutations/recordCafePayment.ts"() {
     "use strict";
-    import_node_crypto8 = require("node:crypto");
+    import_node_crypto9 = require("node:crypto");
     init_coffeeOrderPolicy();
     init_coffeeDomainOutbox();
     init_idempotency();
     init_coffeeInventoryConsumption();
     init_acceptCafePickupOrder();
     init_coffeeKdsAuthority();
-    TX_OPTIONS8 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
+    TX_OPTIONS9 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     PAYMENT_QUERY = "id status method amount currencyCode provider providerPaymentId processedAt order { id status }";
   }
 });
@@ -7336,11 +7625,11 @@ var init_recordCafePayment = __esm({
 async function handleCafePaymentWebhook(_root, _args, _context) {
   throw new Error("Online payment webhooks are unavailable until the payment integration is certified");
 }
-var import_node_crypto9;
+var import_node_crypto10;
 var init_handleCafePaymentWebhook = __esm({
   "features/keystone/mutations/handleCafePaymentWebhook.ts"() {
     "use strict";
-    import_node_crypto9 = require("node:crypto");
+    import_node_crypto10 = require("node:crypto");
     init_payment();
     init_paymentProviderAdapter();
     init_coffeeDomainOutbox();
@@ -7578,11 +7867,11 @@ function parseOnboardingData(input) {
   const errors = onboardingDataErrors(parsed.data);
   return errors.length ? { success: false, errors } : { success: true, data: parsed.data };
 }
-var import_zod3, BAR_STATIONS, MODIFIER_GROUPS2, INVENTORY_UNITS, INVENTORY_CATEGORIES, SUPPLIER_STATUSES, RECIPE_STATUSES, STAFF_ROLES, LOYALTY_STATUSES, LOYALTY_TIERS, MAX_QUANTITY, decimalString, int2, text34, name, storeInfoSchema, categorySchema, menuItemSchema, modifierSchema, inventorySchema, providerSchema, supplierSchema, recipeSchema, ingredientSchema, purchaseOrderSchema, staffShiftSchema, loyaltyAccountSchema, cateringOrderSchema, onboardingSchema;
+var import_zod4, BAR_STATIONS, MODIFIER_GROUPS2, INVENTORY_UNITS, INVENTORY_CATEGORIES, SUPPLIER_STATUSES, RECIPE_STATUSES, STAFF_ROLES, LOYALTY_STATUSES2, LOYALTY_TIERS2, MAX_QUANTITY, decimalString, int2, text34, name, storeInfoSchema, categorySchema, menuItemSchema, modifierSchema, inventorySchema, providerSchema, supplierSchema, recipeSchema, ingredientSchema, purchaseOrderSchema, staffShiftSchema, loyaltyAccountSchema, cateringOrderSchema, onboardingSchema;
 var init_onboardingSchema = __esm({
   "features/platform/onboarding/lib/onboardingSchema.ts"() {
     "use strict";
-    import_zod3 = require("zod");
+    import_zod4 = require("zod");
     init_store_locale_policy();
     init_store_settings_input();
     init_brand_colors();
@@ -7595,161 +7884,161 @@ var init_onboardingSchema = __esm({
     SUPPLIER_STATUSES = ["active", "paused", "archived"];
     RECIPE_STATUSES = ["draft", "active", "archived"];
     STAFF_ROLES = ["barista", "shift_lead", "kitchen", "manager"];
-    LOYALTY_STATUSES = ["active", "paused", "closed"];
-    LOYALTY_TIERS = ["regular", "neighborhood", "house_account"];
+    LOYALTY_STATUSES2 = ["active", "paused", "closed"];
+    LOYALTY_TIERS2 = ["regular", "neighborhood", "house_account"];
     MAX_QUANTITY = 1e9;
-    decimalString = (label, { positive: positive3 = false } = {}) => import_zod3.z.string().trim().regex(/^\d{1,10}(\.\d{1,4})?$/, `${label} must be a number with up to 4 decimal places`).refine((value) => {
+    decimalString = (label, { positive: positive3 = false } = {}) => import_zod4.z.string().trim().regex(/^\d{1,10}(\.\d{1,4})?$/, `${label} must be a number with up to 4 decimal places`).refine((value) => {
       const numeric = Number(value);
       return Number.isFinite(numeric) && numeric <= MAX_QUANTITY && (!positive3 || numeric > 0);
     }, positive3 ? `${label} must be greater than 0` : `${label} is too large`);
-    int2 = (min, max) => import_zod3.z.number().int().min(min).max(max);
-    text34 = (max) => import_zod3.z.string().trim().max(max);
-    name = import_zod3.z.string().trim().min(1).max(200);
-    storeInfoSchema = import_zod3.z.object({
+    int2 = (min, max) => import_zod4.z.number().int().min(min).max(max);
+    text34 = (max) => import_zod4.z.string().trim().max(max);
+    name = import_zod4.z.string().trim().min(1).max(200);
+    storeInfoSchema = import_zod4.z.object({
       name,
       tagline: text34(300).default(""),
       description: text34(2e3).default(""),
-      address: import_zod3.z.string().trim().min(1, "Store address is required").max(500),
+      address: import_zod4.z.string().trim().min(1, "Store address is required").max(500),
       phone: text34(100).default(""),
-      contactEmail: import_zod3.z.string().trim().email("Enter a valid store contact email"),
-      currencyCode: import_zod3.z.literal("USD").default("USD"),
-      locale: import_zod3.z.literal("en-US").default("en-US"),
-      timezone: import_zod3.z.string().trim().max(100).refine(validCoffeeTimezone, "Invalid store timezone").default("America/New_York"),
-      brandColor: import_zod3.z.enum(COFFEE_BRAND_COLOR_VALUES).default(DEFAULT_COFFEE_BRAND_COLOR),
-      logoIcon: import_zod3.z.string().max(1e5).default(DEFAULT_STORE_LOGO_ICON).refine((value) => Boolean(sanitizeStoreLogoSvg(value)), "Store logo must be a valid, safe SVG document").transform((value) => sanitizeStoreLogoSvg(value)),
-      logoColor: import_zod3.z.union([import_zod3.z.string(), import_zod3.z.number()]).default(DEFAULT_STORE_LOGO_COLOR).transform(normalizeStoreLogoColor),
+      contactEmail: import_zod4.z.string().trim().email("Enter a valid store contact email"),
+      currencyCode: import_zod4.z.literal("USD").default("USD"),
+      locale: import_zod4.z.literal("en-US").default("en-US"),
+      timezone: import_zod4.z.string().trim().max(100).refine(validCoffeeTimezone, "Invalid store timezone").default("America/New_York"),
+      brandColor: import_zod4.z.enum(COFFEE_BRAND_COLOR_VALUES).default(DEFAULT_COFFEE_BRAND_COLOR),
+      logoIcon: import_zod4.z.string().max(1e5).default(DEFAULT_STORE_LOGO_ICON).refine((value) => Boolean(sanitizeStoreLogoSvg(value)), "Store logo must be a valid, safe SVG document").transform((value) => sanitizeStoreLogoSvg(value)),
+      logoColor: import_zod4.z.union([import_zod4.z.string(), import_zod4.z.number()]).default(DEFAULT_STORE_LOGO_COLOR).transform(normalizeStoreLogoColor),
       weeklyHours: weeklyHoursSchema.default([]),
       pickupLeadTimeMinutes: int2(PICKUP_LIMITS.pickupLeadTimeMinutes.min, PICKUP_LIMITS.pickupLeadTimeMinutes.max).default(12),
       pickupWindowMinutes: int2(PICKUP_LIMITS.pickupWindowMinutes.min, PICKUP_LIMITS.pickupWindowMinutes.max).default(15),
       pickupCapacityPerWindow: int2(PICKUP_LIMITS.pickupCapacityPerWindow.min, PICKUP_LIMITS.pickupCapacityPerWindow.max).default(20),
       // The merchant's own sales-tax rate; setup never assumes one.
-      taxRateBasisPoints: import_zod3.z.number().min(PICKUP_LIMITS.taxRateBasisPoints.min).max(PICKUP_LIMITS.taxRateBasisPoints.max).refine((value) => Math.abs(Math.round(value * 100) - value * 100) < 1e-6, "Tax rate allows at most two decimals of a basis point")
+      taxRateBasisPoints: import_zod4.z.number().min(PICKUP_LIMITS.taxRateBasisPoints.min).max(PICKUP_LIMITS.taxRateBasisPoints.max).refine((value) => Math.abs(Math.round(value * 100) - value * 100) < 1e-6, "Tax rate allows at most two decimals of a basis point")
     }).strict();
-    categorySchema = import_zod3.z.object({ name, description: text34(2e3).default(""), sortOrder: int2(0, 1e4).default(0) }).strict();
-    menuItemSchema = import_zod3.z.object({
+    categorySchema = import_zod4.z.object({ name, description: text34(2e3).default(""), sortOrder: int2(0, 1e4).default(0) }).strict();
+    menuItemSchema = import_zod4.z.object({
       name,
       shortDescription: text34(1e3).default(""),
       price: int2(0, 1e6),
       prepTimeMinutes: int2(0, 240).default(5),
-      barStation: import_zod3.z.enum(BAR_STATIONS).default("espresso_bar"),
-      featured: import_zod3.z.boolean().default(false),
-      popular: import_zod3.z.boolean().default(false),
-      imageUrl: import_zod3.z.string().trim().max(1e3).regex(/^\/[^/\\]/, "Menu images must be a site path such as /images/latte.jpg").optional(),
+      barStation: import_zod4.z.enum(BAR_STATIONS).default("espresso_bar"),
+      featured: import_zod4.z.boolean().default(false),
+      popular: import_zod4.z.boolean().default(false),
+      imageUrl: import_zod4.z.string().trim().max(1e3).regex(/^\/[^/\\]/, "Menu images must be a site path such as /images/latte.jpg").optional(),
       categoryName: name,
       caffeineMg: int2(0, 2e3).optional(),
       calories: int2(0, 5e3).optional()
     }).strict();
-    modifierSchema = import_zod3.z.object({
-      inventoryAction: import_zod3.z.enum(["none", "add", "substitute", "unreviewed"]).default("unreviewed"),
+    modifierSchema = import_zod4.z.object({
+      inventoryAction: import_zod4.z.enum(["none", "add", "substitute", "unreviewed"]).default("unreviewed"),
       inventoryItemName: name.optional(),
       replacesInventoryItemName: name.optional(),
-      inventoryQuantity: import_zod3.z.number().nonnegative().max(MAX_QUANTITY).default(0),
+      inventoryQuantity: import_zod4.z.number().nonnegative().max(MAX_QUANTITY).default(0),
       menuItemName: name,
       name,
-      modifierGroup: import_zod3.z.enum(MODIFIER_GROUPS2).default("milk"),
+      modifierGroup: import_zod4.z.enum(MODIFIER_GROUPS2).default("milk"),
       modifierGroupLabel: text34(200).default("Modifier"),
       priceAdjustment: int2(-1e5, 1e5).default(0),
-      defaultSelected: import_zod3.z.boolean().default(false),
-      required: import_zod3.z.boolean().default(false),
+      defaultSelected: import_zod4.z.boolean().default(false),
+      required: import_zod4.z.boolean().default(false),
       minSelections: int2(0, 20).default(0),
       maxSelections: int2(1, 20).default(1)
     }).strict().refine((modifier) => modifier.minSelections <= modifier.maxSelections, "Modifier minimum selections cannot exceed the maximum");
-    inventorySchema = import_zod3.z.object({
+    inventorySchema = import_zod4.z.object({
       name,
       sku: text34(100).default(""),
-      unit: import_zod3.z.enum(INVENTORY_UNITS).default("each"),
-      category: import_zod3.z.enum(INVENTORY_CATEGORIES).optional(),
+      unit: import_zod4.z.enum(INVENTORY_UNITS).default("each"),
+      category: import_zod4.z.enum(INVENTORY_CATEGORIES).optional(),
       supplierName: text34(200).optional(),
       quantityOnHand: decimalString("Quantity on hand").optional(),
       currentStock: decimalString("Current stock").optional(),
       parLevel: decimalString("Par level").default("0"),
       reorderPoint: decimalString("Reorder point").default("0"),
       costPerUnit: int2(0, 1e8).default(0),
-      active: import_zod3.z.boolean().optional()
+      active: import_zod4.z.boolean().optional()
     }).strict();
-    providerSchema = import_zod3.z.object({ name, code: import_zod3.z.string().trim().min(1).max(100), isInstalled: import_zod3.z.boolean().default(false) }).strict();
-    supplierSchema = import_zod3.z.object({
+    providerSchema = import_zod4.z.object({ name, code: import_zod4.z.string().trim().min(1).max(100), isInstalled: import_zod4.z.boolean().default(false) }).strict();
+    supplierSchema = import_zod4.z.object({
       name,
-      status: import_zod3.z.enum(SUPPLIER_STATUSES).default("active"),
+      status: import_zod4.z.enum(SUPPLIER_STATUSES).default("active"),
       contactName: text34(200).default(""),
-      email: import_zod3.z.union([import_zod3.z.literal(""), import_zod3.z.string().trim().email("Enter a valid supplier email")]).default(""),
+      email: import_zod4.z.union([import_zod4.z.literal(""), import_zod4.z.string().trim().email("Enter a valid supplier email")]).default(""),
       phone: text34(100).default(""),
       leadTimeDays: int2(0, 365).default(0),
       notes: text34(2e3).default("")
     }).strict();
-    recipeSchema = import_zod3.z.object({
+    recipeSchema = import_zod4.z.object({
       name,
       menuItemName: name,
-      status: import_zod3.z.enum(RECIPE_STATUSES).default("active"),
+      status: import_zod4.z.enum(RECIPE_STATUSES).default("active"),
       yieldQuantity: decimalString("Recipe yield", { positive: true }).default("1"),
       yieldUnit: text34(50).default("serving"),
       prepInstructions: text34(4e3).default(""),
       allergenNotes: text34(2e3).default("")
     }).strict();
-    ingredientSchema = import_zod3.z.object({
+    ingredientSchema = import_zod4.z.object({
       recipeName: name,
       name,
       inventoryItemName: name,
       quantity: decimalString("Ingredient quantity", { positive: true }),
-      unit: import_zod3.z.enum(INVENTORY_UNITS),
-      optional: import_zod3.z.boolean().default(false),
+      unit: import_zod4.z.enum(INVENTORY_UNITS),
+      optional: import_zod4.z.boolean().default(false),
       notes: text34(2e3).default("")
     }).strict();
-    purchaseOrderSchema = import_zod3.z.object({
-      poNumber: import_zod3.z.string().trim().min(1).max(100),
+    purchaseOrderSchema = import_zod4.z.object({
+      poNumber: import_zod4.z.string().trim().min(1).max(100),
       supplierName: name,
       inventoryItemName: name,
       orderedQuantity: decimalString("Ordered quantity", { positive: true }),
       unitCostCents: int2(0, 1e8),
-      status: import_zod3.z.literal("submitted"),
+      status: import_zod4.z.literal("submitted"),
       orderedOffsetDays: int2(-365, 0),
       expectedOffsetDays: int2(0, 365),
       notes: text34(2e3).default("")
     }).strict().refine((order) => Number(order.orderedQuantity) * order.unitCostCents <= Number.MAX_SAFE_INTEGER, "Purchase order total is too large");
-    staffShiftSchema = import_zod3.z.object({
-      shiftNumber: import_zod3.z.string().trim().min(1).max(100),
-      role: import_zod3.z.enum(STAFF_ROLES),
-      status: import_zod3.z.literal("scheduled"),
+    staffShiftSchema = import_zod4.z.object({
+      shiftNumber: import_zod4.z.string().trim().min(1).max(100),
+      role: import_zod4.z.enum(STAFF_ROLES),
+      status: import_zod4.z.literal("scheduled"),
       startsOffsetHours: int2(0, 24 * 60),
-      durationHours: import_zod3.z.number().positive().max(24),
+      durationHours: import_zod4.z.number().positive().max(24),
       notes: text34(2e3).default("")
     }).strict();
-    loyaltyAccountSchema = import_zod3.z.object({
+    loyaltyAccountSchema = import_zod4.z.object({
       customerName: name,
-      customerEmail: import_zod3.z.string().trim().email(),
+      customerEmail: import_zod4.z.string().trim().email(),
       customerPhone: text34(100).default(""),
-      status: import_zod3.z.enum(LOYALTY_STATUSES).default("active"),
-      tier: import_zod3.z.enum(LOYALTY_TIERS).default("regular"),
-      pointsBalance: import_zod3.z.literal(0).default(0),
-      lifetimePoints: import_zod3.z.literal(0).default(0),
-      drinkCredits: import_zod3.z.literal(0).default(0),
-      visits: import_zod3.z.literal(0).default(0)
+      status: import_zod4.z.enum(LOYALTY_STATUSES2).default("active"),
+      tier: import_zod4.z.enum(LOYALTY_TIERS2).default("regular"),
+      pointsBalance: import_zod4.z.literal(0).default(0),
+      lifetimePoints: import_zod4.z.literal(0).default(0),
+      drinkCredits: import_zod4.z.literal(0).default(0),
+      visits: import_zod4.z.literal(0).default(0)
     }).strict();
-    cateringOrderSchema = import_zod3.z.object({
-      cateringNumber: import_zod3.z.string().trim().min(1).max(100),
+    cateringOrderSchema = import_zod4.z.object({
+      cateringNumber: import_zod4.z.string().trim().min(1).max(100),
       customerName: name,
-      customerEmail: import_zod3.z.string().trim().email(),
-      status: import_zod3.z.literal("inquiry"),
+      customerEmail: import_zod4.z.string().trim().email(),
+      status: import_zod4.z.literal("inquiry"),
       eventOffsetDays: int2(1, 730),
       guestCount: int2(1, 1e4),
       deliveryAddress: text34(500).default(""),
-      subtotalCents: import_zod3.z.literal(0),
+      subtotalCents: import_zod4.z.literal(0),
       notes: text34(2e3).default("")
     }).strict();
-    onboardingSchema = import_zod3.z.object({
+    onboardingSchema = import_zod4.z.object({
       storeInfo: storeInfoSchema,
-      categories: import_zod3.z.array(categorySchema).max(100),
-      menuItems: import_zod3.z.array(menuItemSchema).max(500),
-      modifiers: import_zod3.z.array(modifierSchema).max(2e3),
-      inventoryItems: import_zod3.z.array(inventorySchema).max(1e3),
-      paymentProviders: import_zod3.z.array(providerSchema).max(10),
-      suppliers: import_zod3.z.array(supplierSchema).max(100).default([]),
-      recipes: import_zod3.z.array(recipeSchema).max(500).default([]),
-      ingredients: import_zod3.z.array(ingredientSchema).max(2e3).default([]),
-      purchaseOrders: import_zod3.z.array(purchaseOrderSchema).max(100).default([]),
-      staffShifts: import_zod3.z.array(staffShiftSchema).max(100).default([]),
-      loyaltyAccounts: import_zod3.z.array(loyaltyAccountSchema).max(100).default([]),
-      cateringOrders: import_zod3.z.array(cateringOrderSchema).max(100).default([])
+      categories: import_zod4.z.array(categorySchema).max(100),
+      menuItems: import_zod4.z.array(menuItemSchema).max(500),
+      modifiers: import_zod4.z.array(modifierSchema).max(2e3),
+      inventoryItems: import_zod4.z.array(inventorySchema).max(1e3),
+      paymentProviders: import_zod4.z.array(providerSchema).max(10),
+      suppliers: import_zod4.z.array(supplierSchema).max(100).default([]),
+      recipes: import_zod4.z.array(recipeSchema).max(500).default([]),
+      ingredients: import_zod4.z.array(ingredientSchema).max(2e3).default([]),
+      purchaseOrders: import_zod4.z.array(purchaseOrderSchema).max(100).default([]),
+      staffShifts: import_zod4.z.array(staffShiftSchema).max(100).default([]),
+      loyaltyAccounts: import_zod4.z.array(loyaltyAccountSchema).max(100).default([]),
+      cateringOrders: import_zod4.z.array(cateringOrderSchema).max(100).default([])
     }).strict();
   }
 });
@@ -8024,7 +8313,7 @@ function scopedKey2(context, purpose, value) {
   return buildScopedIdempotencyKey(`${purpose}:${context.session?.itemId}`, normalized);
 }
 function reference(prefix, value) {
-  return `${prefix}-${(0, import_node_crypto10.createHash)("sha256").update(value).digest("hex").slice(0, 12).toUpperCase()}`;
+  return `${prefix}-${(0, import_node_crypto11.createHash)("sha256").update(value).digest("hex").slice(0, 12).toUpperCase()}`;
 }
 function expectedCash(shift) {
   return Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - Number(shift.cashRefundsCents || 0) + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0);
@@ -8071,7 +8360,7 @@ async function openRegisterShift(_root, args, context) {
       payload: { shiftId: String(shift.id), shiftNumber: String(shift.shiftNumber), registerName, openingCashCents }
     });
     return shift;
-  }, TX_OPTIONS9);
+  }, TX_OPTIONS10);
 }
 async function recordRegisterCashMovement(_root, args, context) {
   const userId = requireRegisterOperator(context);
@@ -8131,7 +8420,7 @@ async function recordRegisterCashMovement(_root, args, context) {
       payload: { movementId: String(movement.id), shiftId: args.registerShiftId, type: args.type, amountCents, reason }
     });
     return movement;
-  }, TX_OPTIONS9);
+  }, TX_OPTIONS10);
 }
 async function closeRegisterShift(_root, args, context) {
   const userId = requireRegisterOperator(context);
@@ -8171,19 +8460,19 @@ async function closeRegisterShift(_root, args, context) {
       payload: { shiftId: args.registerShiftId, expectedCashCents, countedCashCents, varianceCents: countedCashCents - expectedCashCents }
     });
     return closed;
-  }, TX_OPTIONS9);
+  }, TX_OPTIONS10);
 }
-var import_node_crypto10, TX_OPTIONS9, MOVEMENT_TYPES;
+var import_node_crypto11, TX_OPTIONS10, MOVEMENT_TYPES;
 var init_registerShiftOperations = __esm({
   "features/keystone/mutations/registerShiftOperations.ts"() {
     "use strict";
-    import_node_crypto10 = require("node:crypto");
+    import_node_crypto11 = require("node:crypto");
     init_access();
     init_coffeeDomainOutbox();
     init_idempotency();
     init_coffeeKdsAuthority();
     init_coffeePricing();
-    TX_OPTIONS9 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
+    TX_OPTIONS10 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     MOVEMENT_TYPES = /* @__PURE__ */ new Set(["pay_in", "pay_out", "cash_drop"]);
   }
 });
@@ -8201,7 +8490,7 @@ function scopedKey3(context, purpose, value) {
   return buildScopedIdempotencyKey(`${purpose}:${context.session?.itemId}`, normalized);
 }
 function shiftReference(key) {
-  return `STAFF-${(0, import_node_crypto11.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
+  return `STAFF-${(0, import_node_crypto12.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
 }
 function instant(value, label) {
   if (typeof value !== "string" || !INSTANT.test(value)) throw new Error(`${label} must be a full date and time`);
@@ -8263,7 +8552,7 @@ async function scheduleCoffeeStaffShift(_root, args, context) {
       payload: { shiftId: String(shift.id), shiftNumber: String(shift.shiftNumber), staffId: args.staffId, role: args.role, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }
     });
     return shift;
-  }, TX_OPTIONS10);
+  }, TX_OPTIONS11);
 }
 async function updateCoffeeStaffShiftStatus(_root, args, context) {
   requireStaffManager(context);
@@ -8314,13 +8603,13 @@ async function updateCoffeeStaffShiftStatus(_root, args, context) {
       payload: { shiftId: args.staffShiftId, previousStatus: current, status: args.status, occurredAt: now.toISOString(), actorId, requestFingerprint }
     });
     return updated;
-  }, TX_OPTIONS10);
+  }, TX_OPTIONS11);
 }
-var import_node_crypto11, STAFF_ROLES2, STAFF_TRANSITIONS, INSTANT, TX_OPTIONS10;
+var import_node_crypto12, STAFF_ROLES2, STAFF_TRANSITIONS, INSTANT, TX_OPTIONS11;
 var init_staffShiftOperations = __esm({
   "features/keystone/mutations/staffShiftOperations.ts"() {
     "use strict";
-    import_node_crypto11 = require("node:crypto");
+    import_node_crypto12 = require("node:crypto");
     init_access();
     init_coffeeDomainOutbox();
     init_coffeeKdsAuthority();
@@ -8333,20 +8622,20 @@ var init_staffShiftOperations = __esm({
       missed: []
     };
     INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
-    TX_OPTIONS10 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS11 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
   }
 });
 
 // features/keystone/mutations/coffeeInventoryOperations.ts
-function conflict(error) {
+function conflict2(error) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
 }
-async function serializable(context, operation) {
+async function serializable2(context, operation) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
-      return await context.prisma.$transaction((rawTx) => operation(rawTx), TX_OPTIONS11);
+      return await context.prisma.$transaction((rawTx) => operation(rawTx), TX_OPTIONS12);
     } catch (error) {
-      if (!conflict(error) || attempt === MAX_RETRIES) throw error;
+      if (!conflict2(error) || attempt === MAX_RETRIES) throw error;
     }
   }
   throw new Error("Inventory transaction retry limit exceeded");
@@ -8368,7 +8657,7 @@ function scopedKey4(context, purpose, key) {
   return buildScopedIdempotencyKey(`${purpose}:${context.session?.itemId}`, normalized);
 }
 function reference2(prefix, key) {
-  return `${prefix}-${(0, import_node_crypto12.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
+  return `${prefix}-${(0, import_node_crypto13.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
 }
 function notesText(value) {
   const notes = typeof value === "string" ? value.trim() : "";
@@ -8414,7 +8703,7 @@ async function createCoffeePurchaseOrder(_root, args, context) {
   const expectedDate = args.expectedAt ? String(args.expectedAt) : null;
   if (expectedDate && !isBusinessDate(expectedDate)) throw new Error("Expected date must be a valid calendar date");
   const notes = notesText(args.notes);
-  return serializable(context, async (tx) => {
+  return serializable2(context, async (tx) => {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
     const { actorId, storeId, timeZone } = await currentInventoryScope(tx, context);
     const requestFingerprint = fingerprintInput({ purpose: "purchase-order", storeId, actorId, supplierId, inventoryItemId, quantityUnits, unitCostCents, expectedDate, notes });
@@ -8467,7 +8756,7 @@ async function receiveCoffeePurchaseOrder(_root, args, context) {
   requireInventoryManager(context);
   const purchaseOrderId = requiredId(args.purchaseOrderId, "Purchase order");
   const expiresAt = optionalInstant(args.expiresAt, "Lot expiry");
-  return serializable(context, async (tx) => {
+  return serializable2(context, async (tx) => {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-po:${purchaseOrderId}`);
     const { actorId, storeId } = await currentInventoryScope(tx, context);
     const order = await tx.purchaseOrder.findUnique({
@@ -8536,7 +8825,7 @@ async function completeCoffeePrepBatch(_root, args, context) {
   const madeUnits = stockUnits(args.quantityMade, "Quantity made");
   const expiresAt = optionalInstant(args.expiresAt, "Prep expiry");
   const notes = notesText(args.notes);
-  return serializable(context, async (tx) => {
+  return serializable2(context, async (tx) => {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
     const { actorId, storeId } = await currentInventoryScope(tx, context);
     const requestFingerprint = fingerprintInput({ purpose: "prep-batch", storeId, actorId, recipeId, madeUnits, expiresAt: expiresAt ? expiresAt.toISOString() : null, notes });
@@ -8644,7 +8933,7 @@ async function recordCoffeeWaste(_root, args, context) {
   if (Boolean(inventoryItemId) === Boolean(prepBatchId)) throw new Error("Waste must reference exactly one inventory item or prep batch");
   if (!WASTE_REASON_SET.has(args.reason)) throw new Error("Choose a waste reason: expired, damaged, overproduction or quality");
   const notes = notesText(args.notes);
-  return serializable(context, async (tx) => {
+  return serializable2(context, async (tx) => {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
     const { actorId, storeId } = await currentInventoryScope(tx, context);
     const requestFingerprint = fingerprintInput({ purpose: "waste", storeId, actorId, inventoryItemId, prepBatchId, quantityUnits, reason: args.reason, notes });
@@ -8721,8 +9010,8 @@ async function recordCoffeeStockCount(_root, args, context) {
   const inventoryItemId = requiredId(args.inventoryItemId, "Inventory item");
   const countedUnits = stockUnits(args.countedQuantity, "Counted quantity", { allowZero: true });
   const notes = notesText(args.notes);
-  const eventKey = `stock-count:${(0, import_node_crypto12.createHash)("sha256").update(key).digest("hex")}`;
-  return serializable(context, async (tx) => {
+  const eventKey = `stock-count:${(0, import_node_crypto13.createHash)("sha256").update(key).digest("hex")}`;
+  return serializable2(context, async (tx) => {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
     const { actorId, storeId } = await currentInventoryScope(tx, context);
     const requestFingerprint = fingerprintInput({ purpose: "stock-count", storeId, actorId, inventoryItemId, countedUnits, notes });
@@ -8768,11 +9057,11 @@ async function recordCoffeeStockCount(_root, args, context) {
     return updated;
   });
 }
-var import_node_crypto12, TX_OPTIONS11, MAX_RETRIES, MAX_INT, WASTE_REASONS, WASTE_REASON_SET, COUNTED_OUTPUT_UNITS2, INSTANT2;
+var import_node_crypto13, TX_OPTIONS12, MAX_RETRIES, MAX_INT, WASTE_REASONS, WASTE_REASON_SET, COUNTED_OUTPUT_UNITS2, INSTANT2;
 var init_coffeeInventoryOperations = __esm({
   "features/keystone/mutations/coffeeInventoryOperations.ts"() {
     "use strict";
-    import_node_crypto12 = require("node:crypto");
+    import_node_crypto13 = require("node:crypto");
     init_access();
     init_coffeeDomainOutbox();
     init_store_locale_policy();
@@ -8780,7 +9069,7 @@ var init_coffeeInventoryOperations = __esm({
     init_coffeeKdsAuthority();
     init_idempotency();
     init_inventoryLots();
-    TX_OPTIONS11 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS12 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     MAX_RETRIES = 3;
     MAX_INT = 2147483647;
     WASTE_REASONS = ["expired", "damaged", "overproduction", "quality"];
@@ -8801,6 +9090,7 @@ function extendGraphqlSchema(baseSchema) {
         getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): CafeLoyaltyProjection
         getCoffeeKdsRecoveryScope: CoffeeKdsRecoveryScope
         getCoffeeCustomerOrders(after: ID): CoffeeCustomerOrderPage!
+        getCoffeeCustomerCatering: [CafeCateringReceipt!]!
         getCoffeeStore: CoffeeStorefrontSettings
         getCoffeeMenu(menuItemId: ID, search: String, categoryId: ID, after: String): CoffeeMenuProjection!
       }
@@ -8844,6 +9134,32 @@ function extendGraphqlSchema(baseSchema) {
           cateringOrderId: ID!
           status: String!
         ): CateringOrder
+
+        requestCafeCatering(
+          customerName: String!
+          customerEmail: String!
+          customerPhone: String
+          eventAt: String!
+          guestCount: Int!
+          deliveryAddress: String
+          notes: String
+          idempotencyKey: String!
+        ): CafeCateringReceipt!
+
+        adjustCoffeeLoyaltyAccount(
+          accountId: ID!
+          pointsDelta: Int
+          drinkCreditsDelta: Int
+          status: String
+          tier: String
+          note: String!
+          idempotencyKey: String!
+        ): LoyaltyAccount
+
+        cancelCoffeePurchaseOrder(
+          purchaseOrderId: ID!
+          reason: String
+        ): PurchaseOrder!
 
         updateSubscriptionStatus(
           subscriptionId: ID!
@@ -9170,6 +9486,7 @@ function extendGraphqlSchema(baseSchema) {
       Query: {
         redirectToInit: redirectToInit_default,
         getCoffeeCustomerOrders,
+        getCoffeeCustomerCatering,
         getCafeOrder,
         getCafeLoyaltyAccount,
         getCoffeeKdsRecoveryScope,
@@ -9191,6 +9508,9 @@ function extendGraphqlSchema(baseSchema) {
         updateCafeOrderStatus,
         updateCafeOrderItemStatus,
         updateCateringOrderStatus,
+        requestCafeCatering,
+        adjustCoffeeLoyaltyAccount,
+        cancelCoffeePurchaseOrder,
         updateSubscriptionStatus,
         updatePosOrderStatus,
         applyCafeLoyalty,
@@ -9240,6 +9560,7 @@ var init_mutations = __esm({
     init_getCoffeeStore();
     init_getCoffeeMenu();
     init_updateCateringOrderStatus();
+    init_coffeeCoverageCommands();
     init_updateSubscriptionStatus();
     init_updatePosOrderStatus();
     init_refundCafePayment();

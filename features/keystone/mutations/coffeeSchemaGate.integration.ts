@@ -724,7 +724,7 @@ test("pay-at-pickup settlement is operator-controlled and concurrency-safe", asy
   assert.equal(Number(updatedShift?.expectedCashCents || 0), 5000 + Number(settledOrder?.total));
   const stockAfterSettlement = await prisma.menuItem.findFirst({ where: { id: menuItem.id }, select: { inventoryItem: { select: { currentStock: true } } } });
   assert.equal(Number((stockAfterSettlement?.inventoryItem as Record<string, unknown>).currentStock), stockBeforeSettlement - 1);
-  await assert.rejects(updateCafeOrderStatus(null, { orderId: String(order.id), status: "cancelled" }, manager as never), /Cannot transition/);
+  await assert.rejects(updateCafeOrderStatus(null, { orderId: String(order.id), status: "cancelled" }, manager as never), /Can't change from/);
   assert.equal(await prisma.coffeeDomainEvent.count({ where: { eventType: "payment.captured", aggregateId: first.id } }), 1);
   proof.payAtPickupSettlement = { orderId: order.id, paymentId: first.id, registerShiftId: registerShift.id, attempts: 1, paidCancellationDenied: true, registerReconciled: true, inventoryConsumedAtSettlement: true };
 });

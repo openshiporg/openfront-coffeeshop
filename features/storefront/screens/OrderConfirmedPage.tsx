@@ -7,13 +7,14 @@ import { StorefrontShell } from "@/features/storefront/components/StorefrontShel
 import { StorefrontMedia } from "@/features/storefront/components/StorefrontMedia";
 import { getCoffeeStoreResult } from "@/features/storefront/lib/data/store";
 import { ReceiptRefreshButton } from "@/features/storefront/components/ReceiptRefreshButton";
+import { ReceiptRewardsPanel } from "@/features/storefront/components/ReceiptRewardsPanel";
 import type { CafeOrderItemSnapshot, CafePickupOrder } from "@/features/storefront/lib/data/orders";
 import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, resolveOrderConfirmation } from "@/features/storefront/lib/orderConfirmation";
 
 const ORDER_QUERY = `
   query ConfirmedCafeOrder($id: ID!, $secretKey: String) {
     getCafeOrder(orderId: $id, secretKey: $secretKey) {
-      id orderNumber status handoffCode pickupName promisedAt subtotal tax tip total currencyCode specialInstructions paidAt
+      id orderNumber status handoffCode pickupName promisedAt subtotal tax tip total currencyCode specialInstructions paidAt customerEmail rewardsLinked rewardsEligible
       orderItems {
         id quantity itemNameSnapshot imagePathSnapshot customizationsSummary specialInstructions price
         modifierSnapshot { id name group groupLabel priceAdjustment }
@@ -200,6 +201,14 @@ export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secre
                 <ReceiptRefreshButton />
                 <p className="text-xs text-[var(--sf-ink-faint)]">Status as of {loadedAt}</p>
               </div>
+              {order.rewardsLinked || order.rewardsEligible ? (
+                <ReceiptRewardsPanel
+                  orderId={order.id}
+                  secretKey={secretKey}
+                  customerEmail={order.customerEmail || ""}
+                  linked={Boolean(order.rewardsLinked)}
+                />
+              ) : null}
             </aside>
           </div>
         ) : failureCopy ? (

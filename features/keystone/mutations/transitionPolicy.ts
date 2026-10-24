@@ -1,3 +1,5 @@
+import { cafeCustomerError } from "../lib/cafeCustomerError";
+
 export type TransitionMap = Readonly<Record<string, readonly string[]>>;
 
 export const CAFE_ORDER_TRANSITIONS = {
@@ -43,7 +45,8 @@ export function evaluateTransition(
 
   const allowed = transitions[currentStatus];
   if (!allowed?.includes(nextStatus)) {
-    throw new Error(`Cannot transition from ${currentStatus} to ${nextStatus}`);
+    // Staff-facing and safe to show: the record changed or the action isn't allowed from this state.
+    throw cafeCustomerError(`Can't change from ${currentStatus.replaceAll("_", " ")} to ${nextStatus.replaceAll("_", " ")}. Refresh to see the current status.`);
   }
 
   return { replay: false };

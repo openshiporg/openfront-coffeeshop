@@ -1,5 +1,6 @@
 import { permissions, type Session } from "../access";
 import { cafeReceiptKeyMatches, resolveCafeImageUrl } from "./cafeStorefrontPolicy";
+import { hasCafeSettlement, type SettlementEvidence } from "./coffeeOrderPolicy";
 
 type CafeOrderLookupArgs = {
   orderId: string;
@@ -21,6 +22,10 @@ type CafeOrderLookupResult = {
   currencyCode?: string | null;
   specialInstructions?: string | null;
   paidAt?: string | null;
+  customerEmail?: string | null;
+  discount?: number | null;
+  loyaltyAccount?: { id: string } | null;
+  payments?: SettlementEvidence[] | null;
   customer?: { id: string } | null;
   orderItems?: Array<{
     id: string;
@@ -77,6 +82,10 @@ export default async function getCafeOrder(
       currencyCode
       specialInstructions
       paidAt
+      customerEmail
+      discount
+      loyaltyAccount { id }
+      payments { status amount refundIdempotencyKey }
       customer { id }
       orderItems { id quantity itemNameSnapshot imagePathSnapshot customizationsSummary modifierSnapshot specialInstructions price }
     `,
@@ -98,6 +107,13 @@ export default async function getCafeOrder(
     currencyCode: order.currencyCode || "USD",
     specialInstructions: order.specialInstructions || null,
     paidAt: order.paidAt || null,
+    // Rewards state for the receipt: the same settlement rule applyCafeLoyalty enforces.
+    customerEmail: order.customerEmail || null,
+    rewardsLinked: Boolean(order.loyaltyAccount?.id),
+    rewardsEligible: (() => {
+      const payable = Number(order.total || 0) - Number(order.discount || 0);
+      return payable > 0 && hasCafeSettlement(Array.isArray(order.payments) ? order.payments : [], payable);
+    })(),
     orderItems: await Promise.all((order.orderItems || []).map(async (item) => ({
       ...item,
       imagePathSnapshot: await resolveCafeImageUrl(context, item.imagePathSnapshot),

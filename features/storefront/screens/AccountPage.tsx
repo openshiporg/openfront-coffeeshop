@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { StorefrontShell } from "../components/StorefrontShell";
 import { CustomerAccountForm } from "../components/CustomerAccountForm";
 import { CustomerProfileForm } from "../components/CustomerProfileForm";
 import { customerSignOut, getCustomerAccount } from "../lib/data/account";
 import { lookupCafeLoyalty } from "../lib/data/loyalty";
+import { getCustomerCatering } from "../lib/data/catering";
+import { CATERING_STATUS_LABELS, cateringStatusDot, formatCateringEventTime } from "../lib/catering";
 import { getCoffeeStore } from "../lib/data/store";
 import { formatMoney } from "../lib/format";
 
@@ -52,6 +54,44 @@ async function RewardsPanel({ email }: { email: string }) {
         </dl>
       ) : (
         <p className="sf-muted mt-3 text-sm">No rewards yet</p>
+      )}
+    </section>
+  );
+}
+
+async function CateringPanel({ timeZone, currencyCode }: { timeZone?: string | null; currencyCode: string }) {
+  const requests = await getCustomerCatering().catch(() => null);
+  return (
+    <section className="sf-panel" aria-labelledby="catering-title">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="catering-title" className="sf-display text-xl">Catering</h2>
+        <Link href="/catering" className="sf-link text-sm">
+          New request
+          <ArrowUpRight className="size-4" aria-hidden="true" />
+        </Link>
+      </div>
+      {!requests ? (
+        <p className="sf-muted mt-3 text-sm">Catering unavailable</p>
+      ) : requests.length === 0 ? (
+        <p className="sf-muted mt-3 text-sm">No catering requests</p>
+      ) : (
+        <ul className="mt-3 grid gap-3">
+          {requests.map((request) => (
+            <li key={request.id} className="sf-panel-inset grid gap-1 !p-3 text-sm">
+              <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <span className="sf-status min-w-0">
+                  <span className={`sf-dot ${cateringStatusDot(request.status)}`} aria-hidden="true" />
+                  <strong className="sf-mono [overflow-wrap:anywhere]">{request.cateringNumber}</strong>
+                </span>
+                {request.quotedCents != null ? <span className="sf-mono font-semibold">{formatMoney(request.quotedCents, currencyCode)}</span> : null}
+              </span>
+              <span className="sf-muted">
+                {CATERING_STATUS_LABELS[request.status] || request.status.replaceAll("_", " ")}
+                {` · ${formatCateringEventTime(request.eventAt, timeZone)} · ${request.guestCount} ${request.guestCount === 1 ? "guest" : "guests"}`}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );
@@ -122,6 +162,7 @@ async function AccountContent({ searchParams }: { searchParams: Promise<{ after?
         </section>
         <div className="grid content-start gap-6">
           {account.user.email ? <RewardsPanel email={account.user.email} /> : null}
+          <CateringPanel timeZone={store?.timezone} currencyCode={store?.currencyCode || "USD"} />
           <CustomerProfileForm name={account.user.name} phone={account.user.phone} />
         </div>
       </div>

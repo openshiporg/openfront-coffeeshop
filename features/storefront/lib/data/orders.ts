@@ -60,6 +60,9 @@ export type CafePickupOrder = {
   secretKey?: string | null;
   specialInstructions?: string | null;
   paidAt?: string | null;
+  customerEmail?: string | null;
+  rewardsLinked?: boolean;
+  rewardsEligible?: boolean;
   orderItems?: CafeOrderItemSnapshot[];
 };
 

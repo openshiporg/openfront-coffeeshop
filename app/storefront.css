@@ -1674,3 +1674,46 @@ textarea.sf-field {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Catering ───────────────────────────────────────────── */
+
+.sf-catering {
+  max-width: 44rem;
+}
+
+.sf-catering-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .sf-catering-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sf-catering .sf-field {
+  min-width: 0;
+  width: 100%;
+}
+
+.sf-field-error {
+  color: var(--sf-danger-ink);
+  font-size: var(--sf-text-sm);
+  font-weight: 500;
+}
+
+.sf-catering-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+/* ── Rewards on the receipt ─────────────────────────────── */
+
+.sf-receipt-rewards {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sf-rule);
+}

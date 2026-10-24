@@ -1,6 +1,7 @@
 "use server";
 
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { cafeRequest } from "./cafeRequest";
 
 export type CafeLoyaltyAccount = {
   id: string;
@@ -74,7 +75,8 @@ export async function applyCafeLoyalty(input: {
   customerPhone?: string;
   redeemDrinkCredit?: boolean;
 }) {
-  const response = await keystoneClient<{ applyCafeLoyalty: CafeLoyaltyAccount }>(APPLY_LOYALTY_MUTATION, input, { cache: "no-store" });
-  if (!response.success) return { success: false as const, error: response.error };
+  // cafeRequest keeps refusals written for the customer (e.g. an email that already has a rewards account).
+  const response = await cafeRequest<{ applyCafeLoyalty: CafeLoyaltyAccount }>(APPLY_LOYALTY_MUTATION, input);
+  if (!response.success) return { success: false as const, error: response.error, customerMessage: response.customerMessage };
   return { success: true as const, account: response.data.applyCafeLoyalty };
 }

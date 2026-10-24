@@ -128,8 +128,22 @@ export const coffeeBoundaryTypeDefs = String.raw`
     currencyCode: String!
     specialInstructions: String
     paidAt: String
+    customerEmail: String
+    rewardsLinked: Boolean!
+    rewardsEligible: Boolean!
     orderItems: [CafeOrderItemProjection!]!
   }
+  type CafeCateringReceipt {
+    id: ID!
+    cateringNumber: String!
+    status: String!
+    eventAt: String
+    guestCount: Int!
+    deliveryAddress: String
+    quotedCents: Int
+    createdAt: String!
+  }
+
   type CafeOrderReceipt {
     id: ID!
     orderNumber: String!

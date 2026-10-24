@@ -4576,6 +4576,9 @@ type Mutation {
   updateCafeOrderStatus(orderId: ID!, status: String!): CoffeeOrderStatusReceipt
   updateCafeOrderItemStatus(orderItemId: ID!, status: String!, expectedStatus: String!, idempotencyKey: String!): CoffeeKdsCommandReceipt!
   updateCateringOrderStatus(cateringOrderId: ID!, status: String!): CateringOrder
+  requestCafeCatering(customerName: String!, customerEmail: String!, customerPhone: String, eventAt: String!, guestCount: Int!, deliveryAddress: String, notes: String, idempotencyKey: String!): CafeCateringReceipt!
+  adjustCoffeeLoyaltyAccount(accountId: ID!, pointsDelta: Int, drinkCreditsDelta: Int, status: String, tier: String, note: String!, idempotencyKey: String!): LoyaltyAccount
+  cancelCoffeePurchaseOrder(purchaseOrderId: ID!, reason: String): PurchaseOrder!
   updateSubscriptionStatus(subscriptionId: ID!, status: String!): Subscription
   updatePosOrderStatus(posOrderId: ID!, status: String!): PosOrder
   applyCafeLoyalty(orderId: ID!, secretKey: String, customerEmail: String!, customerName: String, customerPhone: String, redeemDrinkCredit: Boolean): CafeLoyaltyProjection
@@ -4736,6 +4739,7 @@ type Query {
   getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): CafeLoyaltyProjection
   getCoffeeKdsRecoveryScope: CoffeeKdsRecoveryScope
   getCoffeeCustomerOrders(after: ID): CoffeeCustomerOrderPage!
+  getCoffeeCustomerCatering: [CafeCateringReceipt!]!
   getCoffeeStore: CoffeeStorefrontSettings
   getCoffeeMenu(menuItemId: ID, search: String, categoryId: ID, after: String): CoffeeMenuProjection!
   getCoffeeOrderQueue(search: String, status: String, fulfillment: String, includeCompleted: Boolean = true, activeCursor: String, historyCursor: String): CoffeeOrderQueueProjection!
@@ -5183,7 +5187,21 @@ type CafeOrderProjection {
   currencyCode: String!
   specialInstructions: String
   paidAt: String
+  customerEmail: String
+  rewardsLinked: Boolean!
+  rewardsEligible: Boolean!
   orderItems: [CafeOrderItemProjection!]!
+}
+
+type CafeCateringReceipt {
+  id: ID!
+  cateringNumber: String!
+  status: String!
+  eventAt: String
+  guestCount: Int!
+  deliveryAddress: String
+  quotedCents: Int
+  createdAt: String!
 }
 
 type CafeOrderReceipt {
