@@ -16,6 +16,10 @@ export type CreatePaymentInput = {
   customerEmail?: string | null;
   customerName?: string | null;
   metadata?: PaymentAdapterData;
+  /** Absolute URL the hosted payment page returns to (the order receipt). */
+  returnUrl?: string | null;
+  /** Shown on the hosted payment page, e.g. "Order #CF-261024-1A2B3C4D". */
+  description?: string | null;
 };
 
 export type CapturePaymentInput = {

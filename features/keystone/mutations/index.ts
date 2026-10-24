@@ -84,6 +84,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
           quoteFingerprint: String
           externalCardReference: String
           externalCardApproved: Boolean
+          cashTenderedCents: Int
           items: [CafePickupOrderItemInput!]!
         ): CafeOrderReceipt!
 
@@ -154,6 +155,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
           secretKey: String
           paymentProvider: String!
           idempotencyKey: String
+          returnUrl: String
         ): CafePaymentSessionResult
 
         refundCafePayment(
@@ -408,6 +410,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         logoColor: String
         weeklyHours: JSON
         pickupLeadTimeMinutes: Int
+        onlinePayment: Boolean!
       }
 
       type CoffeeOnboardingResult {
@@ -441,6 +444,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         providerPaymentId: String
         status: String
         amount: Int
+        checkoutUrl: String
         error: String
       }
 

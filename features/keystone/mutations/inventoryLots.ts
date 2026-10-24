@@ -91,3 +91,27 @@ export async function consumeActiveInventoryLots(
   }
   return { consumedFromLots: stockNumber(requested - remaining), untrackedQuantity: stockNumber(remaining), allocations };
 }
+
+/** A physical count is the truth. When lot balances add up to more than the counter
+ * (an earlier untracked sale or adjustment), trim the oldest lots down to the counter
+ * first, so the count can then draw its shortfall normally. Returns the trimmed lots. */
+export async function trimLotsToStock(tx: InventoryLotClient, inventoryItemId: string, openingStock: unknown) {
+  const opening = storedStockUnits(openingStock);
+  const lots = (await tx.inventoryLot.findMany({
+    where: { inventoryItemId, quantityRemaining: { gt: 0 } },
+    orderBy: [{ expiresAt: "asc" }, { receivedAt: "asc" }, { id: "asc" }],
+    take: 1001,
+    select: { id: true, quantityRemaining: true },
+  })).map((lot) => ({ id: lot.id, units: storedStockUnits(lot.quantityRemaining) }));
+  let excess = lots.reduce((sum, lot) => sum + lot.units, 0) - opening;
+  const trimmed: Array<{ inventoryLotId: string; quantity: number }> = [];
+  for (const lot of lots) {
+    if (excess <= 0) break;
+    const cut = Math.min(lot.units, excess);
+    const left = lot.units - cut;
+    await tx.inventoryLot.update({ where: { id: lot.id }, data: { quantityRemaining: stockDecimal(left), ...(left === 0 ? { status: "consumed" } : {}) } });
+    trimmed.push({ inventoryLotId: lot.id, quantity: stockNumber(cut) });
+    excess -= cut;
+  }
+  return trimmed;
+}

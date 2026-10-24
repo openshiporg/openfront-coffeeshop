@@ -31,7 +31,24 @@ import { StockMovement } from './StockMovement';
 import { LoyaltyAccount } from './LoyaltyAccount';
 import { LoyaltyEvent } from './LoyaltyEvent';
 
-export const models = {
+import type { ListConfig, BaseListTypeInfo } from "@keystone-6/core/types";
+
+type QueryAccess = (args: { session?: unknown; context: unknown; listKey: string; operation: "query" }) => boolean | Promise<boolean>;
+
+/** Navigation follows read access: a list the session can't query is hidden from the sidebar
+ *  (and, through sidebarAccess, the platform page that shares its path). Explicit settings win. */
+function hiddenWithoutReadAccess<T extends Record<string, ListConfig<BaseListTypeInfo>>>(lists: T): T {
+  for (const [listKey, config] of Object.entries(lists)) {
+    const access = config.access as { operation?: { query?: QueryAccess } | QueryAccess } | undefined;
+    const operation = access?.operation;
+    const query = typeof operation === "function" ? operation : operation?.query;
+    if (!query || config.ui?.isHidden !== undefined) continue;
+    config.ui = { ...config.ui, isHidden: async ({ session, context }) => !(await query({ session, context, listKey, operation: "query" })) };
+  }
+  return lists;
+}
+
+export const models = hiddenWithoutReadAccess({
   User,
   Role,
   StoreSetting,
@@ -64,6 +81,6 @@ export const models = {
   InventoryLot,
   Ingredient,
   Recipe,
-};
+});
 
 export default models;

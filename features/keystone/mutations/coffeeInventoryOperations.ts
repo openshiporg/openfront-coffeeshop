@@ -6,7 +6,7 @@ import { validCoffeeTimezone } from "../lib/store-locale-policy";
 import { isBusinessDate, storeDayStart } from "../../platform/reports/lib/businessDate";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
-import { consumeActiveInventoryLots, planStockCount, stockCostCents, stockDecimal, stockNumber, stockUnits, storedStockUnits, STOCK_SCALE } from "./inventoryLots";
+import { consumeActiveInventoryLots, planStockCount, trimLotsToStock, stockCostCents, stockDecimal, stockNumber, stockUnits, storedStockUnits, STOCK_SCALE } from "./inventoryLots";
 
 type Context = {
   session?: Session;
@@ -513,6 +513,8 @@ export async function recordCoffeeStockCount(
     const unit = String(inventory.unit || "each");
     stockUnits(stockNumber(countedUnits), "Counted quantity", { allowZero: true, unit });
     const { previousUnits, deltaUnits } = planStockCount(inventory.currentStock, countedUnits);
+    // Lots that overstate the counter are trimmed first, so a lower count never stalls on reconciliation.
+    const trimmedLots = await trimLotsToStock(tx, inventoryItemId, inventory.currentStock);
 
     const reason = "Stock count";
     const movementIds: string[] = [];
@@ -534,7 +536,7 @@ export async function recordCoffeeStockCount(
       eventType: "inventory.counted",
       aggregateType: "inventory_item",
       aggregateId: inventoryItemId,
-      payload: { requestFingerprint, inventoryItemId, stockMovementIds: movementIds, previousQuantity: stockNumber(previousUnits), countedQuantity: stockNumber(countedUnits), adjustment: stockNumber(deltaUnits), unit, countedById: actorId },
+      payload: { requestFingerprint, inventoryItemId, stockMovementIds: movementIds, previousQuantity: stockNumber(previousUnits), countedQuantity: stockNumber(countedUnits), adjustment: stockNumber(deltaUnits), unit, countedById: actorId, trimmedLots },
     });
     const updated = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
     if (!updated) throw new Error("Inventory item not found");

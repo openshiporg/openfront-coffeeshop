@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { consumeActiveInventoryLots, planStockCount, stockDecimal, stockUnits } from "./inventoryLots";
+import { consumeActiveInventoryLots, planStockCount, stockDecimal, stockUnits, trimLotsToStock } from "./inventoryLots";
 
 function lotClient(lots: Array<{ id: string; quantityRemaining: string; status?: string }>) {
   const updates: Array<{ id: string; quantityRemaining: string }> = [];
@@ -38,4 +38,13 @@ test("a count shortfall draws from lots first, then untracked stock", async () =
   assert.deepEqual(result.allocations, [{ inventoryLotId: "lot-a", quantity: 2 }]);
   assert.equal(result.untrackedQuantity, 1);
   assert.deepEqual(updates, [{ id: "lot-a", quantityRemaining: "0.0000" }]);
+});
+
+test("a count first trims lots that exceed the counter, oldest first", async () => {
+  const { tx, updates } = lotClient([{ id: "old", quantityRemaining: "3.0000" }, { id: "new", quantityRemaining: "4.0000" }]);
+  const trimmed = await trimLotsToStock(tx, "item", "5.0000");
+  assert.deepEqual(trimmed, [{ inventoryLotId: "old", quantity: 2 }]);
+  assert.deepEqual(updates, [{ id: "old", quantityRemaining: "1.0000" }]);
+  const { tx: clean } = lotClient([{ id: "a", quantityRemaining: "2.0000" }]);
+  assert.deepEqual(await trimLotsToStock(clean, "item", "5.0000"), []);
 });

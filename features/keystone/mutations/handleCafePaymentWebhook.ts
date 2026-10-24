@@ -73,11 +73,9 @@ async function findPayment(tx: TransactionClient, providerCode: string, verified
   });
 }
 
-export default async function handleCafePaymentWebhook(_root: unknown, _args: Args, _context: Context) {
-  throw new Error("Online payment webhooks are unavailable until the payment integration is certified");
-}
-
-async function disabledHandleCafePaymentWebhook(_root: unknown, args: Args, context: Context) {
+/** Signed provider webhook. Settling a payment never skips admission: an open request stays open
+ *  (paid) until staff accept it for capacity and stock; an accepted one becomes paid. */
+export default async function handleCafePaymentWebhook(_root: unknown, args: Args, context: Context) {
   if (!isOnlinePaymentProviderCode(args.providerCode)) throw new Error("Webhook provider not found");
   if (!args.rawBody || Buffer.byteLength(args.rawBody, "utf8") > 1024 * 1024) throw new Error("Invalid webhook body");
 
@@ -126,23 +124,24 @@ async function disabledHandleCafePaymentWebhook(_root: unknown, args: Args, cont
 
     if (verified.status === "succeeded" && payment) {
       assertSettlementMatches(payment, provider.code, verified);
-      if (payment.order && TERMINAL_UNSETTLED_ORDER_STATUSES.has(payment.order.status || "")) {
-        throw new Error(`Cannot settle payment for ${payment.order.status} order`);
-      }
       if (payment.status !== "captured") {
-        if (payment.status !== "pending" && payment.status !== "authorized") {
-          throw new Error(`Cannot settle payment with status ${payment.status}`);
-        }
+        // Money arrived, so it is always recorded, even on a page that expired a moment earlier;
+        // a cancelled order keeps its status and the payment is flagged for a refund.
+        const cancelled = Boolean(payment.order && TERMINAL_UNSETTLED_ORDER_STATUSES.has(payment.order.status || ""));
         const settledAt = new Date();
         await tx.payment.update({
           where: { id: payment.id },
-          data: { status: "captured", processedAt: settledAt, failureMessage: "" },
+          data: {
+            status: "captured",
+            processedAt: settledAt,
+            failureMessage: cancelled ? "Paid after the order was cancelled; refund it" : "",
+            // Refunds go to the payment intent, not the hosted page.
+            ...(verified.providerPaymentId.startsWith("pi_") ? { providerPaymentId: verified.providerPaymentId } : {}),
+          },
         });
-        if (payment.orderId) {
-          await tx.cafeOrder.update({
-            where: { id: payment.orderId },
-            data: { status: "paid", paidAt: settledAt },
-          });
+        if (payment.orderId && !cancelled) {
+          const status = payment.order?.status === "accepted" ? "paid" : undefined;
+          await tx.cafeOrder.update({ where: { id: payment.orderId }, data: { paidAt: settledAt, ...(status ? { status } : {}) } });
         }
       }
     } else if (verified.status === "failed" && payment && (payment.status === "pending" || payment.status === "authorized")) {

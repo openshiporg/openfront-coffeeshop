@@ -36,7 +36,7 @@ export type CafeOrderQueueItem = {
   canRecordPayment: boolean;
   canApplyLoyalty: boolean;
   loyaltyApplied?: boolean | null;
-  refundablePayments: Array<{ id: string; status: string; method: string; amount: number; refundedAmount?: number | null }>;
+  refundablePayments: Array<{ id: string; status: string; method: string; provider?: string | null; amount: number; refundedAmount?: number | null }>;
   actions: Array<{ status: string; label: string; tone?: string }>;
 };
 

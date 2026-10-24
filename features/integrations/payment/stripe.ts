@@ -21,6 +21,9 @@ type StripeObject = Record<string, unknown> & {
   currency?: string;
   payment_intent?: string;
   status?: string;
+  payment_status?: string;
+  url?: string;
+  expires_at?: number;
   metadata?: Record<string, string>;
 };
 
@@ -95,11 +98,56 @@ export async function refundPaymentFunction(input: RefundPaymentInput): Promise<
 }
 
 export async function getPaymentStatusFunction(input: PaymentStatusInput): Promise<PaymentAdapterResult> {
+  // Hosted Checkout sessions (cs_…) report open / complete / expired and carry the page URL.
+  if (input.providerPaymentId.startsWith("cs_")) {
+    const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}`);
+    return { ...adapterResult(session), amount: session.amount_total, data: { ...session, checkoutUrl: typeof session.url === "string" ? session.url : null } };
+  }
   return adapterResult(await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}`));
 }
 
+function withParam(url: string, key: string, value: string) {
+  const next = new URL(url);
+  next.searchParams.set(key, value);
+  return next.toString();
+}
+
+/** Closes a hosted Checkout page so it can no longer be paid (the cafe took payment another way). */
+export async function expireCheckoutSessionFunction(input: PaymentStatusInput): Promise<PaymentAdapterResult> {
+  const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}/expire`, new URLSearchParams());
+  return adapterResult(session);
+}
+
+/** A Stripe-hosted Checkout page for one order: card details never touch the cafe's servers,
+ *  so no publishable key or client SDK is needed. The webhook settles the payment. */
 export async function generatePaymentLinkFunction(input: CreatePaymentInput): Promise<PaymentAdapterResult> {
-  return createPaymentFunction(input);
+  if (!input.returnUrl) throw new Error("A return URL is required for hosted payment");
+  const body = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][quantity]": "1",
+    "line_items[0][price_data][currency]": input.currencyCode.toLowerCase(),
+    "line_items[0][price_data][unit_amount]": String(input.amount),
+    "line_items[0][price_data][product_data][name]": input.description || "Order",
+    success_url: withParam(input.returnUrl, "payment", "done"),
+    cancel_url: withParam(input.returnUrl, "payment", "cancelled"),
+    client_reference_id: input.orderId,
+    "metadata[orderId]": input.orderId,
+    "payment_intent_data[metadata][orderId]": input.orderId,
+    // Sessions expire after 30 minutes (Stripe's minimum), so an abandoned page can't be paid hours later.
+    expires_at: String(Math.floor(Date.now() / 1000) + 30 * 60),
+    ...(input.paymentId ? { "metadata[paymentId]": input.paymentId, "payment_intent_data[metadata][paymentId]": input.paymentId } : {}),
+    ...(input.customerEmail ? { customer_email: input.customerEmail } : {}),
+  });
+  const session = await stripeRequest("/checkout/sessions", body, input.idempotencyKey);
+  return {
+    success: true,
+    provider: "pp_stripe_stripe",
+    providerPaymentId: session.id,
+    status: "pending",
+    amount: session.amount_total ?? input.amount,
+    currencyCode: session.currency,
+    data: { checkoutUrl: typeof session.url === "string" ? session.url : null, expiresAt: session.expires_at ?? null },
+  };
 }
 
 function verifyStripeSignature(rawBody: string, signatureHeader: string) {
@@ -126,9 +174,12 @@ function verifyStripeSignature(rawBody: string, signatureHeader: string) {
   if (!valid) throw new Error("Invalid Stripe webhook signature");
 }
 
-function classify(type: string): VerifiedPaymentWebhook["status"] {
-  if (type === "payment_intent.succeeded" || type === "checkout.session.completed") return "succeeded";
-  if (type === "payment_intent.payment_failed" || type === "payment_intent.canceled") return "failed";
+export function classifyStripeEvent(type: string, object: StripeObject = {}): VerifiedPaymentWebhook["status"] {
+  // A completed Checkout session is only money in hand once its payment_status is "paid";
+  // delayed methods settle later with async_payment_succeeded.
+  if (type === "checkout.session.completed") return object.payment_status === "paid" ? "succeeded" : "ignored";
+  if (type === "payment_intent.succeeded" || type === "checkout.session.async_payment_succeeded") return "succeeded";
+  if (type === "payment_intent.payment_failed" || type === "payment_intent.canceled" || type === "checkout.session.async_payment_failed" || type === "checkout.session.expired") return "failed";
   return "ignored";
 }
 
@@ -147,7 +198,7 @@ export async function handleWebhookFunction(input: PaymentWebhookInput): Promise
     providerPaymentId,
     paymentId: object.metadata?.paymentId || null,
     orderId: object.metadata?.orderId || null,
-    status: classify(eventType),
+    status: classifyStripeEvent(eventType, object),
     amount: object.amount_received ?? object.amount_total ?? object.amount ?? null,
     currencyCode: object.currency || null,
   };

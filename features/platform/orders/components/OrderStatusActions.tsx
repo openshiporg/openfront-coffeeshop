@@ -224,7 +224,7 @@ export function ApplyLoyaltyAction({ orderId, customerEmail, customerName }: { o
   );
 }
 
-type RefundablePayment = { id: string; method: string; amount: number };
+type RefundablePayment = { id: string; method: string; provider?: string | null; amount: number };
 type RefundIntent = { externalRefundReference: string };
 
 export function RefundPaymentActions({ payments }: { payments: RefundablePayment[] }) {
@@ -256,7 +256,8 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!target) return;
-    const isCard = target.method === "card";
+    // Online card payments refund through the processor; only external-terminal cards need a reference.
+    const isCard = target.method === "card" && target.provider !== "pp_stripe_stripe";
     const externalRefundReference = isCard ? reference.trim() : "";
     if (isCard && externalRefundReference.length < 4) {
       setError("Enter the refund receipt or reference from the external terminal.");
@@ -284,14 +285,15 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
     router.refresh();
   }
 
-  const isCard = target?.method === "card";
+  const isOnline = target?.provider === "pp_stripe_stripe";
+  const isCard = target?.method === "card" && !isOnline;
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {payments.map((payment) => (
           <Button key={payment.id} type="button" size="sm" variant="ghost" className="rounded-full text-destructive" onClick={() => open(payment)}>
-            {`${payment.method === "card" ? "Record external card refund" : "Refund cash"} · ${money(payment.amount)}`}
+            {`${payment.provider === "pp_stripe_stripe" ? "Refund to card" : payment.method === "card" ? "Record external card refund" : "Refund cash"} · ${money(payment.amount)}`}
           </Button>
         ))}
       </div>
@@ -299,9 +301,11 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
         <DialogContent>
           <form onSubmit={submit} className="space-y-4">
             <DialogHeader>
-              <DialogTitle>{isCard ? "Record external card refund" : "Refund cash"}</DialogTitle>
+              <DialogTitle>{isOnline ? "Refund to card" : isCard ? "Record external card refund" : "Refund cash"}</DialogTitle>
               <DialogDescription>
-                {isCard
+                {isOnline
+                  ? `Full refund of ${target ? money(target.amount) : ""} to the card paid online. This cannot be undone.`
+                  : isCard
                   ? `Refund ${target ? money(target.amount) : ""} on the external terminal first. Recording here does not move card funds.`
                   : `Full cash refund of ${target ? money(target.amount) : ""} from the open register. This cannot be undone.`}
               </DialogDescription>
@@ -330,7 +334,7 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
             <DialogFooter>
               <Button type="button" variant="outline" disabled={pending} onClick={() => setTarget(null)}>Cancel</Button>
               <Button type="submit" variant="destructive" disabled={pending}>
-                {pending ? "Recording…" : storedIntent ? "Retry refund" : isCard ? "Record refund" : "Refund cash"}
+                {pending ? "Recording…" : storedIntent ? "Retry refund" : isOnline ? "Refund to card" : isCard ? "Record refund" : "Refund cash"}
               </Button>
             </DialogFooter>
           </form>

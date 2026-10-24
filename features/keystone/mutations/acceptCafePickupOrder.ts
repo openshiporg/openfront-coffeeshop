@@ -179,6 +179,7 @@ export default async function acceptCafePickupOrder(_root: unknown, args: Args, 
         status: true,
         fulfillmentType: true,
         promisedAt: true,
+        paidAt: true,
       },
     });
     if (!order) throw new Error("Cafe order not found");
@@ -204,7 +205,9 @@ export default async function acceptCafePickupOrder(_root: unknown, args: Args, 
     });
     const requirements = await getCafeInventoryRequirements(tx, storeId, lines);
     await consumeCafeInventoryRequirements(tx, { storeId, orderId: String(order.id), orderNumber: String(order.orderNumber), requirements, createdById: actorId, reason: `Accepted pickup ${String(order.orderNumber)}` });
-    await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "accepted", promisedAt } });
+    // A request already paid online is admitted straight to paid; otherwise it waits for pay-at-pickup.
+    const paidOnline = order.paidAt != null;
+    await tx.cafeOrder.update({ where: { id: order.id }, data: { status: paidOnline ? "paid" : "accepted", promisedAt } });
     const inventoryRequirementEvidence: Array<Record<string, string | number>> = [];
     for (const requirement of requirements) {
       if (requirement.kind === "prep") inventoryRequirementEvidence.push({ kind: requirement.kind, prepBatchId: requirement.prepBatchId, quantity: requirement.quantity });

@@ -4572,7 +4572,7 @@ type Mutation {
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   registerCoffeeCustomer(name: String!, email: String!, password: String!): Boolean!
   updateCoffeeCustomerProfile(name: String!, phone: String): Boolean!
-  createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, idempotencyKey: String, receiptKey: String, registerShiftId: ID, tipCents: Int, quoteFingerprint: String, externalCardReference: String, externalCardApproved: Boolean, items: [CafePickupOrderItemInput!]!): CafeOrderReceipt!
+  createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, idempotencyKey: String, receiptKey: String, registerShiftId: ID, tipCents: Int, quoteFingerprint: String, externalCardReference: String, externalCardApproved: Boolean, cashTenderedCents: Int, items: [CafePickupOrderItemInput!]!): CafeOrderReceipt!
   updateCafeOrderStatus(orderId: ID!, status: String!): CoffeeOrderStatusReceipt
   updateCafeOrderItemStatus(orderItemId: ID!, status: String!, expectedStatus: String!, idempotencyKey: String!): CoffeeKdsCommandReceipt!
   updateCateringOrderStatus(cateringOrderId: ID!, status: String!): CateringOrder
@@ -4582,7 +4582,7 @@ type Mutation {
   updateSubscriptionStatus(subscriptionId: ID!, status: String!): Subscription
   updatePosOrderStatus(posOrderId: ID!, status: String!): PosOrder
   applyCafeLoyalty(orderId: ID!, secretKey: String, customerEmail: String!, customerName: String, customerPhone: String, redeemDrinkCredit: Boolean): CafeLoyaltyProjection
-  initiateCafePaymentSession(orderId: ID!, secretKey: String, paymentProvider: String!, idempotencyKey: String): CafePaymentSessionResult
+  initiateCafePaymentSession(orderId: ID!, secretKey: String, paymentProvider: String!, idempotencyKey: String, returnUrl: String): CafePaymentSessionResult
   refundCafePayment(paymentId: ID!, amount: Int, reason: String, externalRefundReference: String, idempotencyKey: String!): CoffeePaymentReceipt
   acceptCafePickupOrder(orderId: ID!, idempotencyKey: String!): CafeOrder
   recordCafePayment(orderId: ID!, method: String!, idempotencyKey: String!, externalCardReference: String, externalCardApproved: Boolean): CoffeePaymentReceipt
@@ -4985,6 +4985,7 @@ type CoffeeStorefrontSettings {
   logoColor: String
   weeklyHours: JSON
   pickupLeadTimeMinutes: Int
+  onlinePayment: Boolean!
 }
 
 type CoffeeOnboardingResult {
@@ -5018,6 +5019,7 @@ type CafePaymentSessionResult {
   providerPaymentId: String
   status: String
   amount: Int
+  checkoutUrl: String
   error: String
 }
 
@@ -5066,6 +5068,7 @@ type CoffeeMenuItemProjection {
   shortDescription: String
   price: Int!
   available: Boolean!
+  maxQuantity: Int
   availability: String
   featured: Boolean
   popular: Boolean
@@ -5258,6 +5261,7 @@ type CoffeeRefundablePaymentProjection {
   id: ID!
   status: String!
   method: String!
+  provider: String
   amount: Int!
   refundedAmount: Int
 }

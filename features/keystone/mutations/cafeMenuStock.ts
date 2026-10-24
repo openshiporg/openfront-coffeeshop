@@ -25,7 +25,9 @@ function positive(value: unknown) {
 export async function cafeMenuStock(client: StockClient, storeId: string, items: MenuStockItem[]) {
   const soldOut = new Set<string>();
   const modifiersOut = new Set<string>();
-  if (!items.length) return { soldOut, modifiersOut };
+  // Whole servings the base recipe (or sold-whole item) can still make; absent when not limited by tracked stock.
+  const servings = new Map<string, number>();
+  if (!items.length) return { soldOut, modifiersOut, servings };
   const recipes = await client.recipe.findMany({
     where: { storeId, menuItemId: { in: items.map((item) => item.id) }, status: "active", active: true },
     select: { id: true, menuItemId: true, yieldQuantity: true, from_Ingredient_recipe: { select: { quantity: true, optional: true, inventoryItemId: true } } },
@@ -69,6 +71,13 @@ export async function cafeMenuStock(client: StockClient, storeId: string, items:
       }
     }
     if (recipe && prepared.has(String(recipe.id))) continue;
+    let most = Infinity;
+    for (const [inventoryItemId, quantity] of needs) {
+      // An ingredient an option can substitute (whole for oat milk) doesn't cap the item on its own.
+      if (item.modifiers.some((modifier) => modifier.inventoryAction === "substitute" && modifier.replacesInventoryItemId === inventoryItemId)) continue;
+      if (quantity > 0) most = Math.min(most, Math.floor(((stock.get(inventoryItemId) ?? 0) + 1e-9) / quantity));
+    }
+    if (Number.isFinite(most)) servings.set(item.id, Math.max(0, most));
     for (const [inventoryItemId, quantity] of needs) {
       if (covers(inventoryItemId, quantity)) continue;
       // An in-stock substitute (oat for whole milk) keeps the item orderable.
@@ -79,5 +88,5 @@ export async function cafeMenuStock(client: StockClient, storeId: string, items:
       }
     }
   }
-  return { soldOut, modifiersOut };
+  return { soldOut, modifiersOut, servings };
 }

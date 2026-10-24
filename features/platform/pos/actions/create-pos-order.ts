@@ -25,7 +25,7 @@ const POS_REGISTER_QUERY = `
       operatorId storeId hasMore nextCursor
       categories { id name }
       items {
-        id name price availability category { id name }
+        id name price availability maxQuantity category { id name }
         modifiers { id name modifierGroup modifierGroupLabel priceAdjustment defaultSelected inStock required minSelections maxSelections }
       }
       openShift { ${SHIFT_FIELDS} }
@@ -85,6 +85,7 @@ const CREATE_POS_ORDER_MUTATION = `
     $quoteFingerprint: String!
     $externalCardReference: String
     $externalCardApproved: Boolean
+    $cashTenderedCents: Int
     $items: [CafePickupOrderItemInput!]!
   ) {
     createCafePickupOrder(
@@ -100,6 +101,7 @@ const CREATE_POS_ORDER_MUTATION = `
       quoteFingerprint: $quoteFingerprint
       externalCardReference: $externalCardReference
       externalCardApproved: $externalCardApproved
+      cashTenderedCents: $cashTenderedCents
       items: $items
     ) {
       id orderNumber status handoffCode total
@@ -128,6 +130,7 @@ export async function createPosOrderAction(input: PosSaleRequest & { idempotency
     quoteFingerprint: input.quoteFingerprint,
     externalCardReference: input.paymentMethod === "manual_card" ? input.externalCardReference : undefined,
     externalCardApproved: input.paymentMethod === "manual_card" ? input.externalCardApproved === true : undefined,
+    cashTenderedCents: input.paymentMethod === "cash" && typeof input.cashTenderedCents === "number" ? input.cashTenderedCents : undefined,
     items: input.items.map(lineInput),
   });
 

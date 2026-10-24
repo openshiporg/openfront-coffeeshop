@@ -299,8 +299,29 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
     }
   }
 
+  // Servings stock can still make, per menu item, as last read with the catalog.
+  const stockCaps = React.useRef(new Map<string, number>());
+  React.useEffect(() => {
+    for (const item of catalog.items) {
+      if (typeof item.maxQuantity === "number") stockCaps.current.set(item.id, item.maxQuantity);
+      else stockCaps.current.delete(item.id);
+    }
+  }, [catalog.items]);
+
+  /** How many more of a menu item the ticket can take; Infinity when stock doesn't limit it. */
+  function roomFor(menuItemId: string, lines: PosCartItem[], excludeCartId?: string) {
+    const cap = stockCaps.current.get(menuItemId);
+    if (cap === undefined) return Infinity;
+    return cap - lines.filter((line) => line.menuItemId === menuItemId && line.cartId !== excludeCartId).reduce((sum, line) => sum + line.quantity, 0);
+  }
+
   function addItem(item: PosMenuItem, selectedModifierIds?: string[]) {
     if (ticketLocked) return;
+    if (roomFor(item.id, cart) < 1) {
+      setNotice({ tone: "error", text: `Only ${stockCaps.current.get(item.id) ?? 0} ${item.name} left` });
+      setCustomizing(null);
+      return;
+    }
     const modifierIds = selectedModifierIds || defaultModifierIds(item);
     const modifiers = (item.modifiers || []).filter((modifier) => modifierIds.includes(modifier.id));
     setCart((current) => [
@@ -312,7 +333,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
 
   function updateQuantity(cartId: string, quantity: number) {
     if (ticketLocked) return;
-    setCart((current) => current.map((item) => item.cartId === cartId ? { ...item, quantity: Math.min(MAX_LINE_QUANTITY, Math.max(1, quantity)) } : item));
+    setCart((current) => current.map((item) => item.cartId === cartId ? { ...item, quantity: Math.min(MAX_LINE_QUANTITY, roomFor(item.menuItemId, current, cartId), Math.max(1, quantity)) } : item));
   }
 
   async function send(command: PosCommand): Promise<PosReceipt | { rejected: string } | null> {
@@ -427,7 +448,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
   const movementParse = parseMoneyInput(movementAmount, { allowZero: false });
   const effectiveMethod: PosPaymentMethod = quote?.total === 0 ? "cash" : paymentMethod;
   const cardReady = effectiveMethod !== "manual_card" || (TERMINAL_REFERENCE.test(cardReference.trim()) && !!quote && approvedFingerprint === quote.quoteFingerprint);
-  // Cash received is display-only: the sale still records the exact total. Empty means exact.
+  // Cash received is recorded on the register receipt with the change due; the sale amount is the exact total. Empty means exact.
   const takesCash = effectiveMethod === "cash" && !!quote && quote.total > 0;
   const tenderedParse = parseMoneyInput(cashTendered);
   const tenderedCents = tenderedParse.kind === "valid" ? tenderedParse.cents : null;
@@ -453,6 +474,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
         tipCents: quote.tip,
         quoteFingerprint: quote.quoteFingerprint,
         ...(isCard ? { externalCardReference: cardReference.trim(), externalCardApproved: true } : {}),
+        ...(takesCash && tenderedCents !== null ? { cashTenderedCents: tenderedCents } : {}),
         items: cart.map((line) => ({ menuItemId: line.menuItemId, quantity: line.quantity, modifierIds: line.modifierIds, notes: line.notes })),
       },
     });
@@ -647,7 +669,9 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
                     </span>
                     <span className="flex items-end justify-between gap-2">
                       <span className="text-sm font-semibold tabular-nums">{formatMoney(item.price)}</span>
-                      {soldOut ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Sold out</span> : item.modifiers?.length ? <span className="text-xs text-muted-foreground">Options</span> : null}
+                      {soldOut ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Sold out</span>
+                        : typeof item.maxQuantity === "number" && item.maxQuantity <= 10 ? <span className="text-xs font-medium tabular-nums text-amber-700 dark:text-amber-400">{item.maxQuantity} left</span>
+                        : item.modifiers?.length ? <span className="text-xs text-muted-foreground">Options</span> : null}
                     </span>
                     {inTicket > 0 && <span className="absolute right-2 top-2 grid min-w-6 place-items-center rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-primary-foreground" aria-label={`${inTicket} on ticket`}>{inTicket}</span>}
                   </button>
@@ -699,7 +723,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
                           <div className="inline-flex items-center rounded-full bg-muted p-0.5 ring-1 ring-inset ring-foreground/5">
                             <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full" disabled={ticketLocked || item.quantity <= 1} aria-label={`Decrease quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity - 1)}><Minus aria-hidden /></Button>
                             <span className="w-7 text-center text-sm font-semibold tabular-nums" aria-label={`Quantity of ${lineName}`}>{item.quantity}</span>
-                            <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full" disabled={ticketLocked || item.quantity >= MAX_LINE_QUANTITY} aria-label={`Increase quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus aria-hidden /></Button>
+                            <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full" disabled={ticketLocked || item.quantity >= MAX_LINE_QUANTITY || item.quantity >= roomFor(item.menuItemId, cart, item.cartId)} aria-label={`Increase quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus aria-hidden /></Button>
                           </div>
                           <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-muted-foreground hover:text-destructive" disabled={ticketLocked} aria-label={`Remove ${lineName}`} onClick={() => setCart((current) => current.filter((line) => line.cartId !== item.cartId))}>
                             <Trash2 aria-hidden />

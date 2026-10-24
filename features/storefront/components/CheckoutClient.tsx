@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { createCafePickupOrder, quoteCafePickupOrder, type CafeOrderQuote, type PickupOrderRequest } from "@/features/storefront/lib/data/orders";
+import { startOnlinePayment } from "@/features/storefront/lib/data/payment";
 import { formatMoney } from "@/features/storefront/lib/format";
 import { formatPickupTime, groupPickupSlots, pickupSlots } from "@/features/storefront/lib/hours";
 import type { CheckoutCustomer } from "@/features/storefront/lib/data/account";
@@ -46,8 +47,9 @@ function slotTime(slot: Date, timeZone: string | null | undefined) {
   }
 }
 
-export function CheckoutClient({ customer = null, hours = null }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null }) {
+export function CheckoutClient({ customer = null, hours = null, onlinePayment = false }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null; onlinePayment?: boolean }) {
   const router = useRouter();
+  const [payOnline, setPayOnline] = React.useState(false);
   const [lines, setLines] = React.useState<CartLine[]>([]);
   const [cartLoaded, setCartLoaded] = React.useState(false);
   const [customerName, setCustomerName] = React.useState(customer?.name || "");
@@ -163,6 +165,16 @@ export function CheckoutClient({ customer = null, hours = null }: { customer?: C
     }
     removeCartLines(current.cartIds);
     if (storage) clearCheckoutAttempt(storage);
+    if (onlinePayment && payOnline) {
+      // The order exists either way; if the card page can't open, the receipt offers it again.
+      void startOnlinePayment(orderId, current.receiptKey, crypto.randomUUID())
+        .then((result) => {
+          if (result.checkoutUrl) window.location.assign(result.checkoutUrl);
+          else router.push(receiptHref(orderId, current.receiptKey));
+        })
+        .catch(() => router.push(receiptHref(orderId, current.receiptKey)));
+      return;
+    }
     router.push(receiptHref(orderId, current.receiptKey));
   }
 
@@ -350,7 +362,7 @@ export function CheckoutClient({ customer = null, hours = null }: { customer?: C
                     <dd className="sf-mono">{quote ? formatMoney(quote.total, currency) : "—"}</dd>
                   </div>
                 </dl>
-                <p className="sf-muted mt-3 text-sm">Pay at pickup</p>
+                <p className="sf-muted mt-3 text-sm">{onlinePayment && payOnline ? "Pay online by card" : "Pay at pickup"}</p>
               </div>
             </>
           ) : null}
@@ -420,6 +432,15 @@ export function CheckoutClient({ customer = null, hours = null }: { customer?: C
                   </select>
                 </label>
               ) : null}
+              {onlinePayment ? (
+                <div className="sf-form-label">
+                  <span id="checkout-payment-label">Payment</span>
+                  <div className="sf-track sf-track-fill sf-segment w-full" role="group" aria-labelledby="checkout-payment-label">
+                    <button type="button" className="sf-track-item" aria-pressed={!payOnline} disabled={frozen} onClick={() => setPayOnline(false)}>Pay at pickup</button>
+                    <button type="button" className="sf-track-item" aria-pressed={payOnline} disabled={frozen} onClick={() => setPayOnline(true)}>Pay online</button>
+                  </div>
+                </div>
+              ) : null}
               <label htmlFor="checkout-notes" className="sf-form-label">
                 <span>Order notes <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
                 <textarea id="checkout-notes" name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} className="sf-field" />
@@ -434,7 +455,7 @@ export function CheckoutClient({ customer = null, hours = null }: { customer?: C
               >
                 {!cartLoaded ? "Loading cart…" : !lines.length ? "Add an item first" : pending ? "Sending…" : quotePending ? "Pricing…" : quote ? (
                   <>
-                    <span>Place pickup order</span>
+                    <span>{onlinePayment && payOnline ? "Place order and pay" : "Place pickup order"}</span>
                     <span className="sf-mono opacity-80">{formatMoney(quote.total, currency)}</span>
                   </>
                 ) : "Price unavailable"}

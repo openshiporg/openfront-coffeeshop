@@ -20,6 +20,8 @@ export const Role = list({
     },
   },
   ui: {
+    // As in E-commerce: only role managers see Roles in navigation.
+    isHidden: args => !permissions.canManageRoles(args),
     hideCreate: args => !permissions.canManageRoles(args),
     hideDelete: args => !permissions.canManageRoles(args),
     listView: { initialColumns: ['name', 'assignedTo'] },

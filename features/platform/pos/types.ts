@@ -18,6 +18,7 @@ export type PosMenuItem = {
   name: string;
   price: number;
   availability?: string | null;
+  maxQuantity?: number | null;
   category?: { id: string | null; name: string | null } | null;
   modifiers?: PosMenuModifier[] | null;
 };
@@ -94,6 +95,7 @@ export type PosSaleRequest = {
   quoteFingerprint: string;
   externalCardReference?: string;
   externalCardApproved?: boolean;
+  cashTenderedCents?: number;
   items: Array<{ menuItemId: string; quantity: number; modifierIds: string[]; notes?: string }>;
 };
 export type PosOpenShiftRequest = { registerName: string; openingCashCents: number };

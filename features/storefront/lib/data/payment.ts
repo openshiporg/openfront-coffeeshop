@@ -1,38 +1,33 @@
 "use server";
 
-import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-
-type CafePaymentSession = {
-  success: boolean;
-  paymentId?: string | null;
-  provider?: string | null;
-  providerPaymentId?: string | null;
-  status?: string | null;
-  amount?: number | null;
-  error?: string | null;
-};
+import { getBaseUrl } from "@/features/dashboard/lib/getBaseUrl";
+import { cafeRequest } from "./cafeRequest";
 
 const INITIATE_CAFE_PAYMENT_SESSION = `
-  mutation InitiateCafePaymentSession($orderId: ID!, $secretKey: String, $paymentProvider: String!) {
-    initiateCafePaymentSession(orderId: $orderId, secretKey: $secretKey, paymentProvider: $paymentProvider) {
+  mutation InitiateCafePaymentSession($orderId: ID!, $secretKey: String, $paymentProvider: String!, $idempotencyKey: String, $returnUrl: String) {
+    initiateCafePaymentSession(orderId: $orderId, secretKey: $secretKey, paymentProvider: $paymentProvider, idempotencyKey: $idempotencyKey, returnUrl: $returnUrl) {
       success
       paymentId
-      provider
-      providerPaymentId
       status
-      amount
-      error
+      checkoutUrl
     }
   }
 `;
 
-export async function initiateCafePaymentSession(orderId: string, secretKey: string | undefined, paymentProvider: string) {
-  const response = await keystoneClient<{ initiateCafePaymentSession: CafePaymentSession }>(
+/** Starts (or resumes) the card payment page for an order and returns where to send the customer. */
+export async function startOnlinePayment(orderId: string, receiptKey: string | undefined, idempotencyKey: string) {
+  const base = await getBaseUrl();
+  if (!base) return { checkoutUrl: null, error: "Online payment couldn't start. Try again or pay at pickup." };
+  const returnUrl = new URL("/order-confirmed", base);
+  returnUrl.searchParams.set("id", orderId);
+  if (receiptKey) returnUrl.searchParams.set("key", receiptKey);
+  const response = await cafeRequest<{ initiateCafePaymentSession: { success: boolean; status?: string | null; checkoutUrl?: string | null } | null }>(
     INITIATE_CAFE_PAYMENT_SESSION,
-    { orderId, secretKey, paymentProvider },
-    { cache: "no-store" }
+    { orderId, secretKey: receiptKey || null, paymentProvider: "stripe", idempotencyKey, returnUrl: returnUrl.toString() },
   );
-
-  if (!response.success) return { success: false as const, error: response.error };
-  return { success: true as const, session: response.data.initiateCafePaymentSession };
+  if (!response.success) return { checkoutUrl: null, error: response.customerMessage || "Online payment couldn't start. Try again or pay at pickup." };
+  const session = response.data.initiateCafePaymentSession;
+  if (session?.status === "processing") return { checkoutUrl: null, error: null, processing: true };
+  const checkoutUrl = session?.checkoutUrl && /^https:\/\/checkout\.stripe\.com\//.test(session.checkoutUrl) ? session.checkoutUrl : null;
+  return { checkoutUrl, error: checkoutUrl ? null : "Online payment couldn't start. Try again or pay at pickup." };
 }

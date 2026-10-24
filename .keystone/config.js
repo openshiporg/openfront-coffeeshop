@@ -990,6 +990,8 @@ var init_Role = __esm({
         }
       },
       ui: {
+        // As in E-commerce: only role managers see Roles in navigation.
+        isHidden: (args) => !permissions.canManageRoles(args),
         hideCreate: (args) => !permissions.canManageRoles(args),
         hideDelete: (args) => !permissions.canManageRoles(args),
         listView: { initialColumns: ["name", "assignedTo"] },
@@ -2365,6 +2367,16 @@ var init_LoyaltyEvent = __esm({
 });
 
 // features/keystone/models/index.ts
+function hiddenWithoutReadAccess(lists) {
+  for (const [listKey, config2] of Object.entries(lists)) {
+    const access = config2.access;
+    const operation = access?.operation;
+    const query5 = typeof operation === "function" ? operation : operation?.query;
+    if (!query5 || config2.ui?.isHidden !== void 0) continue;
+    config2.ui = { ...config2.ui, isHidden: async ({ session, context }) => !await query5({ session, context, listKey, operation: "query" }) };
+  }
+  return lists;
+}
 var models;
 var init_models = __esm({
   "features/keystone/models/index.ts"() {
@@ -2401,7 +2413,7 @@ var init_models = __esm({
     init_StockMovement();
     init_LoyaltyAccount();
     init_LoyaltyEvent();
-    models = {
+    models = hiddenWithoutReadAccess({
       User,
       Role,
       StoreSetting,
@@ -2434,7 +2446,7 @@ var init_models = __esm({
       InventoryLot,
       Ingredient,
       Recipe
-    };
+    });
   }
 });
 
@@ -2555,6 +2567,7 @@ var init_coffeeBoundarySchema = __esm({
     shortDescription: String
     price: Int!
     available: Boolean!
+    maxQuantity: Int
     availability: String
     featured: Boolean
     popular: Boolean
@@ -2723,6 +2736,7 @@ var init_coffeeBoundarySchema = __esm({
     id: ID!
     status: String!
     method: String!
+    provider: String
     amount: Int!
     refundedAmount: Int
   }
@@ -3019,13 +3033,13 @@ function assertCoffeeStoreOwnership(storeId, expectedStoreId, label) {
 async function enqueueCoffeeDomainEvent(tx, input) {
   const canonicalPayload = canonicalCoffeeEventJson(input.payload);
   if (Buffer.byteLength(canonicalPayload) > MAX_PAYLOAD_BYTES) throw new Error("Coffee domain event payload is too large");
-  const payloadHash = coffeeEventPayloadHash(input.payload);
+  const payloadHash2 = coffeeEventPayloadHash(input.payload);
   await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-event:${input.eventKey}`);
   const consumer = input.consumer || DEFAULT_CONSUMER;
   const deliveryKey = `${consumer}:${input.eventKey}`;
   const existing = await tx.coffeeDomainEvent.findUnique({ where: { eventKey: input.eventKey } });
   if (existing) {
-    if (existing.payloadHash !== payloadHash || existing.eventType !== input.eventType || existing.storeId !== input.storeId || existing.aggregateType !== input.aggregateType || existing.aggregateId !== input.aggregateId || existing.schemaVersion !== OUTBOX_SCHEMA_VERSION) {
+    if (existing.payloadHash !== payloadHash2 || existing.eventType !== input.eventType || existing.storeId !== input.storeId || existing.aggregateType !== input.aggregateType || existing.aggregateId !== input.aggregateId || existing.schemaVersion !== OUTBOX_SCHEMA_VERSION) {
       throw new Error("Coffee event idempotency key was reused with a different snapshot");
     }
     const delivery = await tx.coffeeOutboxDelivery.findUnique({ where: { deliveryKey } });
@@ -3041,7 +3055,7 @@ async function enqueueCoffeeDomainEvent(tx, input) {
       aggregateType: input.aggregateType,
       aggregateId: input.aggregateId,
       payload: canonicalize(input.payload),
-      payloadHash,
+      payloadHash: payloadHash2,
       occurredAt: input.occurredAt || /* @__PURE__ */ new Date(),
       storeId: input.storeId
     }
@@ -3490,6 +3504,26 @@ async function consumeActiveInventoryLots(tx, inventoryItemId, requestedQuantity
   }
   return { consumedFromLots: stockNumber(requested - remaining), untrackedQuantity: stockNumber(remaining), allocations };
 }
+async function trimLotsToStock(tx, inventoryItemId, openingStock) {
+  const opening = storedStockUnits(openingStock);
+  const lots = (await tx.inventoryLot.findMany({
+    where: { inventoryItemId, quantityRemaining: { gt: 0 } },
+    orderBy: [{ expiresAt: "asc" }, { receivedAt: "asc" }, { id: "asc" }],
+    take: 1001,
+    select: { id: true, quantityRemaining: true }
+  })).map((lot) => ({ id: lot.id, units: storedStockUnits(lot.quantityRemaining) }));
+  let excess = lots.reduce((sum, lot) => sum + lot.units, 0) - opening;
+  const trimmed = [];
+  for (const lot of lots) {
+    if (excess <= 0) break;
+    const cut = Math.min(lot.units, excess);
+    const left = lot.units - cut;
+    await tx.inventoryLot.update({ where: { id: lot.id }, data: { quantityRemaining: stockDecimal(left), ...left === 0 ? { status: "consumed" } : {} } });
+    trimmed.push({ inventoryLotId: lot.id, quantity: stockNumber(cut) });
+    excess -= cut;
+  }
+  return trimmed;
+}
 var STOCK_SCALE, MAX_STOCK_UNITS;
 var init_inventoryLots = __esm({
   "features/keystone/mutations/inventoryLots.ts"() {
@@ -3706,7 +3740,8 @@ function positive2(value) {
 async function cafeMenuStock(client, storeId, items) {
   const soldOut = /* @__PURE__ */ new Set();
   const modifiersOut = /* @__PURE__ */ new Set();
-  if (!items.length) return { soldOut, modifiersOut };
+  const servings = /* @__PURE__ */ new Map();
+  if (!items.length) return { soldOut, modifiersOut, servings };
   const recipes = await client.recipe.findMany({
     where: { storeId, menuItemId: { in: items.map((item) => item.id) }, status: "active", active: true },
     select: { id: true, menuItemId: true, yieldQuantity: true, from_Ingredient_recipe: { select: { quantity: true, optional: true, inventoryItemId: true } } }
@@ -3749,6 +3784,12 @@ async function cafeMenuStock(client, storeId, items) {
       }
     }
     if (recipe && prepared.has(String(recipe.id))) continue;
+    let most = Infinity;
+    for (const [inventoryItemId, quantity] of needs) {
+      if (item.modifiers.some((modifier) => modifier.inventoryAction === "substitute" && modifier.replacesInventoryItemId === inventoryItemId)) continue;
+      if (quantity > 0) most = Math.min(most, Math.floor(((stock.get(inventoryItemId) ?? 0) + 1e-9) / quantity));
+    }
+    if (Number.isFinite(most)) servings.set(item.id, Math.max(0, most));
     for (const [inventoryItemId, quantity] of needs) {
       if (covers(inventoryItemId, quantity)) continue;
       const substitute = item.modifiers.some((modifier) => modifier.inventoryAction === "substitute" && modifier.replacesInventoryItemId === inventoryItemId && !modifiersOut.has(modifier.id));
@@ -3758,7 +3799,7 @@ async function cafeMenuStock(client, storeId, items) {
       }
     }
   }
-  return { soldOut, modifiersOut };
+  return { soldOut, modifiersOut, servings };
 }
 var MENU_STOCK_ITEM_SELECT, MENU_STOCK_MODIFIER_SELECT;
 var init_cafeMenuStock = __esm({
@@ -4474,7 +4515,7 @@ async function getCoffeeOrderQueue(_root, args, context) {
     createdAt: true,
     loyaltyAccountId: true,
     orderItems: { select: { id: true, quantity: true, itemNameSnapshot: true, customizationsSummary: true, barStatus: true, station: true } },
-    payments: { where: { status: { in: ["captured", "pending", "authorized", "refunded"] } }, select: { id: true, status: true, method: true, amount: true, refundedAmount: true, refundIdempotencyKey: true } }
+    payments: { where: { status: { in: ["captured", "pending", "authorized", "refunded"] } }, select: { id: true, status: true, method: true, provider: true, amount: true, refundedAmount: true, refundIdempotencyKey: true } }
   };
   const [activeTickets, historyTickets, groupedCounts] = await Promise.all([
     activeStatuses.length ? context.prisma.cafeOrder.findMany({ where: activePageWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE + 1, select: orderSelect }) : Promise.resolve([]),
@@ -4532,12 +4573,13 @@ async function getCoffeeOrderQueue(_root, args, context) {
         orderItems: Array.isArray(ticket.orderItems) ? ticket.orderItems : [],
         // Payment state is a workflow fact for order/payment staff; tender details stay with payment managers.
         paymentState: canSeePaymentState ? paymentState : null,
-        canRecordPayment: canManageOrders && canManagePayments && ["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(status) && !activeEvidence.length,
+        // An unfinished online page doesn't block counter payment: recording it closes the page first.
+        canRecordPayment: canManageOrders && canManagePayments && ["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(status) && !activeEvidence.some((payment) => payment.status === "captured"),
         // Loyalty staff get only an eligibility bit, not payment details.
         canApplyLoyalty: canManageLoyalty && settled && !loyaltyAccountId && Boolean(ticket.customerEmail) && !["cancelled", "refunded"].includes(status),
         loyaltyApplied: canManageLoyalty ? Boolean(loyaltyAccountId) : null,
         refundablePayments: canManageOrders && canManagePayments ? activeEvidence.filter((payment) => payment.status === "captured" && !payment.refundIdempotencyKey) : [],
-        actions: canManageOrders ? statusActions(CAFE_ORDER_TRANSITIONS, status, ["refunded", "paid", "ready", ...!settled ? ["completed"] : [], ...activeEvidence.length ? ["cancelled"] : []]) : []
+        actions: canManageOrders ? statusActions(CAFE_ORDER_TRANSITIONS, status, ["refunded", "paid", "ready", ...!settled ? ["completed"] : [], ...activeEvidence.some((payment) => payment.status === "captured") ? ["cancelled"] : []]) : []
       };
     })
   };
@@ -4749,6 +4791,8 @@ async function getCoffeePosRegister(_root, args, context) {
     ...item,
     inventoryItemId: void 0,
     availability: stock.soldOut.has(item.id) ? "sold_out" : "now",
+    // Staff-only: the register caps a ticket at the servings stock can still make.
+    maxQuantity: stock.servings.get(item.id) ?? null,
     modifiers: item.modifiers.map((modifier) => ({ ...modifier, inStock: modifier.inStock !== false && !stock.modifiersOut.has(modifier.id) }))
   }));
   return { operatorId: String(context.session?.itemId || ""), storeId: store.id, items, hasMore, nextCursor, categories, openShift: shifts[0] || null };
@@ -5186,6 +5230,7 @@ async function createOrderTransaction({
         expectedCashCents: Number(registerShift.openingCashCents || 0) + cashSalesCents - Number(registerShift.cashRefundsCents || 0) + Number(registerShift.payInsCents || 0) - Number(registerShift.payOutsCents || 0)
       }
     });
+    if (args.cashTenderedCents != null && args.cashTenderedCents < total) throw cafeCustomerError("Cash received is less than the total");
     await tx.posOrder.create({
       data: {
         receiptNumber: `POS-${orderNumber}`,
@@ -5201,7 +5246,7 @@ async function createOrderTransaction({
         totalCents: total,
         closedAt: now,
         metadata: {
-          tender: !tenderRequired ? { method: "none", reason: "zero_total" } : paymentMethod === "cash" ? { method: "cash", evidence: "cash_received_at_register" } : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: session?.itemId || null, attestedAt: now.toISOString(), providerVerified: false },
+          tender: !tenderRequired ? { method: "none", reason: "zero_total" } : paymentMethod === "cash" ? { method: "cash", evidence: "cash_received_at_register", ...args.cashTenderedCents != null ? { tenderedCents: args.cashTenderedCents, changeCents: args.cashTenderedCents - total } : {} } : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: session?.itemId || null, attestedAt: now.toISOString(), providerVerified: false },
           quoteFingerprint: args.quoteFingerprint || null
         }
       }
@@ -5263,6 +5308,9 @@ async function createCafePickupOrder(_root, args, context) {
     if (args.externalCardApproved !== true) throw new Error("Confirm the card terminal approved this exact amount before recording the card payment");
     if (!/^[A-Za-z0-9#._:\/-]{4,64}$/.test(externalCardReference)) throw new Error("Enter the terminal approval or reference code (4-64 letters, numbers or #._:/-)");
   } else if (externalCardReference || args.externalCardApproved) throw new Error("A terminal reference applies only to an external card payment");
+  if (args.cashTenderedCents != null && (paymentMethod !== "cash" || !Number.isSafeInteger(args.cashTenderedCents) || args.cashTenderedCents < 0 || args.cashTenderedCents > 1e8)) {
+    throw cafeCustomerError("Cash received applies only to a cash sale, as a whole number of cents");
+  }
   if (!isStaff && tipCents > 0) throw new Error("Only staff may add a counter tip");
   if (!isStaff && (paymentMethod === "cash" || paymentMethod === "manual_card")) throw new Error("Immediate-tender payment methods are only available to staff");
   if (!isStaff && orderSource !== "online") throw new Error("Only staff may create non-online orders");
@@ -5296,6 +5344,7 @@ async function createCafePickupOrder(_root, args, context) {
     tipCents,
     ...quoteFingerprint ? { quoteFingerprint } : {},
     ...paymentMethod === "manual_card" ? { externalCardReference, externalCardApproved: true } : {},
+    ...args.cashTenderedCents != null ? { cashTenderedCents: args.cashTenderedCents } : {},
     items: items.map((item) => ({
       menuItemId: item.menuItemId,
       quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
@@ -5352,6 +5401,200 @@ var init_createCafePickupOrder = __esm({
   }
 });
 
+// features/integrations/payment/stripe.ts
+var stripe_exports = {};
+__export(stripe_exports, {
+  capturePaymentFunction: () => capturePaymentFunction,
+  classifyStripeEvent: () => classifyStripeEvent,
+  createPaymentFunction: () => createPaymentFunction,
+  expireCheckoutSessionFunction: () => expireCheckoutSessionFunction,
+  generatePaymentLinkFunction: () => generatePaymentLinkFunction,
+  getPaymentStatusFunction: () => getPaymentStatusFunction,
+  handleWebhookFunction: () => handleWebhookFunction,
+  refundPaymentFunction: () => refundPaymentFunction
+});
+function secretKey() {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) throw new Error("Stripe is not configured");
+  return secret;
+}
+async function stripeRequest(path, body, idempotencyKey) {
+  const response = await fetch(`${STRIPE_API}${path}`, {
+    method: body ? "POST" : "GET",
+    headers: {
+      Authorization: `Bearer ${secretKey()}`,
+      ...body ? { "Content-Type": "application/x-www-form-urlencoded" } : {},
+      ...idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}
+    },
+    body,
+    signal: AbortSignal.timeout(1e4)
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error?.message || "Stripe request failed");
+  return payload;
+}
+function adapterResult(payload, fallbackAmount) {
+  return {
+    success: true,
+    provider: "pp_stripe_stripe",
+    providerPaymentId: payload.id,
+    status: payload.status,
+    amount: payload.amount_received ?? payload.amount ?? fallbackAmount,
+    currencyCode: payload.currency,
+    data: payload
+  };
+}
+async function createPaymentFunction(input) {
+  const body = new URLSearchParams({
+    amount: String(input.amount),
+    currency: input.currencyCode.toLowerCase(),
+    "automatic_payment_methods[enabled]": "true",
+    "metadata[orderId]": input.orderId,
+    ...input.paymentId ? { "metadata[paymentId]": input.paymentId } : {},
+    ...input.customerEmail ? { receipt_email: input.customerEmail } : {}
+  });
+  const payload = await stripeRequest("/payment_intents", body, input.idempotencyKey);
+  return adapterResult(payload, input.amount);
+}
+async function capturePaymentFunction(input) {
+  const payload = await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}/capture`, new URLSearchParams());
+  return adapterResult(payload, input.amount);
+}
+async function refundPaymentFunction(input) {
+  const payload = await stripeRequest("/refunds", new URLSearchParams({
+    payment_intent: input.providerPaymentId,
+    ...input.amount == null ? {} : { amount: String(input.amount) },
+    ...input.reason ? { "metadata[reason]": input.reason } : {}
+  }), input.idempotencyKey);
+  return {
+    ...adapterResult(payload, input.amount),
+    status: payload.status === "succeeded" ? "refunded" : payload.status
+  };
+}
+async function getPaymentStatusFunction(input) {
+  if (input.providerPaymentId.startsWith("cs_")) {
+    const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}`);
+    return { ...adapterResult(session), amount: session.amount_total, data: { ...session, checkoutUrl: typeof session.url === "string" ? session.url : null } };
+  }
+  return adapterResult(await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}`));
+}
+function withParam(url, key, value) {
+  const next = new URL(url);
+  next.searchParams.set(key, value);
+  return next.toString();
+}
+async function expireCheckoutSessionFunction(input) {
+  const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}/expire`, new URLSearchParams());
+  return adapterResult(session);
+}
+async function generatePaymentLinkFunction(input) {
+  if (!input.returnUrl) throw new Error("A return URL is required for hosted payment");
+  const body = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][quantity]": "1",
+    "line_items[0][price_data][currency]": input.currencyCode.toLowerCase(),
+    "line_items[0][price_data][unit_amount]": String(input.amount),
+    "line_items[0][price_data][product_data][name]": input.description || "Order",
+    success_url: withParam(input.returnUrl, "payment", "done"),
+    cancel_url: withParam(input.returnUrl, "payment", "cancelled"),
+    client_reference_id: input.orderId,
+    "metadata[orderId]": input.orderId,
+    "payment_intent_data[metadata][orderId]": input.orderId,
+    // Sessions expire after 30 minutes (Stripe's minimum), so an abandoned page can't be paid hours later.
+    expires_at: String(Math.floor(Date.now() / 1e3) + 30 * 60),
+    ...input.paymentId ? { "metadata[paymentId]": input.paymentId, "payment_intent_data[metadata][paymentId]": input.paymentId } : {},
+    ...input.customerEmail ? { customer_email: input.customerEmail } : {}
+  });
+  const session = await stripeRequest("/checkout/sessions", body, input.idempotencyKey);
+  return {
+    success: true,
+    provider: "pp_stripe_stripe",
+    providerPaymentId: session.id,
+    status: "pending",
+    amount: session.amount_total ?? input.amount,
+    currencyCode: session.currency,
+    data: { checkoutUrl: typeof session.url === "string" ? session.url : null, expiresAt: session.expires_at ?? null }
+  };
+}
+function verifyStripeSignature(rawBody, signatureHeader) {
+  const parts = signatureHeader.split(",").map((part) => part.trim().split("=", 2));
+  const timestamp19 = parts.find(([key]) => key === "t")?.[1];
+  const signatures = parts.filter(([key]) => key === "v1").map(([, value]) => value);
+  if (!timestamp19 || signatures.length === 0 || !/^\d+$/.test(timestamp19)) {
+    throw new Error("Invalid Stripe signature header");
+  }
+  if (Math.abs(Date.now() / 1e3 - Number(timestamp19)) > SIGNATURE_TOLERANCE_SECONDS) {
+    throw new Error("Stale Stripe webhook signature");
+  }
+  const expected = (0, import_node_crypto6.createHmac)("sha256", process.env.STRIPE_WEBHOOK_SECRET || "").update(`${timestamp19}.${rawBody}`).digest();
+  if (!process.env.STRIPE_WEBHOOK_SECRET) throw new Error("Stripe webhook is not configured");
+  const valid = signatures.some((signature) => {
+    if (!/^[a-f0-9]{64}$/i.test(signature)) return false;
+    const provided = Buffer.from(signature, "hex");
+    return provided.length === expected.length && (0, import_node_crypto6.timingSafeEqual)(provided, expected);
+  });
+  if (!valid) throw new Error("Invalid Stripe webhook signature");
+}
+function classifyStripeEvent(type, object = {}) {
+  if (type === "checkout.session.completed") return object.payment_status === "paid" ? "succeeded" : "ignored";
+  if (type === "payment_intent.succeeded" || type === "checkout.session.async_payment_succeeded") return "succeeded";
+  if (type === "payment_intent.payment_failed" || type === "payment_intent.canceled" || type === "checkout.session.async_payment_failed" || type === "checkout.session.expired") return "failed";
+  return "ignored";
+}
+async function handleWebhookFunction(input) {
+  verifyStripeSignature(input.rawBody, input.headers["stripe-signature"] || "");
+  const event = JSON.parse(input.rawBody);
+  const object = event.data?.object || {};
+  const eventId = String(event.id || "").trim();
+  const eventType = String(event.type || "").trim();
+  const providerPaymentId = String(object.payment_intent || object.id || "").trim();
+  if (!eventId || !eventType || !providerPaymentId) throw new Error("Stripe webhook identity is incomplete");
+  return {
+    eventId,
+    eventType,
+    providerPaymentId,
+    paymentId: object.metadata?.paymentId || null,
+    orderId: object.metadata?.orderId || null,
+    status: classifyStripeEvent(eventType, object),
+    amount: object.amount_received ?? object.amount_total ?? object.amount ?? null,
+    currencyCode: object.currency || null
+  };
+}
+var import_node_crypto6, STRIPE_API, SIGNATURE_TOLERANCE_SECONDS;
+var init_stripe = __esm({
+  "features/integrations/payment/stripe.ts"() {
+    "use strict";
+    import_node_crypto6 = require("node:crypto");
+    STRIPE_API = "https://api.stripe.com/v1";
+    SIGNATURE_TOLERANCE_SECONDS = 300;
+  }
+});
+
+// features/keystone/mutations/onlinePaymentRelease.ts
+async function releaseAbandonedOnlinePayments(prisma, orderId) {
+  const pending = await prisma.payment.findMany({
+    where: { orderId, provider: "pp_stripe_stripe", status: { in: ["pending", "authorized"] } },
+    select: { id: true, status: true, provider: true, providerPaymentId: true }
+  });
+  if (!pending.length) return;
+  const stripe = await Promise.resolve().then(() => (init_stripe(), stripe_exports));
+  for (const payment of pending) {
+    const sessionId = String(payment.providerPaymentId || "");
+    if (sessionId.startsWith("cs_")) {
+      const state = await stripe.getPaymentStatusFunction({ providerPaymentId: sessionId });
+      if (state.status === "complete") throw cafeCustomerError("The customer just paid online. Refresh in a moment.");
+      if (state.status === "open") await stripe.expireCheckoutSessionFunction({ providerPaymentId: sessionId });
+    }
+    await prisma.payment.update({ where: { id: payment.id }, data: { status: "failed", failureMessage: "Online payment page closed; paid another way" } });
+  }
+}
+var init_onlinePaymentRelease = __esm({
+  "features/keystone/mutations/onlinePaymentRelease.ts"() {
+    "use strict";
+    init_cafeCustomerError();
+  }
+});
+
 // features/keystone/mutations/updateCafeOrderStatus.ts
 function isCafeOrderStatus(status) {
   return allowedStatuses.includes(status);
@@ -5363,6 +5606,7 @@ async function updateCafeOrderStatus(_root, args, context) {
     throw new Error(`Cafe order ${args.status} status is controlled by payment settlement`);
   }
   const status = args.status;
+  if (status === "cancelled") await releaseAbandonedOnlinePayments(context.prisma, args.orderId);
   const orderId = await context.prisma.$transaction(async (rawTx) => {
     const tx = rawTx;
     await lockCoffeeOrder(tx, args.orderId);
@@ -5468,6 +5712,7 @@ var init_updateCafeOrderStatus = __esm({
     init_transitionPolicy();
     init_coffeeKdsAuthority();
     init_coffeeOrderPolicy();
+    init_onlinePaymentRelease();
     allowedStatuses = ["open", "accepted", "paid", "in_bar_queue", "preparing", "ready", "completed", "cancelled", "refunded"];
     TX_OPTIONS = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     ORDER_QUERY = "id orderNumber status startedAt readyAt completedAt cancelledAt orderItems { id barStatus }";
@@ -5920,28 +6165,28 @@ var init_applyCafeLoyalty = __esm({
 // features/integrations/payment/manual.ts
 var manual_exports = {};
 __export(manual_exports, {
-  capturePaymentFunction: () => capturePaymentFunction,
-  createPaymentFunction: () => createPaymentFunction,
-  generatePaymentLinkFunction: () => generatePaymentLinkFunction,
-  getPaymentStatusFunction: () => getPaymentStatusFunction,
-  handleWebhookFunction: () => handleWebhookFunction,
-  refundPaymentFunction: () => refundPaymentFunction
+  capturePaymentFunction: () => capturePaymentFunction2,
+  createPaymentFunction: () => createPaymentFunction2,
+  generatePaymentLinkFunction: () => generatePaymentLinkFunction2,
+  getPaymentStatusFunction: () => getPaymentStatusFunction2,
+  handleWebhookFunction: () => handleWebhookFunction2,
+  refundPaymentFunction: () => refundPaymentFunction2
 });
-async function createPaymentFunction(input) {
+async function createPaymentFunction2(input) {
   return {
     success: true,
     provider: "pp_system_default",
-    providerPaymentId: `manual_${(0, import_node_crypto6.randomUUID)()}`,
+    providerPaymentId: `manual_${(0, import_node_crypto7.randomUUID)()}`,
     status: "pending",
     amount: input.amount,
     currencyCode: input.currencyCode,
     data: { message: "Offline payment remains pending until an authorized operator records settlement." }
   };
 }
-async function capturePaymentFunction(input) {
+async function capturePaymentFunction2(input) {
   return { success: true, provider: "pp_system_default", providerPaymentId: input.providerPaymentId, status: "captured", amount: input.amount };
 }
-async function refundPaymentFunction(input) {
+async function refundPaymentFunction2(input) {
   return {
     success: true,
     provider: "pp_system_default",
@@ -5951,148 +6196,21 @@ async function refundPaymentFunction(input) {
     data: { reason: input.reason || "operator_refund", boundary: "Cafe cash-ledger refund only. External card refunds require separately recorded terminal evidence." }
   };
 }
-async function getPaymentStatusFunction(input) {
-  return { success: true, provider: "pp_system_default", providerPaymentId: input.providerPaymentId, status: "pending" };
-}
-async function generatePaymentLinkFunction(input) {
-  return createPaymentFunction(input);
-}
-async function handleWebhookFunction(input) {
-  void input;
-  throw new Error("Manual/offline payments do not accept webhooks");
-}
-var import_node_crypto6;
-var init_manual = __esm({
-  "features/integrations/payment/manual.ts"() {
-    "use strict";
-    import_node_crypto6 = require("node:crypto");
-  }
-});
-
-// features/integrations/payment/stripe.ts
-var stripe_exports = {};
-__export(stripe_exports, {
-  capturePaymentFunction: () => capturePaymentFunction2,
-  createPaymentFunction: () => createPaymentFunction2,
-  generatePaymentLinkFunction: () => generatePaymentLinkFunction2,
-  getPaymentStatusFunction: () => getPaymentStatusFunction2,
-  handleWebhookFunction: () => handleWebhookFunction2,
-  refundPaymentFunction: () => refundPaymentFunction2
-});
-function secretKey() {
-  const secret = process.env.STRIPE_SECRET_KEY;
-  if (!secret) throw new Error("Stripe is not configured");
-  return secret;
-}
-async function stripeRequest(path, body, idempotencyKey) {
-  const response = await fetch(`${STRIPE_API}${path}`, {
-    method: body ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${secretKey()}`,
-      ...body ? { "Content-Type": "application/x-www-form-urlencoded" } : {},
-      ...idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}
-    },
-    body,
-    signal: AbortSignal.timeout(1e4)
-  });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error?.message || "Stripe request failed");
-  return payload;
-}
-function adapterResult(payload, fallbackAmount) {
-  return {
-    success: true,
-    provider: "pp_stripe_stripe",
-    providerPaymentId: payload.id,
-    status: payload.status,
-    amount: payload.amount_received ?? payload.amount ?? fallbackAmount,
-    currencyCode: payload.currency,
-    data: payload
-  };
-}
-async function createPaymentFunction2(input) {
-  const body = new URLSearchParams({
-    amount: String(input.amount),
-    currency: input.currencyCode.toLowerCase(),
-    "automatic_payment_methods[enabled]": "true",
-    "metadata[orderId]": input.orderId,
-    ...input.paymentId ? { "metadata[paymentId]": input.paymentId } : {},
-    ...input.customerEmail ? { receipt_email: input.customerEmail } : {}
-  });
-  const payload = await stripeRequest("/payment_intents", body, input.idempotencyKey);
-  return adapterResult(payload, input.amount);
-}
-async function capturePaymentFunction2(input) {
-  const payload = await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}/capture`, new URLSearchParams());
-  return adapterResult(payload, input.amount);
-}
-async function refundPaymentFunction2(input) {
-  const payload = await stripeRequest("/refunds", new URLSearchParams({
-    payment_intent: input.providerPaymentId,
-    ...input.amount == null ? {} : { amount: String(input.amount) },
-    ...input.reason ? { "metadata[reason]": input.reason } : {}
-  }), input.idempotencyKey);
-  return {
-    ...adapterResult(payload, input.amount),
-    status: payload.status === "succeeded" ? "refunded" : payload.status
-  };
-}
 async function getPaymentStatusFunction2(input) {
-  return adapterResult(await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}`));
+  return { success: true, provider: "pp_system_default", providerPaymentId: input.providerPaymentId, status: "pending" };
 }
 async function generatePaymentLinkFunction2(input) {
   return createPaymentFunction2(input);
 }
-function verifyStripeSignature(rawBody, signatureHeader) {
-  const parts = signatureHeader.split(",").map((part) => part.trim().split("=", 2));
-  const timestamp19 = parts.find(([key]) => key === "t")?.[1];
-  const signatures = parts.filter(([key]) => key === "v1").map(([, value]) => value);
-  if (!timestamp19 || signatures.length === 0 || !/^\d+$/.test(timestamp19)) {
-    throw new Error("Invalid Stripe signature header");
-  }
-  if (Math.abs(Date.now() / 1e3 - Number(timestamp19)) > SIGNATURE_TOLERANCE_SECONDS) {
-    throw new Error("Stale Stripe webhook signature");
-  }
-  const expected = (0, import_node_crypto7.createHmac)("sha256", process.env.STRIPE_WEBHOOK_SECRET || "").update(`${timestamp19}.${rawBody}`).digest();
-  if (!process.env.STRIPE_WEBHOOK_SECRET) throw new Error("Stripe webhook is not configured");
-  const valid = signatures.some((signature) => {
-    if (!/^[a-f0-9]{64}$/i.test(signature)) return false;
-    const provided = Buffer.from(signature, "hex");
-    return provided.length === expected.length && (0, import_node_crypto7.timingSafeEqual)(provided, expected);
-  });
-  if (!valid) throw new Error("Invalid Stripe webhook signature");
-}
-function classify(type) {
-  if (type === "payment_intent.succeeded" || type === "checkout.session.completed") return "succeeded";
-  if (type === "payment_intent.payment_failed" || type === "payment_intent.canceled") return "failed";
-  return "ignored";
-}
 async function handleWebhookFunction2(input) {
-  verifyStripeSignature(input.rawBody, input.headers["stripe-signature"] || "");
-  const event = JSON.parse(input.rawBody);
-  const object = event.data?.object || {};
-  const eventId = String(event.id || "").trim();
-  const eventType = String(event.type || "").trim();
-  const providerPaymentId = String(object.payment_intent || object.id || "").trim();
-  if (!eventId || !eventType || !providerPaymentId) throw new Error("Stripe webhook identity is incomplete");
-  return {
-    eventId,
-    eventType,
-    providerPaymentId,
-    paymentId: object.metadata?.paymentId || null,
-    orderId: object.metadata?.orderId || null,
-    status: classify(eventType),
-    amount: object.amount_received ?? object.amount_total ?? object.amount ?? null,
-    currencyCode: object.currency || null
-  };
+  void input;
+  throw new Error("Manual/offline payments do not accept webhooks");
 }
-var import_node_crypto7, STRIPE_API, SIGNATURE_TOLERANCE_SECONDS;
-var init_stripe = __esm({
-  "features/integrations/payment/stripe.ts"() {
+var import_node_crypto7;
+var init_manual = __esm({
+  "features/integrations/payment/manual.ts"() {
     "use strict";
     import_node_crypto7 = require("node:crypto");
-    STRIPE_API = "https://api.stripe.com/v1";
-    SIGNATURE_TOLERANCE_SECONDS = 300;
   }
 });
 
@@ -6201,7 +6319,7 @@ async function getPaymentStatusFunction3(input) {
 async function generatePaymentLinkFunction3(input) {
   return createPaymentFunction3(input);
 }
-function classify2(type) {
+function classify(type) {
   if (type === "PAYMENT.CAPTURE.COMPLETED") return "succeeded";
   if (type === "PAYMENT.CAPTURE.DENIED" || type === "PAYMENT.CAPTURE.DECLINED" || type === "CHECKOUT.PAYMENT-APPROVAL.REVERSED") return "failed";
   return "ignored";
@@ -6240,7 +6358,7 @@ async function handleWebhookFunction3(input) {
     providerPaymentId,
     paymentId: resource.invoice_id || unit?.invoice_id || null,
     orderId: resource.custom_id || unit?.custom_id || null,
-    status: classify2(eventType),
+    status: classify(eventType),
     amount: parseAmount(resource.amount?.value || unit?.amount?.value),
     currencyCode: resource.amount?.currency_code || unit?.amount?.currency_code || null
   };
@@ -6260,10 +6378,22 @@ function normalizePaymentProviderCode(value) {
   if (!code) throw new Error("Unsupported payment provider");
   return code;
 }
-var OFFLINE_PAYMENT_PROVIDER_CODE, paymentProviderAdapters, PROVIDER_ALIASES;
+function isOnlinePaymentProviderCode(code) {
+  return ONLINE_PAYMENT_PROVIDER_CODES.includes(code);
+}
+function assertCustomerPaymentProvider(code) {
+  if (!isOnlinePaymentProviderCode(code)) {
+    throw new Error("Manual/offline payments are operator-only and cannot settle public checkout");
+  }
+}
+function getPaymentProviderAdapter(code) {
+  return paymentProviderAdapters[code]();
+}
+var ONLINE_PAYMENT_PROVIDER_CODES, OFFLINE_PAYMENT_PROVIDER_CODE, paymentProviderAdapters, PROVIDER_ALIASES;
 var init_payment = __esm({
   "features/integrations/payment/index.ts"() {
     "use strict";
+    ONLINE_PAYMENT_PROVIDER_CODES = ["pp_stripe_stripe", "pp_paypal_paypal"];
     OFFLINE_PAYMENT_PROVIDER_CODE = "pp_system_default";
     paymentProviderAdapters = Object.freeze({
       pp_system_default: () => Promise.resolve().then(() => (init_manual(), manual_exports)),
@@ -6283,6 +6413,23 @@ var init_payment = __esm({
 });
 
 // features/keystone/utils/paymentProviderAdapter.ts
+function getStaticPaymentProviderCode(provider) {
+  const code = normalizePaymentProviderCode(provider.code);
+  if (code !== provider.code) throw new Error(`Payment provider record must use canonical code ${code}`);
+  return code;
+}
+async function executePaymentProviderAdapter({
+  provider,
+  functionName,
+  args
+}) {
+  const code = getStaticPaymentProviderCode(provider);
+  const adapter = await getPaymentProviderAdapter(code);
+  const fn = adapter[functionName];
+  if (typeof fn !== "function") throw new Error(`Payment provider ${code} does not support ${functionName}`);
+  const callable = fn;
+  return await callable(args);
+}
 var init_paymentProviderAdapter = __esm({
   "features/keystone/utils/paymentProviderAdapter.ts"() {
     "use strict";
@@ -6290,10 +6437,167 @@ var init_paymentProviderAdapter = __esm({
   }
 });
 
+// features/keystone/lib/onlinePayment.ts
+function stripeKeysPresent(env = process.env) {
+  return Boolean(env.STRIPE_SECRET_KEY?.trim() && env.STRIPE_WEBHOOK_SECRET?.trim());
+}
+async function onlinePaymentReady(prisma) {
+  if (!stripeKeysPresent()) return false;
+  const provider = await prisma.paymentProvider.findUnique({ where: { code: "pp_stripe_stripe" }, select: { isInstalled: true } });
+  return provider?.isInstalled === true;
+}
+function validPaymentReturnUrl(value) {
+  if (typeof value !== "string" || value.length > 2e3) return null;
+  try {
+    const url = new URL(value);
+    if (!["https:", "http:"].includes(url.protocol) || url.pathname !== "/order-confirmed" || url.username || url.password) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+var init_onlinePayment = __esm({
+  "features/keystone/lib/onlinePayment.ts"() {
+    "use strict";
+  }
+});
+
 // features/keystone/mutations/initiateCafePaymentSession.ts
 async function initiateCafePaymentSession(_root, args, context) {
-  throw new Error("Online payment initiation is unavailable; request pickup and pay at the cafe");
+  if (!args.orderId) throw new Error("Order id is required");
+  if (!args.paymentProvider) throw new Error("Payment provider is required");
+  const providerCode = normalizePaymentProviderCode(args.paymentProvider);
+  if (providerCode !== "pp_stripe_stripe") throw cafeCustomerError("Online payment is by card only");
+  if (!await onlinePaymentReady(context.prisma)) throw cafeCustomerError("Online payment isn't available. Pay at pickup.");
+  const returnUrl = validPaymentReturnUrl(args.returnUrl);
+  if (!returnUrl) throw new Error("Payment return URL is invalid");
+  const isStaff = permissions.canManagePayments({ session: context.session }) || permissions.canManageOrders({ session: context.session });
+  if (!isStaff) assertCustomerPaymentProvider(providerCode);
+  const sudo = context.sudo();
+  const order = await sudo.query.CafeOrder.findOne({
+    where: { id: args.orderId },
+    query: "id secretKey orderNumber total discount currencyCode customerEmail customerName status store { id } customer { id } payments { id status provider providerPaymentId amount idempotencyKey paymentProvider { id code isInstalled } }"
+  });
+  if (!order) throw new Error("Order not found");
+  if (!order.store?.id) throw new Error("Order store ownership is missing");
+  const isOwner = context.session?.listKey === "User" && order.customer?.id === context.session.itemId;
+  const hasValidSecret = cafeReceiptKeyMatches(args.secretKey, order.secretKey);
+  if (!isStaff && !isOwner && !hasValidSecret) throw cafeCustomerError("This order could not be verified");
+  if (TERMINAL_ORDER_STATUSES2.has(order.status)) throw cafeCustomerError("This order can no longer be paid online");
+  const payableAmount = Math.max(0, Number(order.total || 0) - Number(order.discount || 0));
+  if (!Number.isSafeInteger(payableAmount) || payableAmount <= 0) throw cafeCustomerError("This order has nothing to pay");
+  const payments = order.payments || [];
+  if (payments.some((payment2) => payment2.status === "captured")) throw cafeCustomerError("This order is already paid");
+  const clientKey = normalizeIdempotencyKey(args.idempotencyKey);
+  if (!clientKey) throw new Error("Payment idempotency key is required");
+  const scope = context.session?.listKey === "User" ? context.session.itemId : order.id;
+  const scopedKey5 = buildScopedIdempotencyKey(`payment:${scope}`, clientKey);
+  const [provider] = await sudo.query.PaymentProvider.findMany({
+    where: { code: { equals: providerCode }, isInstalled: { equals: true } },
+    take: 1,
+    query: "id code isInstalled"
+  });
+  if (!provider) throw cafeCustomerError("Online payment isn't available. Pay at pickup.");
+  for (const pending of payments.filter((payment2) => payment2.provider === providerCode && (payment2.status === "pending" || payment2.status === "authorized"))) {
+    const sessionId = String(pending.providerPaymentId || "");
+    if (!sessionId.startsWith("cs_")) continue;
+    const state = await executePaymentProviderAdapter({ provider, functionName: "getPaymentStatusFunction", args: { providerPaymentId: sessionId } });
+    const checkoutUrl = typeof state.data?.checkoutUrl === "string" ? state.data.checkoutUrl : null;
+    if (state.status === "open" && checkoutUrl) {
+      return { success: true, paymentId: pending.id, provider: providerCode, providerPaymentId: sessionId, status: "pending", amount: pending.amount ?? payableAmount, checkoutUrl, error: null };
+    }
+    if (state.status === "complete") {
+      return { success: true, paymentId: pending.id, provider: providerCode, providerPaymentId: sessionId, status: "processing", amount: pending.amount ?? payableAmount, checkoutUrl: null, error: null };
+    }
+    await sudo.db.Payment.updateOne({ where: { id: pending.id }, data: { status: "failed", failureMessage: "Hosted payment page expired" } });
+  }
+  const claim = await context.prisma.$transaction(async (rawTx) => {
+    const tx = rawTx;
+    await lockCoffeeOrder(tx, order.id);
+    const lockedOrder = await tx.cafeOrder.findUnique({
+      where: { id: order.id },
+      select: {
+        id: true,
+        storeId: true,
+        status: true,
+        payments: { select: { id: true, status: true, provider: true, providerPaymentId: true, amount: true, idempotencyKey: true } }
+      }
+    });
+    if (!lockedOrder) throw new Error("Order not found");
+    if (lockedOrder.storeId !== order.store?.id) throw new Error("Order store ownership changed");
+    if (TERMINAL_ORDER_STATUSES2.has(String(lockedOrder.status))) throw cafeCustomerError("This order can no longer be paid online");
+    const lockedPayments = Array.isArray(lockedOrder.payments) ? lockedOrder.payments : [];
+    if (lockedPayments.some((candidate) => candidate.status === "captured")) throw cafeCustomerError("This order is already paid");
+    const keyed = lockedPayments.find((candidate) => candidate.idempotencyKey === scopedKey5);
+    if (keyed && keyed.status !== "failed") return { payment: keyed, reused: true };
+    const created = await tx.payment.create({
+      data: {
+        orderId: order.id,
+        storeId: order.store?.id,
+        paymentProviderId: provider.id,
+        // A retried key after a failed page gets a fresh row; the key stays unique per attempt.
+        idempotencyKey: keyed ? `${scopedKey5}:${Date.now()}` : scopedKey5,
+        status: "pending",
+        method: "card",
+        amount: payableAmount,
+        currencyCode: order.currencyCode || "USD",
+        provider: providerCode,
+        providerPaymentId: ""
+      },
+      select: { id: true, status: true, provider: true, providerPaymentId: true, amount: true, idempotencyKey: true }
+    });
+    return { payment: created, reused: false };
+  }, { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" });
+  const payment = claim.payment;
+  if (claim.reused && payment.providerPaymentId) {
+    const state = await executePaymentProviderAdapter({ provider, functionName: "getPaymentStatusFunction", args: { providerPaymentId: String(payment.providerPaymentId) } });
+    const checkoutUrl = typeof state.data?.checkoutUrl === "string" ? state.data.checkoutUrl : null;
+    return { success: Boolean(checkoutUrl) || state.status === "complete", paymentId: payment.id, provider: providerCode, providerPaymentId: payment.providerPaymentId, status: state.status === "complete" ? "processing" : "pending", amount: payment.amount ?? payableAmount, checkoutUrl, error: null };
+  }
+  let adapterResult3;
+  try {
+    adapterResult3 = await executePaymentProviderAdapter({
+      provider,
+      functionName: "generatePaymentLinkFunction",
+      args: {
+        orderId: order.id,
+        paymentId: payment.id,
+        // Stripe's own idempotency: a retried request returns the same hosted page.
+        idempotencyKey: `${payment.id}:checkout`,
+        amount: payableAmount,
+        currencyCode: order.currencyCode || "USD",
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        description: `Order #${order.orderNumber}`,
+        returnUrl,
+        metadata: { orderNumber: order.orderNumber }
+      }
+    });
+  } catch (error) {
+    adapterResult3 = { success: false, provider: providerCode, status: "failed", error: error instanceof Error ? error.message : "Payment provider request failed" };
+  }
+  await sudo.db.Payment.updateOne({
+    where: { id: payment.id },
+    data: {
+      status: adapterResult3.success ? "pending" : "failed",
+      providerPaymentId: adapterResult3.providerPaymentId || "",
+      // Provider text stays in the ledger for staff; customers get a fixed message.
+      failureMessage: adapterResult3.success ? "" : String(adapterResult3.error || "Payment provider request failed").slice(0, 500)
+    }
+  });
+  if (!adapterResult3.success) throw cafeCustomerError("Online payment couldn't start. Try again or pay at pickup.");
+  return {
+    success: true,
+    paymentId: payment.id,
+    provider: providerCode,
+    providerPaymentId: adapterResult3.providerPaymentId,
+    status: "pending",
+    amount: adapterResult3.amount ?? payableAmount,
+    checkoutUrl: typeof adapterResult3.data?.checkoutUrl === "string" ? adapterResult3.data.checkoutUrl : null,
+    error: null
+  };
 }
+var TERMINAL_ORDER_STATUSES2;
 var init_initiateCafePaymentSession = __esm({
   "features/keystone/mutations/initiateCafePaymentSession.ts"() {
     "use strict";
@@ -6303,6 +6607,9 @@ var init_initiateCafePaymentSession = __esm({
     init_idempotency();
     init_coffeeOrderPolicy();
     init_cafeStorefrontPolicy();
+    init_cafeCustomerError();
+    init_onlinePayment();
+    TERMINAL_ORDER_STATUSES2 = /* @__PURE__ */ new Set(["paid", "completed", "cancelled", "refunded"]);
   }
 });
 
@@ -6330,13 +6637,15 @@ async function getCoffeeStore(_root, _args, context) {
   if (!store) return null;
   const contactEmail = String(store.contactEmail || "").trim();
   const isStaffLogin = contactEmail ? await context.prisma.user.count({ where: { email: { equals: contactEmail, mode: "insensitive" }, roleId: { not: null } } }) > 0 : false;
-  return { ...store, contactEmail: isStaffLogin ? "" : contactEmail, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) };
+  const onlinePayment = await onlinePaymentReady(context.prisma).catch(() => false);
+  return { ...store, onlinePayment, contactEmail: isStaffLogin ? "" : contactEmail, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) };
 }
 var init_getCoffeeStore = __esm({
   "features/keystone/mutations/getCoffeeStore.ts"() {
     "use strict";
     init_sanitize_store_logo();
     init_store_logo();
+    init_onlinePayment();
   }
 });
 
@@ -6905,9 +7214,11 @@ async function refundCafePayment(_root, args, context) {
       return;
     }
     if (payment.status !== "captured") throw new Error(`Cannot refund payment with status ${String(payment.status)}`);
-    if (payment.provider !== "pp_system_default") throw new Error("Online-provider refunds require a separately enabled and certified payment integration");
+    const isOnline = payment.provider === "pp_stripe_stripe";
+    if (!isOnline && payment.provider !== "pp_system_default") throw new Error("Refunds for this payment provider aren't supported");
     if (!["cash", "card"].includes(String(payment.method))) throw new Error("Unsupported refund tender");
-    if (payment.method === "card" && externalReference.length < 4) throw new Error("Record the external terminal refund reference before updating the cafe ledger");
+    if (isOnline && !String(payment.providerPaymentId || "").startsWith("pi_")) throw cafeCustomerError("This online payment hasn't finished settling. Try the refund again shortly.");
+    if (!isOnline && payment.method === "card" && externalReference.length < 4) throw new Error("Record the external terminal refund reference before updating the cafe ledger");
     if (payment.refundIdempotencyKey && payment.refundIdempotencyKey !== key) throw new Error("A different refund request already owns this payment");
     const order = await tx.cafeOrder.findUnique({
       where: { id: payment.orderId },
@@ -6918,16 +7229,20 @@ async function refundCafePayment(_root, args, context) {
     const orderPayments = Array.isArray(order.payments) ? order.payments : [];
     assertCafeSettlement(orderPayments, Number(order.total || 0) - Number(order.discount || 0));
     if (!orderPayments.some((candidate) => candidate.id === payment.id && candidate.status === "captured")) throw new Error("Refund payment does not match the order's full settlement");
-    const shifts = await tx.registerShift.findMany({ where: { storeId, status: "open" }, take: 2, orderBy: { openedAt: "asc" }, select: { id: true } });
-    if (shifts.length !== 1) throw new Error("Refunds require exactly one open payout register shift");
-    const shiftId = String(shifts[0].id);
-    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-register-shift:${shiftId}`);
-    const shift = await tx.registerShift.findUnique({ where: { id: shiftId } });
-    if (!shift || shift.status !== "open") throw new Error("The payout register closed before the refund was recorded");
-    assertCoffeeStoreOwnership(shift.storeId, storeId, "Payout register");
-    const drawerCashCents = Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - Number(shift.cashRefundsCents || 0) + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0);
-    if (payment.method === "cash" && amount > drawerCashCents) {
-      throw new Error(`Cash refund exceeds the ${(Math.max(0, drawerCashCents) / 100).toFixed(2)} expected in the payout drawer`);
+    let shiftId = null;
+    let shift = null;
+    if (!isOnline) {
+      const shifts = await tx.registerShift.findMany({ where: { storeId, status: "open" }, take: 2, orderBy: { openedAt: "asc" }, select: { id: true } });
+      if (shifts.length !== 1) throw new Error("Refunds require exactly one open payout register shift");
+      shiftId = String(shifts[0].id);
+      await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-register-shift:${shiftId}`);
+      shift = await tx.registerShift.findUnique({ where: { id: shiftId } });
+      if (!shift || shift.status !== "open") throw new Error("The payout register closed before the refund was recorded");
+      assertCoffeeStoreOwnership(shift.storeId, storeId, "Payout register");
+      const drawerCashCents = Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - Number(shift.cashRefundsCents || 0) + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0);
+      if (payment.method === "cash" && amount > drawerCashCents) {
+        throw new Error(`Cash refund exceeds the ${(Math.max(0, drawerCashCents) / 100).toFixed(2)} expected in the payout drawer`);
+      }
     }
     if (order.loyaltyAccountId) {
       const account = await tx.loyaltyAccount.findUnique({ where: { id: order.loyaltyAccountId } });
@@ -6949,15 +7264,27 @@ async function refundCafePayment(_root, args, context) {
       await tx.loyaltyEvent.create({ data: { accountId: current.id, orderId: order.id, type: "refund_reversal", pointsDelta: -points, drinkCreditsDelta: credits - Number(current.drinkCredits || 0), note: `Reversed ${points} points earned on this order after full refund of payment ${args.paymentId}`, createdById: actorId } });
     }
     const now = /* @__PURE__ */ new Date();
-    const isCash = payment.method === "cash";
-    const cashRefundsCents = Number(shift.cashRefundsCents || 0) + (isCash ? amount : 0);
-    const cardRefundsCents = Number(shift.cardRefundsCents || 0) + (isCash ? 0 : amount);
-    await tx.registerShift.update({ where: { id: shiftId }, data: { cashRefundsCents, cardRefundsCents, expectedCashCents: Math.max(0, Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - cashRefundsCents + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0)) } });
-    await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: externalReference ? `${reason}; external terminal refund ${externalReference}` : reason, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
+    let providerRefundId = null;
+    if (isOnline) {
+      const result = await executePaymentProviderAdapter({
+        provider: { code: "pp_stripe_stripe" },
+        functionName: "refundPaymentFunction",
+        args: { providerPaymentId: String(payment.providerPaymentId), amount, reason, idempotencyKey: `refund:${key}`, currencyCode: String(payment.currencyCode || "USD") }
+      }).catch(() => null);
+      if (!result?.success || !["refunded", "pending"].includes(String(result.status))) throw cafeCustomerError("The card refund didn't go through. Nothing was recorded; try again.");
+      providerRefundId = result.providerPaymentId ? String(result.providerPaymentId) : null;
+    } else if (shift && shiftId) {
+      const isCash = payment.method === "cash";
+      const cashRefundsCents = Number(shift.cashRefundsCents || 0) + (isCash ? amount : 0);
+      const cardRefundsCents = Number(shift.cardRefundsCents || 0) + (isCash ? 0 : amount);
+      await tx.registerShift.update({ where: { id: shiftId }, data: { cashRefundsCents, cardRefundsCents, expectedCashCents: Math.max(0, Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - cashRefundsCents + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0)) } });
+    }
+    const refundNote = isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
+    await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
     await tx.posOrder.updateMany({ where: { cafeOrderId: order.id }, data: { status: "refunded" } });
     await enqueueCoffeeDomainEvent(tx, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });
-  }, { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" });
+  }, { maxWait: 5e3, timeout: 2e4, isolationLevel: "ReadCommitted" });
   return context.sudo().query.Payment.findOne({ where: { id: args.paymentId }, query: query4 });
 }
 var query4;
@@ -6968,6 +7295,8 @@ var init_refundCafePayment = __esm({
     init_idempotency();
     init_coffeeKdsAuthority();
     init_coffeeOrderPolicy();
+    init_paymentProviderAdapter();
+    init_cafeCustomerError();
     query4 = "id status method amount currencyCode providerPaymentId refundIdempotencyKey refundedAmount refundReason refundedAt order { id status } registerShift { id status } refundRegisterShift { id shiftNumber }";
   }
 });
@@ -7421,7 +7750,8 @@ async function acceptCafePickupOrder(_root, args, context) {
         orderNumber: true,
         status: true,
         fulfillmentType: true,
-        promisedAt: true
+        promisedAt: true,
+        paidAt: true
       }
     });
     if (!order) throw new Error("Cafe order not found");
@@ -7446,7 +7776,8 @@ async function acceptCafePickupOrder(_root, args, context) {
     });
     const requirements = await getCafeInventoryRequirements(tx, storeId, lines);
     await consumeCafeInventoryRequirements(tx, { storeId, orderId: String(order.id), orderNumber: String(order.orderNumber), requirements, createdById: actorId, reason: `Accepted pickup ${String(order.orderNumber)}` });
-    await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "accepted", promisedAt } });
+    const paidOnline = order.paidAt != null;
+    await tx.cafeOrder.update({ where: { id: order.id }, data: { status: paidOnline ? "paid" : "accepted", promisedAt } });
     const inventoryRequirementEvidence = [];
     for (const requirement of requirements) {
       if (requirement.kind === "prep") inventoryRequirementEvidence.push({ kind: requirement.kind, prepBatchId: requirement.prepBatchId, quantity: requirement.quantity });
@@ -7498,6 +7829,7 @@ async function recordCafePayment(_root, args, context) {
   if (!clientKey) throw new Error("Recorded payment idempotency key is required");
   const scope = context.session?.listKey === "User" ? context.session.itemId : "operator";
   const scopedKey5 = buildScopedIdempotencyKey(`record-payment:${scope}`, clientKey);
+  await releaseAbandonedOnlinePayments(context.prisma, args.orderId);
   const paymentId = await context.prisma.$transaction(async (rawTx) => {
     const tx = rawTx;
     await lockCoffeeOrder(tx, args.orderId);
@@ -7611,6 +7943,7 @@ var init_recordCafePayment = __esm({
     "use strict";
     import_node_crypto9 = require("node:crypto");
     init_coffeeOrderPolicy();
+    init_onlinePaymentRelease();
     init_coffeeDomainOutbox();
     init_idempotency();
     init_coffeeInventoryConsumption();
@@ -7622,10 +7955,122 @@ var init_recordCafePayment = __esm({
 });
 
 // features/keystone/mutations/handleCafePaymentWebhook.ts
-async function handleCafePaymentWebhook(_root, _args, _context) {
-  throw new Error("Online payment webhooks are unavailable until the payment integration is certified");
+function replayKey(providerCode, eventId) {
+  return `${providerCode}:${eventId}`;
 }
-var import_node_crypto10;
+function payloadHash(rawBody) {
+  return (0, import_node_crypto10.createHash)("sha256").update(rawBody).digest("hex");
+}
+function assertSettlementMatches(payment, providerCode, verified) {
+  if (payment.provider !== providerCode) throw new Error("Webhook provider does not match payment");
+  if (verified.orderId && verified.orderId !== payment.orderId) throw new Error("Webhook order does not match payment");
+  if (verified.amount == null || verified.amount !== payment.amount) throw new Error("Webhook amount does not match payment");
+  if (!verified.currencyCode || verified.currencyCode.toUpperCase() !== payment.currencyCode.toUpperCase()) {
+    throw new Error("Webhook currency does not match payment");
+  }
+}
+async function findPayment(tx, providerCode, verified) {
+  if (verified.paymentId) {
+    return tx.payment.findUnique({ where: { id: verified.paymentId }, include: { order: true } });
+  }
+  return tx.payment.findFirst({
+    where: { provider: providerCode, providerPaymentId: verified.providerPaymentId },
+    include: { order: true }
+  });
+}
+async function handleCafePaymentWebhook(_root, args, context) {
+  if (!isOnlinePaymentProviderCode(args.providerCode)) throw new Error("Webhook provider not found");
+  if (!args.rawBody || Buffer.byteLength(args.rawBody, "utf8") > 1024 * 1024) throw new Error("Invalid webhook body");
+  const [provider] = await context.sudo().query.PaymentProvider.findMany({
+    where: { code: { equals: args.providerCode }, isInstalled: { equals: true } },
+    take: 1,
+    query: "id code"
+  });
+  if (!provider) throw new Error("Payment provider is not installed");
+  const verified = await executePaymentProviderAdapter({
+    provider,
+    functionName: "handleWebhookFunction",
+    args: { rawBody: args.rawBody, headers: args.headers }
+  });
+  if (!verified.eventId || verified.eventId.length > 255) throw new Error("Verified webhook event id is invalid");
+  const key = replayKey(provider.code, verified.eventId);
+  const hash = payloadHash(args.rawBody);
+  return context.prisma.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      "SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))",
+      "coffee-payment-webhook",
+      key
+    );
+    const storeId = await getPrimaryCoffeeStoreId(tx);
+    const existing = await tx.paymentEvent.findUnique({
+      where: { replayKey: key },
+      select: { id: true, storeId: true, payloadHash: true, paymentId: true, orderId: true }
+    });
+    if (existing) {
+      assertCoffeeStoreOwnership(existing.storeId, storeId, "Payment event");
+      if (existing.payloadHash !== hash) throw new Error("Webhook replay key is bound to different payload evidence");
+      return { success: true, replayed: true, paymentId: existing.paymentId, orderId: existing.orderId };
+    }
+    const payment = await findPayment(tx, provider.code, verified);
+    if (verified.status !== "ignored" && !payment) throw new Error("Webhook payment was not found");
+    if (payment) {
+      assertCoffeeStoreOwnership(payment.storeId, storeId, "Payment");
+      if (payment.order) assertCoffeeStoreOwnership(payment.order.storeId, storeId, "Payment order");
+      await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-payment:${payment.id}`);
+    }
+    if (verified.status === "succeeded" && payment) {
+      assertSettlementMatches(payment, provider.code, verified);
+      if (payment.status !== "captured") {
+        const cancelled = Boolean(payment.order && TERMINAL_UNSETTLED_ORDER_STATUSES.has(payment.order.status || ""));
+        const settledAt = /* @__PURE__ */ new Date();
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: "captured",
+            processedAt: settledAt,
+            failureMessage: cancelled ? "Paid after the order was cancelled; refund it" : "",
+            // Refunds go to the payment intent, not the hosted page.
+            ...verified.providerPaymentId.startsWith("pi_") ? { providerPaymentId: verified.providerPaymentId } : {}
+          }
+        });
+        if (payment.orderId && !cancelled) {
+          const status = payment.order?.status === "accepted" ? "paid" : void 0;
+          await tx.cafeOrder.update({ where: { id: payment.orderId }, data: { paidAt: settledAt, ...status ? { status } : {} } });
+        }
+      }
+    } else if (verified.status === "failed" && payment && (payment.status === "pending" || payment.status === "authorized")) {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: "failed", failureMessage: `Provider event ${verified.eventType}` }
+      });
+    }
+    await tx.paymentEvent.create({
+      data: {
+        replayKey: key,
+        storeId,
+        providerCode: provider.code,
+        providerEventId: verified.eventId,
+        eventType: verified.eventType,
+        payloadHash: hash,
+        status: verified.status === "ignored" ? "ignored" : "processed",
+        paymentId: payment?.id || null,
+        orderId: payment?.orderId || verified.orderId || null,
+        processedAt: /* @__PURE__ */ new Date()
+      },
+      select: { id: true }
+    });
+    await enqueueCoffeeDomainEvent(tx, {
+      storeId,
+      eventKey: `payment-webhook:${key}:v1`,
+      eventType: `payment.${verified.status}`,
+      aggregateType: "payment",
+      aggregateId: payment?.id || verified.paymentId || verified.providerPaymentId || verified.eventId,
+      payload: { providerCode: provider.code, providerEventId: verified.eventId, eventType: verified.eventType, status: verified.status, paymentId: payment?.id || null, orderId: payment?.orderId || verified.orderId || null, amount: verified.amount ?? null, currencyCode: verified.currencyCode || null }
+    });
+    return { success: true, replayed: false, paymentId: payment?.id || null, orderId: payment?.orderId || verified.orderId || null };
+  }, { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" });
+}
+var import_node_crypto10, TERMINAL_UNSETTLED_ORDER_STATUSES;
 var init_handleCafePaymentWebhook = __esm({
   "features/keystone/mutations/handleCafePaymentWebhook.ts"() {
     "use strict";
@@ -7633,6 +8078,7 @@ var init_handleCafePaymentWebhook = __esm({
     init_payment();
     init_paymentProviderAdapter();
     init_coffeeDomainOutbox();
+    TERMINAL_UNSETTLED_ORDER_STATUSES = /* @__PURE__ */ new Set(["cancelled", "refunded"]);
   }
 });
 
@@ -9032,6 +9478,7 @@ async function recordCoffeeStockCount(_root, args, context) {
     const unit = String(inventory.unit || "each");
     stockUnits(stockNumber(countedUnits), "Counted quantity", { allowZero: true, unit });
     const { previousUnits, deltaUnits } = planStockCount(inventory.currentStock, countedUnits);
+    const trimmedLots = await trimLotsToStock(tx, inventoryItemId, inventory.currentStock);
     const reason = "Stock count";
     const movementIds = [];
     if (deltaUnits !== 0) {
@@ -9050,7 +9497,7 @@ async function recordCoffeeStockCount(_root, args, context) {
       eventType: "inventory.counted",
       aggregateType: "inventory_item",
       aggregateId: inventoryItemId,
-      payload: { requestFingerprint, inventoryItemId, stockMovementIds: movementIds, previousQuantity: stockNumber(previousUnits), countedQuantity: stockNumber(countedUnits), adjustment: stockNumber(deltaUnits), unit, countedById: actorId }
+      payload: { requestFingerprint, inventoryItemId, stockMovementIds: movementIds, previousQuantity: stockNumber(previousUnits), countedQuantity: stockNumber(countedUnits), adjustment: stockNumber(deltaUnits), unit, countedById: actorId, trimmedLots }
     });
     const updated = await tx.inventoryItem.findUnique({ where: { id: inventoryItemId } });
     if (!updated) throw new Error("Inventory item not found");
@@ -9115,6 +9562,7 @@ function extendGraphqlSchema(baseSchema) {
           quoteFingerprint: String
           externalCardReference: String
           externalCardApproved: Boolean
+          cashTenderedCents: Int
           items: [CafePickupOrderItemInput!]!
         ): CafeOrderReceipt!
 
@@ -9185,6 +9633,7 @@ function extendGraphqlSchema(baseSchema) {
           secretKey: String
           paymentProvider: String!
           idempotencyKey: String
+          returnUrl: String
         ): CafePaymentSessionResult
 
         refundCafePayment(
@@ -9439,6 +9888,7 @@ function extendGraphqlSchema(baseSchema) {
         logoColor: String
         weeklyHours: JSON
         pickupLeadTimeMinutes: Int
+        onlinePayment: Boolean!
       }
 
       type CoffeeOnboardingResult {
@@ -9472,6 +9922,7 @@ function extendGraphqlSchema(baseSchema) {
         providerPaymentId: String
         status: String
         amount: Int
+        checkoutUrl: String
         error: String
       }
 

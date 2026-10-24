@@ -16,6 +16,7 @@ export type CoffeeStorefrontStore = {
   logoColor?: string | null;
   weeklyHours?: unknown;
   pickupLeadTimeMinutes?: number | null;
+  onlinePayment?: boolean | null;
 };
 
 const STORE_QUERY = `
@@ -35,6 +36,7 @@ const STORE_QUERY = `
       logoColor
       weeklyHours
       pickupLeadTimeMinutes
+      onlinePayment
     }
   }
 `;

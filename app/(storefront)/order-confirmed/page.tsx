@@ -4,7 +4,7 @@ import { storefrontTitle } from "@/features/storefront/lib/data/store";
 
 export const dynamic = "force-dynamic";
 
-type Params = { searchParams: Promise<{ id?: string; key?: string }> };
+type Params = { searchParams: Promise<{ id?: string; key?: string; payment?: string }> };
 
 export async function generateMetadata({ searchParams }: Params): Promise<Metadata> {
   const { id, key } = await searchParams;
@@ -14,6 +14,6 @@ export async function generateMetadata({ searchParams }: Params): Promise<Metada
 }
 
 export default async function Page({ searchParams }: Params) {
-  const { id, key } = await searchParams;
-  return <OrderConfirmedPage id={id} secretKey={key} />;
+  const { id, key, payment } = await searchParams;
+  return <OrderConfirmedPage id={id} secretKey={key} payment={payment} />;
 }

@@ -1,5 +1,6 @@
 import { sanitizeStoreLogoSvg } from "../../lib/sanitize-store-logo";
 import { normalizeStoreLogoColor } from "../../platform/store-settings/lib/store-logo";
+import { onlinePaymentReady } from "../lib/onlinePayment";
 
 type CoffeeStoreResult = {
   name: string;
@@ -19,7 +20,7 @@ type CoffeeStoreResult = {
 };
 
 type CoffeeStoreContext = {
-  prisma: { user: { count(args: Record<string, unknown>): Promise<number> } };
+  prisma: { user: { count(args: Record<string, unknown>): Promise<number> } } & Parameters<typeof onlinePaymentReady>[0];
   sudo(): {
     query: {
       StoreSetting: {
@@ -59,5 +60,6 @@ export default async function getCoffeeStore(
   const isStaffLogin = contactEmail
     ? await context.prisma.user.count({ where: { email: { equals: contactEmail, mode: "insensitive" }, roleId: { not: null } } }) > 0
     : false;
-  return { ...store, contactEmail: isStaffLogin ? "" : contactEmail, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) };
+  const onlinePayment = await onlinePaymentReady(context.prisma).catch(() => false);
+  return { ...store, onlinePayment, contactEmail: isStaffLogin ? "" : contactEmail, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) };
 }

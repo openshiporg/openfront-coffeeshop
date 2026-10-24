@@ -27,6 +27,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     shortDescription: String
     price: Int!
     available: Boolean!
+    maxQuantity: Int
     availability: String
     featured: Boolean
     popular: Boolean
@@ -195,6 +196,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     id: ID!
     status: String!
     method: String!
+    provider: String
     amount: Int!
     refundedAmount: Int
   }

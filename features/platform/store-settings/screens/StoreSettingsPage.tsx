@@ -2,10 +2,12 @@ import { PageBreadcrumbs } from "@/features/dashboard/components/PageBreadcrumbs
 import { PlatformHeader } from "@/features/platform/components/PlatformPage";
 import { StatusDot } from "@/features/platform/components/StatusTitle";
 import { getCoffeeStoreSettingsAction } from "../actions/store-settings";
+import { getOnlinePaymentSetting } from "../actions/online-payment";
+import { OnlinePaymentSetting } from "../components/OnlinePaymentSetting";
 import { StoreSettingsForm } from "../components/StoreSettingsForm";
 
 export async function StoreSettingsPage() {
-  const result = await getCoffeeStoreSettingsAction();
+  const [result, onlinePayment] = await Promise.all([getCoffeeStoreSettingsAction(), getOnlinePaymentSetting().catch(() => null)]);
   const contactMissing = result.success && Boolean(result.data) && !String(result.data?.contactEmail || "").trim();
 
   return (
@@ -27,6 +29,11 @@ export async function StoreSettingsPage() {
         initialSettings={result.success ? result.data : null}
         loadError={result.success ? null : result.error}
       />
+      {onlinePayment ? (
+        <div className="px-4 pb-8 md:px-6">
+          <OnlinePaymentSetting {...onlinePayment} />
+        </div>
+      ) : null}
     </section>
   );
 }

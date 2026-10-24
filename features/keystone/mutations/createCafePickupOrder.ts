@@ -66,6 +66,7 @@ interface CreateCafePickupOrderArgs {
   /** POS manual card: operator attests the external terminal approved this exact sale. */
   externalCardReference?: string | null;
   externalCardApproved?: boolean | null;
+  cashTenderedCents?: number | null;
   items: CafePickupOrderItemInput[];
 }
 type CafePickupOrderResult = {
@@ -458,6 +459,7 @@ async function createOrderTransaction({
           - Number(registerShift.payOutsCents || 0),
       },
     });
+    if (args.cashTenderedCents != null && args.cashTenderedCents < total) throw cafeCustomerError("Cash received is less than the total");
     await tx.posOrder.create({
       data: {
         receiptNumber: `POS-${orderNumber}`,
@@ -476,7 +478,7 @@ async function createOrderTransaction({
           tender: !tenderRequired
             ? { method: "none", reason: "zero_total" }
             : paymentMethod === "cash"
-              ? { method: "cash", evidence: "cash_received_at_register" }
+              ? { method: "cash", evidence: "cash_received_at_register", ...(args.cashTenderedCents != null ? { tenderedCents: args.cashTenderedCents, changeCents: args.cashTenderedCents - total } : {}) }
               : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: session?.itemId || null, attestedAt: now.toISOString(), providerVerified: false },
           quoteFingerprint: args.quoteFingerprint || null,
         },
@@ -546,6 +548,9 @@ export default async function createCafePickupOrder(
     if (args.externalCardApproved !== true) throw new Error("Confirm the card terminal approved this exact amount before recording the card payment");
     if (!/^[A-Za-z0-9#._:\/-]{4,64}$/.test(externalCardReference)) throw new Error("Enter the terminal approval or reference code (4-64 letters, numbers or #._:/-)");
   } else if (externalCardReference || args.externalCardApproved) throw new Error("A terminal reference applies only to an external card payment");
+  if (args.cashTenderedCents != null && (paymentMethod !== "cash" || !Number.isSafeInteger(args.cashTenderedCents) || args.cashTenderedCents < 0 || args.cashTenderedCents > 100_000_000)) {
+    throw cafeCustomerError("Cash received applies only to a cash sale, as a whole number of cents");
+  }
   if (!isStaff && tipCents > 0) throw new Error("Only staff may add a counter tip");
   if (!isStaff && (paymentMethod === "cash" || paymentMethod === "manual_card")) throw new Error("Immediate-tender payment methods are only available to staff");
   if (!isStaff && orderSource !== "online") throw new Error("Only staff may create non-online orders");
@@ -582,6 +587,7 @@ export default async function createCafePickupOrder(
     tipCents,
     ...(quoteFingerprint ? { quoteFingerprint } : {}),
     ...(paymentMethod === "manual_card" ? { externalCardReference, externalCardApproved: true } : {}),
+    ...(args.cashTenderedCents != null ? { cashTenderedCents: args.cashTenderedCents } : {}),
     items: items.map((item) => ({
       menuItemId: item.menuItemId,
       quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),

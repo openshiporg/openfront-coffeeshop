@@ -31,7 +31,7 @@ const ORDER_QUERY = `
         paymentState canRecordPayment canApplyLoyalty loyaltyApplied
         actions { status label tone }
         orderItems { id quantity itemNameSnapshot customizationsSummary barStatus station }
-        refundablePayments { id status method amount refundedAmount }
+        refundablePayments { id status method provider amount refundedAmount }
       }
     }
   }

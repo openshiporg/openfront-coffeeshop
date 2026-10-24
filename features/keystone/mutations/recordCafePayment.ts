@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { type Session } from "../access";
 import { lockCoffeeOrder, requireCafeTenderOperator } from "./coffeeOrderPolicy";
+import { releaseAbandonedOnlinePayments } from "./onlinePaymentRelease";
 import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
@@ -59,6 +60,7 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
   const scope = context.session?.listKey === "User" ? context.session.itemId : "operator";
   const scopedKey = buildScopedIdempotencyKey(`record-payment:${scope}`, clientKey);
 
+  await releaseAbandonedOnlinePayments(context.prisma as never, args.orderId);
   const paymentId = await context.prisma.$transaction(async (rawTx) => {
     const tx = rawTx as TransactionClient;
     await lockCoffeeOrder(tx, args.orderId);

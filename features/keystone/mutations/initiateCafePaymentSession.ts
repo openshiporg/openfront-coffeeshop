@@ -8,12 +8,15 @@ import { executePaymentProviderAdapter } from "../utils/paymentProviderAdapter";
 import { buildScopedIdempotencyKey, normalizeIdempotencyKey } from "./idempotency";
 import { lockCoffeeOrder } from "./coffeeOrderPolicy";
 import { cafeReceiptKeyMatches } from "./cafeStorefrontPolicy";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
+import { onlinePaymentReady, validPaymentReturnUrl } from "../lib/onlinePayment";
 
 type InitiateCafePaymentArgs = {
   orderId: string;
   secretKey?: string | null;
   paymentProvider: string;
   idempotencyKey?: string | null;
+  returnUrl?: string | null;
 };
 
 type PaymentProviderRecord = { id: string; code: string; isInstalled?: boolean | null };
@@ -48,7 +51,7 @@ type PaymentClaimTransaction = {
 
 type InitiateCafePaymentContext = {
   session?: Session;
-  prisma: { $transaction<T>(fn: (tx: unknown) => Promise<T>, options: Record<string, unknown>): Promise<T> };
+  prisma: Parameters<typeof onlinePaymentReady>[0] & { $transaction<T>(fn: (tx: unknown) => Promise<T>, options: Record<string, unknown>): Promise<T> };
   sudo(): {
     query: {
       CafeOrder: { findOne(args: { where: { id: string }; query: string }): Promise<CafePaymentOrderRecord | null> };
@@ -66,21 +69,17 @@ type InitiateCafePaymentContext = {
 const TERMINAL_ORDER_STATUSES = new Set(["paid", "completed", "cancelled", "refunded"]);
 const MANAGED_PAYMENT_STATUSES = new Set(["captured", "authorized", "pending"]);
 
-export default async function initiateCafePaymentSession(
-  _root: unknown,
-  args: InitiateCafePaymentArgs,
-  context: InitiateCafePaymentContext,
-) {
-  // No customer collection/uncertain-state recovery is certified in this release.
-  // An installed adapter alone must never enable live online charges.
-  throw new Error("Online payment initiation is unavailable; request pickup and pay at the cafe");
-}
-
-async function disabledInitiateCafePaymentSession(_root: unknown, args: InitiateCafePaymentArgs, context: InitiateCafePaymentContext) {
+/** Starts a Stripe-hosted Checkout page for an unpaid order. The customer pays there; the signed
+ *  webhook settles the payment. Staff still admit the order (capacity and stock) as for any request. */
+export default async function initiateCafePaymentSession(_root: unknown, args: InitiateCafePaymentArgs, context: InitiateCafePaymentContext) {
   if (!args.orderId) throw new Error("Order id is required");
   if (!args.paymentProvider) throw new Error("Payment provider is required");
 
   const providerCode = normalizePaymentProviderCode(args.paymentProvider);
+  if (providerCode !== "pp_stripe_stripe") throw cafeCustomerError("Online payment is by card only");
+  if (!(await onlinePaymentReady(context.prisma))) throw cafeCustomerError("Online payment isn't available. Pay at pickup.");
+  const returnUrl = validPaymentReturnUrl(args.returnUrl);
+  if (!returnUrl) throw new Error("Payment return URL is invalid");
   const isStaff = permissions.canManagePayments({ session: context.session }) || permissions.canManageOrders({ session: context.session });
   if (!isStaff) assertCustomerPaymentProvider(providerCode);
 
@@ -94,52 +93,41 @@ async function disabledInitiateCafePaymentSession(_root: unknown, args: Initiate
 
   const isOwner = context.session?.listKey === "User" && order.customer?.id === context.session.itemId;
   const hasValidSecret = cafeReceiptKeyMatches(args.secretKey, order.secretKey);
-  if (!isStaff && !isOwner && !hasValidSecret) throw new Error("You do not have access to initiate payment for this order");
-  if (TERMINAL_ORDER_STATUSES.has(order.status)) throw new Error(`Cannot initiate payment for an order with status ${order.status}`);
+  if (!isStaff && !isOwner && !hasValidSecret) throw cafeCustomerError("This order could not be verified");
+  if (TERMINAL_ORDER_STATUSES.has(order.status)) throw cafeCustomerError("This order can no longer be paid online");
+
+  const payableAmount = Math.max(0, Number(order.total || 0) - Number(order.discount || 0));
+  if (!Number.isSafeInteger(payableAmount) || payableAmount <= 0) throw cafeCustomerError("This order has nothing to pay");
+  const payments = order.payments || [];
+  if (payments.some((payment) => payment.status === "captured")) throw cafeCustomerError("This order is already paid");
 
   const clientKey = normalizeIdempotencyKey(args.idempotencyKey);
   if (!clientKey) throw new Error("Payment idempotency key is required");
   const scope = context.session?.listKey === "User" ? context.session.itemId : order.id;
   const scopedKey = buildScopedIdempotencyKey(`payment:${scope}`, clientKey);
-  const keyedPayment = scopedKey ? (order.payments || []).find((payment) => payment.idempotencyKey === scopedKey) : null;
-  if (keyedPayment) {
-    if (keyedPayment.provider !== providerCode) throw new Error("Idempotency key was already used with a different payment provider");
-    return {
-      success: keyedPayment.status !== "failed",
-      paymentId: keyedPayment.id,
-      provider: keyedPayment.provider,
-      providerPaymentId: keyedPayment.providerPaymentId,
-      status: keyedPayment.status,
-      amount: keyedPayment.amount ?? Number(order.total || 0),
-      data: { reusedIdempotencyKey: true },
-      error: null,
-    };
-  }
-
-  const existingManagedPayment = (order.payments || []).find((payment) => MANAGED_PAYMENT_STATUSES.has(payment.status));
-  if (existingManagedPayment) {
-    if (existingManagedPayment.provider !== providerCode) throw new Error("Order already has an active payment with a different provider");
-    return {
-      success: true,
-      paymentId: existingManagedPayment.id,
-      provider: existingManagedPayment.provider,
-      providerPaymentId: existingManagedPayment.providerPaymentId,
-      status: existingManagedPayment.status,
-      amount: existingManagedPayment.amount ?? Number(order.total || 0),
-      data: { reusedExistingPayment: true },
-      error: null,
-    };
-  }
 
   const [provider] = await sudo.query.PaymentProvider.findMany({
     where: { code: { equals: providerCode }, isInstalled: { equals: true } },
     take: 1,
     query: "id code isInstalled",
   });
-  if (!provider) throw new Error(`Payment provider ${providerCode} is not installed`);
+  if (!provider) throw cafeCustomerError("Online payment isn't available. Pay at pickup.");
 
-  const payableAmount = Math.max(0, Number(order.total || 0) - Number(order.discount || 0));
-  if (!Number.isSafeInteger(payableAmount) || payableAmount <= 0) throw new Error("Order total must be a positive integer amount");
+  // A hosted page already started for this order is reused while it is open; a finished or
+  // expired one is closed out so the customer can start again.
+  for (const pending of payments.filter((payment) => payment.provider === providerCode && (payment.status === "pending" || payment.status === "authorized"))) {
+    const sessionId = String(pending.providerPaymentId || "");
+    if (!sessionId.startsWith("cs_")) continue;
+    const state = await executePaymentProviderAdapter({ provider, functionName: "getPaymentStatusFunction", args: { providerPaymentId: sessionId } });
+    const checkoutUrl = typeof state.data?.checkoutUrl === "string" ? state.data.checkoutUrl : null;
+    if (state.status === "open" && checkoutUrl) {
+      return { success: true, paymentId: pending.id, provider: providerCode, providerPaymentId: sessionId, status: "pending", amount: pending.amount ?? payableAmount, checkoutUrl, error: null };
+    }
+    if (state.status === "complete") {
+      return { success: true, paymentId: pending.id, provider: providerCode, providerPaymentId: sessionId, status: "processing", amount: pending.amount ?? payableAmount, checkoutUrl: null, error: null };
+    }
+    await sudo.db.Payment.updateOne({ where: { id: pending.id }, data: { status: "failed", failureMessage: "Hosted payment page expired" } });
+  }
 
   const claim = await context.prisma.$transaction(async (rawTx) => {
     const tx = rawTx as PaymentClaimTransaction;
@@ -155,26 +143,20 @@ async function disabledInitiateCafePaymentSession(_root: unknown, args: Initiate
     });
     if (!lockedOrder) throw new Error("Order not found");
     if (lockedOrder.storeId !== order.store?.id) throw new Error("Order store ownership changed");
-    if (TERMINAL_ORDER_STATUSES.has(String(lockedOrder.status))) throw new Error(`Cannot initiate payment for an order with status ${lockedOrder.status}`);
-    const payments = Array.isArray(lockedOrder.payments) ? lockedOrder.payments as CafePaymentRecord[] : [];
-    const keyed = payments.find((candidate) => candidate.idempotencyKey === scopedKey);
-    if (keyed) {
-      if (keyed.provider !== providerCode) throw new Error("Idempotency key was already used with a different payment provider");
-      return { payment: keyed, reused: true };
-    }
-    const active = payments.find((candidate) => MANAGED_PAYMENT_STATUSES.has(candidate.status));
-    if (active) {
-      if (active.provider !== providerCode) throw new Error("Order already has an active payment with a different provider");
-      return { payment: active, reused: true };
-    }
+    if (TERMINAL_ORDER_STATUSES.has(String(lockedOrder.status))) throw cafeCustomerError("This order can no longer be paid online");
+    const lockedPayments = Array.isArray(lockedOrder.payments) ? lockedOrder.payments as CafePaymentRecord[] : [];
+    if (lockedPayments.some((candidate) => candidate.status === "captured")) throw cafeCustomerError("This order is already paid");
+    const keyed = lockedPayments.find((candidate) => candidate.idempotencyKey === scopedKey);
+    if (keyed && keyed.status !== "failed") return { payment: keyed, reused: true };
     const created = await tx.payment.create({
       data: {
         orderId: order.id,
         storeId: order.store?.id,
         paymentProviderId: provider.id,
-        idempotencyKey: scopedKey,
+        // A retried key after a failed page gets a fresh row; the key stays unique per attempt.
+        idempotencyKey: keyed ? `${scopedKey}:${Date.now()}` : scopedKey,
         status: "pending",
-        method: providerCode === "pp_system_default" ? "manual" : "card",
+        method: "card",
         amount: payableAmount,
         currencyCode: order.currencyCode || "USD",
         provider: providerCode,
@@ -185,62 +167,53 @@ async function disabledInitiateCafePaymentSession(_root: unknown, args: Initiate
     return { payment: created as CafePaymentRecord, reused: false };
   }, { maxWait: 5000, timeout: 10000, isolationLevel: "ReadCommitted" });
   const payment = claim.payment;
-  if (claim.reused) {
-    return {
-      success: payment.status !== "failed",
-      paymentId: payment.id,
-      provider: payment.provider,
-      providerPaymentId: payment.providerPaymentId,
-      status: payment.status,
-      amount: payment.amount ?? payableAmount,
-      data: { reusedExistingPayment: true },
-      error: null,
-    };
+  if (claim.reused && payment.providerPaymentId) {
+    const state = await executePaymentProviderAdapter({ provider, functionName: "getPaymentStatusFunction", args: { providerPaymentId: String(payment.providerPaymentId) } });
+    const checkoutUrl = typeof state.data?.checkoutUrl === "string" ? state.data.checkoutUrl : null;
+    return { success: Boolean(checkoutUrl) || state.status === "complete", paymentId: payment.id, provider: providerCode, providerPaymentId: payment.providerPaymentId, status: state.status === "complete" ? "processing" : "pending", amount: payment.amount ?? payableAmount, checkoutUrl, error: null };
   }
 
   let adapterResult: PaymentAdapterResult;
   try {
     adapterResult = await executePaymentProviderAdapter({
       provider,
-      functionName: "createPaymentFunction",
+      functionName: "generatePaymentLinkFunction",
       args: {
         orderId: order.id,
         paymentId: payment.id,
-        idempotencyKey: scopedKey,
+        // Stripe's own idempotency: a retried request returns the same hosted page.
+        idempotencyKey: `${payment.id}:checkout`,
         amount: payableAmount,
         currencyCode: order.currencyCode || "USD",
         customerEmail: order.customerEmail,
         customerName: order.customerName,
+        description: `Order #${order.orderNumber}`,
+        returnUrl,
         metadata: { orderNumber: order.orderNumber },
       },
     });
   } catch (error) {
-    adapterResult = {
-      success: false,
-      provider: providerCode,
-      status: "failed",
-      error: error instanceof Error ? error.message : "Payment provider request failed",
-    };
+    adapterResult = { success: false, provider: providerCode, status: "failed", error: error instanceof Error ? error.message : "Payment provider request failed" };
   }
 
-  const paymentStatus = adapterResult.success ? "pending" : "failed";
   await sudo.db.Payment.updateOne({
     where: { id: payment.id },
     data: {
-      status: paymentStatus,
+      status: adapterResult.success ? "pending" : "failed",
       providerPaymentId: adapterResult.providerPaymentId || "",
-      failureMessage: adapterResult.error || "",
+      // Provider text stays in the ledger for staff; customers get a fixed message.
+      failureMessage: adapterResult.success ? "" : String(adapterResult.error || "Payment provider request failed").slice(0, 500),
     },
   });
-
+  if (!adapterResult.success) throw cafeCustomerError("Online payment couldn't start. Try again or pay at pickup.");
   return {
-    success: adapterResult.success,
+    success: true,
     paymentId: payment.id,
     provider: providerCode,
     providerPaymentId: adapterResult.providerPaymentId,
-    status: adapterResult.status || paymentStatus,
+    status: "pending",
     amount: adapterResult.amount ?? payableAmount,
-    data: adapterResult.data || null,
-    error: adapterResult.error || null,
+    checkoutUrl: typeof adapterResult.data?.checkoutUrl === "string" ? adapterResult.data.checkoutUrl : null,
+    error: null,
   };
 }

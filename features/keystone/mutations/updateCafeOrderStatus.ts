@@ -3,6 +3,7 @@ import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeS
 import { CAFE_ORDER_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeOrderItemsReadyForHandoff, assertCafeSettlement, lockCoffeeOrder, type SettlementEvidence } from "./coffeeOrderPolicy";
+import { releaseAbandonedOnlinePayments } from "./onlinePaymentRelease";
 
 const allowedStatuses = ["open", "accepted", "paid", "in_bar_queue", "preparing", "ready", "completed", "cancelled", "refunded"] as const;
 type CafeOrderStatus = (typeof allowedStatuses)[number];
@@ -74,6 +75,7 @@ export default async function updateCafeOrderStatus(
     throw new Error(`Cafe order ${args.status} status is controlled by payment settlement`);
   }
   const status = args.status;
+  if (status === "cancelled") await releaseAbandonedOnlinePayments(context.prisma as never, args.orderId);
 
   const orderId = await context.prisma.$transaction(async (rawTx) => {
     const tx = rawTx as TransactionClient;

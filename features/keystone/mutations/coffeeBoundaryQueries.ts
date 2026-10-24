@@ -227,7 +227,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
   const orderSelect = {
     id: true, orderNumber: true, status: true, fulfillmentType: true, orderSource: true, customerName: true, customerEmail: true, pickupName: true, promisedAt: true, total: true, discount: true, isRush: true, createdAt: true, loyaltyAccountId: true,
     orderItems: { select: { id: true, quantity: true, itemNameSnapshot: true, customizationsSummary: true, barStatus: true, station: true } },
-    payments: { where: { status: { in: ["captured", "pending", "authorized", "refunded"] } }, select: { id: true, status: true, method: true, amount: true, refundedAmount: true, refundIdempotencyKey: true } },
+    payments: { where: { status: { in: ["captured", "pending", "authorized", "refunded"] } }, select: { id: true, status: true, method: true, provider: true, amount: true, refundedAmount: true, refundIdempotencyKey: true } },
   };
   const [activeTickets, historyTickets, groupedCounts] = await Promise.all([
     activeStatuses.length
@@ -289,12 +289,13 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
         orderItems: Array.isArray(ticket.orderItems) ? ticket.orderItems : [],
         // Payment state is a workflow fact for order/payment staff; tender details stay with payment managers.
         paymentState: canSeePaymentState ? paymentState : null,
-        canRecordPayment: canManageOrders && canManagePayments && ["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(status) && !activeEvidence.length,
+        // An unfinished online page doesn't block counter payment: recording it closes the page first.
+        canRecordPayment: canManageOrders && canManagePayments && ["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(status) && !activeEvidence.some((payment) => payment.status === "captured"),
         // Loyalty staff get only an eligibility bit, not payment details.
         canApplyLoyalty: canManageLoyalty && settled && !loyaltyAccountId && Boolean(ticket.customerEmail) && !["cancelled", "refunded"].includes(status),
         loyaltyApplied: canManageLoyalty ? Boolean(loyaltyAccountId) : null,
         refundablePayments: canManageOrders && canManagePayments ? activeEvidence.filter((payment) => payment.status === "captured" && !payment.refundIdempotencyKey) : [],
-        actions: canManageOrders ? statusActions(CAFE_ORDER_TRANSITIONS, status, ["refunded", "paid", "ready", ...(!settled ? ["completed"] : []), ...(activeEvidence.length ? ["cancelled"] : [])]) : [],
+        actions: canManageOrders ? statusActions(CAFE_ORDER_TRANSITIONS, status, ["refunded", "paid", "ready", ...(!settled ? ["completed"] : []), ...(activeEvidence.some((payment) => payment.status === "captured") ? ["cancelled"] : [])]) : [],
       };
     }),
   };
@@ -562,6 +563,8 @@ export async function getCoffeePosRegister(_root: unknown, args: { search?: stri
     ...item,
     inventoryItemId: undefined,
     availability: stock.soldOut.has(item.id) ? "sold_out" : "now",
+    // Staff-only: the register caps a ticket at the servings stock can still make.
+    maxQuantity: stock.servings.get(item.id) ?? null,
     modifiers: (item.modifiers as Array<{ id: string; inStock: boolean }>).map((modifier) => ({ ...modifier, inStock: modifier.inStock !== false && !stock.modifiersOut.has(modifier.id) })),
   }));
   return { operatorId: String(context.session?.itemId || ""), storeId: store.id, items, hasMore, nextCursor, categories, openShift: shifts[0] || null };

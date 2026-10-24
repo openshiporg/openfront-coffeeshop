@@ -8,6 +8,7 @@ import { StorefrontMedia } from "@/features/storefront/components/StorefrontMedi
 import { getCoffeeStoreResult } from "@/features/storefront/lib/data/store";
 import { ReceiptRefreshButton } from "@/features/storefront/components/ReceiptRefreshButton";
 import { ReceiptRewardsPanel } from "@/features/storefront/components/ReceiptRewardsPanel";
+import { ReceiptPayOnline } from "@/features/storefront/components/ReceiptPayOnline";
 import type { CafeOrderItemSnapshot, CafePickupOrder } from "@/features/storefront/lib/data/orders";
 import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, resolveOrderConfirmation } from "@/features/storefront/lib/orderConfirmation";
 
@@ -53,7 +54,7 @@ export const loadOrderReceipt = cache(async (id: string | undefined, secretKey: 
   id ? keystoneClient<{ getCafeOrder: CafePickupOrder | null }>(ORDER_QUERY, { id, secretKey }, { cache: "no-store" }) : null,
 );
 
-export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secretKey?: string }) {
+export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromPayment }: { id?: string; secretKey?: string; payment?: string }) {
   // The receipt is authorized on its own; current public store settings are optional context, never a gate.
   const [response, storeResult] = await Promise.all([
     loadOrderReceipt(id, secretKey),
@@ -190,6 +191,13 @@ export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secre
                   </div>
                 </dl>
                 {payment ? <p className="sf-muted mt-3 text-sm font-semibold">{payment}</p> : null}
+                {store?.onlinePayment && !order.paidAt && order.total > 0 && ["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(order.status) ? (
+                  <ReceiptPayOnline
+                    orderId={order.id}
+                    secretKey={secretKey}
+                    returned={returnedFromPayment === "done" || returnedFromPayment === "cancelled" ? returnedFromPayment : null}
+                  />
+                ) : null}
               </div>
             </section>
 
