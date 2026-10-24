@@ -168,6 +168,9 @@ export function KdsBoard({
                 const waited = minutesSince(item.queuedAt || item.startedAt, now);
                 const promised = item.order.promisedAt ? new Date(item.order.promisedAt).getTime() : null;
                 const late = now !== null && promised !== null && Number.isFinite(promised) && now > promised && item.barStatus !== "ready";
+                // A ticket with a pickup time counts down to it; an ASAP ticket counts up from when it was queued.
+                const dueIn = now !== null && promised !== null && Number.isFinite(promised) && !late ? Math.max(0, Math.ceil((promised - now) / 60000)) : null;
+                const lateBy = late && now !== null && promised !== null ? Math.floor((now - promised) / 60000) : null;
                 return (
                   <article key={item.id} className={`rounded-xl bg-card p-4 text-card-foreground shadow-sm ring-1 ${item.order.isRush ? "ring-red-500/40" : "ring-foreground/10"}`}>
                     <div className="flex items-center justify-between gap-3 text-sm">
@@ -176,7 +179,7 @@ export function KdsBoard({
                         {item.order.isRush && <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400"><Zap className="size-3" aria-hidden="true" />Rush</span>}
                       </span>
                       <span className={`shrink-0 font-mono tabular-nums ${late ? "font-semibold text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-                        {late ? "Late · " : ""}{waited !== null ? `${waited}m` : ""}
+                        {lateBy !== null ? `Late · ${lateBy}m` : dueIn !== null ? `Due in ${dueIn}m` : waited !== null ? `${waited}m` : ""}
                       </span>
                     </div>
                     <h3 className="mt-2 flex items-start gap-2.5 text-xl font-semibold leading-tight tracking-tight">

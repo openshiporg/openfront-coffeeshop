@@ -64,3 +64,9 @@ export const getCoffeeStoreResult = cache(async function getCoffeeStoreResult():
     return { kind: "unavailable" };
   }
 });
+
+/** "<page> · <store name>", or just the page name when the store can't be read. */
+export async function storefrontTitle(page: string) {
+  const result = await getCoffeeStoreResult();
+  return result.kind === "ok" && result.store.name ? `${page} · ${result.store.name}` : page;
+}

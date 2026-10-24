@@ -97,14 +97,54 @@ export function isOpenAt(value: unknown, timeZone: string | null | undefined, at
   return clock.minutes >= minutes(row.open)! && clock.minutes < minutes(row.close)!;
 }
 
-/** Pickup choices from the earliest pickup: that time, then each later window start while the store is open. */
-export function pickupSlots(value: unknown, timeZone: string | null | undefined, earliest: Date, windowMinutes: number, count = 8) {
+/** Pickup choices from the earliest pickup: that time, then each later window start while the store is open,
+ *  through the end of tomorrow in the store's time zone. Capacity per window does the throttling. */
+export function pickupSlots(value: unknown, timeZone: string | null | undefined, earliest: Date, windowMinutes: number, now = new Date()) {
   const step = Math.max(5, windowMinutes) * 60_000;
+  const zone = safeZone(timeZone);
+  const lastDay = storeDayKey(new Date(now.getTime() + 24 * 60 * 60_000), zone);
   const slots = [earliest];
-  for (let at = Math.ceil((earliest.getTime() + 60_000) / step) * step; slots.length < count && at - earliest.getTime() <= 24 * 60 * 60_000; at += step) {
-    if (isOpenAt(value, timeZone, new Date(at))) slots.push(new Date(at));
+  for (let at = Math.ceil((earliest.getTime() + 60_000) / step) * step; slots.length < 400 && at - now.getTime() <= 48 * 60 * 60_000; at += step) {
+    const candidate = new Date(at);
+    if (storeDayKey(candidate, zone) > lastDay) break;
+    if (isOpenAt(value, timeZone, candidate)) slots.push(candidate);
   }
   return slots;
+}
+
+function safeZone(timeZone: string | null | undefined) {
+  try {
+    if (timeZone) {
+      new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
+      return timeZone;
+    }
+  } catch {
+    // Invalid saved zone: stay on UTC, as storeClock does.
+  }
+  return "UTC";
+}
+
+function storeDayKey(date: Date, zone: string) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+
+/** Pickup slots grouped by store day: "Today", "Tomorrow", or "Sat, Oct 24". */
+export function groupPickupSlots(slots: Date[], timeZone: string | null | undefined, now = new Date()) {
+  const zone = safeZone(timeZone);
+  const today = storeDayKey(now, zone);
+  const tomorrow = storeDayKey(new Date(now.getTime() + 24 * 60 * 60_000), zone);
+  const groups: Array<{ key: string; label: string; slots: Date[] }> = [];
+  for (const slot of slots) {
+    const key = storeDayKey(slot, zone);
+    let group = groups.find((entry) => entry.key === key);
+    if (!group) {
+      const label = key === today ? "Today" : key === tomorrow ? "Tomorrow" : new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "short", day: "numeric" }).format(slot);
+      group = { key, label, slots: [] };
+      groups.push(group);
+    }
+    group.slots.push(slot);
+  }
+  return groups;
 }
 
 /** "5:12 PM", "Tomorrow 8:15 AM" or "Sat 8:15 AM", in the store's time zone. */

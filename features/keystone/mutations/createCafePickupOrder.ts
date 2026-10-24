@@ -147,8 +147,16 @@ function normalizeEmail(email?: string | null) {
 function normalizePhone(phone?: string | null) {
   return phone?.replace(/[^+\d]/g, "") || "";
 }
-function generateOrderNumber() {
-  const date = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+/** CF-YYMMDD-XXXXXXXX, dated on the store's calendar so evening orders carry the day they were placed. */
+export function generateOrderNumber(timezone?: string | null, at = new Date()) {
+  let date: string;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone || "America/New_York", year: "2-digit", month: "2-digit", day: "2-digit" }).formatToParts(at);
+    const part = (type: string) => parts.find((entry) => entry.type === type)?.value || "";
+    date = `${part("year")}${part("month")}${part("day")}`;
+  } catch {
+    date = at.toISOString().slice(2, 10).replace(/-/g, "");
+  }
   return `CF-${date}-${randomBytes(4).toString("hex").toUpperCase()}`;
 }
 function transactionConflict(error: unknown) {
@@ -344,7 +352,7 @@ async function createOrderTransaction({
   const tenderRequired = isImmediateTender && total > 0;
   const externalCardReference = paymentMethod === "manual_card" ? (args.externalCardReference?.trim() || "") : "";
   const now = new Date();
-  const orderNumber = generateOrderNumber();
+  const orderNumber = generateOrderNumber(settings.timezone);
   const order = await tx.cafeOrder.create({
     data: {
       orderNumber,

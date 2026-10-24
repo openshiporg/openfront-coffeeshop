@@ -19,6 +19,7 @@ type CoffeeStoreResult = {
 };
 
 type CoffeeStoreContext = {
+  prisma: { user: { count(args: Record<string, unknown>): Promise<number> } };
   sudo(): {
     query: {
       StoreSetting: {
@@ -52,5 +53,11 @@ export default async function getCoffeeStore(
       pickupLeadTimeMinutes
     `,
   });
-  return store ? { ...store, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) } : null;
+  if (!store) return null;
+  // A staff sign-in address is never published as the public contact, whoever saved it there.
+  const contactEmail = String(store.contactEmail || "").trim();
+  const isStaffLogin = contactEmail
+    ? await context.prisma.user.count({ where: { email: { equals: contactEmail, mode: "insensitive" }, roleId: { not: null } } }) > 0
+    : false;
+  return { ...store, contactEmail: isStaffLogin ? "" : contactEmail, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) };
 }

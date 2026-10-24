@@ -108,7 +108,7 @@ export async function consumeCafeInventoryRequirements(tx: ConsumptionClient, in
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${requirement.inventoryItemId}`);
       const item = await tx.inventoryItem.findUnique({ where: { id: requirement.inventoryItemId }, select: { id: true, storeId: true, currentStock: true, unit: true, name: true } });
       if (!item || item.storeId !== input.storeId) throw new Error("Insufficient inventory for this order");
-      if (positive(item.currentStock) < requirement.quantity) throw cafeCustomerError(`Not enough ${String(item.name || "stock")} on hand`);
+      if (positive(item.currentStock) < requirement.quantity) throw cafeCustomerError(shortStockMessage(item));
       // Counted items are sold whole: same whole-number rule as receiving, prep and waste.
       if (String(item.unit || "each") === "each" && Math.round(requirement.quantity * STOCK_SCALE) % STOCK_SCALE !== 0) {
         throw new Error(`This order would use a fraction of ${String(item.name || "a counted item")}; review the recipe or add-on quantity in Menu management`);
@@ -119,4 +119,13 @@ export async function consumeCafeInventoryRequirements(tx: ConsumptionClient, in
       for (const allocation of allocations) await tx.stockMovement.create({ data: { idempotencyKey: `order:${input.orderId}:${requirement.inventoryItemId}:${allocation.inventoryLotId || "unlotted"}`, inventoryItemId: requirement.inventoryItemId, inventoryLotId: allocation.inventoryLotId, storeId: input.storeId, orderId: input.orderId, type: "sale", quantity: -allocation.quantity, reason: input.reason, notes: "Reviewed recipe/modifier allocation; no inferred historical lot assignments", createdById: input.createdById || null } });
     }
   }
+}
+
+/** "Only 19 Almond Croissant left", or "Only 0.4 gal of Whole Milk left" for measured stock. */
+export function shortStockMessage(item: { name?: unknown; unit?: unknown; currentStock?: unknown }) {
+  const name = String(item.name || "stock");
+  const onHand = Math.max(0, Math.floor(Number(item.currentStock || 0) * 100) / 100);
+  const unit = String(item.unit || "each");
+  if (onHand <= 0) return `${name} is out of stock`;
+  return unit === "each" ? `Only ${onHand} ${name} left` : `Only ${onHand} ${unit} of ${name} left`;
 }

@@ -91,9 +91,9 @@ async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: st
     if (existingStore.logoColor == null || existingStore.logoColor === "") repair.logoColor = data.storeInfo.logoColor;
     if (Object.keys(repair).length) await tx.storeSetting.update({ where: { id: storeId }, data: repair, select: { id: true } });
   } else {
-    // Template stores publish the operator's own address, never the sample one.
-    const operator = template === "custom" ? null : await tx.user.findUnique({ where: { id: userId }, select: { email: true } });
-    const storeInfo = operator?.email ? { ...data.storeInfo, contactEmail: operator.email } : data.storeInfo;
+    // Template stores publish neither the sample address nor the operator's sign-in email;
+    // the contact stays empty until the merchant enters one in Store Settings.
+    const storeInfo = template === "custom" ? data.storeInfo : { ...data.storeInfo, contactEmail: "" };
     storeId = (await tx.storeSetting.create({ data: { singletonKey: "primary", ...storeInfo }, select: { id: true } })).id;
     bump(counts, "storeSettings");
   }

@@ -5,6 +5,7 @@ import { CustomerAccountForm } from "../components/CustomerAccountForm";
 import { CustomerProfileForm } from "../components/CustomerProfileForm";
 import { customerSignOut, getCustomerAccount } from "../lib/data/account";
 import { lookupCafeLoyalty } from "../lib/data/loyalty";
+import { getCoffeeStore } from "../lib/data/store";
 import { formatMoney } from "../lib/format";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,9 +20,15 @@ function statusDot(status: string) {
   return "sf-dot-active";
 }
 
-function orderDate(value: string) {
+// Dated on the store's calendar, the same day the order number carries.
+function orderDate(value: string, timeZone?: string | null) {
   const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date) : "";
+  if (!Number.isFinite(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: timeZone || "America/New_York" }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
+  }
 }
 
 async function RewardsPanel({ email }: { email: string }) {
@@ -52,6 +59,7 @@ async function RewardsPanel({ email }: { email: string }) {
 
 async function AccountContent({ searchParams }: { searchParams: Promise<{ after?: string }> }) {
   const { after } = await searchParams;
+  const store = await getCoffeeStore().catch(() => null);
   let account;
   try { account = await getCustomerAccount(after); }
   catch {
@@ -98,7 +106,7 @@ async function AccountContent({ searchParams }: { searchParams: Promise<{ after?
                     </span>
                     <span className="sf-order-row-sub">
                       {STATUS_LABELS[order.status] || order.status.replaceAll("_", " ")}
-                      {orderDate(order.createdAt) ? ` · ${orderDate(order.createdAt)}` : ""}
+                      {orderDate(order.createdAt, store?.timezone) ? ` · ${orderDate(order.createdAt, store?.timezone)}` : ""}
                     </span>
                   </Link>
                 </li>

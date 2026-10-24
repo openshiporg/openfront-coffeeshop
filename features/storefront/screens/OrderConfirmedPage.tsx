@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cache } from "react";
 import { ArrowLeft } from "lucide-react";
 import { formatModifierAdjustment, formatMoney, formatPickupTime } from "@/features/storefront/lib/format";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
@@ -46,12 +47,15 @@ function statusDot(status: string) {
   return PROGRESS.some((step) => step.statuses.includes(status)) ? "sf-dot-active" : "";
 }
 
+/** One receipt read per request, shared by the page and its title. */
+export const loadOrderReceipt = cache(async (id: string | undefined, secretKey: string | undefined) =>
+  id ? keystoneClient<{ getCafeOrder: CafePickupOrder | null }>(ORDER_QUERY, { id, secretKey }, { cache: "no-store" }) : null,
+);
+
 export async function OrderConfirmedPage({ id, secretKey }: { id?: string; secretKey?: string }) {
   // The receipt is authorized on its own; current public store settings are optional context, never a gate.
   const [response, storeResult] = await Promise.all([
-    id
-      ? keystoneClient<{ getCafeOrder: CafePickupOrder | null }>(ORDER_QUERY, { id, secretKey }, { cache: "no-store" })
-      : Promise.resolve(null),
+    loadOrderReceipt(id, secretKey),
     getCoffeeStoreResult(),
   ]);
   const store = storeResult.kind === "ok" ? storeResult.store : null;

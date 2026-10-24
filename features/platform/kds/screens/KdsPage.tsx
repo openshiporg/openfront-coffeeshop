@@ -1,4 +1,5 @@
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { formatStaffPickupTime } from "@/lib/date-time";
 import { PageBreadcrumbs } from "@/features/dashboard/components/PageBreadcrumbs";
 import { PlatformHeader } from "@/features/platform/components/PlatformPage";
 import { StatusDot } from "@/features/platform/components/StatusTitle";
@@ -15,7 +16,7 @@ const RECOVERY_SCOPE_QUERY = `
 const KDS_QUERY = `
   query CoffeeKdsBoard($cursor: String, $limit: Int!) {
     getCoffeeKdsBoard(cursor: $cursor, limit: $limit) {
-      activeCount canManageOrders storeTimezone hasMore nextCursor
+      activeCount scheduledCount nextScheduledAt canManageOrders storeTimezone hasMore nextCursor
       items {
         id quantity itemNameSnapshot customizationsSummary specialInstructions
         barStatus station queuedAt startedAt readyAt
@@ -47,6 +48,7 @@ export async function KdsPage({ searchParams }: { searchParams: Promise<{ cursor
           <>
             <span className="inline-flex items-center gap-1.5"><StatusDot tone="green" />Live</span>
             <span className="tabular-nums">{board.activeCount} to make</span>
+            {board.scheduledCount ? <span className="tabular-nums">{board.scheduledCount} scheduled{board.nextScheduledAt ? ` · next ${formatStaffPickupTime(board.nextScheduledAt, board.storeTimezone)}` : ""}</span> : null}
             {!scope ? <span>View only</span> : null}
           </>
         ) : null}

@@ -247,6 +247,8 @@ export const coffeeBoundaryTypeDefs = String.raw`
   }
   type CoffeeKdsProjection {
     activeCount: Int!
+    scheduledCount: Int!
+    nextScheduledAt: String
     canManageOrders: Boolean!
     storeTimezone: String
     hasMore: Boolean!

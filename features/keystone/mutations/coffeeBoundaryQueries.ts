@@ -20,7 +20,7 @@ type Context = {
   prisma: {
     storeSetting: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
     cafeOrder: GroupedOrderModel;
-    orderItem: CountableListModel;
+    orderItem: CountableListModel & { findFirst(args: Record<string, unknown>): Promise<ListRow | null> };
     menuCategory: ListModel;
     menuItem: ListModel;
     registerShift: ListModel;
@@ -303,6 +303,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
 const KDS_PAGE_SIZE = 100;
 const KDS_ACTIVE_ITEM_STATUSES = ["new", "queued", "preparing", "ready"];
 const KDS_ACTIVE_ORDER_STATUSES = ["accepted", "paid", "in_bar_queue", "preparing", "ready"];
+const KDS_RELEASE_MINUTES = 45;
 type KdsCursor = { queuedAt: string | null; id: string };
 
 function decodeKdsCursor(value: string): KdsCursor {
@@ -342,13 +343,21 @@ export async function getCoffeeKdsBoard(_root: unknown, args: { cursor?: string 
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > KDS_PAGE_SIZE) throw new Error(`KDS page size must be between 1 and ${KDS_PAGE_SIZE}`);
   const cursor = args.cursor == null ? null : decodeKdsCursor(args.cursor);
   const store = await primaryStore(context);
-  const activeWhere = {
+  // Order-ahead tickets reach the make queue KDS_RELEASE_MINUTES before their pickup time;
+  // a line already started stays on the board.
+  const releaseBy = new Date(Date.now() + KDS_RELEASE_MINUTES * 60_000);
+  const baseWhere = {
     storeId: store.id,
     barStatus: { in: KDS_ACTIVE_ITEM_STATUSES },
     order: { status: { in: KDS_ACTIVE_ORDER_STATUSES } },
   };
+  const activeWhere = {
+    ...baseWhere,
+    OR: [{ order: { promisedAt: null } }, { order: { promisedAt: { lte: releaseBy } } }, { barStatus: { in: ["preparing", "ready"] } }],
+  };
+  const scheduledWhere = { ...baseWhere, barStatus: { in: ["new", "queued"] }, order: { ...baseWhere.order, promisedAt: { gt: releaseBy } } };
   const pageWhere = cursor ? { ...activeWhere, AND: [kdsAfterCursorWhere(cursor)] } : activeWhere;
-  const [rows, activeCount] = await Promise.all([
+  const [rows, activeCount, scheduledCount, nextScheduled] = await Promise.all([
     context.prisma.orderItem.findMany({
       where: pageWhere,
       orderBy: [{ queuedAt: { sort: "asc", nulls: "last" } }, { id: "asc" }],
@@ -356,17 +365,26 @@ export async function getCoffeeKdsBoard(_root: unknown, args: { cursor?: string 
       select: { id: true, quantity: true, itemNameSnapshot: true, customizationsSummary: true, specialInstructions: true, barStatus: true, station: true, queuedAt: true, startedAt: true, readyAt: true, order: { select: { id: true, orderNumber: true, status: true, pickupName: true, promisedAt: true, isRush: true } } },
     }),
     context.prisma.orderItem.count({ where: activeWhere }),
+    context.prisma.orderItem.count({ where: scheduledWhere }),
+    context.prisma.orderItem.findFirst({ where: scheduledWhere, orderBy: { order: { promisedAt: "asc" } }, select: { order: { select: { promisedAt: true } } } }),
   ]);
   const hasMore = rows.length > limit;
-  const items = rows.slice(0, limit);
+  // Within a page, the make queue runs by when each ticket is due: its pickup time, else when it was queued.
+  type KdsRow = Record<string, unknown> & { id: string; barStatus: unknown; queuedAt?: unknown; order?: { promisedAt?: unknown } | null };
+  const due = (item: KdsRow) => new Date(String(item.order?.promisedAt ?? item.queuedAt ?? 0)).getTime() || 0;
+  const items = (rows as KdsRow[]).slice(0, limit).sort((a: KdsRow, b: KdsRow) => due(a) - due(b));
   const canManageOrders = permissions.canManageOrders({ session: context.session });
+  const nextPromisedAt = (nextScheduled?.order as { promisedAt?: unknown } | null | undefined)?.promisedAt;
+  const nextScheduledAt = nextPromisedAt ? new Date(String(nextPromisedAt)).toISOString() : null;
   return {
     activeCount,
+    scheduledCount,
+    nextScheduledAt,
     canManageOrders,
     storeTimezone: store.storeTimezone,
     hasMore,
     nextCursor: hasMore && items.length ? encodeKdsCursor(items[items.length - 1]!) : null,
-    items: items.map((item) => {
+    items: items.map((item: KdsRow) => {
       const status = String(item.barStatus) as KdsItemStatus;
       const next = KDS_ITEM_TRANSITIONS[status]?.find((candidate) => candidate !== "voided");
       return { ...item, nextAction: canManageOrders && next ? { status: next, label: statusLabels[next] || next.replaceAll("_", " "), tone: "default" } : null };

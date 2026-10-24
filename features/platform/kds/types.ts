@@ -1,6 +1,6 @@
 export type KdsItemStatus = "new" | "queued" | "preparing" | "ready" | "handed_off" | "voided";
 
-export type KdsBoard = { activeCount: number; canManageOrders: boolean; storeTimezone: string | null; hasMore: boolean; nextCursor?: string | null; items: KdsOrderItem[] };
+export type KdsBoard = { activeCount: number; scheduledCount?: number; nextScheduledAt?: string | null; canManageOrders: boolean; storeTimezone: string | null; hasMore: boolean; nextCursor?: string | null; items: KdsOrderItem[] };
 
 export type KdsOrderItem = {
   id: string;

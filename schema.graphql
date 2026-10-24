@@ -5311,6 +5311,8 @@ type CoffeeKdsItemProjection {
 
 type CoffeeKdsProjection {
   activeCount: Int!
+  scheduledCount: Int!
+  nextScheduledAt: String
   canManageOrders: Boolean!
   storeTimezone: String
   hasMore: Boolean!

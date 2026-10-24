@@ -2766,6 +2766,8 @@ var init_coffeeBoundarySchema = __esm({
   }
   type CoffeeKdsProjection {
     activeCount: Int!
+    scheduledCount: Int!
+    nextScheduledAt: String
     canManageOrders: Boolean!
     storeTimezone: String
     hasMore: Boolean!
@@ -3574,7 +3576,7 @@ async function consumeCafeInventoryRequirements(tx, input) {
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${requirement.inventoryItemId}`);
       const item = await tx.inventoryItem.findUnique({ where: { id: requirement.inventoryItemId }, select: { id: true, storeId: true, currentStock: true, unit: true, name: true } });
       if (!item || item.storeId !== input.storeId) throw new Error("Insufficient inventory for this order");
-      if (positive(item.currentStock) < requirement.quantity) throw cafeCustomerError(`Not enough ${String(item.name || "stock")} on hand`);
+      if (positive(item.currentStock) < requirement.quantity) throw cafeCustomerError(shortStockMessage(item));
       if (String(item.unit || "each") === "each" && Math.round(requirement.quantity * STOCK_SCALE) % STOCK_SCALE !== 0) {
         throw new Error(`This order would use a fraction of ${String(item.name || "a counted item")}; review the recipe or add-on quantity in Menu management`);
       }
@@ -3584,6 +3586,13 @@ async function consumeCafeInventoryRequirements(tx, input) {
       for (const allocation of allocations) await tx.stockMovement.create({ data: { idempotencyKey: `order:${input.orderId}:${requirement.inventoryItemId}:${allocation.inventoryLotId || "unlotted"}`, inventoryItemId: requirement.inventoryItemId, inventoryLotId: allocation.inventoryLotId, storeId: input.storeId, orderId: input.orderId, type: "sale", quantity: -allocation.quantity, reason: input.reason, notes: "Reviewed recipe/modifier allocation; no inferred historical lot assignments", createdById: input.createdById || null } });
     }
   }
+}
+function shortStockMessage(item) {
+  const name2 = String(item.name || "stock");
+  const onHand = Math.max(0, Math.floor(Number(item.currentStock || 0) * 100) / 100);
+  const unit = String(item.unit || "each");
+  if (onHand <= 0) return `${name2} is out of stock`;
+  return unit === "each" ? `Only ${onHand} ${name2} left` : `Only ${onHand} ${unit} of ${name2} left`;
 }
 var COUNTED_OUTPUT_UNITS;
 var init_coffeeInventoryConsumption = __esm({
@@ -4543,26 +4552,38 @@ async function getCoffeeKdsBoard(_root, args, context) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > KDS_PAGE_SIZE) throw new Error(`KDS page size must be between 1 and ${KDS_PAGE_SIZE}`);
   const cursor = args.cursor == null ? null : decodeKdsCursor(args.cursor);
   const store = await primaryStore(context);
-  const activeWhere = {
+  const releaseBy = new Date(Date.now() + KDS_RELEASE_MINUTES * 6e4);
+  const baseWhere = {
     storeId: store.id,
     barStatus: { in: KDS_ACTIVE_ITEM_STATUSES },
     order: { status: { in: KDS_ACTIVE_ORDER_STATUSES } }
   };
+  const activeWhere = {
+    ...baseWhere,
+    OR: [{ order: { promisedAt: null } }, { order: { promisedAt: { lte: releaseBy } } }, { barStatus: { in: ["preparing", "ready"] } }]
+  };
+  const scheduledWhere = { ...baseWhere, barStatus: { in: ["new", "queued"] }, order: { ...baseWhere.order, promisedAt: { gt: releaseBy } } };
   const pageWhere = cursor ? { ...activeWhere, AND: [kdsAfterCursorWhere(cursor)] } : activeWhere;
-  const [rows, activeCount] = await Promise.all([
+  const [rows, activeCount, scheduledCount, nextScheduled] = await Promise.all([
     context.prisma.orderItem.findMany({
       where: pageWhere,
       orderBy: [{ queuedAt: { sort: "asc", nulls: "last" } }, { id: "asc" }],
       take: limit + 1,
       select: { id: true, quantity: true, itemNameSnapshot: true, customizationsSummary: true, specialInstructions: true, barStatus: true, station: true, queuedAt: true, startedAt: true, readyAt: true, order: { select: { id: true, orderNumber: true, status: true, pickupName: true, promisedAt: true, isRush: true } } }
     }),
-    context.prisma.orderItem.count({ where: activeWhere })
+    context.prisma.orderItem.count({ where: activeWhere }),
+    context.prisma.orderItem.count({ where: scheduledWhere }),
+    context.prisma.orderItem.findFirst({ where: scheduledWhere, orderBy: { order: { promisedAt: "asc" } }, select: { order: { select: { promisedAt: true } } } })
   ]);
   const hasMore = rows.length > limit;
-  const items = rows.slice(0, limit);
+  const due = (item) => new Date(String(item.order?.promisedAt ?? item.queuedAt ?? 0)).getTime() || 0;
+  const items = rows.slice(0, limit).sort((a, b) => due(a) - due(b));
   const canManageOrders = permissions.canManageOrders({ session: context.session });
+  const nextScheduledAt = nextScheduled?.order?.promisedAt ? new Date(String(nextScheduled.order.promisedAt)).toISOString() : null;
   return {
     activeCount,
+    scheduledCount,
+    nextScheduledAt,
     canManageOrders,
     storeTimezone: store.storeTimezone,
     hasMore,
@@ -4770,7 +4791,7 @@ async function quoteCafeOrder(_root, args, context) {
     lines: lines.map((line, index) => ({ index: line.index, menuItemId: line.menuItemId, name: line.name, quantity: line.quantity, unitPrice: line.unitPrice, lineTotal: totals.lineTotals[index] }))
   };
 }
-var statusLabels, ORDER_QUEUE_ACTIVE_PAGE_SIZE, ORDER_QUEUE_STATUS_FILTERS, ORDER_QUEUE_FULFILLMENT_FILTERS, KDS_PAGE_SIZE, KDS_ACTIVE_ITEM_STATUSES, KDS_ACTIVE_ORDER_STATUSES, MENU_MANAGER_PAGE_LIMIT, MENU_MANAGER_MODIFIER_LIMIT, MENU_MANAGER_CATEGORY_LIMIT, menuInventoryRefSelect, managedMenuItemSelect, POS_CATALOG_PAGE_SIZE, POS_CATALOG_CURSOR_MAX_LENGTH, posMenuItemSelect;
+var statusLabels, ORDER_QUEUE_ACTIVE_PAGE_SIZE, ORDER_QUEUE_STATUS_FILTERS, ORDER_QUEUE_FULFILLMENT_FILTERS, KDS_PAGE_SIZE, KDS_ACTIVE_ITEM_STATUSES, KDS_ACTIVE_ORDER_STATUSES, KDS_RELEASE_MINUTES, MENU_MANAGER_PAGE_LIMIT, MENU_MANAGER_MODIFIER_LIMIT, MENU_MANAGER_CATEGORY_LIMIT, menuInventoryRefSelect, managedMenuItemSelect, POS_CATALOG_PAGE_SIZE, POS_CATALOG_CURSOR_MAX_LENGTH, posMenuItemSelect;
 var init_coffeeBoundaryQueries = __esm({
   "features/keystone/mutations/coffeeBoundaryQueries.ts"() {
     "use strict";
@@ -4809,6 +4830,7 @@ var init_coffeeBoundaryQueries = __esm({
     KDS_PAGE_SIZE = 100;
     KDS_ACTIVE_ITEM_STATUSES = ["new", "queued", "preparing", "ready"];
     KDS_ACTIVE_ORDER_STATUSES = ["accepted", "paid", "in_bar_queue", "preparing", "ready"];
+    KDS_RELEASE_MINUTES = 45;
     MENU_MANAGER_PAGE_LIMIT = 50;
     MENU_MANAGER_MODIFIER_LIMIT = 100;
     MENU_MANAGER_CATEGORY_LIMIT = 200;
@@ -4866,8 +4888,15 @@ function normalizeEmail(email) {
 function normalizePhone(phone) {
   return phone?.replace(/[^+\d]/g, "") || "";
 }
-function generateOrderNumber() {
-  const date = (/* @__PURE__ */ new Date()).toISOString().slice(2, 10).replace(/-/g, "");
+function generateOrderNumber(timezone, at = /* @__PURE__ */ new Date()) {
+  let date;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone || "America/New_York", year: "2-digit", month: "2-digit", day: "2-digit" }).formatToParts(at);
+    const part = (type) => parts.find((entry) => entry.type === type)?.value || "";
+    date = `${part("year")}${part("month")}${part("day")}`;
+  } catch {
+    date = at.toISOString().slice(2, 10).replace(/-/g, "");
+  }
   return `CF-${date}-${(0, import_node_crypto5.randomBytes)(4).toString("hex").toUpperCase()}`;
 }
 function transactionConflict(error) {
@@ -5036,7 +5065,7 @@ async function createOrderTransaction({
   const tenderRequired = isImmediateTender && total > 0;
   const externalCardReference = paymentMethod === "manual_card" ? args.externalCardReference?.trim() || "" : "";
   const now = /* @__PURE__ */ new Date();
-  const orderNumber = generateOrderNumber();
+  const orderNumber = generateOrderNumber(settings.timezone);
   const order = await tx.cafeOrder.create({
     data: {
       orderNumber,
@@ -6259,7 +6288,10 @@ async function getCoffeeStore(_root, _args, context) {
       pickupLeadTimeMinutes
     `
   });
-  return store ? { ...store, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) } : null;
+  if (!store) return null;
+  const contactEmail = String(store.contactEmail || "").trim();
+  const isStaffLogin = contactEmail ? await context.prisma.user.count({ where: { email: { equals: contactEmail, mode: "insensitive" }, roleId: { not: null } } }) > 0 : false;
+  return { ...store, contactEmail: isStaffLogin ? "" : contactEmail, logoIcon: sanitizeStoreLogoSvg(store.logoIcon || ""), logoColor: normalizeStoreLogoColor(store.logoColor) };
 }
 var init_getCoffeeStore = __esm({
   "features/keystone/mutations/getCoffeeStore.ts"() {
@@ -7762,8 +7794,7 @@ async function runInTransaction(rawTx, data, userId, session, template) {
     if (existingStore.logoColor == null || existingStore.logoColor === "") repair.logoColor = data.storeInfo.logoColor;
     if (Object.keys(repair).length) await tx.storeSetting.update({ where: { id: storeId }, data: repair, select: { id: true } });
   } else {
-    const operator = template === "custom" ? null : await tx.user.findUnique({ where: { id: userId }, select: { email: true } });
-    const storeInfo = operator?.email ? { ...data.storeInfo, contactEmail: operator.email } : data.storeInfo;
+    const storeInfo = template === "custom" ? data.storeInfo : { ...data.storeInfo, contactEmail: "" };
     storeId = (await tx.storeSetting.create({ data: { singletonKey: "primary", ...storeInfo }, select: { id: true } })).id;
     bump(counts, "storeSettings");
   }

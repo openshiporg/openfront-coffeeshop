@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { createCafePickupOrder, quoteCafePickupOrder, type CafeOrderQuote, type PickupOrderRequest } from "@/features/storefront/lib/data/orders";
 import { formatMoney } from "@/features/storefront/lib/format";
-import { formatPickupTime, pickupSlots } from "@/features/storefront/lib/hours";
+import { formatPickupTime, groupPickupSlots, pickupSlots } from "@/features/storefront/lib/hours";
 import type { CheckoutCustomer } from "@/features/storefront/lib/data/account";
 import { CART_EVENT, CART_LIMITS, CART_STORAGE_KEY, cartQuantity, loadCartLines, removeCartLines, saveCartLines } from "@/features/storefront/lib/cart/storage";
 import type { CartLine } from "@/features/storefront/lib/cart/types";
@@ -37,6 +37,14 @@ function quoteItems(lines: CartLine[]) {
 }
 
 type StoreHours = { weeklyHours: unknown; timezone: string };
+
+function slotTime(slot: Date, timeZone: string | null | undefined) {
+  try {
+    return new Intl.DateTimeFormat("en-US", { timeZone: timeZone || "UTC", hour: "numeric", minute: "2-digit" }).format(slot);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }).format(slot);
+  }
+}
 
 export function CheckoutClient({ customer = null, hours = null }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null }) {
   const router = useRouter();
@@ -400,10 +408,14 @@ export function CheckoutClient({ customer = null, hours = null }: { customer?: C
                     onChange={(event) => setPickupChoice(Number(event.target.value))}
                     className="sf-field"
                   >
-                    {slots.map((slot, index) => (
-                      <option key={slot.getTime()} value={slot.getTime()}>
-                        {formatPickupTime(slot, hours?.timezone)}{index === 0 ? " · earliest" : ""}
-                      </option>
+                    {groupPickupSlots(slots, hours?.timezone).map((group) => (
+                      <optgroup key={group.key} label={group.label}>
+                        {group.slots.map((slot) => (
+                          <option key={slot.getTime()} value={slot.getTime()}>
+                            {group.label} {slotTime(slot, hours?.timezone)}{slot === slots[0] ? " · earliest" : ""}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </label>
