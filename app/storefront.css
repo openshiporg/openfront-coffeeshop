@@ -1,5 +1,6 @@
-/* Coffee storefront · direction: "pickup counter"
- * Steamed-milk paper, espresso ink, one accent from the saved logo colour.
+/* Coffee storefront · direction: "espresso bar before open"
+ * A warm espresso-black ground, crema ink, and one accent from the saved logo
+ * colour, lifted so it reads on dark.
  * Type: Bricolage Grotesque (display) · Instrument Sans (body) · Geist Mono (prices, codes).
  * Phone first: 44px targets, sticky menu bar, bottom cart bar, bottom add bar on item pages.
  */
@@ -10,27 +11,27 @@
    * the accent and focus tokens; --sf-brand-hue is the fallback. */
   --sf-theme-hue: var(--sf-logo-hue, var(--sf-brand-hue));
 
-  --sf-paper: oklch(97.2% 0.011 80);
-  --sf-surface: oklch(99.4% 0.004 80);
-  --sf-inset: oklch(93.6% 0.014 76);
-  --sf-inset-strong: oklch(90.5% 0.017 74);
-  --sf-ink: oklch(24% 0.028 48);
-  --sf-ink-muted: oklch(45% 0.022 52);
-  --sf-ink-faint: oklch(58% 0.018 58);
-  --sf-rule: oklch(89% 0.014 72);
-  --sf-rule-strong: oklch(82% 0.018 68);
-  --sf-accent: oklch(50% 0.12 var(--sf-theme-hue));
-  --sf-accent-strong: oklch(42% 0.11 var(--sf-theme-hue));
-  --sf-accent-soft: oklch(94% 0.03 var(--sf-theme-hue));
-  --sf-accent-ink: oklch(98.5% 0.006 var(--sf-theme-hue));
-  --sf-focus: oklch(55% 0.14 var(--sf-theme-hue));
-  --sf-open: oklch(60% 0.14 150);
-  --sf-closed: oklch(58% 0.17 30);
-  --sf-pending: oklch(72% 0.14 75);
-  --sf-success-bg: oklch(95% 0.035 150);
-  --sf-success-ink: oklch(36% 0.08 150);
-  --sf-danger-bg: oklch(95.5% 0.025 28);
-  --sf-danger-ink: oklch(44% 0.15 28);
+  --sf-paper: oklch(16% 0.016 50);
+  --sf-surface: oklch(21% 0.019 52);
+  --sf-inset: oklch(12.5% 0.013 50);
+  --sf-inset-strong: oklch(25% 0.02 54);
+  --sf-ink: oklch(93% 0.022 80);
+  --sf-ink-muted: oklch(76% 0.024 72);
+  --sf-ink-faint: oklch(62% 0.022 66);
+  --sf-rule: oklch(27% 0.018 54);
+  --sf-rule-strong: oklch(38% 0.022 58);
+  --sf-accent: oklch(78% 0.12 var(--sf-theme-hue));
+  --sf-accent-strong: oklch(84% 0.1 var(--sf-theme-hue));
+  --sf-accent-soft: oklch(28% 0.05 var(--sf-theme-hue));
+  --sf-accent-ink: oklch(16% 0.02 var(--sf-theme-hue));
+  --sf-focus: oklch(80% 0.12 var(--sf-theme-hue));
+  --sf-open: oklch(76% 0.15 150);
+  --sf-closed: oklch(70% 0.16 30);
+  --sf-pending: oklch(82% 0.13 80);
+  --sf-success-bg: oklch(25% 0.045 150);
+  --sf-success-ink: oklch(84% 0.1 150);
+  --sf-danger-bg: oklch(25% 0.05 28);
+  --sf-danger-ink: oklch(82% 0.1 28);
 
   --sf-text-xs: 0.75rem;
   --sf-text-sm: 0.875rem;
@@ -38,14 +39,14 @@
   --sf-text-lg: 1.125rem;
   --sf-text-xl: 1.375rem;
   --sf-text-2xl: clamp(1.5rem, 3.2vw, 1.875rem);
-  --sf-text-display-s: clamp(1.875rem, 5vw, 2.75rem);
-  --sf-text-display: clamp(2.5rem, 8vw, 4.75rem);
+  --sf-text-display-s: clamp(2rem, 5.5vw, 3.25rem);
+  --sf-text-display: clamp(3rem, 10vw, 7.5rem);
 
-  --sf-radius-sm: 10px;
-  --sf-radius-md: 16px;
-  --sf-radius-lg: 24px;
-  --sf-shadow-raised: 0 1px 2px oklch(24% 0.03 48 / 0.12), 0 0 0 1px oklch(24% 0.03 48 / 0.06);
-  --sf-shadow-float: 0 12px 32px -12px oklch(24% 0.03 48 / 0.35), 0 0 0 1px oklch(24% 0.03 48 / 0.06);
+  --sf-radius-sm: 6px;
+  --sf-radius-md: 10px;
+  --sf-radius-lg: 14px;
+  --sf-shadow-raised: inset 0 1px 0 oklch(100% 0 0 / 0.06), 0 1px 2px oklch(0% 0 0 / 0.5);
+  --sf-shadow-float: 0 18px 40px -14px oklch(0% 0 0 / 0.8), 0 0 0 1px var(--sf-rule-strong);
 
   --sf-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --sf-dur-fast: 120ms;
@@ -54,16 +55,21 @@
   min-height: 100vh;
   background: var(--sf-paper);
   color: var(--sf-ink);
-  color-scheme: light;
+  color-scheme: dark;
   font-family: var(--font-sf-body), system-ui, sans-serif;
   font-size: var(--sf-text-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
+html:has(.sf-root),
+html:has(.sf-root) body {
+  background: oklch(16% 0.016 50);
+}
+
 .sf-root ::selection {
-  background: var(--sf-accent-soft);
-  color: var(--sf-ink);
+  background: var(--sf-accent);
+  color: var(--sf-accent-ink);
 }
 
 .sf-root :focus-visible {
@@ -240,7 +246,7 @@
   padding: 0.25rem;
   border-radius: 999px;
   background: var(--sf-inset);
-  box-shadow: inset 0 1px 2px oklch(24% 0.03 48 / 0.08);
+  box-shadow: inset 0 1px 3px oklch(0% 0 0 / 0.55);
   overflow-x: auto;
   scrollbar-width: none;
   min-width: 0;
@@ -619,7 +625,10 @@ textarea.sf-field {
 
 .sf-hero-title {
   font-size: var(--sf-text-display);
+  line-height: 0.9;
+  letter-spacing: -0.045em;
   overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .sf-hero-lead {
@@ -660,9 +669,15 @@ textarea.sf-field {
   position: relative;
   display: block;
   overflow: hidden;
-  aspect-ratio: 5 / 4;
-  border-radius: var(--sf-radius-lg);
+  aspect-ratio: 4 / 5;
+  border-radius: var(--sf-radius-md);
   background: var(--sf-inset);
+}
+
+@media (max-width: 1023px) {
+  .sf-hero-card {
+    aspect-ratio: 5 / 4;
+  }
 }
 
 .sf-hero-card-caption {
@@ -674,7 +689,7 @@ textarea.sf-field {
   gap: 0.75rem;
   padding: 0.75rem 0.75rem 0.75rem 1rem;
   border-radius: var(--sf-radius-md);
-  background: color-mix(in oklch, var(--sf-surface) 92%, transparent);
+  background: color-mix(in oklch, var(--sf-paper) 82%, transparent);
   backdrop-filter: blur(10px);
   box-shadow: var(--sf-shadow-raised);
 }
@@ -836,7 +851,7 @@ textarea.sf-field {
   border: 0;
   border-radius: 999px;
   background: var(--sf-inset);
-  box-shadow: inset 0 1px 2px oklch(24% 0.03 48 / 0.08);
+  box-shadow: inset 0 1px 3px oklch(0% 0 0 / 0.55);
   color: var(--sf-ink);
   font: inherit;
   font-size: var(--sf-text-base);
@@ -1040,7 +1055,7 @@ textarea.sf-field {
 
 .sf-quick-btn.is-added {
   background: var(--sf-open);
-  color: white;
+  color: var(--sf-paper);
 }
 
 .sf-quick-error {
