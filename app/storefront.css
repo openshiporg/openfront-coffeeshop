@@ -624,10 +624,10 @@ textarea.sf-field {
 }
 
 .sf-hero-title {
-  font-size: var(--sf-text-display);
-  line-height: 0.9;
-  letter-spacing: -0.045em;
-  overflow-wrap: anywhere;
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  overflow-wrap: break-word;
   text-wrap: balance;
 }
 
