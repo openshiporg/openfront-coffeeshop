@@ -52,7 +52,7 @@ export async function SubscriptionDetailPage({ id }: { id: string }) {
       <PageContainer title="Subscriptions" breadcrumbs={breadcrumbs}>
         <div className="space-y-3 px-4 md:px-6">
           <Alert variant="destructive" role="alert"><AlertTitle>Unable to load this subscription</AlertTitle></Alert>
-          <Button asChild variant="outline" size="sm" className="rounded-full"><Link href={`/dashboard/platform/subscriptions/${id}`}>Try again</Link></Button>
+          <Button asChild variant="outline" size="sm" className="rounded-[6px]"><Link href={`/dashboard/platform/subscriptions/${id}`}>Try again</Link></Button>
         </div>
       </PageContainer>
     );
@@ -80,7 +80,7 @@ export async function SubscriptionDetailPage({ id }: { id: string }) {
     <PageContainer title={subscription.subscriptionNumber} header={header} breadcrumbs={breadcrumbs}>
       <div className="grid gap-8 px-4 pb-24 md:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <PlatformSection id="subscription-terms" title="Terms">
-          <dl className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2">
+          <dl className="grid gap-4 rounded-[6px] border border-border bg-card p-4 sm:grid-cols-2">
             <Fact label="Plan">{subscription.planName || "—"}</Fact>
             <Fact label="Price">{formatMoney(subscription.priceCents, store.currencyCode)}</Fact>
             <Fact label="Interval">{subscription.billingInterval ? INTERVAL_LABELS[subscription.billingInterval] || subscription.billingInterval : "—"}</Fact>
@@ -95,7 +95,7 @@ export async function SubscriptionDetailPage({ id }: { id: string }) {
           {account ? (
             <Link
               href={`/dashboard/platform/loyalty/${account.id}`}
-              className="flex items-start justify-between gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex items-start justify-between gap-3 rounded-[6px] border border-border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium">{account.displayName || "Guest account"}</span>
@@ -104,7 +104,7 @@ export async function SubscriptionDetailPage({ id }: { id: string }) {
               <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" aria-label="Open loyalty account" />
             </Link>
           ) : (
-            <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">No account.</p>
+            <p className="rounded-[6px] border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">No account.</p>
           )}
         </PlatformSection>
       </div>

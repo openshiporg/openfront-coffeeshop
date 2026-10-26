@@ -123,14 +123,14 @@ export function CateringForm({ customer = null, timeZone, zoneLabel }: { custome
   if (receipt) {
     return (
       <section className="sf-panel" aria-labelledby="catering-done-title">
-        <h2 id="catering-done-title" ref={doneRef} tabIndex={-1} className="sf-display sf-status text-2xl outline-none">
+        <h2 id="catering-done-title" ref={doneRef} tabIndex={-1} className="sf-display sf-panel-title sf-status outline-none">
           <span className="sf-dot sf-dot-active" aria-hidden="true" />
           Request sent
         </h2>
-        <dl className="sf-catering-facts mt-4">
+        <dl className="sf-catering-facts">
           <div>
             <dt className="sf-label">Request</dt>
-            <dd className="sf-mono font-semibold [overflow-wrap:anywhere]">{receipt.cateringNumber}</dd>
+            <dd className="sf-marker [overflow-wrap:anywhere]">{receipt.cateringNumber}</dd>
           </div>
           <div>
             <dt className="sf-label">Event</dt>
@@ -138,7 +138,7 @@ export function CateringForm({ customer = null, timeZone, zoneLabel }: { custome
           </div>
           <div>
             <dt className="sf-label">Guests</dt>
-            <dd className="sf-mono font-semibold">{receipt.guestCount}</dd>
+            <dd className="sf-marker">{receipt.guestCount}</dd>
           </div>
           {receipt.deliveryAddress ? (
             <div>
@@ -147,10 +147,10 @@ export function CateringForm({ customer = null, timeZone, zoneLabel }: { custome
             </div>
           ) : null}
         </dl>
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="sf-actions">
           {customer ? (
             <Link href="/account" className="sf-btn sf-btn-ghost">
-              Account
+              Your account
               <ArrowUpRight className="size-4" aria-hidden="true" />
             </Link>
           ) : null}
@@ -165,8 +165,8 @@ export function CateringForm({ customer = null, timeZone, zoneLabel }: { custome
 
   return (
     <section className="sf-panel" aria-labelledby="catering-form-title">
-      <h2 id="catering-form-title" className="sf-display text-xl">Event details</h2>
-      <form className="mt-5 grid gap-4" onSubmit={submit} noValidate>
+      <h2 id="catering-form-title" className="sf-display sf-panel-title">Event details</h2>
+      <form className="sf-form-stack" onSubmit={submit} noValidate>
         <fieldset disabled={pending} className="grid gap-4">
           <div className="sf-catering-row">
             <label htmlFor="catering-name" className="sf-form-label">
@@ -181,13 +181,13 @@ export function CateringForm({ customer = null, timeZone, zoneLabel }: { custome
             </label>
           </div>
           <label htmlFor="catering-phone" className="sf-form-label">
-            <span>Phone <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
+            <span>Phone <span className="sf-optional">optional</span></span>
             <input id="catering-phone" type="tel" inputMode="tel" value={draft.customerPhone} onChange={(e) => update("customerPhone", e.target.value)} autoComplete="tel" maxLength={50} className="sf-field" {...invalid("customerPhone")} />
             {fieldError("customerPhone")}
           </label>
           <div className="sf-catering-row">
             <label htmlFor="catering-event" className="sf-form-label">
-              <span>Event date and time{zoneLabel ? <span className="font-normal text-[var(--sf-ink-faint)]"> {zoneLabel}</span> : null}</span>
+              <span>Event date and time{zoneLabel ? <span className="sf-optional"> ({zoneLabel})</span> : null}</span>
               <input id="catering-event" type="datetime-local" step={900} value={draft.eventLocal} min={bounds?.min} max={bounds?.max} onChange={(e) => update("eventLocal", e.target.value)} required className="sf-field" {...invalid("eventLocal")} />
               {fieldError("eventLocal")}
             </label>
@@ -198,21 +198,21 @@ export function CateringForm({ customer = null, timeZone, zoneLabel }: { custome
             </label>
           </div>
           <label htmlFor="catering-address" className="sf-form-label">
-            <span>Delivery address <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
+            <span>Delivery address <span className="sf-optional">optional</span></span>
             <textarea id="catering-address" rows={2} value={draft.deliveryAddress} onChange={(e) => update("deliveryAddress", e.target.value)} autoComplete="street-address" maxLength={500} className="sf-field" {...invalid("deliveryAddress")} />
             {fieldError("deliveryAddress")}
           </label>
           <label htmlFor="catering-notes" className="sf-form-label">
-            <span>Notes <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
+            <span>Notes <span className="sf-optional">optional</span></span>
             <textarea id="catering-notes" value={draft.notes} onChange={(e) => update("notes", e.target.value)} maxLength={2000} className="sf-field" {...invalid("notes")} />
             {fieldError("notes")}
           </label>
         </fieldset>
-        <button type="submit" disabled={pending} className="sf-btn sf-btn-primary sf-btn-lg sf-btn-block mt-1">
+        <button type="submit" disabled={pending} className="sf-btn sf-btn-primary sf-btn-lg sf-btn-block">
           {pending ? "Sending…" : "Send request"}
         </button>
       </form>
-      {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error mt-3" role="alert">{error}</div> : null}
+      {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error" role="alert">{error}</div> : null}
     </section>
   );
 }

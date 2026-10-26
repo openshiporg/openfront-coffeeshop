@@ -117,13 +117,13 @@ export function IngredientsPanel({
       title="Ingredients"
       meta={ingredients.length}
       actions={canManage ? (
-        <Button type="button" size="sm" className="rounded-full" onClick={() => open("new")}>
+        <Button type="button" size="sm" className="rounded-[6px]" onClick={() => open("new")}>
           <Plus className="size-4" aria-hidden="true" />Add ingredient
         </Button>
       ) : null}
     >
       {ingredients.length ? (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="overflow-hidden rounded-[6px] border bg-card">
           <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 border-b bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground md:grid">
             <span>Ingredient</span>
             <span className="text-right">Quantity</span>
@@ -161,10 +161,10 @@ export function IngredientsPanel({
                   <div className="col-span-2 flex justify-end gap-1 md:col-span-1">
                     {canManage ? (
                       <>
-                        <Button type="button" size="icon" variant="ghost" className="size-8 rounded-full" aria-label={`Edit ${row.name || "ingredient"}`} onClick={() => open(row)}>
+                        <Button type="button" size="icon" variant="ghost" className="size-8 rounded-[6px]" aria-label={`Edit ${row.name || "ingredient"}`} onClick={() => open(row)}>
                           <Pencil className="size-4" aria-hidden="true" />
                         </Button>
-                        <Button type="button" size="icon" variant="ghost" className="size-8 rounded-full text-destructive" aria-label={`Remove ${row.name || "ingredient"}`} onClick={() => { setRemoveError(null); setRemoving(row); }}>
+                        <Button type="button" size="icon" variant="ghost" className="size-8 rounded-[6px] text-destructive" aria-label={`Remove ${row.name || "ingredient"}`} onClick={() => { setRemoveError(null); setRemoving(row); }}>
                           <Trash2 className="size-4" aria-hidden="true" />
                         </Button>
                       </>
@@ -225,11 +225,11 @@ export function IngredientsPanel({
                 <Label htmlFor="ingredient-notes">Notes</Label>
                 <Textarea id="ingredient-notes" rows={3} value={draft.notes} maxLength={5000} onChange={(event) => update({ notes: event.currentTarget.value })} />
               </div>
-              <p role="alert" aria-live="assertive" className={serverError ? "rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive" : "sr-only"}>{serverError || ""}</p>
+              <p role="alert" aria-live="assertive" className={serverError ? "rounded-[6px] border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive" : "sr-only"}>{serverError || ""}</p>
             </div>
             <SheetFooter className="mt-auto flex-row justify-end gap-2">
-              <Button type="button" variant="ghost" className="rounded-full" disabled={pending} onClick={() => setEditing(null)}>Cancel</Button>
-              <Button type="submit" className="rounded-full" disabled={pending}>{pending ? "Saving…" : editing === "new" ? "Add ingredient" : "Save"}</Button>
+              <Button type="button" variant="ghost" className="rounded-[6px]" disabled={pending} onClick={() => setEditing(null)}>Cancel</Button>
+              <Button type="submit" className="rounded-[6px]" disabled={pending}>{pending ? "Saving…" : editing === "new" ? "Add ingredient" : "Save"}</Button>
             </SheetFooter>
           </form>
         </SheetContent>
@@ -243,8 +243,8 @@ export function IngredientsPanel({
           </DialogHeader>
           <p role="alert" aria-live="assertive" className={removeError ? "text-sm text-destructive" : "sr-only"}>{removeError || ""}</p>
           <DialogFooter className="gap-2">
-            <Button type="button" variant="ghost" className="rounded-full" disabled={pending} onClick={() => setRemoving(null)}>Cancel</Button>
-            <Button type="button" variant="destructive" className="rounded-full" disabled={pending} onClick={confirmRemove}>{pending ? "Removing…" : "Remove"}</Button>
+            <Button type="button" variant="ghost" className="rounded-[6px]" disabled={pending} onClick={() => setRemoving(null)}>Cancel</Button>
+            <Button type="button" variant="destructive" className="rounded-[6px]" disabled={pending} onClick={confirmRemove}>{pending ? "Removing…" : "Remove"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

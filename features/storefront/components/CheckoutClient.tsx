@@ -47,7 +47,7 @@ function slotTime(slot: Date, timeZone: string | null | undefined) {
   }
 }
 
-export function CheckoutClient({ customer = null, hours = null, onlinePayment = false }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null; onlinePayment?: boolean }) {
+export function CheckoutClient({ customer = null, hours = null, onlinePayment = false, pickupLeadMinutes = null }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null; onlinePayment?: boolean; pickupLeadMinutes?: number | null }) {
   const router = useRouter();
   const [payOnline, setPayOnline] = React.useState(false);
   const [lines, setLines] = React.useState<CartLine[]>([]);
@@ -251,17 +251,19 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     setQuoteRetry((value) => value + 1);
   }
 
-  const statusText = !cartLoaded
-    ? "Loading cart…"
+  // The pickup time leads the pickup box: the quoted time once there is something to price,
+  // the store's usual lead time (from settings) before that.
+  const pickupText = !cartLoaded
+    ? "Loading…"
     : !lines.length
-      ? "Cart empty"
+      ? pickupLeadMinutes ? `Usually ready about ${pickupLeadMinutes} min after you order` : "Add something to see a pickup time"
       : quotePending
-        ? "Pricing…"
+        ? "Checking…"
         : chosenSlot && scheduled
-          ? `Pickup ${formatPickupTime(chosenSlot, hours?.timezone)}`
+          ? formatPickupTime(chosenSlot, hours?.timezone)
           : pickupMinutes
             ? `Ready in about ${pickupMinutes} min`
-            : "Price unavailable";
+            : "Not available yet";
 
   return (
     <main className="sf-container sf-page">
@@ -269,19 +271,13 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
         <ArrowLeft className="size-4" aria-hidden="true" />
         Menu
       </Link>
-      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-        <h1 className="sf-display sf-page-title">Checkout</h1>
-        <p className="sf-status text-sm font-semibold" role="status" aria-live="polite">
-          {lines.length && cartLoaded ? <span className={`sf-dot ${quotePending ? "sf-dot-active" : quote ? "sf-dot-open" : "sf-dot-closed"}`} aria-hidden="true" /> : null}
-          {statusText}
-        </p>
-      </div>
+      <h1 className="sf-display sf-page-title">Your order</h1>
 
-      <div className="sf-split mt-6">
-        <section className="sf-ticket min-w-0" aria-labelledby="order-lines-title">
-          <div className="sf-ticket-section">
-            <h2 id="order-lines-title" className="sf-label mb-4">
-              Your order{totalQuantity ? <span className="sf-mono"> · {totalQuantity} {totalQuantity === 1 ? "item" : "items"}</span> : null}
+      <div className="sf-split">
+        <section className="sf-tray min-w-0" aria-labelledby="order-lines-title">
+          <div className="sf-tray-section">
+            <h2 id="order-lines-title" className="sf-box-label">
+              Items{totalQuantity ? <span className="sf-marker sf-tray-count"> {totalQuantity}</span> : null}
             </h2>
             {lines.map((line, index) => (
               <article key={line.cartId} className="sf-line">
@@ -293,9 +289,9 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                 <div className="min-w-0">
                   <div className="sf-line-top">
                     <h3 className="sf-line-name">{line.name}</h3>
-                    <p className="sf-mono shrink-0 font-semibold">{quote?.lines[index] ? formatMoney(quote.lines[index].lineTotal, currency) : "—"}</p>
+                    <p className="sf-price">{quote?.lines[index] ? formatMoney(quote.lines[index].lineTotal, currency) : "—"}</p>
                   </div>
-                  {line.modifierNames.length > 0 ? <p className="sf-line-mods">{line.modifierNames.join(", ")}</p> : null}
+                  {line.modifierNames.length > 0 ? <p className="sf-line-mods sf-marker">{line.modifierNames.join(", ")}</p> : null}
                   {line.notes ? <p className="sf-line-note">“{line.notes}”</p> : null}
                   <div className="sf-line-actions">
                     <div className="sf-stepper sf-stepper-sm">
@@ -307,7 +303,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                       >
                         <Minus className="size-4" aria-hidden="true" />
                       </button>
-                      <span aria-label={`Quantity ${line.quantity}`}>{line.quantity}</span>
+                      <span className="sf-marker" aria-label={`Quantity ${line.quantity}`}>{line.quantity}</span>
                       <button
                         type="button"
                         aria-label={`Increase ${line.name}`}
@@ -322,7 +318,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                       aria-label={`Remove ${line.name}`}
                       disabled={frozen}
                       onClick={() => removeLine(line.cartId)}
-                      className="sf-btn sf-btn-ghost sf-btn-danger !border-transparent !px-3"
+                      className="sf-btn sf-btn-quiet sf-btn-danger"
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
                       Remove
@@ -332,47 +328,50 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
               </article>
             ))}
             {totalQuantity >= CART_LIMITS.maxTotalQuantity ? (
-              <p className="sf-muted mt-2 text-sm">Limit {CART_LIMITS.maxTotalQuantity} items per order.</p>
+              <p className="sf-fine">Limit {CART_LIMITS.maxTotalQuantity} items per order.</p>
             ) : null}
             {cartLoaded && !lines.length ? (
-              <div className="sf-empty">
-                <strong>Your cart is empty</strong>
-                <Link href="/#menu" className="sf-btn sf-btn-ghost mt-3">Browse the menu</Link>
+              <div className="sf-tray-empty">
+                <strong>Nothing in your order yet</strong>
+                <span>Pick a drink or pastry from the menu and it lands here.</span>
+                <Link href="/#menu" className="sf-btn sf-btn-ink">Browse the menu</Link>
               </div>
             ) : null}
-            {!cartLoaded ? <p className="sf-muted text-sm">Loading cart…</p> : null}
+            {!cartLoaded ? <p className="sf-muted">Loading your order…</p> : null}
           </div>
 
           {lines.length ? (
             <>
-              <div className="sf-perf" aria-hidden="true" />
-
-              <div className="sf-ticket-section">
+              <div className="sf-tray-section sf-tray-totals">
                 <dl className="sf-totals">
                   <div>
                     <dt>Subtotal</dt>
-                    <dd className="sf-mono">{quote ? formatMoney(quote.subtotal, currency) : "—"}</dd>
+                    <dd>{quote ? formatMoney(quote.subtotal, currency) : "—"}</dd>
                   </div>
                   <div>
                     <dt>Tax</dt>
-                    <dd className="sf-mono">{quote ? formatMoney(quote.tax, currency) : "—"}</dd>
+                    <dd>{quote ? formatMoney(quote.tax, currency) : "—"}</dd>
                   </div>
                   <div className="is-total">
                     <dt>Total</dt>
-                    <dd className="sf-mono">{quote ? formatMoney(quote.total, currency) : "—"}</dd>
+                    <dd>{quote ? formatMoney(quote.total, currency) : "—"}</dd>
                   </div>
                 </dl>
-                <p className="sf-muted mt-3 text-sm">{onlinePayment && payOnline ? "Pay online by card" : "Pay at pickup"}</p>
+                <p className="sf-pay-note">{onlinePayment && payOnline ? "Pay online by card" : "Pay at pickup"}</p>
               </div>
             </>
           ) : null}
         </section>
 
         <aside className="sf-panel sf-sticky-panel" aria-labelledby="pickup-details-title">
-          <h2 id="pickup-details-title" className="sf-display text-xl">Pickup details</h2>
+          <h2 id="pickup-details-title" className="sf-display sf-panel-title">Pickup</h2>
+          <p className="sf-pickup-time" role="status" aria-live="polite">
+            <span className={`sf-dot ${!lines.length || !cartLoaded ? "" : quotePending ? "sf-dot-active" : quote ? "sf-dot-open" : "sf-dot-closed"}`} aria-hidden="true" />
+            {pickupText}
+          </p>
 
           {attempt ? (
-            <div className="sf-alert-error mt-5 grid gap-3" role="region" aria-label="Unconfirmed pickup request">
+            <div className="sf-alert-error sf-attempt" role="region" aria-label="Unconfirmed pickup request">
               <p>
                 {attempt.orderId
                   ? "Your last pickup request was sent."
@@ -392,23 +391,23 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                 </button>
               </div>
               {!attempt.orderId ? (
-                <p className="text-xs">If the cafe may already have this request, contact them before discarding it.</p>
+                <p className="sf-fine">If the café may already have this request, contact them before discarding it.</p>
               ) : null}
             </div>
           ) : null}
 
-          <form className="mt-5 grid gap-4" onSubmit={submit}>
+          <form className="sf-form-stack" onSubmit={submit}>
             <fieldset disabled={frozen} className="grid gap-4">
               <label htmlFor="checkout-name" className="sf-form-label">
-                Name for pickup
-                <input id="checkout-name" name="name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} autoComplete="name" required maxLength={200} className="sf-field" />
+                Name on the cup
+                <input id="checkout-name" name="name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} autoComplete="name" required maxLength={200} className="sf-field sf-field-written sf-namebox" />
               </label>
               <label htmlFor="checkout-email" className="sf-form-label">
                 Email
                 <input id="checkout-email" name="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} type="email" autoComplete="email" required maxLength={320} className="sf-field" />
               </label>
               <label htmlFor="checkout-phone" className="sf-form-label">
-                <span>Phone <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
+                <span>Phone <span className="sf-optional">optional</span></span>
                 <input id="checkout-phone" name="phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} type="tel" inputMode="tel" autoComplete="tel" maxLength={50} className="sf-field" />
               </label>
               {slots.length > 1 ? (
@@ -435,14 +434,14 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
               {onlinePayment ? (
                 <div className="sf-form-label">
                   <span id="checkout-payment-label">Payment</span>
-                  <div className="sf-track sf-track-fill sf-segment w-full" role="group" aria-labelledby="checkout-payment-label">
+                  <div className="sf-track sf-track-fill" role="group" aria-labelledby="checkout-payment-label">
                     <button type="button" className="sf-track-item" aria-pressed={!payOnline} disabled={frozen} onClick={() => setPayOnline(false)}>Pay at pickup</button>
                     <button type="button" className="sf-track-item" aria-pressed={payOnline} disabled={frozen} onClick={() => setPayOnline(true)}>Pay online</button>
                   </div>
                 </div>
               ) : null}
               <label htmlFor="checkout-notes" className="sf-form-label">
-                <span>Order notes <span className="font-normal text-[var(--sf-ink-faint)]">optional</span></span>
+                <span>Order notes <span className="sf-optional">optional</span></span>
                 <textarea id="checkout-notes" name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} className="sf-field" />
               </label>
             </fieldset>
@@ -451,12 +450,12 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
               <button
                 type="submit"
                 disabled={!lines.length || !quote || quotePending || pending}
-                className="sf-btn sf-btn-primary sf-btn-lg sf-btn-block mt-1"
+                className="sf-btn sf-btn-primary sf-btn-lg sf-btn-block"
               >
-                {!cartLoaded ? "Loading cart…" : !lines.length ? "Add an item first" : pending ? "Sending…" : quotePending ? "Pricing…" : quote ? (
+                {!cartLoaded ? "Loading…" : !lines.length ? "Add an item first" : pending ? "Sending…" : quotePending ? "Pricing…" : quote ? (
                   <>
                     <span>{onlinePayment && payOnline ? "Place order and pay" : "Place pickup order"}</span>
-                    <span className="sf-mono opacity-80">{formatMoney(quote.total, currency)}</span>
+                    <span className="sf-btn-price">{formatMoney(quote.total, currency)}</span>
                   </>
                 ) : "Price unavailable"}
               </button>
@@ -464,12 +463,12 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
           </form>
 
           {quoteError && !attempt ? (
-            <div className="sf-alert-error mt-3" role="alert">
+            <div className="sf-alert-error" role="alert">
               <p>{quoteError}</p>
               <button type="button" className="mt-1 inline-flex min-h-11 items-center font-semibold underline underline-offset-4" onClick={() => setQuoteRetry((value) => value + 1)}>Try pricing again</button>
             </div>
           ) : null}
-          {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error mt-3" role="alert">{error}</div> : null}
+          {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error" role="alert">{error}</div> : null}
         </aside>
       </div>
     </main>

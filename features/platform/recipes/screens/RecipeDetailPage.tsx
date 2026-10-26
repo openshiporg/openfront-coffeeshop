@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import { StatusDot, StatusTitle } from "@/features/platform/components/StatusTit
 import { IngredientsPanel } from "../components/IngredientsPanel";
 import { RecipeFormSheet } from "../components/RecipeFormSheet";
 import { RecipeStatusActions } from "../components/RecipeStatusActions";
-import { costPerYieldCents, formatCents, formatQuantity, servingsFromStock } from "../lib/recipeMath";
+import { costPerYieldCents, formatCents, formatQuantity, isPerServingUnit, marginFraction, pluralUnit, servingsFromStock, toNumber } from "../lib/recipeMath";
 import {
   PREP_BATCH_STATUS_LABELS,
   PREP_BATCH_STATUS_TONES,
@@ -32,7 +31,7 @@ const DETAIL_QUERY = `
     recipe(where: { id: $id }) {
       id name status active yieldQuantity yieldUnit prepInstructions allergenNotes updatedAt
       store { id }
-      menuItem { id name }
+      menuItem { id name price }
     }
     ingredients(where: { recipe: { id: { equals: $id } } }, orderBy: [{ createdAt: asc }], take: 200) {
       id name quantity unit optional notes
@@ -62,9 +61,9 @@ type DetailData = {
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-xl border bg-card px-4 py-3">
+    <div className="min-w-0 bg-background px-4 py-3">
       <dt className="truncate text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 truncate text-lg font-semibold tabular-nums">{children}</dd>
+      <dd className="mt-0.5 truncate text-base font-semibold tabular-nums">{children}</dd>
     </div>
   );
 }
@@ -82,9 +81,9 @@ export async function RecipeDetailPage({ id }: { id: string }) {
       <PageContainer title="Recipe" breadcrumbs={[...breadcrumbs, { type: "page", label: "Recipe" }]}>
         <div className="px-4 md:px-6">
           <Alert variant="destructive" role="alert">
-            <AlertTitle>Unable to load recipe</AlertTitle>
+            <AlertTitle>This recipe didn&apos;t load</AlertTitle>
             <AlertDescription>
-              <div className="mt-2"><Button asChild size="sm" variant="outline"><Link href={`/dashboard/platform/recipes/${id}`}>Try again</Link></Button></div>
+              <p>Nothing was changed.</p><div className="mt-2"><Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={`/dashboard/platform/recipes/${id}`}>Try again</Link></Button></div>
             </AlertDescription>
           </Alert>
         </div>
@@ -110,6 +109,8 @@ export async function RecipeDetailPage({ id }: { id: string }) {
   }));
   const cost = costPerYieldCents(lines, recipe.yieldQuantity);
   const servings = servingsFromStock(lines, recipe.yieldQuantity);
+  const price = typeof recipe.menuItem?.price === "number" ? recipe.menuItem.price : null;
+  const margin = isPerServingUnit(recipe.yieldUnit) ? marginFraction(price, cost) : null;
 
   const otherActive = state === "active" && recipe.menuItem
     ? await keystoneClient<{ recipes: Array<{ id: string; name: string | null }> }>(
@@ -134,7 +135,7 @@ export async function RecipeDetailPage({ id }: { id: string }) {
       meta={(
         <>
           <span>{recipe.menuItem?.name || "No menu item"}</span>
-          <span className="tabular-nums">Yield {formatQuantity(recipe.yieldQuantity, format.locale)} {recipe.yieldUnit}</span>
+          <span className="tabular-nums">Yield {formatQuantity(recipe.yieldQuantity, format.locale)} {pluralUnit(recipe.yieldUnit, toNumber(recipe.yieldQuantity))}</span>
           {state === "active" && recipe.active === false ? <span className="text-destructive">Not selling</span> : null}
           {recipe.updatedAt ? <span>Updated {formatStoreDateTime(recipe.updatedAt, format.timezone)}</span> : null}
         </>
@@ -155,8 +156,8 @@ export async function RecipeDetailPage({ id }: { id: string }) {
               <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
                 {conflicts.map((other) => (
                   <li key={other.id}>
-                    <Link href={`/dashboard/platform/recipes/${other.id}`} className="inline-flex items-center gap-1 underline underline-offset-2">
-                      {other.name || "Untitled"}<ArrowUpRight className="size-3.5" aria-hidden="true" />
+                    <Link href={`/dashboard/platform/recipes/${other.id}`} className="underline underline-offset-2">
+                      {other.name || "Untitled"}
                     </Link>
                   </li>
                 ))}
@@ -165,10 +166,15 @@ export async function RecipeDetailPage({ id }: { id: string }) {
           </Alert>
         ) : null}
 
-        <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[6px] border bg-border md:grid-cols-4">
           <Fact label={`Cost / ${unit}`}>{formatCents(cost, format.currencyCode, format.locale)}</Fact>
-          <Fact label="Possible from stock">{servings === null ? "—" : `${servings.toLocaleString(format.locale)} ${unit}`}</Fact>
-          <Fact label="Ingredients">{data.ingredients.length}</Fact>
+          {price !== null ? (
+            <Fact label={margin === null ? "Menu price" : "Menu price · margin"}>
+              {formatCents(price, format.currencyCode, format.locale)}
+              {margin === null ? null : <span className={margin < 0.6 ? "font-medium text-amber-700 dark:text-amber-400" : "font-normal text-muted-foreground"}> · {Math.round(margin * 100)}%</span>}
+            </Fact>
+          ) : <Fact label="Ingredients">{data.ingredients.length}</Fact>}
+          <Fact label="Possible from stock">{servings === null ? "—" : `${servings.toLocaleString(format.locale)} ${pluralUnit(recipe.yieldUnit, servings)}`}</Fact>
           <Fact label="Prep batches">{data.prepBatchesCount}</Fact>
         </dl>
 
@@ -183,10 +189,10 @@ export async function RecipeDetailPage({ id }: { id: string }) {
 
         <div className="grid gap-6 md:grid-cols-2">
           <PlatformSection id="recipe-prep-heading" title="Prep instructions">
-            {recipe.prepInstructions ? <p className="whitespace-pre-wrap rounded-xl border bg-card p-4 text-sm [overflow-wrap:anywhere]">{recipe.prepInstructions}</p> : <PlatformEmpty>No prep instructions.</PlatformEmpty>}
+            {recipe.prepInstructions ? <p className="whitespace-pre-wrap rounded-[6px] border bg-card p-4 text-sm [overflow-wrap:anywhere]">{recipe.prepInstructions}</p> : <PlatformEmpty>No prep instructions.</PlatformEmpty>}
           </PlatformSection>
           <PlatformSection id="recipe-allergen-heading" title="Allergen notes">
-            {recipe.allergenNotes ? <p className="whitespace-pre-wrap rounded-xl border bg-card p-4 text-sm [overflow-wrap:anywhere]">{recipe.allergenNotes}</p> : <PlatformEmpty>No allergen notes.</PlatformEmpty>}
+            {recipe.allergenNotes ? <p className="whitespace-pre-wrap rounded-[6px] border bg-card p-4 text-sm [overflow-wrap:anywhere]">{recipe.allergenNotes}</p> : <PlatformEmpty>No allergen notes.</PlatformEmpty>}
           </PlatformSection>
         </div>
 
@@ -195,13 +201,13 @@ export async function RecipeDetailPage({ id }: { id: string }) {
           title="Prep batches"
           meta={data.prepBatchesCount}
           actions={(
-            <Button asChild size="sm" variant="outline" className="rounded-full">
-              <Link href="/dashboard/platform/coffee-operations">Make a batch<ArrowUpRight className="size-4" aria-hidden="true" /></Link>
+            <Button asChild size="sm" variant="outline" className="rounded-[6px]">
+              <Link href="/dashboard/platform/coffee-operations">Make a batch</Link>
             </Button>
           )}
         >
           {data.prepBatches.length ? (
-            <ul className="divide-y rounded-xl border bg-card">
+            <ul className="divide-y rounded-[6px] border bg-card">
               {data.prepBatches.map((batch) => (
                 <li key={batch.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3">
                   <StatusTitle as="p" tone={PREP_BATCH_STATUS_TONES[batch.status ?? ""] || "zinc"} status={PREP_BATCH_STATUS_LABELS[batch.status ?? ""] || batch.status} className="text-sm font-medium">

@@ -71,9 +71,9 @@ export async function MenuManagerPage({ search, categoryId, cursor }: { search: 
   if (!isMenuManagerData(data)) {
     return (
       <PageContainer title="Menu" breadcrumbs={BREADCRUMBS} header={<PlatformHeader title="Menu" />}>
-        <div role="alert" className="mx-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm md:mx-6">
+        <div role="alert" className="mx-4 flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-destructive/40 bg-destructive/5 p-4 text-sm md:mx-6">
           <p className="font-medium">{cursor ? "This page of results is no longer available." : "Menu unavailable."}</p>
-          <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={retryHref(search, categoryId)}>{cursor ? "First page" : "Try again"}</Link></Button>
+          <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={retryHref(search, categoryId)}>{cursor ? "First page" : "Try again"}</Link></Button>
         </div>
       </PageContainer>
     );

@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { BookOpen, CircleDashed, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
-import { PlatformEmpty, PlatformHeader } from "@/features/platform/components/PlatformPage";
-import { StatusTitle } from "@/features/platform/components/StatusTitle";
+import { PlatformEmpty, PlatformHeader, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
+import { StatusDot } from "@/features/platform/components/StatusTitle";
+import { cn } from "@/lib/utils";
 import { RecipeFormSheet } from "../components/RecipeFormSheet";
-import { costPerYieldCents, formatCents, formatQuantity } from "../lib/recipeMath";
+import { costPerYieldCents, formatCents, formatQuantity, isPerServingUnit, marginFraction, pluralUnit, toNumber } from "../lib/recipeMath";
 import {
   RECIPE_PAGE_SIZE,
   RECIPE_STATUS_LABELS,
@@ -28,7 +28,7 @@ const LIST_QUERY = `
     authenticatedItem { ... on User { id role { canManageProducts } } }
     storeSettings(where: { singletonKey: { equals: "primary" } }, take: 1) { currencyCode locale timezone }
     recipes(where: $where, orderBy: [{ updatedAt: desc }], take: $take, skip: $skip) {
-      id name status active yieldQuantity yieldUnit menuItem { id name }
+      id name status active yieldQuantity yieldUnit menuItem { id name price }
     }
     filteredCount: recipesCount(where: $where)
     allCount: recipesCount(where: $all)
@@ -124,8 +124,8 @@ export async function RecipeListPage({ search = "", status = "all", page = 1 }: 
       header={header}
       breadcrumbs={[{ type: "link", label: "Dashboard", href: "/dashboard" }, { type: "page", label: "Platform" }, { type: "page", label: "Recipes" }]}
     >
-      <div className="space-y-6 px-4 pb-24 md:px-6">
-        <div className="space-y-3">
+      <div className="space-y-4 px-4 pb-24 md:px-6">
+        <div className="space-y-4">
           <nav aria-label="Status" className="min-w-0 max-w-full">
             <PillTrack label="Status">
               {TABS.map((tab) => (
@@ -140,67 +140,76 @@ export async function RecipeListPage({ search = "", status = "all", page = 1 }: 
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <label htmlFor="recipe-search" className="sr-only">Search recipes</label>
-              <Input id="recipe-search" type="search" name="search" defaultValue={term} placeholder="Recipe or menu item" className="h-10 rounded-full pl-9" />
+              <Input id="recipe-search" type="search" name="search" defaultValue={term} placeholder="Recipe or menu item" className="h-9 rounded-[6px] pl-9" />
             </div>
-            <Button type="submit" variant="outline" className="h-10 rounded-full">Search</Button>
-            {term ? <Button asChild variant="ghost" className="h-10 rounded-full"><Link href={recipesHref({ status })}>Clear</Link></Button> : null}
+            <Button type="submit" variant="outline" className="h-9 rounded-[6px]">Search</Button>
+            {term ? <Button asChild variant="ghost" className="h-9 rounded-[6px]"><Link href={recipesHref({ status })}>Clear</Link></Button> : null}
           </form>
         </div>
 
         {!response.success ? (
           <Alert variant="destructive" role="alert">
-            <AlertTitle>Unable to load recipes</AlertTitle>
+            <AlertTitle>Recipes didn&apos;t load</AlertTitle>
             <AlertDescription>
-              <div className="mt-2"><Button asChild size="sm" variant="outline"><Link href={recipesHref({ ...view, page })}>Try again</Link></Button></div>
+              <p>Nothing was changed.</p><div className="mt-2"><Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={recipesHref({ ...view, page })}>Try again</Link></Button></div>
             </AlertDescription>
           </Alert>
         ) : !recipes.length ? (
           page > 1 ? (
             <PlatformEmpty>No more recipes.</PlatformEmpty>
           ) : term ? (
-            <EmptyState title="No matching recipes" description={`Nothing matches "${term}".`} icons={[Search, CircleDashed]} />
+            <PlatformEmpty>No recipes match &quot;{term}&quot;.</PlatformEmpty>
           ) : (
-            <EmptyState title="No recipes" description="No recipes in this view." icons={[BookOpen, CircleDashed]} />
+            <PlatformEmpty>{status === "all" ? "No recipes yet." : `No ${RECIPE_STATUS_LABELS[status].toLowerCase()} recipes.`}</PlatformEmpty>
           )
         ) : (
           <>
-            <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <PlatformTable
+              label="Recipes"
+              head={[
+                { label: "Recipe" },
+                { label: "Status" },
+                { label: "Yield", className: "hidden text-right sm:table-cell" },
+                { label: "Lines", className: "hidden text-right md:table-cell" },
+                { label: "Cost / serving", className: "text-right" },
+                { label: "Menu price", className: "hidden text-right sm:table-cell" },
+                { label: "Margin", className: "text-right" },
+              ]}
+            >
               {recipes.map((recipe) => {
                 const lines = (byRecipe.get(recipe.id) ?? []).map((line) => ({ quantity: line.quantity, optional: line.optional, costPerUnit: line.inventoryItem?.costPerUnit ?? null, inventoryItemId: line.inventoryItem?.id ?? null }));
                 const state = recipeStatus(recipe);
                 const cost = costPerYieldCents(lines, recipe.yieldQuantity);
+                const price = recipe.menuItem?.price ?? null;
+                const margin = isPerServingUnit(recipe.yieldUnit) ? marginFraction(price, cost) : null;
+                const yieldCount = toNumber(recipe.yieldQuantity);
                 return (
-                  <li key={recipe.id}>
-                    <Link href={`/dashboard/platform/recipes/${recipe.id}`} className="block h-full rounded-xl border bg-card p-4 shadow-xs transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      <StatusTitle tone={RECIPE_STATUS_TONES[state]} status={RECIPE_STATUS_LABELS[state]} className="text-base font-semibold tracking-tight">
-                        {recipe.name || "Untitled recipe"}
-                      </StatusTitle>
-                      <p className="mt-1 truncate text-sm text-muted-foreground">{recipe.menuItem?.name || "No menu item"}</p>
-                      <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                        <div className="min-w-0">
-                          <dt className="text-xs text-muted-foreground">Yield</dt>
-                          <dd className="truncate tabular-nums">{formatQuantity(recipe.yieldQuantity, format.locale)} {recipe.yieldUnit}</dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="text-xs text-muted-foreground">Ingredients</dt>
-                          <dd className="tabular-nums">{ingredientsResponse?.success ? lines.length : "—"}</dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="truncate text-xs text-muted-foreground">Cost / {recipe.yieldUnit || "unit"}</dt>
-                          <dd className="tabular-nums">{formatCents(cost, format.currencyCode, format.locale)}</dd>
-                        </div>
-                      </dl>
-                    </Link>
-                  </li>
+                  <tr key={recipe.id} className="transition-colors hover:bg-muted/30">
+                    <td className={cn(platformTd, "min-w-40")}>
+                      <Link href={`/dashboard/platform/recipes/${recipe.id}`} className="font-medium underline-offset-4 hover:underline focus-visible:underline [overflow-wrap:anywhere]">{recipe.name || "Untitled recipe"}</Link>
+                      <p className="truncate text-xs text-muted-foreground">{recipe.menuItem?.name || "No menu item"}</p>
+                    </td>
+                    <td className={cn(platformTd, "whitespace-nowrap")}><span className="inline-flex items-center gap-2"><StatusDot tone={RECIPE_STATUS_TONES[state]} />{RECIPE_STATUS_LABELS[state]}</span></td>
+                    <td className={cn(platformTd, "hidden whitespace-nowrap text-right tabular-nums text-muted-foreground sm:table-cell")}>{formatQuantity(recipe.yieldQuantity, format.locale)} {pluralUnit(recipe.yieldUnit, yieldCount)}</td>
+                    <td className={cn(platformTd, "hidden text-right tabular-nums text-muted-foreground md:table-cell")}>{ingredientsResponse?.success ? lines.length : "—"}</td>
+                    <td className={cn(platformTd, "whitespace-nowrap text-right font-medium tabular-nums")}>
+                      {formatCents(cost, format.currencyCode, format.locale)}
+                      {cost !== null && recipe.yieldUnit && recipe.yieldUnit !== "serving" ? <span className="font-normal text-muted-foreground"> / {recipe.yieldUnit}</span> : null}
+                    </td>
+                    <td className={cn(platformTd, "hidden whitespace-nowrap text-right tabular-nums sm:table-cell")}>{formatCents(price, format.currencyCode, format.locale)}</td>
+                    <td className={cn(platformTd, "whitespace-nowrap text-right tabular-nums", margin !== null && margin < 0.6 && "font-medium text-amber-700 dark:text-amber-400")}>
+                      {margin === null ? <span className="text-muted-foreground">—</span> : `${Math.round(margin * 100)}%`}
+                    </td>
+                  </tr>
                 );
               })}
-            </ul>
+            </PlatformTable>
             {pageCount > 1 ? (
               <nav aria-label="Recipe pages" className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm tabular-nums text-muted-foreground">Page {page} of {pageCount}</span>
                 <div className="flex gap-2">
-                  {page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={recipesHref({ ...view, page: page - 1 })}>Previous</Link></Button> : null}
-                  {page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={recipesHref({ ...view, page: page + 1 })}>Next</Link></Button> : null}
+                  {page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={recipesHref({ ...view, page: page - 1 })}>Previous</Link></Button> : null}
+                  {page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={recipesHref({ ...view, page: page + 1 })}>Next</Link></Button> : null}
                 </div>
               </nav>
             ) : null}

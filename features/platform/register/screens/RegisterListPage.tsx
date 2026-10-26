@@ -6,8 +6,9 @@ import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 import { formatStoreDateTime } from "@/lib/date-time";
 import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
-import { PlatformEmpty, PlatformHeader } from "@/features/platform/components/PlatformPage";
-import { StatusTitle } from "@/features/platform/components/StatusTitle";
+import { PlatformEmpty, PlatformHeader, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
+import { StatusDot } from "@/features/platform/components/StatusTitle";
+import { FilterSelect } from "@/features/platform/orders/components/FilterSelect";
 import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
@@ -101,8 +102,32 @@ function and(...parts: Array<Record<string, unknown> | null>) {
   return { AND: parts.filter((part): part is Record<string, unknown> => part !== null) };
 }
 
+const CURRENT_QUERY = `
+  query CoffeeRegisterCurrent {
+    open: registerShifts(where: { status: { equals: "open" } }, orderBy: [{ openedAt: desc }], take: 1) {
+      id shiftNumber registerName status openedAt openedBy { id name }
+      openingCashCents cashSalesCents cardSalesCents tipsCents expectedCashCents
+    }
+    lastClosed: registerShifts(where: { status: { equals: "closed" } }, orderBy: [{ openedAt: desc }], take: 1) {
+      id shiftNumber registerName closedAt closedBy { id name } expectedCashCents countedCashCents cashVarianceCents
+    }
+  }
+`;
+type CurrentResult = {
+  open: Array<{ id: string; shiftNumber: string | null; registerName: string | null; openedAt: string | null; openedBy: { id: string; name: string | null } | null; openingCashCents: number | null; cashSalesCents: number | null; cardSalesCents: number | null; tipsCents: number | null; expectedCashCents: number | null }> | null;
+  lastClosed: Array<{ id: string; shiftNumber: string | null; registerName: string | null; closedAt: string | null; closedBy: { id: string; name: string | null } | null; expectedCashCents: number | null; countedCashCents: number | null; cashVarianceCents: number | null }> | null;
+};
+
+const linkButton = "inline-flex h-9 items-center justify-center gap-1.5 rounded-[6px] px-3.5 text-sm font-medium transition-[background-color,opacity,transform] duration-150 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+const primaryLink = `${linkButton} bg-foreground text-background hover:opacity-90`;
+const outlineLink = `${linkButton} border bg-background hover:bg-muted`;
+
+function varianceClass(cents: number | null | undefined) {
+  return cents ? "font-semibold text-red-600 dark:text-red-400" : "";
+}
+
 function ErrorNote({ children }: { children: string }) {
-  return <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{children}</p>;
+  return <p role="alert" className="rounded-[6px] border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{children}</p>;
 }
 
 function Pages({ state, total }: { state: RegisterListState; total: number }) {
@@ -112,72 +137,155 @@ function Pages({ state, total }: { state: RegisterListState; total: number }) {
     <nav aria-label="Pages" className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
       <span className="tabular-nums">Page {state.page} of {pageCount}</span>
       <div className="flex gap-2">
-        {state.page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={registerListHref({ ...state, page: state.page - 1 })}>Previous</Link></Button> : null}
-        {state.page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={registerListHref({ ...state, page: state.page + 1 })}>Next</Link></Button> : null}
+        {state.page > 1 ? <Link className={outlineLink} href={registerListHref({ ...state, page: state.page - 1 })}>Previous</Link> : null}
+        {state.page < pageCount ? <Link className={outlineLink} href={registerListHref({ ...state, page: state.page + 1 })}>Next</Link> : null}
       </div>
     </nav>
   );
 }
 
-function ShiftCard({ shift, timezone, currency }: { shift: ShiftRow; timezone: string | null; currency: string }) {
-  const status = shift.status || "open";
-  const variance = shift.cashVarianceCents;
-  const figures: Array<[string, string, string?]> = [
-    ["Cash sales", formatMoney(shift.cashSalesCents, currency)],
-    ["Card sales", formatMoney(shift.cardSalesCents, currency)],
-    ["Tips", formatMoney(shift.tipsCents, currency)],
-    ["Expected cash", formatMoney(shift.expectedCashCents, currency)],
-    ["Counted", shift.countedCashCents === null ? "—" : formatMoney(shift.countedCashCents, currency)],
-    ["Variance", variance === null ? "—" : formatSignedMoney(variance, currency), variance ? "text-red-600 dark:text-red-400" : undefined],
-  ];
+function CurrentShift({ current, failed, timezone, currency }: { current: CurrentResult | null; failed: boolean; timezone: string | null; currency: string }) {
+  if (failed || !current) return <ErrorNote>Current shift unavailable.</ErrorNote>;
+  const open = current.open?.[0] ?? null;
+  const last = current.lastClosed?.[0] ?? null;
+  const figure = (label: string, value: string, className = "") => (
+    <div className="min-w-0 bg-background px-3 py-2">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={`font-semibold tabular-nums ${className}`}>{value}</dd>
+    </div>
+  );
   return (
-    <Link href={`/dashboard/platform/register/${shift.id}`} className="block min-w-0 rounded-xl border border-border bg-card p-4 shadow-xs transition-colors hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <StatusTitle tone={SHIFT_STATUS_TONES[status] || "zinc"} pulse={status === "open"} status={SHIFT_STATUS_LABELS[status] || status} className="text-base font-semibold tracking-tight">
-        {shift.shiftNumber} · {shift.registerName}
-      </StatusTitle>
-      <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-        <p>Opened {formatStoreDateTime(shift.openedAt, timezone)}{shift.openedBy?.name ? ` · ${shift.openedBy.name}` : ""}</p>
-        {shift.closedAt ? <p>Closed {formatStoreDateTime(shift.closedAt, timezone)}{shift.closedBy?.name ? ` · ${shift.closedBy.name}` : ""}</p> : null}
+    <section aria-labelledby="current-shift-heading" className="overflow-hidden rounded-[6px] border bg-card">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h2 id="current-shift-heading" className="flex flex-wrap items-center gap-x-2 text-base font-semibold">
+            <StatusDot tone={open ? "green" : "zinc"} />
+            {open ? <>Shift open<span className="font-normal text-muted-foreground [overflow-wrap:anywhere]">· {open.registerName} · {open.shiftNumber}</span></> : "Register closed"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {open
+              ? <>Opened {formatStoreDateTime(open.openedAt, timezone)}{open.openedBy?.name ? ` · ${open.openedBy.name}` : ""}</>
+              : last ? <>Last closed {formatStoreDateTime(last.closedAt, timezone)}{last.closedBy?.name ? ` · ${last.closedBy.name}` : ""}</> : "No shifts yet"}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {open ? (
+            <>
+              <Link href="/dashboard/platform/pos#drawer" className={primaryLink}>Close shift</Link>
+              <Link href={`/dashboard/platform/register/${open.id}`} className={outlineLink}>Shift detail</Link>
+            </>
+          ) : (
+            <Link href="/dashboard/platform/pos" className={primaryLink}>Open shift</Link>
+          )}
+        </div>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-3">
-        {figures.map(([label, value, className]) => (
-          <div key={label} className="min-w-0">
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className={`font-medium tabular-nums ${className || ""}`}>{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </Link>
+      {open ? (
+        <dl className="grid grid-cols-2 gap-px border-t bg-border text-sm sm:grid-cols-4">
+          {figure("Expected cash", formatMoney(open.expectedCashCents, currency))}
+          {figure("Opening float", formatMoney(open.openingCashCents, currency))}
+          {figure("Cash sales", formatMoney(open.cashSalesCents, currency))}
+          {figure("Card sales", formatMoney(open.cardSalesCents, currency))}
+        </dl>
+      ) : last ? (
+        <dl className="grid grid-cols-3 gap-px border-t bg-border text-sm">
+          {figure("Expected", formatMoney(last.expectedCashCents, currency))}
+          {figure("Counted", last.countedCashCents === null ? "—" : formatMoney(last.countedCashCents, currency))}
+          {figure("Variance", last.cashVarianceCents === null ? "—" : formatSignedMoney(last.cashVarianceCents, currency), varianceClass(last.cashVarianceCents))}
+        </dl>
+      ) : null}
+    </section>
   );
 }
 
-function PaymentRowItem({ payment, timezone, currency }: { payment: PaymentRow; timezone: string | null; currency: string }) {
-  const status = payment.status || "pending";
+const stackRow = "max-md:mb-2 max-md:grid max-md:grid-cols-2 max-md:gap-x-3 max-md:gap-y-1 max-md:rounded-[6px] max-md:border max-md:bg-background max-md:p-3 max-md:[&>td]:border-0 max-md:[&>td]:p-0";
+const stackTable = "max-md:border-0 max-md:bg-transparent max-md:[&_table]:block max-md:[&_tbody]:block max-md:[&_thead]:hidden";
+
+function ShiftsTable({ rows, timezone, currency }: { rows: ShiftRow[]; timezone: string | null; currency: string }) {
   return (
-    <li className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm">
-      <div className="min-w-0 space-y-0.5">
-        <StatusTitle as="p" tone={PAYMENT_STATUS_TONES[status] || "zinc"} status={PAYMENT_STATUS_LABELS[status] || status} className="font-medium">
-          {PAYMENT_METHOD_LABELS[payment.method || ""] || payment.method} · <span className="tabular-nums">{formatMoney(payment.amount, currency)}</span>
-        </StatusTitle>
-        <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-          <span>{formatStoreDateTime(payment.processedAt || payment.createdAt, timezone)}</span>
-          {payment.refundedAmount ? <span className="text-rose-600 dark:text-rose-400">Refunded {formatMoney(payment.refundedAmount, currency)}</span> : null}
-          {payment.registerShift ? <Link href={`/dashboard/platform/register/${payment.registerShift.id}`} className="hover:text-foreground hover:underline">Shift {payment.registerShift.shiftNumber}</Link> : null}
-          {payment.refundRegisterShift ? <Link href={`/dashboard/platform/register/${payment.refundRegisterShift.id}`} className="hover:text-foreground hover:underline">Refund shift {payment.refundRegisterShift.shiftNumber}</Link> : null}
-        </p>
-      </div>
-      {payment.order?.orderNumber ? (
-        <Link href={`/dashboard/platform/orders?search=${encodeURIComponent(payment.order.orderNumber)}`} className="inline-flex shrink-0 items-center gap-1 font-medium hover:underline">
-          #{payment.order.orderNumber}<ArrowUpRight className="size-4" aria-hidden="true" />
-        </Link>
-      ) : null}
-    </li>
+    <PlatformTable
+      label="Register shifts"
+      className={stackTable}
+      head={[
+        { label: "Shift" }, { label: "Status" }, { label: "Opened" }, { label: "Closed" },
+        { label: "Cash sales", className: "text-right" }, { label: "Card sales", className: "text-right" },
+        { label: "Expected", className: "text-right" }, { label: "Counted", className: "text-right" }, { label: "Variance", className: "text-right" },
+      ]}
+    >
+      {rows.map((shift) => {
+        const status = shift.status || "open";
+        return (
+          <tr key={shift.id} className={`${stackRow} md:hover:bg-muted/30`}>
+            <td className={`${platformTd} min-w-[10rem]`}>
+              <Link href={`/dashboard/platform/register/${shift.id}`} className="font-semibold tabular-nums underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{shift.shiftNumber}</Link>
+              <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{shift.registerName}</span>
+            </td>
+            <td className={`${platformTd} whitespace-nowrap max-md:text-right`}>
+              <span className="inline-flex items-center gap-1.5"><StatusDot tone={SHIFT_STATUS_TONES[status] || "zinc"} pulse={status === "open"} />{SHIFT_STATUS_LABELS[status] || status}</span>
+            </td>
+            <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:col-span-2 max-md:whitespace-normal max-md:text-xs`}>
+              <span className="md:hidden">Opened </span>{formatStoreDateTime(shift.openedAt, timezone)}
+              {shift.openedBy?.name ? <span className="block text-xs">{shift.openedBy.name}</span> : null}
+            </td>
+            <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:col-span-2 max-md:whitespace-normal max-md:text-xs`}>
+              {shift.closedAt ? <><span className="md:hidden">Closed </span>{formatStoreDateTime(shift.closedAt, timezone)}{shift.closedBy?.name ? <span className="block text-xs">{shift.closedBy.name}</span> : null}</> : <span className="max-md:hidden">—</span>}
+            </td>
+            <td className={`${platformTd} text-right tabular-nums max-md:text-left`}><span className="text-xs text-muted-foreground md:hidden">Cash </span>{formatMoney(shift.cashSalesCents, currency)}</td>
+            <td className={`${platformTd} text-right tabular-nums`}><span className="text-xs text-muted-foreground md:hidden">Card </span>{formatMoney(shift.cardSalesCents, currency)}</td>
+            <td className={`${platformTd} text-right tabular-nums max-md:text-left`}><span className="text-xs text-muted-foreground md:hidden">Expected </span>{formatMoney(shift.expectedCashCents, currency)}</td>
+            <td className={`${platformTd} text-right tabular-nums`}><span className="text-xs text-muted-foreground md:hidden">Counted </span>{shift.countedCashCents === null ? "—" : formatMoney(shift.countedCashCents, currency)}</td>
+            <td className={`${platformTd} text-right tabular-nums max-md:col-span-2 ${varianceClass(shift.cashVarianceCents)}`}><span className="text-xs font-normal text-muted-foreground md:hidden">Variance </span>{shift.cashVarianceCents === null ? "—" : formatSignedMoney(shift.cashVarianceCents, currency)}</td>
+          </tr>
+        );
+      })}
+    </PlatformTable>
+  );
+}
+
+function PaymentsTable({ rows, timezone, currency }: { rows: PaymentRow[]; timezone: string | null; currency: string }) {
+  return (
+    <PlatformTable
+      label="Payments"
+      className={stackTable}
+      head={[{ label: "Time" }, { label: "Order" }, { label: "Method" }, { label: "Status" }, { label: "Amount", className: "text-right" }, { label: "Refunded", className: "text-right" }, { label: "Shift" }]}
+    >
+      {rows.map((payment) => {
+        const status = payment.status || "pending";
+        return (
+          <tr key={payment.id} className={stackRow}>
+            <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:col-span-2 max-md:text-xs`}>{formatStoreDateTime(payment.processedAt || payment.createdAt, timezone)}</td>
+            <td className={`${platformTd} whitespace-nowrap`}>
+              {payment.order?.orderNumber ? (
+                <Link href={`/dashboard/platform/orders?search=${encodeURIComponent(payment.order.orderNumber)}`} className="inline-flex items-center gap-1 font-semibold tabular-nums underline-offset-4 hover:underline">
+                  #{payment.order.orderNumber}<ArrowUpRight className="size-3.5" aria-hidden="true" />
+                </Link>
+              ) : "—"}
+            </td>
+            <td className={`${platformTd} max-md:text-right`}>{PAYMENT_METHOD_LABELS[payment.method || ""] || payment.method}</td>
+            <td className={`${platformTd} whitespace-nowrap`}>
+              <span className="inline-flex items-center gap-1.5"><StatusDot tone={PAYMENT_STATUS_TONES[status] || "zinc"} />{PAYMENT_STATUS_LABELS[status] || status}</span>
+            </td>
+            <td className={`${platformTd} text-right font-medium tabular-nums`}>{formatMoney(payment.amount, currency)}</td>
+            <td className={`${platformTd} text-right tabular-nums max-md:col-span-2 ${payment.refundedAmount ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground max-md:hidden"}`}>
+              {payment.refundedAmount ? <><span className="md:hidden">Refunded </span>{formatMoney(payment.refundedAmount, currency)}</> : "—"}
+            </td>
+            <td className={`${platformTd} whitespace-nowrap text-sm max-md:col-span-2`}>
+              {payment.registerShift ? <Link href={`/dashboard/platform/register/${payment.registerShift.id}`} className="tabular-nums underline-offset-4 hover:underline">{payment.registerShift.shiftNumber}</Link> : <span className="text-muted-foreground">—</span>}
+              {payment.refundRegisterShift ? <Link href={`/dashboard/platform/register/${payment.refundRegisterShift.id}`} className="block text-xs text-muted-foreground underline-offset-4 hover:underline">Refund {payment.refundRegisterShift.shiftNumber}</Link> : null}
+            </td>
+          </tr>
+        );
+      })}
+    </PlatformTable>
   );
 }
 
 export async function RegisterListPage({ state }: { state: RegisterListState }) {
-  const storeResponse = await keystoneClient<{ getCoffeeStore: { timezone: string; currencyCode: string } | null }>(STORE_QUERY, {}, { cache: "no-store" });
+  const [storeResponse, currentResponse] = await Promise.all([
+    keystoneClient<{ getCoffeeStore: { timezone: string; currencyCode: string } | null }>(STORE_QUERY, {}, { cache: "no-store" }),
+    keystoneClient<CurrentResult>(CURRENT_QUERY, {}, { cache: "no-store" }),
+  ]);
   const store = storeResponse.success ? storeResponse.data.getCoffeeStore : null;
+  const current = currentResponse.success ? currentResponse.data : null;
   const timezone = store?.timezone ?? null;
   const currency = store?.currencyCode || "USD";
   const since = rangeStart(state.range, timezone);
@@ -204,14 +312,12 @@ export async function RegisterListPage({ state }: { state: RegisterListState }) 
     if (response.success) payments = response.data; else failed = true;
   }
 
+  const openShift = current?.open?.[0] ?? null;
   const header = (
     <PlatformHeader
       title="Register"
-      actions={
-        <Button asChild variant="outline" className="min-h-10 rounded-full">
-          <Link href="/dashboard/platform/pos">POS<ArrowUpRight className="size-4" aria-hidden="true" /></Link>
-        </Button>
-      }
+      meta={current ? <span className="inline-flex items-center gap-1.5"><StatusDot tone={openShift ? "green" : "zinc"} />{openShift ? "Shift open" : "Closed"}</span> : null}
+      actions={<Link href="/dashboard/platform/pos" className={outlineLink}>POS<ArrowUpRight className="size-4" aria-hidden="true" /></Link>}
     />
   );
 
@@ -221,65 +327,53 @@ export async function RegisterListPage({ state }: { state: RegisterListState }) 
       header={header}
       breadcrumbs={[{ type: "link", label: "Dashboard", href: "/dashboard" }, { type: "page", label: "Platform" }, { type: "page", label: "Register" }]}
     >
-      <div className="space-y-5 px-4 pb-24 md:px-6">
+      <div className="space-y-6 px-4 pb-24 md:px-6">
+        <CurrentShift current={current} failed={!currentResponse.success} timezone={timezone} currency={currency} />
+
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <nav aria-label="View" className="min-w-0 max-w-full">
               <PillTrack label="View">
                 <PillLink size="md" href={registerListHref({ ...state, view: "shifts", page: 1 })} active={state.view === "shifts"}>Shifts</PillLink>
                 <PillLink size="md" href={registerListHref({ ...state, view: "payments", page: 1 })} active={state.view === "payments"}>Payments</PillLink>
               </PillTrack>
             </nav>
-            <nav aria-label="Date range" className="min-w-0 max-w-full">
-              <PillTrack label="Date range">
-                {RANGE_FILTERS.map((range) => (
-                  <PillLink key={range} href={registerListHref({ ...state, range, page: 1 })} active={range === state.range}>{RANGE_LABELS[range]}</PillLink>
-                ))}
-              </PillTrack>
-            </nav>
-          </div>
-
-          {state.view === "shifts" ? (
-            <nav aria-label="Shift status" className="min-w-0 max-w-full">
-              <PillTrack label="Shift status">
-                {SHIFT_TABS.map((tab) => (
-                  <PillLink key={tab.value} href={registerListHref({ ...state, status: tab.value, page: 1 })} active={tab.value === state.status} count={shifts ? tab.count(shifts) : undefined}>{tab.label}</PillLink>
-                ))}
-              </PillTrack>
-            </nav>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-center gap-3">
-                <nav aria-label="Method" className="min-w-0 max-w-full">
-                  <PillTrack label="Method">
-                    {METHOD_TABS.map((tab) => (
-                      <PillLink key={tab.value} href={registerListHref({ ...state, method: tab.value, page: 1 })} active={tab.value === state.method} count={payments ? tab.count(payments) : undefined}>{tab.label}</PillLink>
-                    ))}
-                  </PillTrack>
-                </nav>
-                <nav aria-label="Payment status" className="min-w-0 max-w-full">
-                  <PillTrack label="Payment status">
-                    {PAYMENT_STATUS_TABS.map((tab) => (
-                      <PillLink key={tab.value} href={registerListHref({ ...state, paymentStatus: tab.value, page: 1 })} active={tab.value === state.paymentStatus} count={payments ? tab.count(payments) : undefined}>{tab.label}</PillLink>
-                    ))}
-                  </PillTrack>
-                </nav>
-              </div>
-              <form method="get" role="search" className="flex max-w-xl items-center gap-2">
-                <input type="hidden" name="view" value="payments" />
-                {state.range !== "all" ? <input type="hidden" name="range" value={state.range} /> : null}
-                {state.method !== "all" ? <input type="hidden" name="method" value={state.method} /> : null}
-                {state.paymentStatus !== "all" ? <input type="hidden" name="paymentStatus" value={state.paymentStatus} /> : null}
-                <div className="relative min-w-0 flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <form method="get" role="search" aria-label={state.view === "shifts" ? "Filter shifts" : "Filter payments"} className="flex flex-wrap items-center gap-2">
+              {state.view === "payments" ? <input type="hidden" name="view" value="payments" /> : null}
+              {state.view === "payments" ? (
+                <div className="relative min-w-0 flex-[1_1_10rem] sm:w-44 sm:flex-none">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <label htmlFor="payment-search" className="sr-only">Search payments</label>
-                  <Input id="payment-search" type="search" name="search" defaultValue={state.search} placeholder="Order #" className="h-10 rounded-full pl-9" />
+                  <Input id="payment-search" type="search" name="search" defaultValue={state.search} placeholder="Order #" className="h-9 rounded-[6px] pl-8" />
                 </div>
-                <Button type="submit" variant="outline" className="h-10 rounded-full">Search</Button>
-                {state.search ? <Button asChild variant="ghost" className="h-10 rounded-full"><Link href={registerListHref({ ...state, search: "", page: 1 })}>Clear</Link></Button> : null}
-              </form>
-            </>
-          )}
+              ) : null}
+              <label htmlFor="register-range" className="sr-only">Date range</label>
+              <FilterSelect id="register-range" name="range" defaultValue={state.range}>
+                {RANGE_FILTERS.map((range) => <option key={range} value={range}>{RANGE_LABELS[range]}</option>)}
+              </FilterSelect>
+              {state.view === "shifts" ? (
+                <>
+                  <label htmlFor="register-status" className="sr-only">Shift status</label>
+                  <FilterSelect id="register-status" name="status" defaultValue={state.status}>
+                    {SHIFT_TABS.map((tab) => <option key={tab.value} value={tab.value}>{tab.value === "all" ? "All shifts" : tab.label}{shifts ? ` (${tab.count(shifts)})` : ""}</option>)}
+                  </FilterSelect>
+                </>
+              ) : (
+                <>
+                  <label htmlFor="register-method" className="sr-only">Method</label>
+                  <FilterSelect id="register-method" name="method" defaultValue={state.method}>
+                    {METHOD_TABS.map((tab) => <option key={tab.value} value={tab.value}>{tab.value === "all" ? "All methods" : tab.label}{payments ? ` (${tab.count(payments)})` : ""}</option>)}
+                  </FilterSelect>
+                  <label htmlFor="register-payment-status" className="sr-only">Payment status</label>
+                  <FilterSelect id="register-payment-status" name="paymentStatus" defaultValue={state.paymentStatus}>
+                    {PAYMENT_STATUS_TABS.map((tab) => <option key={tab.value} value={tab.value}>{tab.label}{payments ? ` (${tab.count(payments)})` : ""}</option>)}
+                  </FilterSelect>
+                </>
+              )}
+              <Button type="submit" variant="outline" size="icon" className="size-9 rounded-[6px]" aria-label="Apply filters"><Search className="size-4" aria-hidden="true" /></Button>
+              {state.search ? <Link href={registerListHref({ ...state, search: "", page: 1 })} className="px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</Link> : null}
+            </form>
+          </div>
         </div>
 
         {failed ? (
@@ -287,18 +381,14 @@ export async function RegisterListPage({ state }: { state: RegisterListState }) 
         ) : shifts ? (
           shifts.registerShifts?.length ? (
             <>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {shifts.registerShifts.map((shift) => <ShiftCard key={shift.id} shift={shift} timezone={timezone} currency={currency} />)}
-              </div>
+              <ShiftsTable rows={shifts.registerShifts} timezone={timezone} currency={currency} />
               <Pages state={state} total={shifts.filteredCount} />
             </>
           ) : <PlatformEmpty>No shifts.</PlatformEmpty>
         ) : payments ? (
           payments.payments?.length ? (
             <>
-              <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-                {payments.payments.map((payment) => <PaymentRowItem key={payment.id} payment={payment} timezone={timezone} currency={currency} />)}
-              </ul>
+              <PaymentsTable rows={payments.payments} timezone={timezone} currency={currency} />
               <Pages state={state} total={payments.filteredCount} />
             </>
           ) : <PlatformEmpty>{state.search ? "No matching payments." : "No payments."}</PlatformEmpty>

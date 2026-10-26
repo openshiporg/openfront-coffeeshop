@@ -86,15 +86,15 @@ function Pager({ label, page, total, href }: { label: string; page: number; tota
   return (
     <nav aria-label={label} className="flex items-center gap-2">
       <span className="text-sm tabular-nums text-muted-foreground">{page}/{pageCount}</span>
-      {page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={href(page - 1)} scroll={false}>Newer</Link></Button> : null}
-      {page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={href(page + 1)} scroll={false}>Older</Link></Button> : null}
+      {page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={href(page - 1)} scroll={false}>Newer</Link></Button> : null}
+      {page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={href(page + 1)} scroll={false}>Older</Link></Button> : null}
     </nav>
   );
 }
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="min-w-0 rounded-lg bg-muted/60 px-3 py-2">
+    <div className="min-w-0 bg-background px-3 py-2.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="font-semibold tabular-nums [overflow-wrap:anywhere]">{children}</dd>
     </div>
@@ -106,7 +106,7 @@ function deltaClass(value?: number | null) {
   return amount > 0 ? "text-emerald-600 dark:text-emerald-400" : amount < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground";
 }
 
-export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: string; eventsPage: number; ordersPage: number }) {
+export async function LoyaltyDetailPage({ id, eventsPage, ordersPage, adjust = false }: { id: string; eventsPage: number; ordersPage: number; adjust?: boolean }) {
   const response = await keystoneClient<DetailResult>(
     DETAIL_QUERY,
     { id, take: LOYALTY_DETAIL_PAGE_SIZE, eventsSkip: (eventsPage - 1) * LOYALTY_DETAIL_PAGE_SIZE, ordersSkip: (ordersPage - 1) * LOYALTY_DETAIL_PAGE_SIZE },
@@ -130,7 +130,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
     return (
       <PageContainer title="Rewards account" breadcrumbs={breadcrumbs} header={<PlatformHeader title="Rewards account" />}>
         <div className="px-4 pb-24 md:px-6">
-          {response.success ? <PlatformEmpty>Account not found.</PlatformEmpty> : <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Unable to load this account.</p>}
+          {response.success ? <PlatformEmpty>Account not found.</PlatformEmpty> : <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-destructive/40 bg-destructive/5 p-4 text-sm"><div className="space-y-0.5"><p className="font-medium">This account didn&apos;t load</p><p className="text-muted-foreground">Nothing was changed.</p></div><Button asChild variant="outline" className="rounded-[6px]"><Link href={`/dashboard/platform/loyalty/${id}`}>Try again</Link></Button></div>}
         </div>
       </PageContainer>
     );
@@ -151,6 +151,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
       actions={
         <LoyaltyAccountActions
           canManage={canManage}
+          autoOpenAdjust={adjust}
           account={{ id: account.id, displayName: title, status, tier: account.tier || "regular", pointsBalance: account.pointsBalance ?? 0, drinkCredits: account.drinkCredits ?? 0 }}
         />
       }
@@ -165,7 +166,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
     <PageContainer title={title} header={header} breadcrumbs={breadcrumbs}>
       <div className="space-y-8 px-4 pb-24 md:px-6">
         <PlatformSection id="loyalty-balance-heading" title="Balance">
-          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[6px] border bg-border text-sm sm:grid-cols-3 lg:grid-cols-6">
             <Fact label="Points">{account.pointsBalance ?? 0}/100</Fact>
             <Fact label="Drink credits">{account.drinkCredits ?? 0}</Fact>
             <Fact label="Lifetime points">{account.lifetimePoints ?? 0}</Fact>
@@ -177,7 +178,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
 
         <div className="grid gap-8 lg:grid-cols-2">
           <PlatformSection id="loyalty-account-heading" title="Account">
-            <dl className="grid gap-x-4 gap-y-2 rounded-xl border border-border p-4 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
+            <dl className="grid gap-x-4 gap-y-2 rounded-[6px] border border-border p-4 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
               <dt className="text-muted-foreground">Name</dt><dd className="[overflow-wrap:anywhere]">{account.customerName || "—"}</dd>
               <dt className="text-muted-foreground">Email</dt><dd className="[overflow-wrap:anywhere]">{account.customerEmail || "—"}</dd>
               <dt className="text-muted-foreground">Phone</dt><dd>{account.customerPhone || "—"}</dd>
@@ -189,7 +190,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
 
           <PlatformSection id="loyalty-customer-heading" title="Customer">
             {account.customer ? (
-              <dl className="grid gap-x-4 gap-y-2 rounded-xl border border-border p-4 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
+              <dl className="grid gap-x-4 gap-y-2 rounded-[6px] border border-border p-4 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
                 <dt className="text-muted-foreground">Name</dt><dd className="[overflow-wrap:anywhere]">{account.customer.name || "—"}</dd>
                 <dt className="text-muted-foreground">Email</dt><dd className="[overflow-wrap:anywhere]">{account.customer.email || "—"}</dd>
                 <dt className="text-muted-foreground">Phone</dt><dd>{account.customer.phone || "—"}</dd>
@@ -200,7 +201,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
 
         <PlatformSection id="loyalty-subscriptions-heading" title="Subscriptions" meta={subscriptions.length}>
           {subscriptions.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <ul className="divide-y divide-border rounded-[6px] border border-border">
               {subscriptions.map((subscription) => {
                 const sub = SUBSCRIPTION_STATUS[subscription.status || ""] || { label: subscription.status || "—", tone: "zinc" as StatusTone };
                 return (
@@ -229,7 +230,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
           actions={<Pager label="Order pages" page={ordersPage} total={account.ordersCount ?? 0} href={(page) => detailHref(account.id, { eventsPage, ordersPage: page })} />}
         >
           {orders.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <ul className="divide-y divide-border rounded-[6px] border border-border">
               {orders.map((order) => (
                 <li key={order.id}>
                   <Link href={`/dashboard/platform/orders?search=${encodeURIComponent(order.orderNumber || "")}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm hover:bg-muted/50">
@@ -254,7 +255,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage }: { id: st
           actions={<Pager label="Ledger pages" page={eventsPage} total={account.eventsCount ?? 0} href={(page) => detailHref(account.id, { eventsPage: page, ordersPage })} />}
         >
           {events.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <ul className="divide-y divide-border rounded-[6px] border border-border">
               {events.map((event) => (
                 <li key={event.id} className="space-y-1 px-4 py-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">

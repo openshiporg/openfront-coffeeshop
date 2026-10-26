@@ -34,15 +34,15 @@ export function ReceiptPayOnline({ orderId, secretKey, returned }: { orderId: st
 
   if (processing) {
     return (
-      <p className="sf-status mt-3 text-sm" role="status">
+      <p className="sf-status sf-pay-note" role="status">
         <span className="sf-dot sf-dot-active" aria-hidden="true" />
         Payment processing
       </p>
     );
   }
   return (
-    <div className="mt-3 grid gap-2">
-      {returned === "cancelled" ? <p className="sf-muted text-sm" role="status">Payment not completed</p> : null}
+    <div className="sf-pay-online">
+      {returned === "cancelled" ? <p className="sf-muted" role="status">Payment not completed</p> : null}
       <button type="button" className="sf-btn sf-btn-ink sf-btn-block" disabled={pending} onClick={pay}>
         {pending ? "Opening…" : "Pay online"}
       </button>

@@ -55,7 +55,7 @@ function AccountPicker({ selected, onSelect, error }: { selected: LoyaltyAccount
           aria-controls="new-subscription-account-options"
         />
       </div>
-      <ul id="new-subscription-account-options" role="listbox" aria-label="Loyalty accounts" className="max-h-56 divide-y divide-border overflow-y-auto rounded-md border border-border">
+      <ul id="new-subscription-account-options" role="listbox" aria-label="Loyalty accounts" className="max-h-56 divide-y divide-border overflow-y-auto rounded-[6px] border border-border">
         {accounts.map((account) => {
           const active = selected?.id === account.id;
           return (
@@ -131,7 +131,7 @@ export function CreateSubscriptionSheet({ today }: { today: string }) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)} className="rounded-full"><Plus aria-hidden="true" />New subscription</Button>
+      <Button onClick={() => setOpen(true)} className="rounded-[6px]"><Plus aria-hidden="true" />New subscription</Button>
       <SheetContent aria-describedby={undefined} className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader><SheetTitle>New subscription</SheetTitle></SheetHeader>
         <form onSubmit={submit} noValidate className="mt-4 grid gap-4">
@@ -174,7 +174,7 @@ export function CreateSubscriptionSheet({ today }: { today: string }) {
               <FieldError id="new-subscription-renews-error" message={errors.renewsOn} />
             </div>
           </div>
-          {errors.form ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{errors.form}</p> : null}
+          {errors.form ? <p role="alert" className="rounded-[6px] border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{errors.form}</p> : null}
           <div className="flex justify-end">
             <Button type="submit" disabled={pending}>{pending ? "Creating…" : "Create subscription"}</Button>
           </div>

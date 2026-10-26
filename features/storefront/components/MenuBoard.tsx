@@ -12,21 +12,22 @@ import { MenuQuickAdd } from "./MenuQuickAdd";
 const UNCATEGORIZED = "uncategorized";
 const UNCATEGORIZED_LABEL = "More";
 
-function MenuItemRow({ item }: { item: StorefrontMenuItem }) {
+// One cup on the menu: the merchant's printed band, the photo, the printed name and
+// price, and the quick-add box the barista's marker ticks.
+function MenuCup({ item, eager }: { item: StorefrontMenuItem; eager: boolean }) {
   return (
-    <article className={`sf-item ${item.available ? "" : "is-unavailable"}`}>
-      <div className="sf-item-body">
-        <Link href={`/menu/${item.id}`} className="sf-item-name">{item.name}</Link>
-        {item.shortDescription ? <p className="sf-item-desc">{item.shortDescription}</p> : null}
-        <div className="sf-item-meta">
-          <span className="sf-item-price sf-mono">{formatMoney(item.price)}</span>
-          {item.popular ? <span className="sf-item-tag sf-item-tag-accent">Popular</span> : null}
-          {item.caffeineMg ? <span className="sf-item-tag">{item.caffeineMg} mg caffeine</span> : null}
+    <article className={`sf-cup ${item.available ? "" : "is-unavailable"}`}>
+      <Link href={`/menu/${item.id}`} className="sf-cup-photo" tabIndex={-1} aria-hidden="true">
+        <StorefrontMedia item={item} className="h-full w-full" sizes="(min-width: 1024px) 18rem, (min-width: 640px) 30vw, 50vw" eager={eager} />
+      </Link>
+      <div className="sf-cup-print">
+        <Link href={`/menu/${item.id}`} className="sf-cup-name">{item.name}</Link>
+        {item.shortDescription ? <p className="sf-cup-desc">{item.shortDescription}</p> : null}
+        <div className="sf-cup-foot">
+          <span className="sf-cup-price">{formatMoney(item.price)}</span>
+          {item.popular ? <span className="sf-cup-tag">Popular</span> : null}
+          <MenuQuickAdd item={item} />
         </div>
-      </div>
-      <div className="sf-item-figure">
-        <StorefrontMedia item={item} className="sf-item-media" sizes="120px" />
-        <MenuQuickAdd item={item} />
       </div>
     </article>
   );
@@ -128,25 +129,24 @@ export function MenuBoard({
       </div>
 
       {search ? (
-        <p className="sf-muted mt-2 flex flex-wrap items-center gap-x-3 text-sm" role="status">
+        <p className="sf-results" role="status">
           <span>Results for “{search}”</span>
           <Link href={filterHref("", categoryId)} className="sf-link">Clear search</Link>
         </p>
       ) : null}
 
-      {sections.length > 0 ? <div className="sf-menu-sections">{sections.map((section) => (
+      {sections.length > 0 ? <div className="sf-menu-sections">{sections.map((section, sectionIndex) => (
         <section key={section.id} className="sf-menu-section" aria-labelledby={`menu-section-${section.id}`}>
           <div className="sf-menu-section-head">
             <div className="min-w-0">
               <h3 id={`menu-section-${section.id}`} className="sf-display">{section.name}</h3>
               {section.description ? <p>{section.description}</p> : null}
             </div>
-            <span className="sf-mono shrink-0 text-sm text-[var(--sf-ink-faint)]">{section.items.length}</span>
           </div>
-          <div className="sf-item-grid">{section.items.map((item) => <MenuItemRow key={item.id} item={item} />)}</div>
+          <div className="sf-cup-grid">{section.items.map((item) => <MenuCup key={item.id} item={item} eager={sectionIndex === 0} />)}</div>
         </section>
       ))}</div> : (
-        <div className="sf-empty mt-6">
+        <div className="sf-empty">
           {filtered ? (
             <>
               <strong>No matches</strong>
@@ -159,7 +159,7 @@ export function MenuBoard({
       )}
 
       {cursor ? (
-        <div className="mt-8 flex flex-col items-center gap-3" aria-live="polite">
+        <div className="sf-more" aria-live="polite">
           <button type="button" className="sf-btn" onClick={loadMore} disabled={loading}>
             {loading ? "Loading…" : "Load more"}
           </button>

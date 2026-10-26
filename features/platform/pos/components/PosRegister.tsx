@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Minus, Plus, Search, Trash2, Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,9 +14,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { PillButton, PillTrack } from "@/features/platform/components/PillTabs";
+import { PillButton, PillTrack, Segmented } from "@/features/platform/components/PillTabs";
 import { PlatformEmpty } from "@/features/platform/components/PlatformPage";
-import { StatusTitle } from "@/features/platform/components/StatusTitle";
+import { StatusDot } from "@/features/platform/components/StatusTitle";
 import {
   closeRegisterShiftAction,
   createPosOrderAction,
@@ -105,7 +106,7 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onCancel(); }}>
-      <DialogContent className="flex max-h-[90vh] w-[calc(100%-2rem)] flex-col gap-4 overflow-hidden">
+      <DialogContent className="flex max-h-[90vh] w-[calc(100%-2rem)] flex-col gap-4 overflow-hidden rounded-[6px]">
         <DialogHeader>
           <DialogTitle className="break-words pr-6">Customize {item.name}</DialogTitle>
           <DialogDescription className="tabular-nums">{formatMoney(item.price)}</DialogDescription>
@@ -125,7 +126,7 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
                     onValueChange={(id) => choose(group, id)}
                   >
                     {group.available.map((modifier) => (
-                      <div key={modifier.id} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                      <div key={modifier.id} className="flex min-h-11 items-center justify-between gap-3 rounded-[6px] border border-border px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <RadioGroupItem id={`pos-mod-${modifier.id}`} value={modifier.id} />
                           <Label htmlFor={`pos-mod-${modifier.id}`} className="min-w-0 break-words">{modifier.name}</Label>
@@ -139,7 +140,7 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
                     const checked = selected.includes(modifier.id);
                     const atMax = !checked && group.max > 1 && count >= group.max;
                     return (
-                      <div key={modifier.id} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                      <div key={modifier.id} className="flex min-h-11 items-center justify-between gap-3 rounded-[6px] border border-border px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <Checkbox id={`pos-mod-${modifier.id}`} checked={checked} disabled={atMax} onCheckedChange={() => toggle(group, modifier.id)} />
                           <Label htmlFor={`pos-mod-${modifier.id}`} className="min-w-0 break-words">{modifier.name}</Label>
@@ -156,8 +157,8 @@ function PosModifierCustomizer({ item, onCancel, onAdd }: { item: PosMenuItem; o
         </div>
         {problems.length > 0 && <p role="status" className="text-sm text-destructive">{problems[0]}</p>}
         <DialogFooter className="gap-2">
-          <Button type="button" variant="outline" className="rounded-full" onClick={onCancel}>Cancel</Button>
-          <Button type="button" className="rounded-full" disabled={problems.length > 0} onClick={() => onAdd(selected)}>Add · {formatMoney(unitPrice(item, selected))}</Button>
+          <Button type="button" variant="outline" className="rounded-[6px]" onClick={onCancel}>Cancel</Button>
+          <Button type="button" className="rounded-[6px] active:scale-[0.97]" disabled={problems.length > 0} onClick={() => onAdd(selected)}>Add · {formatMoney(unitPrice(item, selected))}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -222,6 +223,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
 
   // Drawer forms
   const [registerName, setRegisterName] = React.useState("Front Register");
+  const [editingRegister, setEditingRegister] = React.useState(false);
   const [openingCash, setOpeningCash] = React.useState("");
   const [countedCash, setCountedCash] = React.useState("");
   const [movementAmount, setMovementAmount] = React.useState("");
@@ -235,6 +237,11 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
   const [receipts, setReceipts] = React.useState<PosReceipt[]>([]);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const dispatching = React.useRef(false);
+
+  // The register page links to /pos#drawer to count and close the open shift.
+  React.useEffect(() => {
+    if (openShift && window.location.hash === "#drawer") setDrawerOpen(true);
+  }, [openShift]);
 
   React.useEffect(() => {
     const stored = readPendingPosCommand(scope);
@@ -497,7 +504,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
   const lineCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const drawerPanel = openShift ? (
     <div className="space-y-6">
-      <dl className="grid grid-cols-2 gap-3 text-sm">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[6px] border bg-border text-sm">
         {[
           ["Opening float", openShift.openingCashCents],
           ["Expected cash", openShift.expectedCashCents],
@@ -506,7 +513,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
           ["Tips", openShift.tipsCents],
           ["Pay in / out", openShift.payInsCents - openShift.payOutsCents],
         ].map(([label, cents]) => (
-          <div key={label as string} className="rounded-lg bg-muted/60 px-3 py-2">
+          <div key={label as string} className="bg-background px-3 py-2">
             <dt className="text-xs text-muted-foreground">{label}</dt>
             <dd className="font-semibold tabular-nums">{formatMoney(cents as number)}</dd>
           </div>
@@ -518,11 +525,11 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
         <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
           <div className="min-w-0 space-y-1.5">
             <Label htmlFor="pos-movement-amount">Amount</Label>
-            <Input id="pos-movement-amount" value={movementAmount} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={movementParse.kind === "invalid"} aria-describedby="pos-movement-error" onChange={(event) => setMovementAmount(event.target.value)} />
+            <Input className="rounded-[6px]" id="pos-movement-amount" value={movementAmount} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={movementParse.kind === "invalid"} aria-describedby="pos-movement-error" onChange={(event) => setMovementAmount(event.target.value)} />
           </div>
           <div className="min-w-0 space-y-1.5">
             <Label htmlFor="pos-movement-reason">Reason</Label>
-            <Input id="pos-movement-reason" value={movementReason} maxLength={500} disabled={writesBlocked} onChange={(event) => setMovementReason(event.target.value)} />
+            <Input className="rounded-[6px]" id="pos-movement-reason" value={movementReason} maxLength={500} disabled={writesBlocked} onChange={(event) => setMovementReason(event.target.value)} />
           </div>
         </div>
         <p id="pos-movement-error" className="text-sm text-destructive empty:hidden">{moneyError(movementParse) || (payoutTooLarge ? `Can't exceed the ${formatMoney(openShift.expectedCashCents)} expected in the drawer.` : null)}</p>
@@ -532,7 +539,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
               key={type}
               type="button"
               variant="outline"
-              className="min-h-10 rounded-full"
+              className="min-h-10 rounded-[6px] active:scale-[0.97]"
               disabled={writesBlocked || movementParse.kind !== "valid" || !movementReason.trim() || (type !== "pay_in" && payoutTooLarge)}
               onClick={() => submitMovement(type)}
             >
@@ -555,80 +562,126 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
         <div className="flex items-end gap-2">
           <div className="min-w-0 flex-1 space-y-1.5">
             <Label htmlFor="pos-counted-cash">Counted cash</Label>
-            <Input id="pos-counted-cash" value={countedCash} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={countedParse.kind === "invalid"} aria-describedby="pos-counted-error" onChange={(event) => setCountedCash(event.target.value)} />
+            <Input className="rounded-[6px]" id="pos-counted-cash" value={countedCash} inputMode="decimal" placeholder="0.00" disabled={writesBlocked} aria-invalid={countedParse.kind === "invalid"} aria-describedby="pos-counted-error" onChange={(event) => setCountedCash(event.target.value)} />
           </div>
-          <Button type="submit" variant="destructive" className="min-h-10 rounded-full" disabled={writesBlocked || countedParse.kind !== "valid"}>Close shift</Button>
+          <Button type="submit" variant="destructive" className="min-h-10 rounded-[6px] active:scale-[0.97]" disabled={writesBlocked || countedParse.kind !== "valid"}>Close shift</Button>
         </div>
         <p id="pos-counted-error" className="text-sm text-destructive empty:hidden">{moneyError(countedParse)}</p>
       </form>
     </div>
   ) : null;
 
+  const pendingPanel = pending ? (
+    <div role="alert" className="space-y-2 rounded-[6px] border border-destructive/40 bg-destructive/5 p-3 text-sm">
+      <p className="font-medium">Unconfirmed: {commandLabel(pending)}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" className="rounded-[6px] active:scale-[0.97]" disabled={inFlight} onClick={() => void dispatch(pending)}>{inFlight ? "Checking…" : "Retry"}</Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-[6px]" disabled={inFlight} onClick={discardPending}>Discard</Button>
+        <Button asChild size="sm" variant="ghost" className="rounded-[6px]"><Link href="/dashboard/platform/orders">Orders<ArrowUpRight aria-hidden /></Link></Button>
+      </div>
+    </div>
+  ) : null;
+
+  const noticePanel = (
+    <div aria-live="assertive" role={notice?.tone === "error" ? "alert" : "status"}>
+      {notice && <p className={`rounded-[6px] p-3 text-sm ${notice.tone === "error" ? "border border-destructive/40 bg-destructive/5 text-destructive" : "border bg-muted/40 text-foreground"}`}>{notice.text}</p>}
+    </div>
+  );
+
+  const receiptsPanel = receipts.length > 0 ? (
+    <div className="space-y-1.5 border-t border-border pt-3">
+      <p className="text-xs font-medium text-muted-foreground">Recent</p>
+      <ul className="space-y-1 text-sm">
+        {receipts.map((receipt, index) => (
+          <li key={index} className="break-words text-muted-foreground">
+            {receipt.kind === "sale"
+              ? <><Link className="font-medium text-foreground underline underline-offset-4" href={`/dashboard/platform/orders?search=${encodeURIComponent(receipt.orderNumber)}`}>#{receipt.orderNumber}</Link> · {receiptText(receipt).replace(/^Order #\S+ recorded\. /, "")}</>
+              : receiptText(receipt)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
+  const fieldClass = "h-10 rounded-[6px]";
+
   return (
     // The right gutter at lg keeps the sticky ticket's Record button out of the floating assistant's column (3rem at 0.75rem).
-    <div className="min-w-0 px-4 pb-28 md:px-6 lg:pb-8 lg:pr-20">
+    <div className="min-w-0 px-4 pb-28 md:px-6 lg:pb-24 lg:pr-20">
       {storageBlocked && (
-        <div role="alert" className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+        <div role="alert" className="mb-4 rounded-[6px] border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
           Site storage is blocked, so sales and drawer actions are disabled. Allow site storage and reload.
         </div>
       )}
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-        {openShift ? (
-          <>
-            <div className="min-w-0">
-              <StatusTitle as="p" tone="green" status={<span className="font-mono">{openShift.shiftNumber}</span>} className="text-sm font-semibold">
-                {openShift.registerName}
-              </StatusTitle>
-              <p className="pl-4 text-xs text-muted-foreground">Expected cash <span className="font-medium tabular-nums text-foreground">{formatMoney(openShift.expectedCashCents)}</span></p>
-            </div>
-            <Button type="button" variant="outline" className="min-h-10 rounded-full" onClick={() => setDrawerOpen(true)}>
-              <Wallet aria-hidden />Drawer
-            </Button>
-          </>
-        ) : (
-          <form
-            className="flex w-full flex-col gap-3 sm:flex-row sm:items-end"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (openingParse.kind !== "valid" || !registerName.trim()) return;
-              void dispatch({ kind: "open", key: newKey(), request: { registerName: registerName.trim(), openingCashCents: openingParse.cents } });
-            }}
-          >
-            <StatusTitle as="p" tone="zinc" status="Closed" className="text-sm font-semibold sm:self-center sm:pb-0">Register</StatusTitle>
-            <div className="min-w-0 flex-1 space-y-1.5">
+      {openShift ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b pb-3">
+          <p className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-semibold"><StatusDot tone="green" />{openShift.registerName}</span>
+            <span className="tabular-nums text-muted-foreground">Shift {openShift.shiftNumber}</span>
+            <span className="text-muted-foreground">Expected cash <span className="font-medium tabular-nums text-foreground">{formatMoney(openShift.expectedCashCents)}</span></span>
+          </p>
+          <Button type="button" variant="outline" className="h-9 rounded-[6px] active:scale-[0.97]" onClick={() => setDrawerOpen(true)}>
+            <Wallet aria-hidden />Drawer
+          </Button>
+        </div>
+      ) : (
+        <form
+          aria-labelledby="pos-open-shift-title"
+          className="mb-5 max-w-xl space-y-3 rounded-[6px] border bg-card p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (openingParse.kind !== "valid" || !registerName.trim()) return;
+            void dispatch({ kind: "open", key: newKey(), request: { registerName: registerName.trim(), openingCashCents: openingParse.cents } });
+          }}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h2 id="pos-open-shift-title" className="inline-flex items-center gap-2 text-base font-semibold"><StatusDot tone="zinc" />Register closed</h2>
+            {editingRegister ? null : (
+              <p className="text-sm text-muted-foreground">
+                <span className="[overflow-wrap:anywhere]">{registerName || "No register name"}</span>
+                {" · "}
+                <button type="button" className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setEditingRegister(true)} disabled={writesBlocked}>Change</button>
+              </p>
+            )}
+          </div>
+          {editingRegister ? (
+            <div className="space-y-1.5">
               <Label htmlFor="pos-register-name">Register name</Label>
-              <Input id="pos-register-name" value={registerName} maxLength={100} onChange={(event) => setRegisterName(event.target.value)} disabled={writesBlocked} />
+              <Input id="pos-register-name" className={fieldClass} value={registerName} maxLength={100} autoFocus onChange={(event) => setRegisterName(event.target.value)} disabled={writesBlocked} />
             </div>
-            <div className="min-w-0 space-y-1.5 sm:w-36">
+          ) : null}
+          <div className="flex items-end gap-2">
+            <div className="min-w-0 flex-1 space-y-1.5">
               <Label htmlFor="pos-opening-cash">Opening cash</Label>
-              <Input id="pos-opening-cash" value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked} />
+              <Input id="pos-opening-cash" className={cn(fieldClass, "text-base tabular-nums")} value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked} autoFocus={!editingRegister} />
             </div>
-            <Button type="submit" className="min-h-10 rounded-full" disabled={writesBlocked || openingParse.kind !== "valid" || !registerName.trim()}>Open shift</Button>
-            <p id="pos-opening-cash-error" className="text-sm text-destructive empty:hidden sm:basis-full">{moneyError(openingParse)}</p>
-          </form>
-        )}
-      </div>
+            <Button type="submit" className="h-10 rounded-[6px] px-5 active:scale-[0.97]" disabled={writesBlocked || openingParse.kind !== "valid" || !registerName.trim()}>
+              {inFlight && pending?.kind === "open" ? "Opening…" : "Open shift"}
+            </Button>
+          </div>
+          <p id="pos-opening-cash-error" className="text-sm text-destructive empty:hidden">{moneyError(openingParse)}</p>
+          {!openShift && (pendingPanel || notice) ? <div className="space-y-2">{pendingPanel}{noticePanel}</div> : null}
+        </form>
+      )}
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
-        <section className="min-w-0 space-y-4" aria-label="Menu">
-          <div className="space-y-3">
+      <div className={cn("grid min-w-0 gap-6", openShift && "lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]")}>
+        <section className="min-w-0 space-y-3" aria-label="Menu">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
             <form
               role="search"
-              className="relative flex min-w-0 gap-2"
+              className="relative min-w-0 sm:w-64 sm:shrink-0"
               onSubmit={(event) => { event.preventDefault(); void loadCatalog({ search: searchInput.trim(), categoryId: filter.categoryId }); }}
             >
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <Label htmlFor="pos-search" className="sr-only">Search menu</Label>
-              <Input id="pos-search" type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search menu" maxLength={200} className="h-10 min-w-0 rounded-full pl-9" />
-              <Button type="submit" variant="outline" className="h-10 rounded-full" disabled={catalogStatus === "loading"}>Search</Button>
+              <Input id="pos-search" type="search" enterKeyHint="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search menu" maxLength={200} className="h-9 min-w-0 rounded-[6px] pl-8" aria-busy={catalogStatus === "loading"} />
             </form>
             {initial.categories.length > 0 && (
-              <PillTrack label="Category">
+              <PillTrack label="Category" className="min-w-0 flex-1">
                 {[{ id: "", name: "All" }, ...initial.categories].map((category) => (
                   <PillButton
                     key={category.id || "all"}
-                    size="md"
                     active={filter.categoryId === category.id}
                     disabled={catalogStatus === "loading"}
                     onClick={() => void loadCatalog({ search: filter.search, categoryId: category.id })}
@@ -642,15 +695,15 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
 
           <div aria-live="polite" aria-busy={catalogStatus === "loading"}>
             {catalogStatus === "error" && (
-              <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+              <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[6px] border border-destructive/40 bg-destructive/5 p-3 text-sm">
                 <p>Menu items couldn&apos;t load.</p>
-                <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => void loadCatalog(filter, catalog.items.length ? catalog.nextCursor : null)}>Try again</Button>
+                <Button type="button" variant="outline" size="sm" className="rounded-[6px]" onClick={() => void loadCatalog(filter, catalog.items.length ? catalog.nextCursor : null)}>Try again</Button>
               </div>
             )}
             {catalogStatus !== "error" && !catalog.items.length && (
               <PlatformEmpty>{filter.search || filter.categoryId ? "No available items match." : "No menu items for sale."}</PlatformEmpty>
             )}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+            <div className={cn("grid grid-cols-2 gap-2 sm:grid-cols-3", openShift ? "xl:grid-cols-4" : "lg:grid-cols-4 xl:grid-cols-5")}>
               {catalog.items.map((item) => {
                 const inTicket = cart.filter((line) => line.menuItemId === item.id).reduce((sum, line) => sum + line.quantity, 0);
                 const soldOut = item.availability === "sold_out";
@@ -661,25 +714,28 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
                     disabled={ticketLocked || !openShift || soldOut}
                     aria-label={soldOut ? `${item.name}, sold out` : undefined}
                     onClick={() => item.modifiers?.length ? setCustomizing(item) : addItem(item)}
-                    className="relative flex min-h-24 min-w-0 flex-col justify-between gap-3 rounded-xl border border-border bg-card p-3 text-left text-card-foreground shadow-xs transition-[background-color,transform] hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                    className={cn(
+                      "relative flex min-h-[5.5rem] min-w-0 flex-col justify-between gap-3 rounded-[6px] border bg-background p-3 text-left transition-[background-color,border-color,transform] duration-150 ease-out hover:border-foreground/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-muted/30 disabled:hover:border-border",
+                      inTicket > 0 && "border-foreground",
+                    )}
                   >
-                    <span className="min-w-0">
-                      <span className="block break-words text-sm font-semibold leading-snug">{item.name}</span>
+                    <span className="min-w-0 pr-7">
+                      <span className={cn("block break-words text-[0.9375rem] font-semibold leading-snug", soldOut && "text-muted-foreground line-through")}>{item.name}</span>
                       {item.category?.name && <span className="mt-0.5 block break-words text-xs text-muted-foreground">{item.category.name}</span>}
                     </span>
                     <span className="flex items-end justify-between gap-2">
                       <span className="text-sm font-semibold tabular-nums">{formatMoney(item.price)}</span>
-                      {soldOut ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Sold out</span>
+                      {soldOut ? <span className="rounded-[4px] bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">Sold out</span>
                         : typeof item.maxQuantity === "number" && item.maxQuantity <= 10 ? <span className="text-xs font-medium tabular-nums text-amber-700 dark:text-amber-400">{item.maxQuantity} left</span>
                         : item.modifiers?.length ? <span className="text-xs text-muted-foreground">Options</span> : null}
                     </span>
-                    {inTicket > 0 && <span className="absolute right-2 top-2 grid min-w-6 place-items-center rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-primary-foreground" aria-label={`${inTicket} on ticket`}>{inTicket}</span>}
+                    {inTicket > 0 && <span className="absolute right-2 top-2 grid h-6 min-w-6 place-items-center rounded-[4px] bg-foreground px-1.5 text-xs font-semibold tabular-nums text-background" aria-label={`${inTicket} on ticket`}>{inTicket}</span>}
                   </button>
                 );
               })}
             </div>
             {catalog.hasMore && catalogStatus !== "error" && (
-              <Button type="button" variant="outline" className="mt-3 rounded-full" disabled={catalogStatus === "loading"} onClick={() => void loadCatalog(filter, catalog.nextCursor)}>
+              <Button type="button" variant="outline" className="mt-3 rounded-[6px]" disabled={catalogStatus === "loading"} onClick={() => void loadCatalog(filter, catalog.nextCursor)}>
                 {catalogStatus === "loading" ? "Loading…" : "Load more"}
               </Button>
             )}
@@ -688,166 +744,147 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
 
         {customizing ? <PosModifierCustomizer item={customizing} onCancel={() => setCustomizing(null)} onAdd={(modifierIds) => addItem(customizing, modifierIds)} /> : null}
 
-        <aside id="pos-ticket" className="min-w-0 scroll-mt-4 lg:sticky lg:top-4 lg:self-start" aria-labelledby="pos-ticket-title">
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <h2 id="pos-ticket-title" className="font-semibold">Ticket</h2>
-              <span className="text-sm tabular-nums text-muted-foreground">{lineCount} {lineCount === 1 ? "item" : "items"}</span>
-            </div>
-            <div className="space-y-4 p-4">
-              {pending && (
-                <div role="alert" className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                  <p className="font-medium">Unconfirmed: {commandLabel(pending)}</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" size="sm" className="rounded-full" disabled={inFlight} onClick={() => void dispatch(pending)}>{inFlight ? "Checking…" : "Retry"}</Button>
-                    <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={inFlight} onClick={discardPending}>Discard</Button>
-                    <Button asChild size="sm" variant="ghost" className="rounded-full"><Link href="/dashboard/platform/orders">Orders<ArrowUpRight aria-hidden /></Link></Button>
-                  </div>
-                </div>
-              )}
+        {openShift ? (
+          <aside id="pos-ticket" className="min-w-0 scroll-mt-4 lg:sticky lg:top-4 lg:self-start" aria-labelledby="pos-ticket-title">
+            <div className="rounded-[6px] border bg-card">
+              <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+                <h2 id="pos-ticket-title" className="font-semibold">Ticket</h2>
+                <span className="text-sm tabular-nums text-muted-foreground">{lineCount} {lineCount === 1 ? "item" : "items"}</span>
+              </div>
+              <div className="space-y-4 p-4">
+                {pendingPanel}
 
-              {cart.length ? (
-                <ul className="divide-y divide-dashed divide-border">
-                  {cart.map((item, index) => {
-                    const lineName = `${item.name}, line ${index + 1}`;
-                    return (
-                      <li key={item.cartId} className="min-w-0 py-2.5 first:pt-0">
-                        <div className="flex min-w-0 items-start justify-between gap-3">
-                          <div className="min-w-0">
+                {cart.length ? (
+                  <ul className="divide-y">
+                    {cart.map((item, index) => {
+                      const lineName = `${item.name}, line ${index + 1}`;
+                      return (
+                        <li key={item.cartId} className="flex min-w-0 items-center gap-3 py-2 first:pt-0">
+                          <div className="inline-flex shrink-0 items-center rounded-[6px] border">
+                            <Button type="button" variant="ghost" size="icon" className="size-9 rounded-[5px] rounded-r-none" disabled={ticketLocked || item.quantity <= 1} aria-label={`Decrease quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity - 1)}><Minus aria-hidden /></Button>
+                            <span className="w-7 text-center text-sm font-semibold tabular-nums" aria-label={`Quantity of ${lineName}`}>{item.quantity}</span>
+                            <Button type="button" variant="ghost" size="icon" className="size-9 rounded-[5px] rounded-l-none" disabled={ticketLocked || item.quantity >= MAX_LINE_QUANTITY || item.quantity >= roomFor(item.menuItemId, cart, item.cartId)} aria-label={`Increase quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus aria-hidden /></Button>
+                          </div>
+                          <div className="min-w-0 flex-1">
                             <div className="break-words text-sm font-medium">{item.name}</div>
                             {item.modifierNames.length > 0 && <div className="break-words text-xs text-muted-foreground">{item.modifierNames.join(", ")}</div>}
                           </div>
                           <span className="shrink-0 text-sm font-semibold tabular-nums">{quote?.lines[index] ? formatMoney(quote.lines[index].lineTotal, quote.currencyCode) : "—"}</span>
-                        </div>
-                        <div className="mt-1.5 flex items-center justify-between gap-2">
-                          <div className="inline-flex items-center rounded-full bg-muted p-0.5 ring-1 ring-inset ring-foreground/5">
-                            <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full" disabled={ticketLocked || item.quantity <= 1} aria-label={`Decrease quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity - 1)}><Minus aria-hidden /></Button>
-                            <span className="w-7 text-center text-sm font-semibold tabular-nums" aria-label={`Quantity of ${lineName}`}>{item.quantity}</span>
-                            <Button type="button" variant="ghost" size="icon" className="size-8 rounded-full" disabled={ticketLocked || item.quantity >= MAX_LINE_QUANTITY || item.quantity >= roomFor(item.menuItemId, cart, item.cartId)} aria-label={`Increase quantity of ${lineName}`} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus aria-hidden /></Button>
-                          </div>
-                          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-muted-foreground hover:text-destructive" disabled={ticketLocked} aria-label={`Remove ${lineName}`} onClick={() => setCart((current) => current.filter((line) => line.cartId !== item.cartId))}>
+                          <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0 rounded-[6px] text-muted-foreground hover:text-destructive" disabled={ticketLocked} aria-label={`Remove ${lineName}`} onClick={() => setCart((current) => current.filter((line) => line.cartId !== item.cartId))}>
                             <Trash2 aria-hidden />
                           </Button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <PlatformEmpty className="py-6">{openShift ? "No items" : "Open a shift to sell"}</PlatformEmpty>
-              )}
-
-              <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[minmax(0,1fr)_7rem] lg:grid-cols-[minmax(0,1fr)_6.5rem]">
-                <div className="min-w-0 space-y-1.5">
-                  <Label htmlFor="pos-customer-name">Name</Label>
-                  <Input id="pos-customer-name" value={customerName} maxLength={200} disabled={ticketLocked} onChange={(event) => setCustomerName(event.target.value)} />
-                </div>
-                <div className="min-w-0 space-y-1.5">
-                  <Label htmlFor="pos-tip">Tip</Label>
-                  <Input id="pos-tip" value={tipInput} inputMode="decimal" disabled={ticketLocked} aria-invalid={tipParse.kind === "invalid"} aria-describedby="pos-tip-error" onChange={(event) => setTipInput(event.target.value)} />
-                </div>
-                <p id="pos-tip-error" className="text-sm text-destructive empty:hidden sm:col-span-2">{moneyError(tipParse)}</p>
-                <div className="min-w-0 space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="pos-ticket-notes">Ticket notes</Label>
-                  <Textarea id="pos-ticket-notes" value={notes} maxLength={2000} disabled={ticketLocked} onChange={(event) => setNotes(event.target.value)} className="min-h-14" />
-                </div>
-              </div>
-
-              {quote?.total !== 0 && (
-                <div className="space-y-2">
-                  <p id="pos-tender-label" className="text-sm font-medium">Tender</p>
-                  <PillTrack label="Tender" className="[&>div]:flex [&>div]:w-full">
-                    <PillButton size="md" className="flex-1" active={paymentMethod === "cash"} disabled={ticketLocked} onClick={() => setPaymentMethod("cash")}>Cash</PillButton>
-                    <PillButton size="md" className="flex-1" active={paymentMethod === "manual_card"} disabled={ticketLocked} onClick={() => setPaymentMethod("manual_card")}>External card</PillButton>
-                  </PillTrack>
-                </div>
-              )}
-              {takesCash && quote && (
-                <div className="space-y-2 rounded-xl bg-muted/60 p-3">
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-                    <div className="min-w-0 space-y-1.5">
-                      <Label htmlFor="pos-cash-tendered">Cash received</Label>
-                      <Input id="pos-cash-tendered" value={cashTendered} inputMode="decimal" placeholder={(quote.total / 100).toFixed(2)} autoComplete="off" disabled={ticketLocked} className="bg-background" aria-invalid={cashShort} aria-describedby="pos-cash-change" onChange={(event) => setCashTendered(event.target.value)} />
-                    </div>
-                    <p id="pos-cash-change" aria-live="polite" className="pb-2 text-right text-sm">
-                      {tenderedParse.kind === "invalid"
-                        ? <span className="text-destructive">{tenderedParse.message}</span>
-                        : changeDueCents !== null && changeDueCents < 0
-                          ? <span className="text-destructive">Short <span className="font-semibold tabular-nums">{formatMoney(-changeDueCents, quote.currencyCode)}</span></span>
-                          : <>Change <span className="font-semibold tabular-nums">{formatMoney(changeDueCents ?? 0, quote.currencyCode)}</span></>}
-                    </p>
-                  </div>
-                  <PillTrack label="Cash amount">
-                    {quickTenders.map((cents, index) => (
-                      <PillButton key={cents} active={tenderedCents === cents} disabled={ticketLocked} onClick={() => setCashTendered((cents / 100).toFixed(2))}>
-                        {index === 0 ? "Exact" : formatMoney(cents, quote.currencyCode).replace(/\.00$/, "")}
-                      </PillButton>
-                    ))}
-                  </PillTrack>
-                </div>
-              )}
-              {effectiveMethod === "manual_card" && (
-                <div className="space-y-3 rounded-xl bg-muted/60 p-3">
-                  <p className="text-xs text-muted-foreground">Run the card on the terminal first. Nothing is charged from here.</p>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pos-card-reference">Terminal approval code</Label>
-                    <Input id="pos-card-reference" value={cardReference} maxLength={64} autoComplete="off" disabled={ticketLocked} className="bg-background" aria-invalid={cardReference.trim().length > 0 && !TERMINAL_REFERENCE.test(cardReference.trim())} onChange={(event) => setCardReference(event.target.value)} />
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="pos-card-approved"
-                      checked={!!quote && approvedFingerprint === quote.quoteFingerprint}
-                      disabled={ticketLocked || !quote}
-                      onCheckedChange={(checked) => setApprovedFingerprint(checked === true && quote ? quote.quoteFingerprint : null)}
-                    />
-                    <Label htmlFor="pos-card-approved" className="leading-5">Terminal approved {quote ? formatMoney(quote.total, quote.currencyCode) : "this total"}</Label>
-                  </div>
-                </div>
-              )}
-
-              <dl className="space-y-1 text-sm tabular-nums">
-                <div className="flex justify-between text-muted-foreground"><dt>Subtotal</dt><dd>{quote ? formatMoney(quote.subtotal, quote.currencyCode) : "—"}</dd></div>
-                <div className="flex justify-between text-muted-foreground"><dt>Tax</dt><dd>{quote ? formatMoney(quote.tax, quote.currencyCode) : "—"}</dd></div>
-                <div className="flex justify-between text-muted-foreground"><dt>Tip</dt><dd>{quote ? formatMoney(quote.tip, quote.currencyCode) : "—"}</dd></div>
-                <div className="flex justify-between pt-1 text-xl font-semibold tracking-tight"><dt>Total</dt><dd>{quote ? formatMoney(quote.total, quote.currencyCode) : "—"}</dd></div>
-              </dl>
-              <div aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
-                {quoteState.status === "pricing" && "Pricing…"}
-                {quoteState.status === "error" && (
-                  <span className="text-destructive">
-                    Couldn&apos;t price this ticket. <button type="button" className="underline underline-offset-4" onClick={() => setQuoteAttempt((value) => value + 1)}>Try again</button>
-                  </span>
-                )}
-              </div>
-              <Button type="button" className="min-h-12 w-full rounded-full text-base" disabled={!canSubmitSale} onClick={submitSale}>
-                {inFlight && pending?.kind === "sale" ? "Recording…" : saleLabel}
-              </Button>
-              <div aria-live="assertive" role={notice?.tone === "error" ? "alert" : "status"}>
-                {notice && <p className={`rounded-xl p-3 text-sm ${notice.tone === "error" ? "border border-destructive/40 bg-destructive/5 text-destructive" : "bg-muted/60 text-foreground"}`}>{notice.text}</p>}
-              </div>
-              {receipts.length > 0 && (
-                <div className="space-y-1.5 border-t border-border pt-3">
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Recent</p>
-                  <ul className="space-y-1 text-sm">
-                    {receipts.map((receipt, index) => (
-                      <li key={index} className="break-words text-muted-foreground">
-                        {receipt.kind === "sale"
-                          ? <><Link className="font-medium text-foreground underline underline-offset-4" href={`/dashboard/platform/orders?search=${encodeURIComponent(receipt.orderNumber)}`}>#{receipt.orderNumber}</Link> · {receiptText(receipt).replace(/^Order #\S+ recorded\. /, "")}</>
-                          : receiptText(receipt)}
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
+                ) : (
+                  <p className="py-2 text-sm text-muted-foreground">Tap an item to start a ticket.</p>
+                )}
+
+                <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-2 border-t pt-4">
+                  <div className="min-w-0 space-y-1.5">
+                    <Label htmlFor="pos-customer-name">Name</Label>
+                    <Input id="pos-customer-name" className={fieldClass} value={customerName} maxLength={200} disabled={ticketLocked} onChange={(event) => setCustomerName(event.target.value)} />
+                  </div>
+                  <div className="min-w-0 space-y-1.5">
+                    <Label htmlFor="pos-tip">Tip</Label>
+                    <Input id="pos-tip" className={cn(fieldClass, "tabular-nums")} value={tipInput} inputMode="decimal" disabled={ticketLocked} aria-invalid={tipParse.kind === "invalid"} aria-describedby="pos-tip-error" onChange={(event) => setTipInput(event.target.value)} />
+                  </div>
+                  <p id="pos-tip-error" className="col-span-2 text-sm text-destructive empty:hidden">{moneyError(tipParse)}</p>
+                  <details className="group col-span-2" open={notes.length > 0 || undefined}>
+                    <summary className="flex min-h-9 cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+                      <Plus className="size-3.5 transition-transform duration-150 group-open:rotate-45" aria-hidden />Ticket notes{notes ? <span className="truncate font-normal">· {notes}</span> : null}
+                    </summary>
+                    <Label htmlFor="pos-ticket-notes" className="sr-only">Ticket notes</Label>
+                    <Textarea id="pos-ticket-notes" value={notes} maxLength={2000} disabled={ticketLocked} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-14 rounded-[6px]" />
+                  </details>
                 </div>
-              )}
+
+                {quote?.total !== 0 && (
+                  <div className="space-y-2">
+                    <p id="pos-tender-label" className="text-sm font-medium">Tender</p>
+                    <Segmented<PosPaymentMethod>
+                      label="Tender"
+                      value={paymentMethod}
+                      className="flex w-full [&>button]:h-12 [&>button]:text-base"
+                      options={[{ value: "cash", label: "Cash", disabled: ticketLocked }, { value: "manual_card", label: "External card", disabled: ticketLocked }]}
+                      onChange={setPaymentMethod}
+                    />
+                  </div>
+                )}
+                {takesCash && quote && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                      <div className="min-w-0 space-y-1.5">
+                        <Label htmlFor="pos-cash-tendered">Cash received</Label>
+                        <Input id="pos-cash-tendered" value={cashTendered} inputMode="decimal" placeholder={(quote.total / 100).toFixed(2)} autoComplete="off" disabled={ticketLocked} className={cn(fieldClass, "tabular-nums")} aria-invalid={cashShort} aria-describedby="pos-cash-change" onChange={(event) => setCashTendered(event.target.value)} />
+                      </div>
+                      <p id="pos-cash-change" aria-live="polite" className="pb-2 text-right text-sm">
+                        {tenderedParse.kind === "invalid"
+                          ? <span className="text-destructive">{tenderedParse.message}</span>
+                          : changeDueCents !== null && changeDueCents < 0
+                            ? <span className="text-destructive">Short <span className="font-semibold tabular-nums">{formatMoney(-changeDueCents, quote.currencyCode)}</span></span>
+                            : <>Change <span className="font-semibold tabular-nums">{formatMoney(changeDueCents ?? 0, quote.currencyCode)}</span></>}
+                      </p>
+                    </div>
+                    <Segmented
+                      label="Cash amount"
+                      size="sm"
+                      className="flex w-full [&>button]:h-9 [&>button]:px-1.5 [&>button]:text-sm [&>button]:tabular-nums"
+                      value={tenderedCents === null ? "" : String(tenderedCents)}
+                      options={quickTenders.map((cents, index) => ({ value: String(cents), label: index === 0 ? "Exact" : formatMoney(cents, quote.currencyCode).replace(/\.00$/, ""), disabled: ticketLocked }))}
+                      onChange={(value) => setCashTendered((Number(value) / 100).toFixed(2))}
+                    />
+                  </div>
+                )}
+                {effectiveMethod === "manual_card" && (
+                  <div className="space-y-3 rounded-[6px] border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">Run the card on the terminal first. Nothing is charged from here.</p>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pos-card-reference">Terminal approval code</Label>
+                      <Input id="pos-card-reference" value={cardReference} maxLength={64} autoComplete="off" disabled={ticketLocked} className={cn(fieldClass, "bg-background")} aria-invalid={cardReference.trim().length > 0 && !TERMINAL_REFERENCE.test(cardReference.trim())} onChange={(event) => setCardReference(event.target.value)} />
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="pos-card-approved"
+                        checked={!!quote && approvedFingerprint === quote.quoteFingerprint}
+                        disabled={ticketLocked || !quote}
+                        onCheckedChange={(checked) => setApprovedFingerprint(checked === true && quote ? quote.quoteFingerprint : null)}
+                      />
+                      <Label htmlFor="pos-card-approved" className="leading-5">Terminal approved {quote ? formatMoney(quote.total, quote.currencyCode) : "this total"}</Label>
+                    </div>
+                  </div>
+                )}
+
+                <dl className="space-y-1 border-t pt-3 text-sm tabular-nums">
+                  <div className="flex justify-between text-muted-foreground"><dt>Subtotal</dt><dd>{quote ? formatMoney(quote.subtotal, quote.currencyCode) : "—"}</dd></div>
+                  <div className="flex justify-between text-muted-foreground"><dt>Tax</dt><dd>{quote ? formatMoney(quote.tax, quote.currencyCode) : "—"}</dd></div>
+                  <div className="flex justify-between text-muted-foreground"><dt>Tip</dt><dd>{quote ? formatMoney(quote.tip, quote.currencyCode) : "—"}</dd></div>
+                  <div className="flex justify-between pt-1 text-xl font-semibold tracking-tight"><dt>Total</dt><dd>{quote ? formatMoney(quote.total, quote.currencyCode) : "—"}</dd></div>
+                </dl>
+                <div aria-live="polite" className="text-sm text-muted-foreground empty:hidden">
+                  {quoteState.status === "pricing" && "Pricing…"}
+                  {quoteState.status === "error" && (
+                    <span className="text-destructive">
+                      Couldn&apos;t price this ticket. <button type="button" className="underline underline-offset-4" onClick={() => setQuoteAttempt((value) => value + 1)}>Try again</button>
+                    </span>
+                  )}
+                </div>
+                <Button type="button" className="min-h-12 w-full rounded-[6px] text-base active:scale-[0.98]" disabled={!canSubmitSale} aria-busy={inFlight && pending?.kind === "sale"} onClick={submitSale}>
+                  {inFlight && pending?.kind === "sale" ? "Recording…" : saleLabel}
+                </Button>
+                {noticePanel}
+                {receiptsPanel}
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        ) : receipts.length > 0 ? <div className="max-w-xl">{receiptsPanel}</div> : null}
       </div>
 
-      {cart.length > 0 && (
+      {openShift && cart.length > 0 && (
         <a
           href="#pos-ticket"
-          className="fixed bottom-4 left-4 right-20 z-20 flex min-h-12 items-center justify-between gap-3 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg lg:hidden"
+          className="fixed bottom-4 left-4 right-20 z-20 flex min-h-12 items-center justify-between gap-3 rounded-[6px] bg-foreground px-4 text-sm font-semibold text-background shadow-[0_6px_20px_-6px_rgb(0_0_0/0.35)] transition-transform duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:hidden"
         >
           <span className="tabular-nums">Ticket · {lineCount} {lineCount === 1 ? "item" : "items"}</span>
           <span className="tabular-nums">{quote ? formatMoney(quote.total, quote.currencyCode) : "Pricing…"}</span>
@@ -858,7 +895,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
             <SheetTitle>{openShift?.registerName ?? "Drawer"}</SheetTitle>
-            <SheetDescription className="font-mono">{openShift?.shiftNumber}</SheetDescription>
+            <SheetDescription className="tabular-nums">{openShift?.shiftNumber}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-6">{drawerPanel}</div>
         </SheetContent>

@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
-import { PlatformEmpty, PlatformHeader, PlatformSection } from "@/features/platform/components/PlatformPage";
-import { StatusDot, StatusTitle } from "@/features/platform/components/StatusTitle";
+import { PlatformEmpty, PlatformHeader, PlatformSection, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
+import { StatusDot } from "@/features/platform/components/StatusTitle";
+import { cn } from "@/lib/utils";
 import { LotList, PurchaseOrderList } from "@/features/platform/inventory/components/PurchasingLists";
-import { formatCents, formatQuantity, INVENTORY_PATH, STOCK_STATE, stockState, unitLabel } from "@/features/platform/inventory/lib/inventory";
+import { formatCents, formatQuantity, INVENTORY_PATH, OPERATIONS_PATH, STOCK_STATE, stockState, unitLabel } from "@/features/platform/inventory/lib/inventory";
 import { formatStoreDateTime } from "@/lib/date-time";
 import { loadSupplierDetail } from "../actions/suppliers";
 import { SupplierDrawer } from "../components/SupplierDrawer";
@@ -31,6 +31,11 @@ const PO_TABS: Array<{ value: PoStatusFilter; label: string }> = [
   { value: "cancelled", label: "Cancelled" },
   { value: "draft", label: "Draft" },
 ];
+
+const STOCK_RANK = { out: 0, low: 1, ok: 2 } as const;
+function stockRank(item: { currentStock: string | null; reorderPoint: string | null }) {
+  return STOCK_RANK[stockState(item.currentStock, item.reorderPoint)];
+}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -55,9 +60,9 @@ export async function SupplierDetailPage({ id, view }: { id: string; view: Suppl
     return (
       <PageContainer title="Supplier" header={<PlatformHeader title="Supplier" />} breadcrumbs={breadcrumbs}>
         <div className="px-4 pb-8 md:px-6">
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
-            <p className="font-medium">Unable to load this supplier.</p>
-            <Button asChild variant="outline" className="rounded-full"><Link href={supplierDetailHref(id, view)}>Try again</Link></Button>
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-destructive/40 bg-destructive/5 p-4 text-sm">
+            <div className="space-y-0.5"><p className="font-medium">This supplier didn&apos;t load</p><p className="text-muted-foreground">Nothing was changed.</p></div>
+            <Button asChild variant="outline" className="rounded-[6px]"><Link href={supplierDetailHref(id, view)}>Try again</Link></Button>
           </div>
         </div>
       </PageContainer>
@@ -90,6 +95,9 @@ export async function SupplierDetailPage({ id, view }: { id: string; view: Suppl
       )}
       actions={canManage ? (
         <>
+          {supplier.status !== "archived" ? (
+            <Button asChild className="rounded-[6px] active:scale-[0.97]"><Link href={`${OPERATIONS_PATH}?purchaseSupplierSearch=${encodeURIComponent(supplier.name || "")}`}>New purchase order</Link></Button>
+          ) : null}
           <SupplierDrawer supplier={supplier} />
           <SupplierStatusActions id={supplier.id} name={supplier.name || "supplier"} status={supplier.status || "active"} canDelete={poCounts.all === 0 && lotsCount === 0} />
         </>
@@ -100,15 +108,13 @@ export async function SupplierDetailPage({ id, view }: { id: string; view: Suppl
   return (
     <PageContainer title={supplier.name || "Supplier"} header={header} breadcrumbs={breadcrumbs}>
       <div className="space-y-8 px-4 pb-24 md:px-6">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-[6px] border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Contact">{supplier.contactName || "—"}</Field>
-          <Field label="Email">{supplier.email ? <a href={`mailto:${supplier.email}`} className="hover:underline">{supplier.email}</a> : "—"}</Field>
-          <Field label="Phone">{supplier.phone ? <a href={`tel:${supplier.phone.replace(/[^\d+]/g, "")}`} className="hover:underline">{supplier.phone}</a> : "—"}</Field>
+          <Field label="Email">{supplier.email ? <a href={`mailto:${supplier.email}`} className="underline decoration-border underline-offset-4 hover:decoration-foreground">{supplier.email}</a> : "—"}</Field>
+          <Field label="Phone">{supplier.phone ? <a href={`tel:${supplier.phone.replace(/[^\d+]/g, "")}`} className="underline decoration-border underline-offset-4 hover:decoration-foreground">{supplier.phone}</a> : "—"}</Field>
           <Field label="Website">
             {website ? (
-              <a href={website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 hover:underline">
-                {supplier.website}<ArrowUpRight className="size-3.5 shrink-0" aria-hidden="true" />
-              </a>
+              <a href={website} target="_blank" rel="noopener noreferrer" className="underline decoration-border underline-offset-4 hover:decoration-foreground">{supplier.website}</a>
             ) : supplier.website || "—"}
           </Field>
           <Field label="Lead time">{lead} {lead === 1 ? "day" : "days"}</Field>
@@ -123,8 +129,8 @@ export async function SupplierDetailPage({ id, view }: { id: string; view: Suppl
           actions={poPages > 1 ? (
             <nav aria-label="Purchase order pages" className="flex items-center gap-2">
               <span className="text-xs tabular-nums text-muted-foreground">{view.poPage} / {poPages}</span>
-              {view.poPage > 1 ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={supplierDetailHref(supplier.id, view, { poPage: view.poPage - 1 })} scroll={false}>Newer</Link></Button> : null}
-              {view.poPage < poPages ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={supplierDetailHref(supplier.id, view, { poPage: view.poPage + 1 })} scroll={false}>Older</Link></Button> : null}
+              {view.poPage > 1 ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={supplierDetailHref(supplier.id, view, { poPage: view.poPage - 1 })} scroll={false}>Newer</Link></Button> : null}
+              {view.poPage < poPages ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={supplierDetailHref(supplier.id, view, { poPage: view.poPage + 1 })} scroll={false}>Older</Link></Button> : null}
             </nav>
           ) : null}
         >
@@ -148,25 +154,38 @@ export async function SupplierDetailPage({ id, view }: { id: string; view: Suppl
 
         <PlatformSection id="supplier-items-heading" title="Inventory items" meta={itemsCount}>
           {items.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-              {items.map((item) => {
-                const state = STOCK_STATE[stockState(item.currentStock, item.reorderPoint)];
+            <PlatformTable
+              label="Inventory items"
+              head={[
+                { label: "Item" },
+                { label: "Status" },
+                { label: "On hand", className: "text-right" },
+                { label: "Cost / unit", className: "hidden text-right sm:table-cell" },
+                { label: <span className="sr-only">Actions</span>, className: "w-0" },
+              ]}
+            >
+              {[...items].sort((a, b) => stockRank(a) - stockRank(b)).map((item) => {
+                const stateKey = stockState(item.currentStock, item.reorderPoint);
+                const state = STOCK_STATE[stateKey];
                 const unit = unitLabel(item.unit);
                 return (
-                  <li key={item.id} className="flex items-start justify-between gap-3 p-4">
-                    <div className="min-w-0 space-y-0.5">
-                      <StatusTitle as="p" tone={state.tone} status={state.label} className="text-sm font-semibold">
-                        <Link href={`${INVENTORY_PATH}/${item.id}`} className="underline-offset-4 hover:underline">
-                          {item.name || "Item"}<ArrowUpRight className="ml-0.5 inline size-3.5 align-[-0.125em] text-muted-foreground" aria-hidden="true" />
-                        </Link>
-                      </StatusTitle>
-                      <p className="text-xs text-muted-foreground">{formatCents(item.costPerUnit)} / {unit}{item.sku ? ` · ${item.sku}` : ""}</p>
-                    </div>
-                    <p className="shrink-0 text-sm tabular-nums">{formatQuantity(item.currentStock)} {unit}</p>
-                  </li>
+                  <tr key={item.id} className="transition-colors hover:bg-muted/30">
+                    <td className={cn(platformTd, "min-w-36")}>
+                      <Link href={`${INVENTORY_PATH}/${item.id}`} className="font-medium underline-offset-4 hover:underline [overflow-wrap:anywhere]">{item.name || "Item"}</Link>
+                      {item.sku ? <p className="text-xs text-muted-foreground">{item.sku}</p> : null}
+                    </td>
+                    <td className={cn(platformTd, "whitespace-nowrap")}><span className="inline-flex items-center gap-2"><StatusDot tone={state.tone} />{state.label}</span></td>
+                    <td className={cn(platformTd, "whitespace-nowrap text-right tabular-nums")}>{formatQuantity(item.currentStock)} <span className="text-muted-foreground">{unit}</span></td>
+                    <td className={cn(platformTd, "hidden whitespace-nowrap text-right tabular-nums sm:table-cell")}>{formatCents(item.costPerUnit)}</td>
+                    <td className={cn(platformTd, "whitespace-nowrap py-1.5 text-right")}>
+                      {canManage && stateKey !== "ok" ? (
+                        <Button asChild size="sm" variant="outline" className="h-8 rounded-[6px] active:scale-[0.97]"><Link href={`${OPERATIONS_PATH}?purchaseInventorySearch=${encodeURIComponent(item.name || "")}&purchaseSupplierSearch=${encodeURIComponent(supplier.name || "")}`}>Order</Link></Button>
+                      ) : null}
+                    </td>
+                  </tr>
                 );
               })}
-            </ul>
+            </PlatformTable>
           ) : <PlatformEmpty>No inventory items.</PlatformEmpty>}
         </PlatformSection>
       </div>

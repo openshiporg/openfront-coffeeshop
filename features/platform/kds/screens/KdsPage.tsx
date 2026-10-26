@@ -1,5 +1,4 @@
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import { formatStaffPickupTime } from "@/lib/date-time";
 import { PageBreadcrumbs } from "@/features/dashboard/components/PageBreadcrumbs";
 import { PlatformHeader } from "@/features/platform/components/PlatformPage";
 import { StatusDot } from "@/features/platform/components/StatusTitle";
@@ -41,20 +40,19 @@ export async function KdsPage({ searchParams }: { searchParams: Promise<{ cursor
   return (
     <>
     <PageBreadcrumbs items={[{ type: "link", label: "Dashboard", href: "" }, { type: "page", label: "Platform" }, { type: "page", label: "KDS" }]} />
-    <div className="space-y-5 p-4 md:p-6">
+    <div className="space-y-5 p-4 pb-24 md:p-6 md:pb-24">
       <PlatformHeader
         title="KDS"
         meta={board ? (
           <>
             <span className="inline-flex items-center gap-1.5"><StatusDot tone="green" />Live</span>
             <span className="tabular-nums">{board.activeCount} to make</span>
-            {board.scheduledCount ? <span className="tabular-nums">{board.scheduledCount} scheduled{board.nextScheduledAt ? ` · next ${formatStaffPickupTime(board.nextScheduledAt, board.storeTimezone)}` : ""}</span> : null}
             {!scope ? <span>View only</span> : null}
           </>
         ) : null}
       />
-      {!response.success && <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Kitchen display unavailable. Refresh to try again.</p>}
-      {(board || scope) && <KdsBoard items={board?.items ?? []} activeCount={board?.activeCount ?? 0} canManageOrders={scope !== null} storeTimezone={board?.storeTimezone ?? null} cursor={cursor} hasMore={board?.hasMore ?? false} nextCursor={board?.nextCursor} recoveryScope={scope} loadUnavailable={!board} />}
+      {!response.success && <p role="alert" className="rounded-[6px] border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Kitchen display unavailable. Refresh to try again.</p>}
+      {(board || scope) && <KdsBoard items={board?.items ?? []} activeCount={board?.activeCount ?? 0} canManageOrders={scope !== null} storeTimezone={board?.storeTimezone ?? null} cursor={cursor} hasMore={board?.hasMore ?? false} nextCursor={board?.nextCursor} recoveryScope={scope} loadUnavailable={!board} scheduledCount={board?.scheduledCount ?? 0} nextScheduledAt={board?.nextScheduledAt ?? null} />}
     </div>
     </>
   );

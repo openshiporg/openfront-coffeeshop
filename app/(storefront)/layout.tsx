@@ -3,13 +3,13 @@ import type { CSSProperties, ReactNode } from "react";
 import { getStoreLogoThemeHue } from "@/features/keystone/lib/brand-colors";
 import { generateStorefrontMetadata, StorefrontLayout } from "@/features/storefront/components/StorefrontLayout";
 import { getCoffeeStore } from "@/features/storefront/lib/data/store";
-import "../storefront.css";
+import "../storefront-cup.css";
 
 export const generateMetadata = generateStorefrontMetadata;
 
 type LogoThemeStyle = CSSProperties & { "--sf-logo-hue"?: string };
 
-// The saved logo colour themes the storefront accent tokens (app/storefront.css).
+// The saved logo colour themes the storefront accent tokens (app/storefront-cup.css).
 export default async function StorefrontGroupLayout({ children }: Readonly<{ children: ReactNode }>) {
   let style: LogoThemeStyle = {};
   try {

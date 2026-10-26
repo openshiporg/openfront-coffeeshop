@@ -2,7 +2,8 @@ import type { StatusTone } from "@/features/platform/components/StatusTitle";
 import { addToDate } from "@/features/platform/catering/lib/store-time";
 
 export const SUBSCRIPTION_STATUSES = ["trialing", "active", "paused", "cancelled"] as const;
-export const SUBSCRIPTION_FILTERS = [...SUBSCRIPTION_STATUSES, "all"] as const;
+/** "current" (the default view): paused first as billing on hold, then live subscriptions by next renewal. */
+export const SUBSCRIPTION_FILTERS = ["current", ...SUBSCRIPTION_STATUSES, "all"] as const;
 export type SubscriptionFilter = (typeof SUBSCRIPTION_FILTERS)[number];
 export const SUBSCRIPTION_PAGE_SIZE = 25;
 
@@ -65,7 +66,7 @@ export function defaultRenewal(startsOn: string, interval: string) {
 export function subscriptionListHref(view: { search?: string; status?: SubscriptionFilter; page?: number }) {
   const params = new URLSearchParams();
   if (view.search) params.set("search", view.search);
-  if (view.status && view.status !== "all") params.set("status", view.status);
+  if (view.status && view.status !== "current") params.set("status", view.status);
   if (view.page && view.page > 1) params.set("page", String(view.page));
   const query = params.toString();
   return `/dashboard/platform/subscriptions${query ? `?${query}` : ""}`;

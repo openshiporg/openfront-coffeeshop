@@ -71,15 +71,15 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
 
   return (
     <div className="min-w-0">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Logo</p>
+      <p className="text-sm">Logo</p>
       <Select value={selectedIcon?.id || 'custom'} onValueChange={selectLogo}>
-        <SelectTrigger className={triggerClassName} aria-label="Choose a logo">
+        <SelectTrigger className={`rounded-[6px] ${triggerClassName}`} aria-label="Choose a logo">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="max-h-[min(420px,var(--radix-select-content-available-height))] min-w-[280px]">
           <SelectItem value="custom" className="min-h-11">
             <span className="flex items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-md border border-dashed border-border bg-muted/30">
+              <span className="flex size-7 items-center justify-center rounded-[4px] border border-dashed border-border bg-muted/30">
                 <Code2 className="size-3.5 text-muted-foreground" />
               </span>
               <span className="font-medium">Custom SVG</span>
@@ -90,7 +90,7 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
             <SelectItem key={icon.id} value={icon.id} className="min-h-11">
               <span className="flex items-center gap-3">
                 <span
-                  className="flex size-7 items-center justify-center overflow-hidden rounded-md border border-border bg-background p-1 [&>svg]:block [&>svg]:size-full"
+                  className="flex size-7 items-center justify-center overflow-hidden rounded-[4px] border border-border bg-background p-1 [&>svg]:block [&>svg]:size-full"
                   style={{ filter: `hue-rotate(${hue}deg)` }}
                   dangerouslySetInnerHTML={{ __html: icon.lightSvg }}
                   aria-hidden="true"
@@ -125,7 +125,7 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
       </div>
 
       {isEditingCustom ? (
-        <div className="mt-3 rounded-md border border-border bg-muted/15 p-3">
+        <div className="mt-3 rounded-[4px] border border-border bg-muted/15 p-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold">Custom SVG</p>
@@ -155,7 +155,7 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
             aria-describedby={`${fieldId}-status`}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="mt-1.5 min-h-32 resize-y font-mono text-[11px] leading-4"
+            className="mt-1.5 min-h-32 resize-y rounded-[6px] font-mono text-[11px] leading-4"
             placeholder='<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">…</svg>'
             spellCheck={false}
             aria-invalid={draft.length > 0 && !hasValidDraft}
@@ -164,7 +164,7 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
           <div className="mt-3 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <span
-                className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-background p-1.5 [&>svg]:block [&>svg]:size-full"
+                className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[4px] border border-border bg-background p-1.5 [&>svg]:block [&>svg]:size-full"
                 style={{ filter: `hue-rotate(${hue}deg)` }}
                 dangerouslySetInnerHTML={{ __html: safeDraft }}
                 aria-hidden="true"

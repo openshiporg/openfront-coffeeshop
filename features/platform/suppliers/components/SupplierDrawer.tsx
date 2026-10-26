@@ -90,11 +90,11 @@ export function SupplierDrawer({ supplier }: { supplier?: SupplierRow | null }) 
   return (
     <>
       {editing ? (
-        <Button type="button" variant="outline" className="rounded-full" onClick={() => openDrawer(true)}>
+        <Button type="button" variant="outline" className="rounded-[6px] active:scale-[0.97]" onClick={() => openDrawer(true)}>
           <Pencil className="size-4" aria-hidden="true" />Edit
         </Button>
       ) : (
-        <Button type="button" className="rounded-full" onClick={() => openDrawer(true)}>
+        <Button type="button" className="rounded-[6px] active:scale-[0.97]" onClick={() => openDrawer(true)}>
           <Plus className="size-4" aria-hidden="true" />New supplier
         </Button>
       )}
@@ -162,11 +162,11 @@ export function SupplierDrawer({ supplier }: { supplier?: SupplierRow | null }) 
               {error("notes")}
             </div>
 
-            {formError ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">{formError}</p> : null}
+            {formError ? <p role="alert" className="rounded-[6px] border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">{formError}</p> : null}
 
             <SheetFooter className="mt-auto flex-row justify-end gap-2">
-              <Button type="button" variant="ghost" className="rounded-full" onClick={() => openDrawer(false)} disabled={pending}>Cancel</Button>
-              <Button type="submit" className="rounded-full" disabled={pending}>{pending ? "Saving…" : editing ? "Save" : "Create supplier"}</Button>
+              <Button type="button" variant="ghost" className="rounded-[6px] active:scale-[0.97]" onClick={() => openDrawer(false)} disabled={pending}>Cancel</Button>
+              <Button type="submit" className="rounded-[6px] active:scale-[0.97]" disabled={pending}>{pending ? "Saving…" : editing ? "Save" : "Create supplier"}</Button>
             </SheetFooter>
           </form>
         </SheetContent>

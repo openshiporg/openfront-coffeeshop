@@ -62,6 +62,28 @@ export function servingsFromStock(lines: CostLine[], yieldQuantity: unknown): nu
   return Number.isFinite(min) ? min : null;
 }
 
+const IRREGULAR_PLURALS: Record<string, string> = { batch: "batches", each: "each", piece: "pieces" };
+
+/** "1 serving", "40 servings"; abbreviations (oz, ml, g, fl oz) never take an s. */
+export function pluralUnit(unit: string | null | undefined, count: number): string {
+  const base = (unit || "unit").trim();
+  if (count === 1) return base;
+  if (IRREGULAR_PLURALS[base]) return IRREGULAR_PLURALS[base];
+  if (/^[a-z]{4,}$/i.test(base) && !base.endsWith("s")) return `${base}s`;
+  return base;
+}
+
+/** One menu sale consumes one yield unit only for per-drink units; margin is shown only then. */
+export function isPerServingUnit(unit: string | null | undefined) {
+  return unit === "serving" || unit === "each" || unit === "cup" || unit === "drink";
+}
+
+/** Gross margin as a fraction of price, or null when either side is missing. */
+export function marginFraction(priceCents: number | null | undefined, costCents: number | null | undefined): number | null {
+  if (typeof priceCents !== "number" || typeof costCents !== "number" || !(priceCents > 0)) return null;
+  return (priceCents - costCents) / priceCents;
+}
+
 export function formatQuantity(value: unknown, locale = "en-US"): string {
   const parsed = toNumber(value);
   if (!Number.isFinite(parsed)) return "—";

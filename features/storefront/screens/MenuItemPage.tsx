@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AddToCartCustomizer } from "@/features/storefront/components/AddToCartCustomizer";
 import { getStorefrontMenuItem } from "@/features/storefront/lib/data/menu";
-import { formatMoney } from "@/features/storefront/lib/format";
 import { StorefrontShell } from "@/features/storefront/components/StorefrontShell";
 import { StorefrontMedia } from "@/features/storefront/components/StorefrontMedia";
 
@@ -29,39 +28,38 @@ export async function MenuItemPage({ id }: { id: string }) {
   const item = result.item;
   // Retail goods (bagged beans) skip the drink details and barista notes.
   const retail = item.barStation === "retail_shelf";
+  const lower = (value: string) => value.replaceAll("_", " ").toLowerCase();
+  const temperatures = retail ? [] : (item.temperatureOptions || []).map(lower);
+  const dietary = (item.dietaryFlags || []).map(lower);
+  // Plain sentences from the item's own data, in place of system chips.
+  const facts = [
+    item.availability === "later" ? "We’re closed right now. Order ahead and pick it up after we open." : null,
+    item.availability === "sold_out" ? "Sold out for now." : null,
+    item.prepTimeMinutes && !retail ? `Takes about ${item.prepTimeMinutes} ${item.prepTimeMinutes === 1 ? "minute" : "minutes"} to make.` : null,
+    temperatures.length ? `Served ${temperatures.join(" or ")}.` : null,
+    item.caffeineMg != null ? `${item.caffeineMg} mg caffeine.` : null,
+    dietary.length ? `${dietary.join(", ").replace(/^./, (c) => c.toUpperCase())} as standard. Options can change ingredients.` : null,
+  ].filter((fact): fact is string => Boolean(fact));
 
   return (
     <StorefrontShell cartBar={false}>
-      <main className="sf-container sf-page sf-has-addbar !pt-0 sm:!pt-4">
-        <div className="sf-split">
-          <section className="min-w-0">
-            <div className="sf-item-hero">
-              <StorefrontMedia item={item} className="h-full w-full" emphasize eager />
+      <main className="sf-container sf-page sf-has-addbar">
+        <Link href="/#menu" className="sf-back-link">
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {item.category?.name ? `Menu: ${item.category.name}` : "Menu"}
+        </Link>
+        <div className="sf-item-layout">
+          <section className="sf-item-intro min-w-0" aria-labelledby="item-title">
+            <div className="sf-item-photo">
+              <StorefrontMedia item={item} className="h-full w-full" emphasize eager sizes="(min-width: 1024px) 34rem, 100vw" />
             </div>
-
-            <div className="mt-5">
-              <Link href="/#menu" className="sf-back-link">
-                <ArrowLeft className="size-4" aria-hidden="true" />
-                Menu{item.category?.name ? ` · ${item.category.name}` : ""}
-              </Link>
-              <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                <h1 className="sf-display sf-page-title min-w-0 [overflow-wrap:anywhere]">{item.name}</h1>
-                <p className="sf-mono text-xl font-semibold">{formatMoney(item.price)}</p>
-              </div>
-              {item.shortDescription ? <p className="sf-muted mt-3 max-w-2xl text-[var(--sf-text-lg)]">{item.shortDescription}</p> : null}
-
-              <div className="sf-chips mt-5">
-                {item.availability === "later" ? <span className="sf-chip sf-status"><span className="sf-dot sf-dot-closed" aria-hidden="true" />Order ahead</span> : null}
-                {item.availability === "sold_out" ? <span className="sf-chip sf-status"><span className="sf-dot sf-dot-cancelled" aria-hidden="true" />Sold out</span> : null}
-                {item.prepTimeMinutes && !retail ? <span className="sf-chip">{item.prepTimeMinutes} min prep</span> : null}
-                {item.caffeineMg != null ? <span className="sf-chip">{item.caffeineMg} mg caffeine</span> : null}
-                {retail ? null : item.temperatureOptions?.map((option) => <span key={option} className="sf-chip">{option}</span>)}
-                {item.dietaryFlags?.map((flag) => <span key={flag} className="sf-chip">{flag.replaceAll("_", " ")}</span>)}
-              </div>
-              {item.dietaryFlags?.length ? (
-                <p className="mt-3 text-sm text-[var(--sf-ink-faint)]">Dietary notes apply to the standard recipe. Options can change ingredients.</p>
-              ) : null}
-            </div>
+            <h1 id="item-title" className="sf-display sf-item-title">{item.name}</h1>
+            {item.shortDescription ? <p className="sf-item-lead">{item.shortDescription}</p> : null}
+            {facts.length ? (
+              <ul className="sf-facts">
+                {facts.map((fact) => <li key={fact}>{fact}</li>)}
+              </ul>
+            ) : null}
           </section>
 
           <AddToCartCustomizer item={item} orderingAvailable={item.available} notes={!retail} />

@@ -90,7 +90,7 @@ export async function CateringDetailPage({ id }: { id: string }) {
       <PageContainer title="Catering" breadcrumbs={breadcrumbs}>
         <div className="space-y-3 px-4 md:px-6">
           <Alert variant="destructive" role="alert"><AlertTitle>Unable to load this catering order</AlertTitle></Alert>
-          <Button asChild variant="outline" size="sm" className="rounded-full"><Link href={`/dashboard/platform/catering/${id}`}>Try again</Link></Button>
+          <Button asChild variant="outline" size="sm" className="rounded-[6px]"><Link href={`/dashboard/platform/catering/${id}`}>Try again</Link></Button>
         </div>
       </PageContainer>
     );
@@ -140,7 +140,7 @@ export async function CateringDetailPage({ id }: { id: string }) {
               />
             ) : null}
           >
-            <dl className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2">
+            <dl className="grid gap-4 rounded-[6px] border border-border bg-card p-4 sm:grid-cols-2">
               <Fact label="Event time">{order.eventAt ? formatStoreDateTime(order.eventAt, store.timezone) : "Not set"}</Fact>
               <Fact label="Guests">{order.guestCount || 0}</Fact>
               <Fact label="Delivery address">{order.deliveryAddress || "Not set"}</Fact>
@@ -167,7 +167,7 @@ export async function CateringDetailPage({ id }: { id: string }) {
         </div>
 
         <PlatformSection id="catering-status-heading" title="Status">
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-[6px] border border-border bg-card p-4">
             <StatusTimeline order={order} timezone={store.timezone} />
           </div>
         </PlatformSection>

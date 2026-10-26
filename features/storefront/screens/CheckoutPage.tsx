@@ -7,7 +7,7 @@ export default async function CheckoutPage() {
   const [customer, store] = await Promise.all([getCheckoutCustomer().catch(() => null), getCoffeeStore().catch(() => null)]);
   return (
     <StorefrontShell cartBar={false}>
-      <CheckoutClient customer={customer} hours={store ? { weeklyHours: store.weeklyHours, timezone: store.timezone } : null} onlinePayment={store?.onlinePayment === true} />
+      <CheckoutClient customer={customer} hours={store ? { weeklyHours: store.weeklyHours, timezone: store.timezone } : null} onlinePayment={store?.onlinePayment === true} pickupLeadMinutes={store?.pickupLeadTimeMinutes ?? null} />
     </StorefrontShell>
   );
 }

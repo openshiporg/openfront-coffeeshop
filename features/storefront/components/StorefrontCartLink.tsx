@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { CART_EVENT, loadCartLines } from "@/features/storefront/lib/cart/storage";
 
 function getCartCount() {
@@ -36,27 +36,24 @@ export function StorefrontCartLink() {
   return (
     <Link href="/checkout" className="sf-cart-link" aria-label={`Cart, ${itemsLabel(count)}`}>
       <ShoppingBag className="size-4" aria-hidden="true" />
-      <span className="hidden sm:inline" aria-hidden="true">Cart</span>
+      <span className="sf-cart-word" aria-hidden="true">Cart</span>
       <span className="sf-cart-badge" aria-hidden="true">{count}</span>
     </Link>
   );
 }
 
-/** Bottom bar that appears once the cart has something in it. */
+/** The sleeve: a kraft bar docked at the bottom once the cart has something in it. */
 export function StorefrontCartBar() {
   const count = useCartCount();
   if (!count) return null;
 
   return (
     <Link href="/checkout" className="sf-cartbar" aria-label={`Review order, ${itemsLabel(count)}`}>
-      <span className="inline-flex items-center gap-2.5" aria-hidden="true">
-        <ShoppingBag className="size-4" />
-        {itemsLabel(count)}
+      <span className="sf-cartbar-count" aria-hidden="true">
+        <span className="sf-marker">{count}</span>
+        {count === 1 ? "item in your order" : "items in your order"}
       </span>
-      <span className="sf-cartbar-cta" aria-hidden="true">
-        Review order
-        <ArrowRight className="size-4" />
-      </span>
+      <span className="sf-cartbar-cta" aria-hidden="true">Review order</span>
     </Link>
   );
 }

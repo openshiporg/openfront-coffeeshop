@@ -42,30 +42,26 @@ export function ReceiptRewardsPanel({ orderId, secretKey, customerEmail, linked 
     <section className="sf-receipt-rewards" aria-labelledby="receipt-rewards-title">
       {account ? (
         <>
-          <h2 id="receipt-rewards-title" className="sf-label sf-status justify-center">
+          <h2 id="receipt-rewards-title" className="sf-box-label sf-status">
             <span className="sf-dot sf-dot-ready" aria-hidden="true" />
             Rewards applied
           </h2>
-          <dl className="sf-totals mt-3 text-left">
-            <div>
-              <dt>Points</dt>
-              <dd className="sf-mono">{account.pointsBalance || 0} / 100</dd>
-            </div>
-            <div>
-              <dt>Drink credits</dt>
-              <dd className="sf-mono">{account.drinkCredits || 0}</dd>
-            </div>
-          </dl>
+          <p className="sf-rewards-line">
+            <span className="sf-marker">{account.pointsBalance || 0}</span> of 100 points toward your next drink credit
+          </p>
+          <p className="sf-rewards-line">
+            {account.drinkCredits ? <><span className="sf-marker">{account.drinkCredits}</span> {account.drinkCredits === 1 ? "drink credit" : "drink credits"} saved</> : "No drink credits saved yet"}
+          </p>
         </>
       ) : linked ? (
-        <h2 id="receipt-rewards-title" className="sf-label sf-status justify-center">
+        <h2 id="receipt-rewards-title" className="sf-box-label sf-status">
           <span className="sf-dot sf-dot-ready" aria-hidden="true" />
           Rewards applied
         </h2>
       ) : (
         <>
-          <h2 id="receipt-rewards-title" className="sf-label">Rewards</h2>
-          <form className="mt-3 grid gap-3 text-left" onSubmit={submit} noValidate>
+          <h2 id="receipt-rewards-title" className="sf-box-label">Rewards</h2>
+          <form className="sf-form-stack" onSubmit={submit} noValidate>
             <label htmlFor="receipt-rewards-email" className="sf-form-label">
               Order email
               <input
@@ -84,7 +80,7 @@ export function ReceiptRewardsPanel({ orderId, secretKey, customerEmail, linked 
               {pending ? "Adding…" : "Add to rewards"}
             </button>
           </form>
-          {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error mt-3 text-left" role="alert">{error}</div> : null}
+          {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error" role="alert">{error}</div> : null}
         </>
       )}
     </section>

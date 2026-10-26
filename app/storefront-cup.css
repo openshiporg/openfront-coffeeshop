@@ -1,0 +1,2226 @@
+/* Coffee storefront · direction: "the marked cup"
+ * The order written on a paper cup. Bright cool-white cup paper, a printed band in
+ * the merchant's colour (from the saved logo colour) across the top of the page and
+ * every product, kraft-brown sleeve for the cart and trays, black marker ink.
+ * Type: Sofia Sans Condensed (printed: headings, box labels) · Sofia Sans (reading) ·
+ * Permanent Marker (written only: names, chosen options, counts, order numbers).
+ * Square boxes, hairline print rules, no pills. Phone first: 44px targets, 2-column
+ * cups, a sticky kraft sleeve bar once anything is in the order.
+ * Replaces app/storefront.css (espresso-bar direction); new filename on purpose.
+ */
+
+.sf-root {
+  --sf-brand-hue: 45;
+  /* The saved logo colour (--sf-logo-hue, set by the storefront group layout) is the
+   * band colour; --sf-brand-hue (set by StorefrontFrame) is the fallback. */
+  --sf-theme-hue: var(--sf-logo-hue, var(--sf-brand-hue));
+
+  /* Cup paper and marker ink */
+  --sf-paper: oklch(98.4% 0.004 240);
+  --sf-cup: oklch(100% 0 0);
+  --sf-ink: oklch(19% 0.006 260);
+  --sf-ink-muted: oklch(42% 0.012 255);
+  --sf-ink-faint: oklch(50% 0.012 255);
+  --sf-rule: var(--sf-ink);
+  --sf-rule-soft: oklch(87% 0.006 250);
+
+  /* The printed band: the merchant's colour */
+  --sf-band: oklch(46% 0.14 var(--sf-theme-hue));
+  --sf-band-deep: oklch(37% 0.12 var(--sf-theme-hue));
+  --sf-band-ink: oklch(38% 0.13 var(--sf-theme-hue));
+  --sf-band-tint: oklch(94.5% 0.03 var(--sf-theme-hue));
+  --sf-band-wash: oklch(97.5% 0.014 var(--sf-theme-hue));
+  --sf-on-band: oklch(100% 0 0);
+  --sf-focus: oklch(46% 0.14 var(--sf-theme-hue));
+
+  /* Kraft sleeve */
+  --sf-kraft: oklch(76% 0.062 70);
+  --sf-kraft-light: oklch(88% 0.04 74);
+  --sf-kraft-deep: oklch(54% 0.07 62);
+  --sf-kraft-ink: oklch(30% 0.03 60);
+
+  /* States */
+  --sf-open: oklch(50% 0.13 150);
+  --sf-closed: oklch(52% 0.18 28);
+  --sf-pending: oklch(64% 0.14 75);
+  --sf-danger-ink: oklch(45% 0.17 28);
+  --sf-danger-bg: oklch(96.5% 0.02 28);
+  --sf-success-ink: oklch(38% 0.1 150);
+  --sf-success-bg: oklch(96% 0.03 150);
+
+  /* Legacy names some markup still reads */
+  --sf-accent: var(--sf-band);
+  --sf-accent-soft: var(--sf-band-tint);
+  --sf-inset: var(--sf-band-tint);
+  --sf-inset-strong: var(--sf-band-tint);
+  --sf-text-lg: 1.125rem;
+
+  --sf-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --sf-dur-press: 140ms;
+  --sf-dur-mark: 240ms;
+
+  min-height: 100svh;
+  background: var(--sf-paper);
+  color: var(--sf-ink);
+  color-scheme: light;
+  font-family: var(--font-sf-body), system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  caret-color: var(--sf-band);
+  accent-color: var(--sf-band);
+}
+
+html:has(.sf-root),
+html:has(.sf-root) body {
+  background: oklch(98.4% 0.004 240);
+  overflow-x: clip;
+  scrollbar-color: oklch(19% 0.006 260 / 0.45) oklch(98.4% 0.004 240);
+}
+
+.sf-root ::selection {
+  background: var(--sf-band);
+  color: var(--sf-on-band);
+}
+
+.sf-root :focus-visible {
+  outline: 2px solid var(--sf-focus);
+  outline-offset: 2px;
+}
+
+.sf-root :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sf-root :where(h1, h2, h3, p, ul, ol, dl, dd, figure) {
+  margin: 0;
+}
+
+.sf-root :where(ul, ol) {
+  list-style: none;
+  padding: 0;
+}
+
+/* ── Type roles ─────────────────────────────────────────── */
+
+.sf-display {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+/* Written by hand: only names, chosen options, counts and order numbers. */
+.sf-marker {
+  font-family: var(--font-sf-marker), "Comic Sans MS", cursive;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--sf-ink);
+}
+
+.sf-mono,
+.sf-price {
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-price {
+  flex: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* A printed box label on the cup ("PICKUP", "HOURS"). */
+.sf-box-label,
+.sf-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sf-ink);
+}
+
+.sf-box-label + * {
+  margin-top: 0.75rem;
+}
+
+.sf-muted {
+  color: var(--sf-ink-muted);
+}
+
+.sf-optional {
+  font-family: var(--font-sf-body), system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sf-ink-muted);
+}
+
+.sf-fine {
+  font-size: 0.8125rem;
+  color: var(--sf-ink-faint);
+}
+
+.sf-container {
+  width: 100%;
+  max-width: 78rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .sf-container {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sf-container {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* ── The marker tick: draws itself when its box is marked ── */
+
+.sf-tick {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  overflow: visible;
+}
+
+.sf-tick path {
+  fill: none;
+  stroke: var(--sf-ink);
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: sf-mark var(--sf-dur-mark) var(--sf-ease-out) both;
+}
+
+@keyframes sf-mark {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* ── Merchant band (the sign) ───────────────────────────── */
+
+.sf-header {
+  position: relative;
+  background: var(--sf-band);
+  color: var(--sf-on-band);
+  border-bottom: 2px solid var(--sf-ink);
+}
+
+/* The printed pinstripe under the band. */
+.sf-header::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0.375rem 0;
+  height: 1px;
+  background: oklch(100% 0 0 / 0.55);
+  pointer-events: none;
+}
+
+.sf-header :focus-visible {
+  outline-color: var(--sf-on-band);
+}
+
+.sf-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4.25rem;
+  padding-block: 0.625rem 1rem;
+}
+
+.sf-header-tall {
+  padding-bottom: 1.375rem;
+}
+
+.sf-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 2.75rem;
+  color: inherit;
+}
+
+.sf-wordmark strong {
+  min-width: 0;
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: clamp(1.375rem, 6vw, 2.75rem);
+  font-weight: 850;
+  line-height: 0.9;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.sf-header-tall .sf-wordmark strong {
+  font-size: clamp(1.5rem, 6.6vw, 4rem);
+}
+
+/* The saved mark on a white label, so it keeps its own colour on any band. */
+.sf-wordmark-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.375rem;
+  background: var(--sf-cup);
+  border: 1px solid var(--sf-ink);
+}
+
+@media (min-width: 640px) {
+  .sf-header-tall .sf-wordmark-mark {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+}
+
+.sf-wordmark-mark > span,
+.sf-wordmark-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sf-wordmark-sm strong {
+  font-size: 1.375rem;
+}
+
+.sf-wordmark-sm .sf-wordmark-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.25rem;
+}
+
+.sf-nav {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .sf-nav {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .sf-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    font-family: var(--font-sf-display), system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 750;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: underline 2px transparent;
+    text-underline-offset: 6px;
+    white-space: nowrap;
+    transition: text-decoration-color var(--sf-dur-press) ease;
+  }
+
+  .sf-nav a:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.sf-header-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.sf-nav + .sf-header-actions {
+  margin-left: 0.5rem;
+}
+
+@media (max-width: 959px) {
+  .sf-nav + .sf-header-actions {
+    margin-left: auto;
+  }
+}
+
+.sf-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid oklch(100% 0 0 / 0.7);
+  color: inherit;
+  transition: background-color var(--sf-dur-press) ease, transform var(--sf-dur-press) var(--sf-ease-out);
+}
+
+.sf-icon-btn:hover {
+  background: oklch(100% 0 0 / 0.14);
+}
+
+.sf-icon-btn:active {
+  transform: scale(0.96);
+}
+
+.sf-cart-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  background: var(--sf-cup);
+  border: 1px solid var(--sf-ink);
+  color: var(--sf-ink);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: transform var(--sf-dur-press) var(--sf-ease-out);
+}
+
+.sf-cart-link:active {
+  transform: scale(0.97);
+}
+
+.sf-cart-word {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .sf-cart-word {
+    display: inline;
+  }
+}
+
+.sf-cart-badge {
+  min-width: 1.25rem;
+  font-family: var(--font-sf-marker), cursive;
+  font-size: 1.125rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+/* Band facts: open state, pickup lead time, address, printed as boxes on the sign. */
+.sf-band-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 1px 1px 0;
+}
+
+.sf-band-fact {
+  min-width: 0;
+  margin: 0 -1px -1px 0;
+  padding: 0.5rem 0.75rem 0.5625rem;
+  border: 1px solid oklch(100% 0 0 / 0.6);
+}
+
+.sf-band-where {
+  grid-column: 1 / -1;
+}
+
+.sf-band-fact:only-child {
+  grid-column: 1 / -1;
+}
+
+.sf-band-fact dt {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.88;
+}
+
+.sf-band-fact dd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.sf-band-fact dd a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: underline 1px;
+  text-underline-offset: 3px;
+}
+
+.sf-band-state dd::before {
+  content: "";
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 1.5px solid currentColor;
+}
+
+.sf-band-state.is-open dd::before {
+  background: oklch(88% 0.15 150);
+  border-color: oklch(88% 0.15 150);
+}
+
+.sf-band-state.is-closed dd::before {
+  background: oklch(86% 0.1 35);
+  border-color: oklch(86% 0.1 35);
+}
+
+@media (min-width: 768px) {
+  .sf-band-facts {
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+  }
+
+  .sf-band-where {
+    grid-column: auto;
+  }
+
+  .sf-band-fact {
+    padding: 0.625rem 1rem 0.6875rem;
+  }
+
+  .sf-band-fact dd {
+    font-size: 1.0625rem;
+  }
+}
+
+/* ── Boxes on the band: tabs, segments ──────────────────── */
+
+.sf-track {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 1px 1px 0;
+}
+
+.sf-track-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  margin: 0 -1px -1px 0;
+  padding: 0 0.875rem;
+  border: 1px solid var(--sf-ink);
+  background: var(--sf-cup);
+  color: var(--sf-ink);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--sf-dur-press) ease;
+}
+
+.sf-track-item:hover {
+  background: var(--sf-band-wash);
+}
+
+.sf-track-item[aria-current="page"],
+.sf-track-item[aria-pressed="true"],
+.sf-track-item:has(input:checked) {
+  z-index: 1;
+  background: var(--sf-ink);
+  color: var(--sf-cup);
+}
+
+.sf-track-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.sf-track-item:focus-visible {
+  z-index: 2;
+  outline-offset: -4px;
+  outline-color: var(--sf-band);
+}
+
+.sf-track-fill {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+}
+
+.sf-track-fill .sf-track-item {
+  white-space: normal;
+  text-align: center;
+}
+
+/* ── Status marks ───────────────────────────────────────── */
+
+.sf-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sf-dot {
+  display: inline-block;
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  background: var(--sf-ink-faint);
+}
+
+.sf-dot-open,
+.sf-dot-ready {
+  background: var(--sf-open);
+}
+
+.sf-dot-closed,
+.sf-dot-cancelled {
+  background: var(--sf-closed);
+}
+
+.sf-dot-active {
+  background: var(--sf-pending);
+}
+
+.sf-dot-done {
+  background: var(--sf-ink);
+}
+
+/* ── Buttons and links ──────────────────────────────────── */
+
+.sf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.125rem;
+  border: 1.5px solid var(--sf-ink);
+  border-radius: 0;
+  background: var(--sf-cup);
+  color: var(--sf-ink);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--sf-dur-press) var(--sf-ease-out), background-color var(--sf-dur-press) ease;
+}
+
+.sf-btn:hover:not(:disabled) {
+  background: var(--sf-band-wash);
+}
+
+.sf-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.sf-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.sf-btn-primary {
+  border-color: var(--sf-band);
+  background: var(--sf-band);
+  color: var(--sf-on-band);
+}
+
+.sf-btn-primary:hover:not(:disabled) {
+  border-color: var(--sf-band-deep);
+  background: var(--sf-band-deep);
+}
+
+.sf-btn-ink {
+  background: var(--sf-ink);
+  color: var(--sf-cup);
+}
+
+.sf-btn-ink:hover:not(:disabled) {
+  background: oklch(30% 0.008 260);
+}
+
+.sf-btn-ghost {
+  background: transparent;
+}
+
+.sf-btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  padding: 0 0.75rem;
+}
+
+.sf-btn-danger {
+  color: var(--sf-danger-ink);
+}
+
+.sf-btn-block {
+  width: 100%;
+}
+
+.sf-btn-lg {
+  min-height: 3.25rem;
+  padding: 0 1.375rem;
+  font-size: 1.125rem;
+}
+
+.sf-btn:has(.sf-btn-price) {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sf-btn-price {
+  font-family: var(--font-sf-body), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  text-decoration: underline 1px;
+  text-underline-offset: 3px;
+}
+
+.sf-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.sf-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sf-ink-muted);
+}
+
+.sf-back-link:hover {
+  color: var(--sf-ink);
+}
+
+.sf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ── Surfaces and feedback ──────────────────────────────── */
+
+.sf-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.25rem;
+  background: var(--sf-cup);
+  border: 1px solid var(--sf-ink);
+}
+
+@media (min-width: 640px) {
+  .sf-panel {
+    padding: 1.5rem;
+  }
+}
+
+.sf-panel-title {
+  font-size: 1.625rem;
+  line-height: 1;
+}
+
+.sf-panel-inset {
+  padding: 1rem;
+  border: 1px solid var(--sf-rule-soft);
+}
+
+.sf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 2rem 1.25rem;
+  background: var(--sf-cup);
+  border: 1px solid var(--sf-ink);
+  color: var(--sf-ink-muted);
+}
+
+.sf-empty strong {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--sf-ink);
+}
+
+.sf-alert-error,
+.sf-alert-success {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid;
+  font-size: 0.9375rem;
+  font-weight: 550;
+}
+
+.sf-alert-error {
+  border-color: var(--sf-danger-ink);
+  background: var(--sf-danger-bg);
+  color: var(--sf-danger-ink);
+}
+
+.sf-alert-success {
+  border-color: var(--sf-success-ink);
+  background: var(--sf-success-bg);
+  color: var(--sf-success-ink);
+}
+
+.sf-attempt {
+  display: grid;
+  gap: 0.75rem;
+  justify-content: stretch;
+}
+
+.sf-messages {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sf-messages:empty {
+  display: none;
+}
+
+/* ── Forms ──────────────────────────────────────────────── */
+
+.sf-form-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.sf-form-label {
+  display: grid;
+  gap: 0.375rem;
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sf-ink);
+}
+
+.sf-field {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--sf-ink);
+  border-radius: 0;
+  background: var(--sf-cup);
+  color: var(--sf-ink);
+  font-family: var(--font-sf-body), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  transition: border-color var(--sf-dur-press) ease;
+}
+
+.sf-field::placeholder {
+  color: var(--sf-ink-faint);
+}
+
+.sf-field:focus {
+  border-color: var(--sf-band);
+  outline: 2px solid var(--sf-band);
+  outline-offset: 0;
+}
+
+.sf-field:disabled {
+  background: var(--sf-paper);
+  color: var(--sf-ink-muted);
+}
+
+.sf-field[aria-invalid="true"] {
+  border-color: var(--sf-danger-ink);
+}
+
+textarea.sf-field {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+/* Fields that are written on the cup: the name box and the barista note. */
+.sf-field-written {
+  font-family: var(--font-sf-marker), cursive;
+  font-size: 1.125rem;
+  letter-spacing: 0.01em;
+}
+
+.sf-namebox {
+  min-height: 3.5rem;
+  border-width: 2px;
+  font-size: 1.5rem;
+}
+
+.sf-field-error {
+  font-family: var(--font-sf-body), system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 550;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sf-danger-ink);
+}
+
+/* ── Page frame ─────────────────────────────────────────── */
+
+.sf-page {
+  padding-block: 1.25rem 4rem;
+}
+
+@media (min-width: 768px) {
+  .sf-page {
+    padding-block: 2rem 5rem;
+  }
+}
+
+.sf-page-title {
+  margin-bottom: 1.25rem;
+  font-size: clamp(2.25rem, 7vw, 4rem);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.sf-page-lead {
+  max-width: 60ch;
+  margin: -0.5rem 0 1.5rem;
+  font-size: 1.0625rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-section-title {
+  font-size: clamp(1.875rem, 5vw, 2.75rem);
+}
+
+.sf-split {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .sf-split {
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .sf-sticky-panel {
+    position: sticky;
+    top: 1.5rem;
+  }
+}
+
+.sf-stack {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
+}
+
+.sf-unconfigured {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding-block: 4rem;
+}
+
+.sf-unconfigured .sf-panel {
+  width: 100%;
+  max-width: 28rem;
+}
+
+/* ── Menu: a grid of cups ───────────────────────────────── */
+
+.sf-menu {
+  padding-block: 1.25rem 3.5rem;
+}
+
+@media (min-width: 768px) {
+  .sf-menu {
+    padding-block: 2rem 4.5rem;
+  }
+}
+
+.sf-menu-bar {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 900px) {
+  .sf-menu-bar {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    align-items: start;
+  }
+}
+
+.sf-search {
+  position: relative;
+}
+
+.sf-search svg {
+  position: absolute;
+  top: 50%;
+  left: 0.875rem;
+  transform: translateY(-50%);
+  color: var(--sf-ink-muted);
+  pointer-events: none;
+}
+
+.sf-search input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 0.75rem 0 2.5rem;
+  border: 1px solid var(--sf-ink);
+  border-radius: 0;
+  background: var(--sf-cup);
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.sf-search input::placeholder {
+  color: var(--sf-ink-faint);
+}
+
+.sf-search input:focus {
+  border-color: var(--sf-band);
+  outline: 2px solid var(--sf-band);
+  outline-offset: 0;
+}
+
+.sf-results {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1rem;
+  margin-top: 0.5rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-menu-bar + .sf-empty,
+.sf-results + .sf-empty {
+  margin-top: 1.5rem;
+}
+
+.sf-menu-sections {
+  display: grid;
+  gap: 2.5rem;
+  margin-top: 1.5rem;
+}
+
+.sf-menu-section-head {
+  margin-bottom: 1rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 2px solid var(--sf-ink);
+}
+
+.sf-menu-section-head h3 {
+  font-size: clamp(1.625rem, 4.5vw, 2.375rem);
+}
+
+.sf-menu-section-head p {
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-cup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .sf-cup-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sf-cup-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+.sf-cup {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--sf-cup);
+  border: 1px solid var(--sf-ink);
+  border-top: 0.5rem solid var(--sf-band);
+}
+
+.sf-cup-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-bottom: 1px solid var(--sf-ink);
+}
+
+.sf-cup.is-unavailable .sf-cup-photo img {
+  filter: grayscale(0.85);
+  opacity: 0.7;
+}
+
+.sf-cup-print {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.625rem 0.625rem 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .sf-cup-print {
+    padding: 0.75rem 0.75rem 0.625rem;
+  }
+}
+
+.sf-cup-name {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.1875rem;
+  font-weight: 800;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+}
+
+.sf-cup-name:hover {
+  text-decoration: underline 2px;
+  text-underline-offset: 3px;
+}
+
+.sf-cup-desc {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .sf-cup-name {
+    font-size: 1.375rem;
+  }
+
+  .sf-cup-desc {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--sf-ink-muted);
+  }
+}
+
+.sf-cup-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.375rem 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.sf-cup-price {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 2.75rem;
+}
+
+/* Tags print in the world's band colour, never a stray accent. */
+.sf-cup-tag {
+  align-self: center;
+  padding: 0.0625rem 0.375rem;
+  border: 1px solid var(--sf-band-ink);
+  background: var(--sf-band-tint);
+  color: var(--sf-band-ink);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.sf-quick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.sf-quick-btn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid var(--sf-ink);
+  background: var(--sf-cup);
+  color: var(--sf-ink);
+  cursor: pointer;
+  transition: transform var(--sf-dur-press) var(--sf-ease-out), background-color var(--sf-dur-press) ease;
+}
+
+.sf-quick-btn:hover:not(:disabled) {
+  background: var(--sf-band-tint);
+}
+
+.sf-quick-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.sf-quick-btn.is-added {
+  background: var(--sf-band-tint);
+}
+
+.sf-quick-btn .sf-tick {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.sf-quick-btn-text {
+  width: auto;
+  padding: 0 0.625rem;
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sf-quick-btn-off {
+  width: auto;
+  padding: 0 0.5rem;
+  border-style: dashed;
+  border-color: var(--sf-ink-faint);
+  color: var(--sf-ink-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: default;
+}
+
+.sf-quick-error {
+  max-width: 9rem;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  text-align: right;
+  color: var(--sf-danger-ink);
+}
+
+.sf-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+/* ── Hours and location ─────────────────────────────────── */
+
+.sf-visit {
+  padding-block: 2.5rem 3rem;
+  border-top: 2px solid var(--sf-ink);
+}
+
+.sf-visit .sf-section-title {
+  margin-bottom: 1.5rem;
+}
+
+.sf-visit-grid {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .sf-visit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3rem;
+  }
+}
+
+.sf-hours {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sf-hours th,
+.sf-hours td {
+  padding: 0.5625rem 0;
+  border-bottom: 1px solid var(--sf-rule-soft);
+  font-weight: 450;
+  text-align: left;
+}
+
+.sf-hours td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-hours tr.is-today th,
+.sf-hours tr.is-today td {
+  font-weight: 750;
+}
+
+/* "today", written in by hand. */
+.sf-hours tr.is-today th::after {
+  content: "today";
+  margin-left: 0.5rem;
+  font-family: var(--font-sf-marker), cursive;
+  font-weight: 400;
+  color: var(--sf-band-ink);
+}
+
+.sf-contact-list {
+  display: grid;
+}
+
+.sf-contact-list a {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  overflow-wrap: anywhere;
+}
+
+.sf-contact-list a:hover span {
+  text-decoration: underline 1px;
+  text-underline-offset: 3px;
+}
+
+/* ── Footer (quiet) ─────────────────────────────────────── */
+
+.sf-footer {
+  padding-block: 1.75rem 6rem;
+  border-top: 1px solid var(--sf-ink);
+}
+
+.sf-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sf-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+}
+
+.sf-footer nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--sf-ink-muted);
+  white-space: nowrap;
+}
+
+.sf-footer nav a:hover {
+  color: var(--sf-ink);
+}
+
+/* ── The sleeve: kraft cart bar ─────────────────────────── */
+
+.sf-cartbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4rem;
+  padding: 0.625rem 1rem max(0.625rem, env(safe-area-inset-bottom));
+  border-top: 2px solid var(--sf-kraft-deep);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, oklch(30% 0.03 60 / 0.06) 7px 8px),
+    var(--sf-kraft);
+  color: var(--sf-ink);
+  font-weight: 650;
+  animation: sf-sleeve-in 260ms var(--sf-ease-out) both;
+}
+
+@media (min-width: 768px) {
+  .sf-cartbar {
+    inset: auto 1.5rem 1.5rem auto;
+    width: 24rem;
+    border: 1px solid var(--sf-kraft-deep);
+    border-top-width: 2px;
+  }
+}
+
+@keyframes sf-sleeve-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.sf-cartbar-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sf-cartbar-count .sf-marker {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.sf-cartbar-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  background: var(--sf-ink);
+  color: var(--sf-cup);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── Media ──────────────────────────────────────────────── */
+
+.sf-media {
+  position: relative;
+  overflow: hidden;
+  background: var(--sf-band-tint);
+}
+
+.sf-media-blank {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--sf-band-tint);
+}
+
+.sf-media-initial {
+  font-size: 2.5rem;
+  color: var(--sf-band-ink);
+  user-select: none;
+}
+
+.sf-media-initial.is-large {
+  font-size: clamp(4rem, 14vw, 8rem);
+}
+
+/* ── Item page: the cup being marked ────────────────────── */
+
+.sf-item-layout {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 1024px) {
+  .sf-item-layout {
+    grid-template-columns: minmax(0, 1fr) 26rem;
+    gap: 3rem;
+    align-items: start;
+  }
+}
+
+.sf-item-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--sf-ink);
+  border-top: 0.625rem solid var(--sf-band);
+}
+
+@media (min-width: 1024px) {
+  .sf-item-photo {
+    aspect-ratio: 3 / 2;
+  }
+}
+
+.sf-item-title {
+  margin-top: 1.125rem;
+  font-size: clamp(2.375rem, 8vw, 4.5rem);
+  line-height: 0.92;
+  overflow-wrap: anywhere;
+}
+
+.sf-item-lead {
+  max-width: 52ch;
+  margin-top: 0.625rem;
+  font-size: 1.125rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-facts {
+  max-width: 52ch;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--sf-ink);
+}
+
+.sf-facts li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--sf-rule-soft);
+}
+
+.sf-cup-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.125rem 1rem 1.25rem;
+  background: var(--sf-cup);
+  border: 1px solid var(--sf-ink);
+  border-top: 0.625rem solid var(--sf-band);
+}
+
+@media (min-width: 640px) {
+  .sf-cup-sheet {
+    padding: 1.5rem;
+  }
+}
+
+.sf-boxrow {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sf-boxrow-head {
+  display: flex;
+  float: left;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0;
+}
+
+.sf-boxrow-head + * {
+  clear: left;
+}
+
+.sf-boxrow-label {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.sf-boxrow-rule {
+  font-size: 0.8125rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-boxrow-rule.is-unmet {
+  font-weight: 650;
+  color: var(--sf-danger-ink);
+}
+
+/* What the barista wrote for this row; "Changed" when it differs from the standard. */
+.sf-boxrow-written {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.625rem;
+  min-height: 2rem;
+  padding-top: 0.25rem;
+}
+
+.sf-boxrow-written .sf-marker {
+  font-size: 1.375rem;
+  overflow-wrap: anywhere;
+}
+
+.sf-boxrow-none {
+  font-size: 0.9375rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-changed {
+  padding: 0.0625rem 0.375rem;
+  border: 1px solid var(--sf-band-ink);
+  background: var(--sf-band-tint);
+  color: var(--sf-band-ink);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.sf-boxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  margin-top: 0.375rem;
+  padding: 0 1px 1px 0;
+}
+
+.sf-box {
+  position: relative;
+  display: grid;
+  grid-template-areas: "sq name" "sq note";
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  align-items: center;
+  column-gap: 0.625rem;
+  min-height: 3.5rem;
+  margin: 0 -1px -1px 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--sf-ink);
+  background: var(--sf-cup);
+  cursor: pointer;
+  transition: background-color var(--sf-dur-press) ease;
+}
+
+.sf-box:hover:not(.is-off) {
+  background: var(--sf-band-wash);
+}
+
+.sf-box.is-marked {
+  background: var(--sf-band-tint);
+}
+
+.sf-box.is-off {
+  cursor: not-allowed;
+  color: var(--sf-ink-muted);
+}
+
+.sf-box.is-off .sf-box-square {
+  border-style: dashed;
+  border-color: var(--sf-ink-faint);
+}
+
+.sf-box:has(input:focus-visible) {
+  z-index: 1;
+  outline: 2px solid var(--sf-band);
+  outline-offset: -4px;
+}
+
+.sf-box-square {
+  display: grid;
+  grid-area: sq;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1.5px solid var(--sf-ink);
+  background: var(--sf-cup);
+}
+
+.sf-box-square .sf-tick {
+  width: 1.625rem;
+  height: 1.625rem;
+}
+
+.sf-box-name {
+  grid-area: name;
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.sf-box-note {
+  grid-area: note;
+  font-size: 0.8125rem;
+  color: var(--sf-ink-muted);
+}
+
+/* Phone: the add bar pins to the bottom of the viewport. */
+.sf-addbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem max(0.625rem, env(safe-area-inset-bottom));
+  border-top: 2px solid var(--sf-ink);
+  background: var(--sf-cup);
+}
+
+.sf-addbar .sf-btn {
+  flex: 1 1 auto;
+}
+
+@media (min-width: 1024px) {
+  .sf-addbar {
+    position: static;
+    padding: 0;
+    border-top: 0;
+  }
+}
+
+.sf-has-addbar {
+  padding-bottom: 6.5rem;
+}
+
+.sf-stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: stretch;
+  border: 1.5px solid var(--sf-ink);
+  background: var(--sf-cup);
+}
+
+.sf-stepper button {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--sf-ink);
+  cursor: pointer;
+  transition: background-color var(--sf-dur-press) ease;
+}
+
+.sf-stepper button:hover:not(:disabled) {
+  background: var(--sf-band-tint);
+}
+
+.sf-stepper button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.sf-stepper span {
+  display: grid;
+  place-items: center;
+  min-width: 2.25rem;
+  font-size: 1.375rem;
+}
+
+.sf-stepper-sm button {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+/* ── Checkout: the order on a kraft tray ────────────────── */
+
+.sf-tray {
+  --sf-ink-muted: var(--sf-kraft-ink);
+  --sf-line-rule: oklch(54% 0.07 62 / 0.45);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, oklch(30% 0.03 60 / 0.045) 7px 8px),
+    var(--sf-kraft-light);
+  border: 1px solid var(--sf-kraft-deep);
+}
+
+.sf-tray-section {
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .sf-tray-section {
+    padding: 1.5rem;
+  }
+}
+
+.sf-tray-totals {
+  border-top: 1px solid var(--sf-kraft-deep);
+}
+
+.sf-tray-count {
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sf-tray-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-tray-empty strong {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--sf-ink);
+}
+
+.sf-tray-empty .sf-btn {
+  margin-top: 0.5rem;
+}
+
+.sf-line {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: 0.875rem;
+  padding-block: 0.875rem;
+  border-top: 1px solid var(--sf-line-rule, var(--sf-rule-soft));
+}
+
+.sf-box-label + .sf-line {
+  margin-top: 0.5rem;
+  border-top: 0;
+}
+
+.sf-line-media {
+  width: 4rem;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--sf-ink);
+}
+
+.sf-line-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sf-line-name {
+  min-width: 0;
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.1875rem;
+  font-weight: 800;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.sf-line-name .sf-marker {
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.sf-line-mods {
+  margin-top: 0.125rem;
+  font-size: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+
+.sf-line-mods li {
+  display: inline;
+}
+
+.sf-line-mods li:not(:last-child)::after {
+  content: ", ";
+}
+
+.sf-line-note {
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--sf-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.sf-line-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
+
+.sf-totals > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.3125rem;
+}
+
+.sf-totals dd {
+  font-variant-numeric: tabular-nums;
+}
+
+.sf-totals .is-total {
+  margin-top: 0.375rem;
+  padding-top: 0.625rem;
+  border-top: 2px solid var(--sf-ink);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.sf-pay-note {
+  margin-top: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.sf-pickup-time {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--sf-ink);
+  background: var(--sf-band-tint);
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* ── Receipt: the finished cup ──────────────────────────── */
+
+.sf-ticket {
+  background: var(--sf-cup);
+  border: 1px solid var(--sf-ink);
+  border-top: 0.625rem solid var(--sf-band);
+}
+
+.sf-ticket-section {
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .sf-ticket-section {
+    padding: 1.5rem;
+  }
+}
+
+.sf-ticket-section + .sf-ticket-section {
+  border-top: 1px solid var(--sf-rule-soft);
+}
+
+.sf-ticket .sf-page-title {
+  margin-bottom: 0.75rem;
+}
+
+.sf-ticket .sf-page-lead {
+  margin: 0;
+}
+
+.sf-receipt-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  margin-top: 1.25rem;
+}
+
+.sf-receipt-facts dt {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sf-ink-muted);
+}
+
+.sf-receipt-facts dd.sf-marker {
+  font-size: 1.625rem;
+}
+
+.sf-receipt-time {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.sf-steps {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .sf-steps {
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+  }
+}
+
+.sf-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--sf-ink-faint);
+}
+
+.sf-step.is-done {
+  color: var(--sf-ink-muted);
+}
+
+.sf-step.is-current {
+  color: var(--sf-ink);
+  font-weight: 750;
+}
+
+.sf-step-box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1.5px solid currentColor;
+  background: var(--sf-cup);
+}
+
+.sf-step-box .sf-tick {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.sf-order-notes {
+  margin-top: 1rem;
+}
+
+.sf-handoff-panel {
+  align-items: center;
+  text-align: center;
+}
+
+.sf-handoff {
+  font-size: clamp(2.75rem, 11vw, 3.75rem);
+  line-height: 1;
+}
+
+.sf-handoff-refresh {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+}
+
+.sf-receipt-rewards {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sf-rule-soft);
+  text-align: left;
+}
+
+.sf-receipt-rewards .sf-box-label + * {
+  margin-top: 0;
+}
+
+.sf-pay-online {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ── Account ────────────────────────────────────────────── */
+
+.sf-account-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sf-account-head .sf-page-title {
+  margin-bottom: 0;
+}
+
+.sf-account-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.sf-account-who .sf-marker {
+  font-size: 1.625rem;
+}
+
+.sf-split > section > .sf-panel-title {
+  margin-bottom: 0.75rem;
+}
+
+.sf-rows {
+  border-top: 1px solid var(--sf-ink);
+}
+
+.sf-row {
+  display: grid;
+  gap: 0.25rem;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--sf-rule-soft);
+}
+
+.sf-row strong.sf-marker {
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.sf-row-sub {
+  font-size: 0.9375rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-order-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.125rem 1rem;
+  min-height: 4rem;
+  padding: 0.75rem 0.375rem;
+  border-bottom: 1px solid var(--sf-rule-soft);
+  transition: background-color var(--sf-dur-press) ease;
+}
+
+.sf-order-row:hover {
+  background: var(--sf-band-wash);
+}
+
+.sf-order-row strong.sf-marker {
+  font-size: 1.375rem;
+  font-weight: 400;
+}
+
+.sf-order-row-sub {
+  grid-column: 1 / -1;
+  font-size: 0.9375rem;
+  color: var(--sf-ink-muted);
+}
+
+.sf-pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.sf-rewards-line .sf-marker {
+  font-size: 1.5rem;
+}
+
+/* Reward progress as a punch row: one box per tenth of a drink credit, ticked from the account's own progress. */
+.sf-punches {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  border: 1px solid var(--sf-ink);
+}
+
+.sf-punches li {
+  display: grid;
+  aspect-ratio: 1 / 1;
+  place-items: center;
+  border-right: 1px solid var(--sf-ink);
+}
+
+.sf-punches li:last-child {
+  border-right: 0;
+}
+
+.sf-punches li.is-marked {
+  background: var(--sf-band-tint);
+}
+
+.sf-punches .sf-tick {
+  width: 72%;
+  height: 72%;
+}
+
+.sf-auth {
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.sf-auth .sf-page-title {
+  margin-bottom: 0;
+}
+
+.sf-auth-foot {
+  margin-top: 0.25rem;
+}
+
+/* ── Catering ───────────────────────────────────────────── */
+
+.sf-catering-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .sf-catering-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sf-catering-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem 1.5rem;
+}
+
+.sf-catering-facts dd.sf-marker {
+  font-size: 1.375rem;
+}
+
+.sf-rules > div {
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--sf-rule-soft);
+}
+
+.sf-rules > div:first-child {
+  border-top: 1px solid var(--sf-ink);
+}
+
+.sf-rules dt {
+  font-family: var(--font-sf-display), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--sf-ink-muted);
+}
+
+.sf-rules dd {
+  margin-top: 0.125rem;
+  overflow-wrap: anywhere;
+}
+
+/* ── Reduced motion: marks appear drawn, nothing slides ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-root *,
+  .sf-root *::before,
+  .sf-root *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .sf-tick path,
+  .sf-cartbar {
+    animation: none;
+  }
+}

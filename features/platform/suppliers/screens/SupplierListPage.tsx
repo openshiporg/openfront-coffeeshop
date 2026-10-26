@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { ArrowUpRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
-import { PlatformEmpty, PlatformHeader } from "@/features/platform/components/PlatformPage";
-import { StatusTitle } from "@/features/platform/components/StatusTitle";
+import { PlatformEmpty, PlatformHeader, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
+import { StatusDot } from "@/features/platform/components/StatusTitle";
+import { OPERATIONS_PATH } from "@/features/platform/inventory/lib/inventory";
+import { cn } from "@/lib/utils";
 import { loadSupplierList } from "../actions/suppliers";
 import { SupplierDrawer } from "../components/SupplierDrawer";
 import {
@@ -32,25 +34,55 @@ const STATUS_TABS: Array<{ value: SupplierStatusFilter; label: string }> = [
   { value: "archived", label: "Archived" },
 ];
 
-function SupplierCard({ supplier }: { supplier: SupplierRow }) {
-  const status = supplierStatus(supplier.status);
-  const lead = supplier.leadTimeDays ?? 0;
+function telHref(phone: string) {
+  return `tel:${phone.replace(/[^\d+]/g, "")}`;
+}
+
+function orderHref(supplier: SupplierRow) {
+  return `${OPERATIONS_PATH}?purchaseSupplierSearch=${encodeURIComponent(supplier.name || "")}`;
+}
+
+function SupplierTable({ suppliers, canOrder }: { suppliers: SupplierRow[]; canOrder: boolean }) {
   return (
-    <article aria-labelledby={`supplier-${supplier.id}-title`} className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs">
-      <div className="flex items-start justify-between gap-3">
-        <StatusTitle id={`supplier-${supplier.id}-title`} tone={status.tone} status={status.label} className="text-base font-semibold tracking-tight">
-          <Link href={`${SUPPLIERS_PATH}/${supplier.id}`} className="underline-offset-4 hover:underline">
-            {supplier.name || "Untitled supplier"}<ArrowUpRight className="ml-0.5 inline size-3.5 align-[-0.125em] text-muted-foreground" aria-hidden="true" />
-          </Link>
-        </StatusTitle>
-        <span className="shrink-0 text-sm tabular-nums text-muted-foreground">{lead} {lead === 1 ? "day" : "days"} lead</span>
-      </div>
-      <dl className="grid gap-1 text-sm">
-        <div className="flex min-w-0 gap-2"><dt className="w-14 shrink-0 text-muted-foreground">Contact</dt><dd className="min-w-0 truncate">{supplier.contactName || "—"}</dd></div>
-        <div className="flex min-w-0 gap-2"><dt className="w-14 shrink-0 text-muted-foreground">Email</dt><dd className="min-w-0 truncate">{supplier.email ? <a href={`mailto:${supplier.email}`} className="hover:underline">{supplier.email}</a> : "—"}</dd></div>
-        <div className="flex min-w-0 gap-2"><dt className="w-14 shrink-0 text-muted-foreground">Phone</dt><dd className="min-w-0 truncate">{supplier.phone ? <a href={`tel:${supplier.phone.replace(/[^\d+]/g, "")}`} className="hover:underline">{supplier.phone}</a> : "—"}</dd></div>
-      </dl>
-    </article>
+    <PlatformTable
+      label="Suppliers"
+      head={[
+        { label: "Supplier" },
+        { label: "Status" },
+        { label: "Contact", className: "hidden md:table-cell" },
+        { label: "Phone" },
+        { label: "Email", className: "hidden lg:table-cell" },
+        { label: "Lead", className: "hidden text-right sm:table-cell" },
+        { label: <span className="sr-only">Actions</span>, className: "w-0" },
+      ]}
+    >
+      {suppliers.map((supplier) => {
+        const status = supplierStatus(supplier.status);
+        const lead = supplier.leadTimeDays ?? 0;
+        return (
+          <tr key={supplier.id} className="transition-colors hover:bg-muted/30">
+            <td className={cn(platformTd, "min-w-36")}>
+              <Link href={`${SUPPLIERS_PATH}/${supplier.id}`} className="font-medium underline-offset-4 hover:underline focus-visible:underline [overflow-wrap:anywhere]">{supplier.name || "Untitled supplier"}</Link>
+              {supplier.contactName ? <p className="text-xs text-muted-foreground md:hidden">{supplier.contactName}</p> : null}
+            </td>
+            <td className={cn(platformTd, "whitespace-nowrap")}><span className="inline-flex items-center gap-2"><StatusDot tone={status.tone} />{status.label}</span></td>
+            <td className={cn(platformTd, "hidden max-w-44 truncate md:table-cell")}>{supplier.contactName || <span className="text-muted-foreground">—</span>}</td>
+            <td className={cn(platformTd, "whitespace-nowrap tabular-nums")}>
+              {supplier.phone ? <a href={telHref(supplier.phone)} className="underline decoration-border underline-offset-4 hover:decoration-foreground">{supplier.phone}</a> : <span className="text-muted-foreground">—</span>}
+            </td>
+            <td className={cn(platformTd, "hidden max-w-56 truncate lg:table-cell")}>
+              {supplier.email ? <a href={`mailto:${supplier.email}`} className="underline decoration-border underline-offset-4 hover:decoration-foreground">{supplier.email}</a> : <span className="text-muted-foreground">—</span>}
+            </td>
+            <td className={cn(platformTd, "hidden whitespace-nowrap text-right tabular-nums text-muted-foreground sm:table-cell")}>{lead} {lead === 1 ? "day" : "days"}</td>
+            <td className={cn(platformTd, "whitespace-nowrap py-1.5 text-right")}>
+              {canOrder && supplier.status !== "archived" ? (
+                <Button asChild size="sm" variant="outline" className="h-8 rounded-[6px] active:scale-[0.97]"><Link href={orderHref(supplier)}>Order</Link></Button>
+              ) : null}
+            </td>
+          </tr>
+        );
+      })}
+    </PlatformTable>
   );
 }
 
@@ -66,8 +98,8 @@ export async function SupplierListPage({ view }: { view: SupplierListView }) {
       meta={data ? <span className="tabular-nums">{data.counts.active} active</span> : null}
       actions={(
         <>
-          <Button asChild variant="outline" className="rounded-full">
-            <Link href="/dashboard/platform/inventory">Inventory<ArrowUpRight className="size-4" aria-hidden="true" /></Link>
+          <Button asChild variant="outline" className="rounded-[6px] active:scale-[0.97]">
+            <Link href="/dashboard/platform/inventory">Inventory to reorder</Link>
           </Button>
           {data?.canManage ? <SupplierDrawer /> : null}
         </>
@@ -77,8 +109,8 @@ export async function SupplierListPage({ view }: { view: SupplierListView }) {
 
   return (
     <PageContainer title="Suppliers" header={header} breadcrumbs={breadcrumbs}>
-      <div className="space-y-6 px-4 pb-24 md:px-6">
-        <div className="space-y-3">
+      <div className="space-y-4 px-4 pb-24 md:px-6">
+        <div className="space-y-4">
           <nav aria-label="Status" className="min-w-0 max-w-full">
             <PillTrack label="Status">
               {STATUS_TABS.map((tab) => (
@@ -93,29 +125,27 @@ export async function SupplierListPage({ view }: { view: SupplierListView }) {
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <label htmlFor="supplier-search" className="sr-only">Search suppliers</label>
-              <Input id="supplier-search" type="search" name="search" defaultValue={view.search} placeholder="Name, contact or email" className="h-10 rounded-full pl-9" />
+              <Input id="supplier-search" type="search" name="search" defaultValue={view.search} placeholder="Name, contact or email" className="h-9 rounded-[6px] pl-9" />
             </div>
-            <Button type="submit" variant="outline" className="h-10 rounded-full">Search</Button>
-            {view.search ? <Button asChild variant="ghost" className="h-10 rounded-full"><Link href={supplierListHref(view, { search: "", page: 1 })}>Clear</Link></Button> : null}
+            <Button type="submit" variant="outline" className="h-9 rounded-[6px]">Search</Button>
+            {view.search ? <Button asChild variant="ghost" className="h-9 rounded-[6px]"><Link href={supplierListHref(view, { search: "", page: 1 })}>Clear</Link></Button> : null}
           </form>
         </div>
 
         {!data ? (
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
-            <p className="font-medium">Unable to load suppliers.</p>
-            <Button asChild variant="outline" className="rounded-full"><Link href={supplierListHref(view)}>Try again</Link></Button>
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-destructive/40 bg-destructive/5 p-4 text-sm">
+            <div className="space-y-0.5"><p className="font-medium">Suppliers didn&apos;t load</p><p className="text-muted-foreground">Nothing was changed. Inventory still opens.</p></div>
+            <Button asChild variant="outline" className="rounded-[6px] active:scale-[0.97]"><Link href={supplierListHref(view)}>Try again</Link></Button>
           </div>
         ) : data.suppliers.length ? (
           <>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {data.suppliers.map((supplier) => <SupplierCard key={supplier.id} supplier={supplier} />)}
-            </div>
+            <SupplierTable suppliers={data.suppliers} canOrder={data.canManage} />
             {pageCount > 1 ? (
               <nav aria-label="Supplier pages" className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm tabular-nums text-muted-foreground">Page {view.page} of {pageCount}</span>
                 <div className="flex gap-2">
-                  {view.page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={supplierListHref(view, { page: view.page - 1 })}>Previous</Link></Button> : null}
-                  {view.page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={supplierListHref(view, { page: view.page + 1 })}>Next</Link></Button> : null}
+                  {view.page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-[6px] active:scale-[0.97]"><Link href={supplierListHref(view, { page: view.page - 1 })}>Previous</Link></Button> : null}
+                  {view.page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-[6px] active:scale-[0.97]"><Link href={supplierListHref(view, { page: view.page + 1 })}>Next</Link></Button> : null}
                 </div>
               </nav>
             ) : null}

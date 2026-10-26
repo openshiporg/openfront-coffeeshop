@@ -30,7 +30,7 @@ export function OnlinePaymentSetting({ providerId, enabled, keysPresent, canMana
       title="Payments"
       meta={<span className="inline-flex items-center gap-1.5"><StatusDot tone={live ? "green" : "zinc"} />{live ? "Card payments on" : "Pay at pickup only"}</span>}
     >
-      <div className="space-y-2 rounded-xl border border-border p-4">
+      <div className="space-y-2 rounded-[6px] border border-border p-4">
         <div className="flex items-center justify-between gap-4">
           <Label htmlFor="online-payment-switch" className="text-sm font-medium">Online card payments</Label>
           <Switch id="online-payment-switch" checked={enabled} disabled={!canManage || !providerId || pending} onCheckedChange={(next) => void toggle(next)} />

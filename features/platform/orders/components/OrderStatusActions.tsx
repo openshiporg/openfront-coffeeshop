@@ -51,7 +51,7 @@ export function OrderStatusActions({ orderId, actions }: { orderId: string; acti
             key={action.status}
             type="button"
             variant={action.tone === "danger" ? "ghost" : "default"}
-            className={action.tone === "danger" ? "min-h-10 rounded-full text-destructive" : "min-h-10 flex-1 rounded-full sm:flex-none"}
+            className={action.tone === "danger" ? "min-h-10 rounded-[6px] text-destructive hover:text-destructive active:scale-[0.97]" : "min-h-10 flex-1 rounded-[6px] active:scale-[0.97] sm:flex-none"}
             disabled={Boolean(pendingStatus)}
             onClick={() => run(action.status)}
           >
@@ -83,7 +83,7 @@ export function AcceptPickupAction({ orderId }: { orderId: string }) {
   }
   return (
     <div className="space-y-2">
-      <Button type="button" className="min-h-10 w-full rounded-full sm:w-auto" disabled={pending} onClick={accept}>{pending ? "Accepting…" : "Accept unpaid pickup"}</Button>
+      <Button type="button" className="min-h-10 w-full rounded-[6px] active:scale-[0.97] sm:w-auto" disabled={pending} onClick={accept}>{pending ? "Accepting…" : "Accept unpaid pickup"}</Button>
       <ActionError message={error} />
     </div>
   );
@@ -147,24 +147,24 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
   }
 
   return (
-    <div className="space-y-2 rounded-lg bg-muted/50 p-2.5">
-      <p className="px-0.5 text-xs font-medium text-muted-foreground">Take payment · <span className="tabular-nums text-foreground">{money(total)}</span></p>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Take payment · <span className="tabular-nums text-foreground">{money(total)}</span></p>
       {unresolved ? (
         <p role="status" className="text-sm text-muted-foreground">
           {unresolved.method === "cash" ? "Cash" : "Card"} payment not confirmed. Retry it before choosing another tender.
         </p>
       ) : null}
       <div className="grid grid-cols-2 gap-2">
-        <Button type="button" variant="outline" className="min-h-10 rounded-full bg-background" disabled={pendingMethod !== null} onClick={() => record("cash")}>
+        <Button type="button" variant="outline" className="min-h-10 rounded-[6px] bg-background active:scale-[0.97]" disabled={pendingMethod !== null} onClick={() => record("cash")}>
           {pendingMethod === "cash" ? "Recording…" : unresolved?.method === "cash" ? "Retry cash payment" : "Record cash"}
         </Button>
-        <Button type="button" variant="outline" className="min-h-10 rounded-full bg-background" disabled={pendingMethod !== null} onClick={() => { setTerminalApproved(false); setConfirmCard(true); }}>
+        <Button type="button" variant="outline" className="min-h-10 rounded-[6px] bg-background active:scale-[0.97]" disabled={pendingMethod !== null} onClick={() => { setTerminalApproved(false); setConfirmCard(true); }}>
           {pendingMethod === "card" ? "Recording…" : unresolved?.method === "card" ? "Retry card payment" : "Record card"}
         </Button>
       </div>
       <ActionError message={error} />
       <Dialog open={confirmCard} onOpenChange={setConfirmCard}>
-        <DialogContent>
+        <DialogContent className="rounded-[6px]">
           <DialogHeader>
             <DialogTitle>Record external card payment</DialogTitle>
             <DialogDescription>
@@ -179,6 +179,7 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
                 value={terminalReference}
                 onChange={(event) => setTerminalReference(event.target.value)}
                 autoComplete="off"
+                className="rounded-[6px]"
                 maxLength={64}
                 aria-invalid={terminalReference.trim() !== "" && !referenceValid}
                 aria-describedby={`${referenceId}-hint`}
@@ -191,8 +192,8 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setConfirmCard(false)}>Cancel</Button>
-            <Button type="button" disabled={!terminalApproved || !referenceValid} onClick={() => record("card")}>Record card payment</Button>
+            <Button type="button" variant="outline" className="rounded-[6px]" onClick={() => setConfirmCard(false)}>Cancel</Button>
+            <Button type="button" className="rounded-[6px]" disabled={!terminalApproved || !referenceValid} onClick={() => record("card")}>Record card payment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -217,7 +218,7 @@ export function ApplyLoyaltyAction({ orderId, customerEmail, customerName }: { o
   }
   return (
     <div className="space-y-2">
-      <Button type="button" size="sm" variant="ghost" className="rounded-full" disabled={pending} onClick={apply}>{pending ? "Applying…" : "Apply purchase to rewards"}</Button>
+      <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" disabled={pending} onClick={apply}>{pending ? "Applying…" : "Apply purchase to rewards"}</Button>
       <p role="status" aria-live="polite" className={message ? "text-sm text-muted-foreground" : "sr-only"}>{message || ""}</p>
       <ActionError message={error} />
     </div>
@@ -292,13 +293,13 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {payments.map((payment) => (
-          <Button key={payment.id} type="button" size="sm" variant="ghost" className="rounded-full text-destructive" onClick={() => open(payment)}>
+          <Button key={payment.id} type="button" size="sm" variant="ghost" className="h-auto min-h-8 whitespace-normal rounded-[6px] text-left text-destructive hover:text-destructive" onClick={() => open(payment)}>
             {`${payment.provider === "pp_stripe_stripe" ? "Refund to card" : payment.method === "card" ? "Record external card refund" : "Refund cash"} · ${money(payment.amount)}`}
           </Button>
         ))}
       </div>
       <Dialog open={Boolean(target)} onOpenChange={(next) => { if (!next && !pending) setTarget(null); }}>
-        <DialogContent>
+        <DialogContent className="rounded-[6px]">
           <form onSubmit={submit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>{isOnline ? "Refund to card" : isCard ? "Record external card refund" : "Refund cash"}</DialogTitle>
@@ -324,6 +325,7 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
                   onChange={(event) => setReference(event.target.value)}
                   readOnly={Boolean(storedIntent)}
                   maxLength={200}
+                  className="rounded-[6px]"
                   autoComplete="off"
                   required
                 />
@@ -332,8 +334,8 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
             ) : null}
             <ActionError message={error} />
             <DialogFooter>
-              <Button type="button" variant="outline" disabled={pending} onClick={() => setTarget(null)}>Cancel</Button>
-              <Button type="submit" variant="destructive" disabled={pending}>
+              <Button type="button" variant="outline" className="rounded-[6px]" disabled={pending} onClick={() => setTarget(null)}>Cancel</Button>
+              <Button type="submit" variant="destructive" className="rounded-[6px]" disabled={pending}>
                 {pending ? "Recording…" : storedIntent ? "Retry refund" : isOnline ? "Refund to card" : isCard ? "Record refund" : "Refund cash"}
               </Button>
             </DialogFooter>

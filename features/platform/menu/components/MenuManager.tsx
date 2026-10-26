@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { PillButton, PillLink, PillTrack } from "@/features/platform/components/PillTabs";
-import { PlatformEmpty, PlatformHeader } from "@/features/platform/components/PlatformPage";
+import { PillLink, PillTrack, Segmented } from "@/features/platform/components/PillTabs";
+import { PlatformEmpty, PlatformHeader, platformTh } from "@/features/platform/components/PlatformPage";
 import { StatusDot, StatusTitle } from "@/features/platform/components/StatusTitle";
 import {
   createMenuCategoryAction,
@@ -43,8 +43,8 @@ import {
 } from "../types";
 
 const MENU_PATH = "/dashboard/platform/menu";
-const selectClass = "h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50";
-const checkboxClass = "size-4 rounded border-input accent-primary";
+const selectClass = "h-9 w-full min-w-0 rounded-[6px] border border-input bg-background px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50";
+const checkboxClass = "size-4 rounded-[4px] border-input accent-primary";
 
 type Feedback = { tone: "error" | "status"; message: string } | null;
 type Notify = (feedback: Feedback) => void;
@@ -120,7 +120,7 @@ export function MenuManager({ data, filters }: { data: MenuManagerData; filters:
   const categoryHref = (categoryId: string) => menuHref({ search: filters.search, categoryId });
 
   return (
-    <div className="space-y-6 px-4 pb-10 md:px-6">
+    <div className="space-y-5 px-4 pb-24 md:px-6">
       <PlatformHeader
         title="Menu"
         meta={(
@@ -133,30 +133,29 @@ export function MenuManager({ data, filters }: { data: MenuManagerData; filters:
         )}
         actions={canManage ? (
           <>
-            <Button variant="outline" className="rounded-full" onClick={() => setCreateCategoryOpen(true)}>New category</Button>
-            <Button className="rounded-full" onClick={() => setCreateItemOpen(true)}><Plus aria-hidden="true" />New item</Button>
+            <Button variant="outline" className="rounded-[6px] active:scale-[0.97]" onClick={() => setCreateCategoryOpen(true)}>New category</Button>
+            <Button className="rounded-[6px] active:scale-[0.97]" onClick={() => setCreateItemOpen(true)}><Plus aria-hidden="true" />New item</Button>
           </>
         ) : null}
       />
 
       <div aria-live="polite" role="status" className="sr-only">{feedback?.tone === "status" ? feedback.message : ""}</div>
       {feedback?.tone === "error" && (
-        <div role="alert" className="flex flex-col gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div role="alert" className="flex flex-col gap-2 rounded-[6px] border border-destructive/40 bg-destructive/5 p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>{feedback.message}</span>
-          <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setFeedback(null)}>Dismiss</Button>
+          <Button variant="ghost" size="sm" className="rounded-[6px]" onClick={() => setFeedback(null)}>Dismiss</Button>
         </div>
       )}
 
       <div className="space-y-3">
-        <form key={`${filters.search}|${filters.categoryId}`} method="get" action={MENU_PATH} role="search" className="flex max-w-xl items-center gap-2">
+        <form key={`${filters.search}|${filters.categoryId}`} method="get" action={MENU_PATH} role="search" className="flex max-w-md items-center gap-2">
           {filters.categoryId ? <input type="hidden" name="category" value={filters.categoryId} /> : null}
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Label htmlFor="menu-search" className="sr-only">Search menu</Label>
-            <Input id="menu-search" name="q" type="search" defaultValue={filters.search} placeholder="Item, description or option" maxLength={200} className="h-10 rounded-full pl-9" />
+            <Input id="menu-search" name="q" type="search" enterKeyHint="search" defaultValue={filters.search} placeholder="Item, description or option" maxLength={200} className="h-9 rounded-[6px] pl-8" />
           </div>
-          <Button type="submit" variant="outline" className="h-10 rounded-full">Search</Button>
-          {filtered && <Button asChild variant="ghost" className="h-10 rounded-full"><Link href={MENU_PATH}>Clear</Link></Button>}
+          {filtered && <Link href={MENU_PATH} className="px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</Link>}
         </form>
         <nav aria-label="Category">
           <PillTrack label="Category">
@@ -175,11 +174,22 @@ export function MenuManager({ data, filters }: { data: MenuManagerData; filters:
           {data.matchingCount} {filtered ? "matching " : ""}item{data.matchingCount === 1 ? "" : "s"}{filters.cursor ? " · later page" : ""}
         </p>
         {data.items.length ? (
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-            {data.items.map((item) => (
-              <MenuItemCard key={item.id} item={item} categories={data.categories} canManage={canManage} commands={commands} notify={notify} />
-            ))}
-          </ul>
+          <div className="relative min-w-0 overflow-x-auto rounded-[6px] border bg-background max-md:border-0 max-md:bg-transparent">
+            <table className="w-full border-collapse text-sm max-md:block" aria-label="Menu items">
+              <thead className="max-md:hidden">
+                <tr>
+                  <th scope="col" className={platformTh}>Item</th>
+                  <th scope="col" className={`${platformTh} text-right`}>Price</th>
+                  <th scope="col" className={platformTh}>Available</th>
+                  <th scope="col" className={platformTh}>Options</th>
+                  <th scope="col" className={platformTh}><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              {data.items.map((item) => (
+                <MenuItemCard key={item.id} item={item} categories={data.categories} canManage={canManage} commands={commands} notify={notify} />
+              ))}
+            </table>
+          </div>
         ) : (
           <PlatformEmpty>{filtered ? "No menu items match." : "No menu items yet."}</PlatformEmpty>
         )}
@@ -187,8 +197,8 @@ export function MenuManager({ data, filters }: { data: MenuManagerData; filters:
 
       {(filters.cursor || data.hasMore) && (
         <nav aria-label="Menu pages" className="flex flex-wrap gap-2">
-          {filters.cursor && <Button asChild variant="ghost" size="sm" className="rounded-full"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId })}>First page</Link></Button>}
-          {data.hasMore && data.nextCursor && <Button asChild variant="outline" size="sm" className="rounded-full"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId, cursor: data.nextCursor })}>Next page</Link></Button>}
+          {filters.cursor && <Button asChild variant="ghost" size="sm" className="rounded-[6px]"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId })}>First page</Link></Button>}
+          {data.hasMore && data.nextCursor && <Button asChild variant="outline" size="sm" className="rounded-[6px]"><Link href={menuHref({ search: filters.search, categoryId: filters.categoryId, cursor: data.nextCursor })}>Next page</Link></Button>}
         </nav>
       )}
 
@@ -211,11 +221,11 @@ function reportResult(notify: Notify, result: MenuActionResult, success: string,
 
 function ConflictNotice({ subject, onKeep, onDiscard }: { subject: string; onKeep: () => void; onDiscard: () => void }) {
   return (
-    <div role="alert" className="flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+    <div role="alert" className="flex flex-col gap-2 rounded-[6px] border border-amber-500/40 bg-amber-500/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <span>{subject} changed while you were editing.</span>
       <span className="flex gap-2">
-        <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={onDiscard}>Use saved</Button>
-        <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onKeep}>Keep mine</Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-[6px]" onClick={onDiscard}>Use saved</Button>
+        <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" onClick={onKeep}>Keep mine</Button>
       </span>
     </div>
   );
@@ -238,76 +248,95 @@ function MenuItemCard({ item, categories, canManage, commands, notify }: { item:
   const outCount = item.modifiers.filter((modifier) => !modifier.inStock || modifier.stockOut).length;
   const optionsId = `menu-item-${item.id}-options`;
 
+  const tone = !item.available ? "zinc" : item.soldOut ? "red" : "green";
+  const td = "border-b px-3 py-2 align-middle max-md:border-0 max-md:p-0";
   return (
-    <li className="min-w-0">
-      <div className="grid min-w-0 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-        <div className="min-w-0 space-y-1">
-          <StatusTitle as="h3" tone={!item.available ? "zinc" : item.soldOut ? "red" : "green"} status={!item.available ? "Unavailable" : item.soldOut ? "Out of stock" : null} className="text-base font-semibold">
-            {item.name}
-          </StatusTitle>
-          <p className="pl-4 text-sm text-muted-foreground">
-            {item.category?.name || "Uncategorized"} · {stationLabel(item.barStation)} · {item.prepTimeMinutes ?? 0} min
-          </p>
-          {item.shortDescription && <p className="line-clamp-2 break-words pl-4 text-sm text-muted-foreground">{item.shortDescription}</p>}
-        </div>
-        <div className="flex items-start justify-between gap-4 pl-4 sm:justify-end sm:pl-0">
+    <tbody className="max-md:mb-2 max-md:block max-md:rounded-[6px] max-md:border max-md:bg-background">
+      <tr className={`max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:items-center max-md:gap-x-3 max-md:gap-y-2 max-md:p-3 ${!item.available ? "bg-muted/30" : ""}`}>
+        <td className={`${td} min-w-[14rem] max-md:col-span-2 max-md:min-w-0`}>
+          <span className="flex min-w-0 items-start gap-2">
+            <span className="inline-flex h-[1lh] shrink-0 items-center"><StatusDot tone={tone} /></span>
+            <span className="min-w-0">
+              <span className={`block font-medium [overflow-wrap:anywhere] ${!item.available ? "text-muted-foreground" : ""}`}>
+                {item.name}
+                {!item.available ? <span className="ml-2 text-xs font-medium text-muted-foreground">Unavailable</span> : item.soldOut ? <span className="ml-2 text-xs font-medium text-red-600 dark:text-red-400">Out of stock</span> : null}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {item.category?.name || "Uncategorized"} · {stationLabel(item.barStation)} · <span className="tabular-nums">{item.prepTimeMinutes ?? 0} min</span>
+                {item.featured ? " · Featured" : ""}{item.popular ? " · Popular" : ""}
+              </span>
+            </span>
+          </span>
+        </td>
+        <td className={`${td} text-right max-md:text-left`}>
           {canManage
             ? <PriceEditor item={item} busy={busy} onSave={(price, base) => update("price", { price }, base, `${item.name} price saved`)} />
-            : <p className="text-base font-semibold tabular-nums">{money(item.price)}</p>}
-          {canManage && (
+            : <p className="font-semibold tabular-nums">{money(item.price)}</p>}
+        </td>
+        <td className={`${td} max-md:justify-self-end`}>
+          {canManage ? (
             <label className="flex min-h-9 shrink-0 items-center gap-2 text-sm font-medium">
               <Switch checked={item.available} disabled={busy} onCheckedChange={() => update("available", { available: !item.available }, item.updatedAt, `${item.name} is now ${item.available ? "unavailable" : "available"}`)} />
               <span className="sr-only">Available</span>
-              <span aria-hidden="true" className="w-16 text-muted-foreground">{item.available ? "On" : "Off"}</span>
+              <span aria-hidden="true" className="w-7 text-muted-foreground">{item.available ? "On" : "Off"}</span>
             </label>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pl-8">
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="-ml-2 rounded-full"
-          aria-expanded={optionsOpen}
-          aria-controls={optionsId}
-          onClick={() => setOptionsOpen((open) => !open)}
-        >
-          <ChevronDown aria-hidden="true" className={`transition-transform ${optionsOpen ? "rotate-180" : ""}`} />
-          Options <span className="tabular-nums text-muted-foreground">{item.modifiers.length}</span>
-          {outCount > 0 ? <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400"><StatusDot tone="amber" />{outCount} out</span> : null}
-        </Button>
-        {canManage && (
-          <>
-            {/* Independent on/off flags, so each gets its own switch rather than a segmented choice. */}
-            <label className="flex min-h-9 items-center gap-2 text-sm font-medium">
-              <Switch checked={item.featured} disabled={busy} onCheckedChange={() => update("featured", { featured: !item.featured }, item.updatedAt, `${item.name} featured setting saved`)} />
-              Featured
-            </label>
-            <label className="flex min-h-9 items-center gap-2 text-sm font-medium">
-              <Switch checked={item.popular} disabled={busy} onCheckedChange={() => update("popular", { popular: !item.popular }, item.updatedAt, `${item.name} popular setting saved`)} />
-              Popular
-            </label>
-            <Button type="button" size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => setDetailsOpen(true)}>Edit details</Button>
-            <Button asChild size="sm" variant="ghost" className="rounded-full text-muted-foreground"><Link href={`/dashboard/menu-items/${item.id}`}>Full record<ArrowUpRight aria-hidden="true" /></Link></Button>
-          </>
-        )}
-        {!canManage && (item.featured || item.popular) ? <span className="text-xs text-muted-foreground">{[item.featured && "Featured", item.popular && "Popular"].filter(Boolean).join(" · ")}</span> : null}
-      </div>
-
+          ) : <span className="text-muted-foreground">{item.available ? "On" : "Off"}</span>}
+        </td>
+        <td className={`${td} whitespace-nowrap`}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="-ml-2 h-9 rounded-[6px] max-md:ml-0 max-md:px-2"
+            aria-expanded={optionsOpen}
+            aria-controls={optionsId}
+            onClick={() => setOptionsOpen((open) => !open)}
+          >
+            <ChevronDown aria-hidden="true" className={`transition-transform duration-150 ${optionsOpen ? "rotate-180" : ""}`} />
+            <span className="tabular-nums">{item.modifiers.length}</span>
+            <span className="sr-only">options</span>
+            {outCount > 0 ? <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400"><StatusDot tone="amber" />{outCount} out</span> : null}
+          </Button>
+        </td>
+        <td className={`${td} whitespace-nowrap text-right max-md:justify-self-end`}>
+          {canManage ? (
+            <span className="inline-flex items-center gap-1">
+              <Button type="button" size="sm" variant="ghost" className="h-9 rounded-[6px]" disabled={busy} onClick={() => setDetailsOpen(true)}>Edit</Button>
+              <Button asChild size="icon" variant="ghost" className="size-9 rounded-[6px] text-muted-foreground"><Link href={`/dashboard/menu-items/${item.id}`} aria-label={`Full record for ${item.name}`} title="Full record"><ArrowUpRight aria-hidden="true" /></Link></Button>
+              {/* Portaled dialog; mounted here so its draft survives the options row opening and closing. */}
+              <ItemDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} item={item} categories={categories} busy={busy} onSave={update} />
+            </span>
+          ) : null}
+        </td>
+      </tr>
       {optionsOpen && (
-        <section id={optionsId} aria-label={`${item.name} options`} className="space-y-2 border-t border-border bg-muted/40 p-3 sm:px-4">
-          {item.modifiers.length === 0 && <p className="px-1 text-sm text-muted-foreground">No options.</p>}
-          {item.modifiers.map((modifier) => canManage
-            ? <ModifierEditor key={modifier.id} modifier={modifier} commands={commands} notify={notify} />
-            : <ModifierSummary key={modifier.id} modifier={modifier} />)}
-          {item.modifiersHasMore && <p className="px-1 text-xs text-muted-foreground">First 100 options shown.</p>}
-          {canManage && <NewModifierForm item={item} commands={commands} notify={notify} />}
-        </section>
+        <tr className="max-md:block">
+          <td colSpan={5} className="border-b bg-muted/30 p-0 max-md:block max-md:rounded-b-[6px] max-md:border-0 max-md:border-t">
+            <section id={optionsId} aria-label={`${item.name} options`} className="space-y-2 p-3 sm:px-4">
+              {canManage && (
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 pb-1">
+                  {/* Independent on/off flags, so each gets its own switch rather than a segmented choice. */}
+                  <label className="flex min-h-9 items-center gap-2 text-sm font-medium">
+                    <Switch checked={item.featured} disabled={busy} onCheckedChange={() => update("featured", { featured: !item.featured }, item.updatedAt, `${item.name} featured setting saved`)} />
+                    Featured
+                  </label>
+                  <label className="flex min-h-9 items-center gap-2 text-sm font-medium">
+                    <Switch checked={item.popular} disabled={busy} onCheckedChange={() => update("popular", { popular: !item.popular }, item.updatedAt, `${item.name} popular setting saved`)} />
+                    Popular
+                  </label>
+                </div>
+              )}
+              {item.modifiers.length === 0 && <p className="px-1 text-sm text-muted-foreground">No options.</p>}
+              {item.modifiers.map((modifier) => canManage
+                ? <ModifierEditor key={modifier.id} modifier={modifier} commands={commands} notify={notify} />
+                : <ModifierSummary key={modifier.id} modifier={modifier} />)}
+              {item.modifiersHasMore && <p className="px-1 text-xs text-muted-foreground">First 100 options shown.</p>}
+              {canManage && <NewModifierForm item={item} commands={commands} notify={notify} />}
+            </section>
+          </td>
+        </tr>
       )}
-      {canManage && <ItemDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} item={item} categories={categories} busy={busy} onSave={update} />}
-    </li>
+    </tbody>
   );
 }
 
@@ -327,9 +356,9 @@ function PriceEditor({ item, busy, onSave }: { item: MenuManagerItem; busy: bool
       <div className="flex items-center gap-1.5">
         <div className="relative">
           <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">$</span>
-          <Input id={id} inputMode="decimal" className="h-9 w-24 pl-5 text-right font-medium tabular-nums" value={draft.value} aria-invalid={cents == null} onChange={(event) => { const next = event.target.value; draft.set(() => next); }} />
+          <Input id={id} inputMode="decimal" className="h-9 w-24 rounded-[6px] pl-5 text-right font-medium tabular-nums" value={draft.value} aria-invalid={cents == null} onChange={(event) => { const next = event.target.value; draft.set(() => next); }} />
         </div>
-        {draft.dirty && <Button type="button" size="sm" className="rounded-full" disabled={cents == null || busy} onClick={save}>{busy ? "Saving…" : "Save"}</Button>}
+        {draft.dirty && <Button type="button" size="sm" className="h-9 rounded-[6px] active:scale-[0.97]" disabled={cents == null || busy} onClick={save}>{busy ? "Saving…" : "Save"}</Button>}
       </div>
       {cents == null && <p className="text-xs text-destructive">Enter a price like 4.50</p>}
       {draft.conflict && <ConflictNotice subject="This price" onKeep={draft.keepMine} onDiscard={draft.discard} />}
@@ -389,7 +418,7 @@ function ItemDetailsDialog({ open, onOpenChange, item, categories, busy, onSave 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="rounded-[6px] max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <form onSubmit={save} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>Edit {item.name}</DialogTitle>
@@ -398,11 +427,11 @@ function ItemDetailsDialog({ open, onOpenChange, item, categories, busy, onSave 
           {draft.conflict && <ConflictNotice subject="This item" onKeep={draft.keepMine} onDiscard={draft.discard} />}
           <div className="grid gap-1.5">
             <Label htmlFor={`${prefix}-name`}>Name</Label>
-            <Input id={`${prefix}-name`} value={value.name} maxLength={200} aria-invalid={!nameValid} onChange={(event) => set("name", event.target.value)} />
+            <Input className="rounded-[6px]" id={`${prefix}-name`} value={value.name} maxLength={200} aria-invalid={!nameValid} onChange={(event) => set("name", event.target.value)} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor={`${prefix}-description`}>Short description</Label>
-            <Textarea id={`${prefix}-description`} value={value.shortDescription} maxLength={1000} onChange={(event) => set("shortDescription", event.target.value)} />
+            <Textarea className="rounded-[6px]" id={`${prefix}-description`} value={value.shortDescription} maxLength={1000} onChange={(event) => set("shortDescription", event.target.value)} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
@@ -421,14 +450,14 @@ function ItemDetailsDialog({ open, onOpenChange, item, categories, busy, onSave 
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor={`${prefix}-prep`}>Prep time (minutes)</Label>
-              <Input id={`${prefix}-prep`} inputMode="numeric" value={value.prepTimeMinutes} aria-invalid={!prepValid} aria-describedby={!prepValid ? `${prefix}-prep-error` : undefined} onChange={(event) => set("prepTimeMinutes", event.target.value)} />
+              <Input className="rounded-[6px]" id={`${prefix}-prep`} inputMode="numeric" value={value.prepTimeMinutes} aria-invalid={!prepValid} aria-describedby={!prepValid ? `${prefix}-prep-error` : undefined} onChange={(event) => set("prepTimeMinutes", event.target.value)} />
               {!prepValid && <p id={`${prefix}-prep-error`} className="text-xs text-destructive">Enter whole minutes from 0 to 240.</p>}
             </div>
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            {draft.dirty && <Button type="button" variant="ghost" className="rounded-full" onClick={draft.discard}>Discard changes</Button>}
-            <Button type="submit" className="rounded-full" disabled={busy || !nameValid || !prepValid || !hasChanges}>{busy ? "Saving…" : "Save"}</Button>
+            {draft.dirty && <Button type="button" variant="ghost" className="rounded-[6px]" onClick={draft.discard}>Discard changes</Button>}
+            <Button type="submit" className="rounded-[6px]" disabled={busy || !nameValid || !prepValid || !hasChanges}>{busy ? "Saving…" : "Save"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -467,7 +496,7 @@ function CreateItemDialog({ open, onOpenChange, categories, commands, notify }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="rounded-[6px] max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <form onSubmit={create} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>New item</DialogTitle>
@@ -475,16 +504,16 @@ function CreateItemDialog({ open, onOpenChange, categories, commands, notify }: 
           </DialogHeader>
           <div className="grid gap-1.5">
             <Label htmlFor="new-item-name">Name</Label>
-            <Input id="new-item-name" value={draft.name} maxLength={200} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Seasonal latte" />
+            <Input className="rounded-[6px]" id="new-item-name" value={draft.name} maxLength={200} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Seasonal latte" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="new-item-price">Price</Label>
-              <Input id="new-item-price" inputMode="decimal" value={draft.price} aria-invalid={draft.price !== "" && price == null} onChange={(event) => setDraft({ ...draft, price: event.target.value })} placeholder="5.75" />
+              <Input className="rounded-[6px]" id="new-item-price" inputMode="decimal" value={draft.price} aria-invalid={draft.price !== "" && price == null} onChange={(event) => setDraft({ ...draft, price: event.target.value })} placeholder="5.75" />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-item-prep">Prep time (minutes)</Label>
-              <Input id="new-item-prep" inputMode="numeric" value={draft.prepTimeMinutes} aria-invalid={!prepValid} onChange={(event) => setDraft({ ...draft, prepTimeMinutes: event.target.value })} />
+              <Input className="rounded-[6px]" id="new-item-prep" inputMode="numeric" value={draft.prepTimeMinutes} aria-invalid={!prepValid} onChange={(event) => setDraft({ ...draft, prepTimeMinutes: event.target.value })} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-item-category">Category</Label>
@@ -502,11 +531,11 @@ function CreateItemDialog({ open, onOpenChange, categories, commands, notify }: 
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="new-item-description">Short description (optional)</Label>
-            <Textarea id="new-item-description" value={draft.shortDescription} maxLength={1000} onChange={(event) => setDraft({ ...draft, shortDescription: event.target.value })} />
+            <Textarea className="rounded-[6px]" id="new-item-description" value={draft.shortDescription} maxLength={1000} onChange={(event) => setDraft({ ...draft, shortDescription: event.target.value })} />
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" className="rounded-full" disabled={busy || !valid}>{busy ? "Adding…" : "Add item"}</Button>
+            <Button type="submit" className="rounded-[6px]" disabled={busy || !valid}>{busy ? "Adding…" : "Add item"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -541,7 +570,7 @@ function CreateCategoryDialog({ open, onOpenChange, commands, notify }: { open: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="rounded-[6px] sm:max-w-md">
         <form onSubmit={create} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>New category</DialogTitle>
@@ -549,19 +578,19 @@ function CreateCategoryDialog({ open, onOpenChange, commands, notify }: { open: 
           </DialogHeader>
           <div className="grid gap-1.5">
             <Label htmlFor="new-category-name">Name</Label>
-            <Input id="new-category-name" value={draft.name} maxLength={120} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Seasonal drinks" />
+            <Input className="rounded-[6px]" id="new-category-name" value={draft.name} maxLength={120} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Seasonal drinks" />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="new-category-description">Description (optional)</Label>
-            <Textarea id="new-category-description" value={draft.description} maxLength={1000} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
+            <Textarea className="rounded-[6px]" id="new-category-description" value={draft.description} maxLength={1000} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="new-category-sort">Sort order</Label>
-            <Input id="new-category-sort" inputMode="numeric" value={draft.sortOrder} aria-invalid={!sortValid} onChange={(event) => setDraft({ ...draft, sortOrder: event.target.value })} />
+            <Input className="rounded-[6px]" id="new-category-sort" inputMode="numeric" value={draft.sortOrder} aria-invalid={!sortValid} onChange={(event) => setDraft({ ...draft, sortOrder: event.target.value })} />
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" className="rounded-full" disabled={busy || !valid}>{busy ? "Adding…" : "Add category"}</Button>
+            <Button type="submit" className="rounded-[6px]" disabled={busy || !valid}>{busy ? "Adding…" : "Add category"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -583,7 +612,7 @@ function inventorySummary(modifier: MenuModifier) {
 
 function ModifierSummary({ modifier }: { modifier: MenuModifier }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg bg-card px-3 py-2.5 text-sm ring-1 ring-foreground/5">
+    <div className="flex flex-wrap items-start justify-between gap-2 rounded-[6px] border bg-background px-3 py-2.5 text-sm">
       <div className="min-w-0">
         <StatusTitle as="p" tone={modifier.inStock && !modifier.stockOut ? "green" : "red"} status={!modifier.inStock ? "Out of stock" : modifier.stockOut ? "No inventory" : null} className="font-medium">
           {modifier.name}
@@ -681,7 +710,7 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
   }
 
   return (
-    <div className="grid gap-3 rounded-lg bg-card p-3 ring-1 ring-foreground/5">
+    <div className="grid gap-3 rounded-[6px] border bg-background p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <StatusTitle as="p" tone={modifier.inStock && !modifier.stockOut ? "green" : "red"} status={!modifier.inStock ? "Out of stock" : modifier.stockOut ? "No inventory" : null} className="text-sm font-medium">
@@ -693,12 +722,18 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
           </p>
         </div>
         <div className="flex items-center gap-1.5">
-          <PillTrack label={`${modifier.name} stock`}>
-            <PillButton active={modifier.inStock} disabled={busy || (!modifier.inStock && unreviewed)} onClick={() => { if (!modifier.inStock) void toggleStock(); }}>In stock</PillButton>
-            <PillButton active={!modifier.inStock} disabled={busy} onClick={() => { if (modifier.inStock) void toggleStock(); }}>Out</PillButton>
-          </PillTrack>
+          <Segmented
+            label={`${modifier.name} stock`}
+            size="sm"
+            value={modifier.inStock ? "in" : "out"}
+            options={[
+              { value: "in", label: "In stock", disabled: busy || (!modifier.inStock && unreviewed) },
+              { value: "out", label: "Out", disabled: busy },
+            ]}
+            onChange={(next) => { if ((next === "in") !== modifier.inStock) void toggleStock(); }}
+          />
           {!dirty && !draft.conflict && !reviewConflict && !unreviewed && (
-            <Button type="button" size="sm" variant="ghost" className="rounded-full" aria-expanded={editing} onClick={() => setEditing((open) => !open)}>
+            <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" aria-expanded={editing} onClick={() => setEditing((open) => !open)}>
               {editing ? "Close" : "Edit"}
             </Button>
           )}
@@ -716,7 +751,7 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-name`}>Option name</Label>
-          <Input id={`${prefix}-name`} value={draft.value.name} maxLength={200} onChange={(event) => set("name", event.target.value)} />
+          <Input className="rounded-[6px]" id={`${prefix}-name`} value={draft.value.name} maxLength={200} onChange={(event) => set("name", event.target.value)} />
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-group`}>Group</Label>
@@ -726,11 +761,11 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-group-label`}>Group label</Label>
-          <Input id={`${prefix}-group-label`} value={draft.value.modifierGroupLabel} maxLength={120} placeholder="Milk choice" onChange={(event) => set("modifierGroupLabel", event.target.value)} />
+          <Input className="rounded-[6px]" id={`${prefix}-group-label`} value={draft.value.modifierGroupLabel} maxLength={120} placeholder="Milk choice" onChange={(event) => set("modifierGroupLabel", event.target.value)} />
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-price`}>Price change</Label>
-          <Input id={`${prefix}-price`} inputMode="decimal" value={draft.value.price} aria-invalid={parseCents(draft.value.price, { allowNegative: true }) == null} onChange={(event) => set("price", event.target.value)} />
+          <Input className="rounded-[6px]" id={`${prefix}-price`} inputMode="decimal" value={draft.value.price} aria-invalid={parseCents(draft.value.price, { allowNegative: true }) == null} onChange={(event) => set("price", event.target.value)} />
         </div>
       </div>
       <fieldset className="flex flex-wrap items-end gap-4 text-sm">
@@ -741,11 +776,11 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
         </label>
         <div className="grid gap-1">
           <Label htmlFor={`${prefix}-min`}>Minimum</Label>
-          <Input id={`${prefix}-min`} inputMode="numeric" className="w-20" value={draft.value.minSelections} onChange={(event) => set("minSelections", event.target.value)} />
+          <Input id={`${prefix}-min`} inputMode="numeric" className="rounded-[6px] w-20" value={draft.value.minSelections} onChange={(event) => set("minSelections", event.target.value)} />
         </div>
         <div className="grid gap-1">
           <Label htmlFor={`${prefix}-max`}>Maximum</Label>
-          <Input id={`${prefix}-max`} inputMode="numeric" className="w-20" value={draft.value.maxSelections} onChange={(event) => set("maxSelections", event.target.value)} />
+          <Input id={`${prefix}-max`} inputMode="numeric" className="rounded-[6px] w-20" value={draft.value.maxSelections} onChange={(event) => set("maxSelections", event.target.value)} />
         </div>
         <label htmlFor={`${prefix}-default`} className="flex items-center gap-2">
           <input id={`${prefix}-default`} type="checkbox" className={checkboxClass} checked={draft.value.defaultSelected} onChange={(event) => set("defaultSelected", event.target.checked)} />
@@ -754,21 +789,21 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
       </fieldset>
       {!rule && <p className="text-xs text-destructive">Check name, price and limits: maximum 1–20, minimum ≤ maximum, at least 1 when required.</p>}
 
-      <div className="grid gap-2 rounded-lg border border-border p-3 text-sm">
+      <div className="grid gap-2 rounded-[6px] border border-border p-3 text-sm">
         <p className={unreviewed ? "text-destructive" : "text-muted-foreground"}>{inventorySummary(modifier)}</p>
         {review === null
-          ? <div><Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={startReview}>{unreviewed ? "Review inventory" : "Change inventory"}</Button></div>
+          ? <div><Button type="button" size="sm" variant="outline" className="rounded-[6px]" disabled={busy} onClick={startReview}>{unreviewed ? "Review inventory" : "Change inventory"}</Button></div>
           : (
             <>
               <InventoryReviewFields idPrefix={prefix} review={review} onChange={setReview} current={modifier} />
-              <div><Button type="button" size="sm" variant="ghost" onClick={() => setReview(null)}>Keep current inventory</Button></div>
+              <div><Button type="button" size="sm" variant="ghost" className="rounded-[6px]" onClick={() => setReview(null)}>Keep current inventory</Button></div>
             </>
           )}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" className="rounded-full" disabled={!canSave} onClick={save}>{busy ? "Saving…" : "Save option"}</Button>
-        {dirty && <Button type="button" size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => { draft.discard(); setReview(null); }}>Discard changes</Button>}
+        <Button type="button" size="sm" className="rounded-[6px]" disabled={!canSave} onClick={save}>{busy ? "Saving…" : "Save option"}</Button>
+        {dirty && <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" disabled={busy} onClick={() => { draft.discard(); setReview(null); }}>Discard changes</Button>}
       </div>
         </>
       )}
@@ -814,7 +849,7 @@ function InventoryReviewFields({ idPrefix, review, onChange, current }: { idPref
           <Input
             id={`${idPrefix}-inventory-quantity`}
             inputMode="decimal"
-            className="w-32"
+            className="rounded-[6px] w-32"
             value={quantity}
             aria-invalid={quantity !== "" && !quantityValid}
             onChange={(event) => {
@@ -876,13 +911,13 @@ function InventoryPicker({ id, label, value, initial, onChange }: { id: string; 
         <Input
           id={`${id}-search`}
           type="search"
-          className="min-w-0 flex-1"
+          className="rounded-[6px] min-w-0 flex-1"
           value={search}
           placeholder="Search inventory"
           onChange={(event) => setSearch(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void find(); } }}
         />
-        <Button type="button" size="sm" variant="outline" disabled={loading} onClick={find}>{loading ? "Searching…" : "Find"}</Button>
+        <Button type="button" size="sm" variant="outline" className="h-9 rounded-[6px]" disabled={loading} onClick={find}>{loading ? "Searching…" : "Find"}</Button>
       </div>
       <select id={id} aria-label={label} className={selectClass} value={value || ""} onChange={(event) => onChange(event.target.value || null)}>
         <option value="">{options.length ? "Choose an ingredient" : "Search to list ingredients"}</option>
@@ -926,12 +961,12 @@ function NewModifierForm({ item, commands, notify }: { item: MenuManagerItem; co
   }
 
   return (
-    <div className="grid gap-3 rounded-lg border border-dashed border-border p-3">
+    <div className="grid gap-3 rounded-[6px] border border-dashed border-border p-3">
       <p className="text-sm font-medium">New option</p>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-name`}>Option name</Label>
-          <Input id={`${prefix}-name`} value={draft.name} maxLength={200} placeholder="Extra shot" onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+          <Input className="rounded-[6px]" id={`${prefix}-name`} value={draft.name} maxLength={200} placeholder="Extra shot" onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-group`}>Group</Label>
@@ -941,10 +976,10 @@ function NewModifierForm({ item, commands, notify }: { item: MenuManagerItem; co
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-price`}>Price change</Label>
-          <Input id={`${prefix}-price`} inputMode="decimal" value={draft.price} aria-invalid={priceAdjustment == null} onChange={(event) => setDraft({ ...draft, price: event.target.value })} />
+          <Input className="rounded-[6px]" id={`${prefix}-price`} inputMode="decimal" value={draft.price} aria-invalid={priceAdjustment == null} onChange={(event) => setDraft({ ...draft, price: event.target.value })} />
         </div>
       </div>
-      <fieldset className="grid gap-2 rounded-lg border border-border p-3">
+      <fieldset className="grid gap-2 rounded-[6px] border border-border p-3">
         <legend className="px-1 text-sm">Inventory</legend>
         <InventoryReviewFields key={formVersion} idPrefix={prefix} review={review} onChange={(next) => { setReview(next); setReviewed(true); }} />
         <label htmlFor={`${prefix}-reviewed`} className="flex items-center gap-2 text-sm">
@@ -954,7 +989,7 @@ function NewModifierForm({ item, commands, notify }: { item: MenuManagerItem; co
       </fieldset>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div>
-        <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy || !valid} onClick={create}>{busy ? "Adding…" : "Add option"}</Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-[6px]" disabled={busy || !valid} onClick={create}>{busy ? "Adding…" : "Add option"}</Button>
       </div>
     </div>
   );

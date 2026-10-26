@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
@@ -61,9 +60,9 @@ export async function InventoryDetailPage({ id, movementPage }: { id: string; mo
     return (
       <PageContainer title="Inventory item" header={<PlatformHeader title="Inventory item" />} breadcrumbs={breadcrumbs}>
         <div className="px-4 pb-8 md:px-6">
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
-            <p className="font-medium">Unable to load this item.</p>
-            <Button asChild variant="outline" className="rounded-full"><Link href={`${INVENTORY_PATH}/${id}`}>Try again</Link></Button>
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-destructive/40 bg-destructive/5 p-4 text-sm">
+            <div className="space-y-0.5"><p className="font-medium">This item didn&apos;t load</p><p className="text-muted-foreground">Nothing was changed.</p></div>
+            <Button asChild variant="outline" className="rounded-[6px]"><Link href={`${INVENTORY_PATH}/${id}`}>Try again</Link></Button>
           </div>
         </div>
       </PageContainer>
@@ -99,9 +98,9 @@ export async function InventoryDetailPage({ id, movementPage }: { id: string; mo
       actions={(
         <>
           {canManage ? <InventoryItemDrawer item={item} supplierNames={supplierNames} unitLocked={hasHistory} /> : null}
-          <Button asChild variant="outline" className="rounded-full"><Link href={OPERATIONS_PATH}>Count stock<ArrowUpRight className="size-4" aria-hidden="true" /></Link></Button>
-          <Button asChild variant="outline" className="rounded-full"><Link href={`${OPERATIONS_PATH}?purchaseInventorySearch=${encodeURIComponent(item.name || "")}`}>Order stock<ArrowUpRight className="size-4" aria-hidden="true" /></Link></Button>
-          <Button asChild variant="outline" className="rounded-full"><Link href={`${OPERATIONS_PATH}?inventoryWasteSearch=${encodeURIComponent(item.name || "")}`}>Waste<ArrowUpRight className="size-4" aria-hidden="true" /></Link></Button>
+          <Button asChild variant={state.tone === "green" ? "outline" : "default"} className="rounded-[6px] active:scale-[0.97]"><Link href={`${OPERATIONS_PATH}?purchaseInventorySearch=${encodeURIComponent(item.name || "")}`}>Order stock</Link></Button>
+          <Button asChild variant="outline" className="rounded-[6px] active:scale-[0.97]"><Link href={OPERATIONS_PATH}>Count stock</Link></Button>
+          <Button asChild variant="ghost" className="rounded-[6px] active:scale-[0.97]"><Link href={`${OPERATIONS_PATH}?inventoryWasteSearch=${encodeURIComponent(item.name || "")}`}>Log waste</Link></Button>
         </>
       )}
     />
@@ -110,7 +109,7 @@ export async function InventoryDetailPage({ id, movementPage }: { id: string; mo
   return (
     <PageContainer title={item.name || "Inventory item"} header={header} breadcrumbs={breadcrumbs}>
       <div className="space-y-8 px-4 pb-24 md:px-6">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-3 lg:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-[6px] border border-border bg-card p-4 sm:grid-cols-3 lg:grid-cols-4">
           <Field label="On hand">{formatQuantity(item.currentStock)} {unit}</Field>
           <Field label="Reorder point">{formatQuantity(item.reorderPoint)} {unit}</Field>
           <Field label="Par level">{formatQuantity(item.parLevel)} {unit}</Field>
@@ -127,10 +126,10 @@ export async function InventoryDetailPage({ id, movementPage }: { id: string; mo
           {item.menuItems.length ? (
             <ul className="flex flex-wrap gap-2">
               {item.menuItems.map((menuItem) => (
-                <li key={menuItem.id} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm">
+                <li key={menuItem.id} className="inline-flex items-center gap-2 rounded-[4px] border border-border bg-card px-2.5 py-1 text-sm">
                   <StatusDot tone={menuItem.available ? "green" : "zinc"} />
-                  <Link href="/dashboard/platform/menu" className="inline-flex items-center gap-0.5 hover:underline">
-                    {menuItem.name || "Menu item"}<ArrowUpRight className="size-3.5" aria-hidden="true" />
+                  <Link href="/dashboard/platform/menu" className="underline-offset-4 hover:underline">
+                    {menuItem.name || "Menu item"}
                   </Link>
                   <span className="tabular-nums text-muted-foreground">{formatCents(menuItem.price)}</span>
                 </li>
@@ -146,13 +145,13 @@ export async function InventoryDetailPage({ id, movementPage }: { id: string; mo
           actions={movementPages > 1 ? (
             <nav aria-label="Movement pages" className="flex items-center gap-2">
               <span className="text-xs tabular-nums text-muted-foreground">{movementPage} / {movementPages}</span>
-              {movementPage > 1 ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={`${detailPath}${movementPage > 2 ? `?movements=${movementPage - 1}` : ""}`} scroll={false}>Newer</Link></Button> : null}
-              {movementPage < movementPages ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={`${detailPath}?movements=${movementPage + 1}`} scroll={false}>Older</Link></Button> : null}
+              {movementPage > 1 ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={`${detailPath}${movementPage > 2 ? `?movements=${movementPage - 1}` : ""}`} scroll={false}>Newer</Link></Button> : null}
+              {movementPage < movementPages ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={`${detailPath}?movements=${movementPage + 1}`} scroll={false}>Older</Link></Button> : null}
             </nav>
           ) : null}
         >
           {movements.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+            <ul className="divide-y divide-border rounded-[6px] border border-border bg-card">
               {movements.map((movement) => {
                 const quantity = toNumber(movement.quantity);
                 const links = movementLinks(movement);
@@ -189,7 +188,7 @@ export async function InventoryDetailPage({ id, movementPage }: { id: string; mo
 
         <PlatformSection id="waste-heading" title="Waste" meta={item.wasteLogsCount ?? item.wasteLogs.length}>
           {item.wasteLogs.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+            <ul className="divide-y divide-border rounded-[6px] border border-border bg-card">
               {item.wasteLogs.map((log) => (
                 <li key={log.id} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 space-y-0.5">

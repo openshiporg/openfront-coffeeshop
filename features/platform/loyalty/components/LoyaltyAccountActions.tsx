@@ -46,7 +46,7 @@ function NoteField({ id, value, onChange, error, disabled }: { id: string; value
   );
 }
 
-export function LoyaltyAccountActions({ account, canManage }: { account: Account; canManage: boolean }) {
+export function LoyaltyAccountActions({ account, canManage, autoOpenAdjust = false }: { account: Account; canManage: boolean; autoOpenAdjust?: boolean }) {
   const router = useRouter();
 
   // Adjust drawer
@@ -66,6 +66,15 @@ export function LoyaltyAccountActions({ account, canManage }: { account: Account
   const [changeTried, setChangeTried] = React.useState(false);
   const [changeError, setChangeError] = React.useState<string | null>(null);
   const [changePending, setChangePending] = React.useState(false);
+
+  // Opened from the Rewards list "Adjust" link: go straight to the adjustment form once.
+  const autoOpened = React.useRef(false);
+  React.useEffect(() => {
+    if (!autoOpenAdjust || !canManage || autoOpened.current) return;
+    autoOpened.current = true;
+    openAdjust();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenAdjust, canManage]);
 
   if (!canManage) return null;
 
@@ -155,13 +164,13 @@ export function LoyaltyAccountActions({ account, canManage }: { account: Account
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" className="min-h-10 rounded-full" onClick={openAdjust}>Adjust</Button>
+      <Button type="button" className="min-h-10 rounded-[6px] active:scale-[0.97]" onClick={openAdjust}>Adjust</Button>
       {(STATUS_ACTIONS[account.status] || []).map((action) => (
         <Button
           key={action.status}
           type="button"
           variant="outline"
-          className={`min-h-10 rounded-full ${action.destructive ? "text-destructive hover:text-destructive" : ""}`}
+          className={`min-h-10 rounded-[6px] active:scale-[0.97] ${action.destructive ? "text-destructive hover:text-destructive" : ""}`}
           onClick={() => openChange({ kind: "status", status: action.status })}
         >
           {action.label}
@@ -170,7 +179,7 @@ export function LoyaltyAccountActions({ account, canManage }: { account: Account
       <div className="min-w-[10rem]">
         <Label htmlFor="loyalty-tier" className="sr-only">Tier</Label>
         <Select value={account.tier} onValueChange={(tier) => { if (tier !== account.tier) openChange({ kind: "tier", tier }); }}>
-          <SelectTrigger id="loyalty-tier" className="min-h-10 rounded-full">
+          <SelectTrigger id="loyalty-tier" className="min-h-10 rounded-[6px] active:scale-[0.97]">
             <SelectValue placeholder="Tier" />
           </SelectTrigger>
           <SelectContent>
@@ -199,11 +208,11 @@ export function LoyaltyAccountActions({ account, canManage }: { account: Account
               </div>
             </div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg bg-muted/60 px-3 py-2">
+              <div className="rounded-[6px] bg-muted/60 px-3 py-2">
                 <dt className="text-xs text-muted-foreground">Points after</dt>
                 <dd className="font-semibold tabular-nums">{preview?.ok ? `${preview.pointsBalance}/100` : "—"}</dd>
               </div>
-              <div className="rounded-lg bg-muted/60 px-3 py-2">
+              <div className="rounded-[6px] bg-muted/60 px-3 py-2">
                 <dt className="text-xs text-muted-foreground">Drink credits after</dt>
                 <dd className="font-semibold tabular-nums">{preview?.ok ? preview.drinkCredits : "—"}</dd>
               </div>
@@ -213,8 +222,8 @@ export function LoyaltyAccountActions({ account, canManage }: { account: Account
             <p role="alert" aria-live="assertive" className="text-sm text-destructive empty:hidden">{adjustError || ""}</p>
           </form>
           <SheetFooter>
-            <Button type="submit" form="loyalty-adjust-form" className="min-h-10 rounded-full" disabled={adjustPending}>{adjustPending ? "Saving…" : "Save adjustment"}</Button>
-            <Button type="button" variant="outline" className="min-h-10 rounded-full" disabled={adjustPending} onClick={() => setAdjustOpen(false)}>Cancel</Button>
+            <Button type="submit" form="loyalty-adjust-form" className="min-h-10 rounded-[6px] active:scale-[0.97]" disabled={adjustPending}>{adjustPending ? "Saving…" : "Save adjustment"}</Button>
+            <Button type="button" variant="outline" className="min-h-10 rounded-[6px] active:scale-[0.97]" disabled={adjustPending} onClick={() => setAdjustOpen(false)}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -229,8 +238,8 @@ export function LoyaltyAccountActions({ account, canManage }: { account: Account
             <NoteField id="loyalty-change-note" value={changeNote} onChange={setChangeNote} error={changeTried && !changeNote.trim() ? "Enter a reason" : null} disabled={changePending} />
             <p role="alert" aria-live="assertive" className="text-sm text-destructive empty:hidden">{changeError || ""}</p>
             <DialogFooter>
-              <Button type="button" variant="outline" className="rounded-full" disabled={changePending} onClick={() => setChange(null)}>Cancel</Button>
-              <Button type="submit" className="rounded-full" variant={change?.kind === "status" && change.status === "closed" ? "destructive" : "default"} disabled={changePending}>
+              <Button type="button" variant="outline" className="rounded-[6px]" disabled={changePending} onClick={() => setChange(null)}>Cancel</Button>
+              <Button type="submit" className="rounded-[6px]" variant={change?.kind === "status" && change.status === "closed" ? "destructive" : "default"} disabled={changePending}>
                 {changePending ? "Saving…" : "Confirm"}
               </Button>
             </DialogFooter>

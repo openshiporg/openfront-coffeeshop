@@ -129,7 +129,7 @@ export function CateringFactsForm({
           <FieldError id={`${idPrefix}-notes-error`} message={errors.notes} />
         </div>
       ) : null}
-      {errors.form ? <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{errors.form}</p> : null}
+      {errors.form ? <p role="alert" className="rounded-[6px] border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{errors.form}</p> : null}
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={pending}>{pending ? "Saving…" : submitLabel}</Button>
       </div>

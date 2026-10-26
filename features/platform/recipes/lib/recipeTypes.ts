@@ -16,7 +16,7 @@ export type RecipeActionResult<T = undefined> = { success: true; data?: T } | { 
 
 export type StoreFormat = { currencyCode: string; locale: string; timezone: string | null };
 
-export type MenuItemOption = { id: string; name: string };
+export type MenuItemOption = { id: string; name: string; price?: number | null };
 export type InventoryOption = { id: string; name: string; unit: string | null; currentStock: string | null; costPerUnit: number | null };
 
 export type IngredientRow = {

@@ -145,6 +145,10 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
   const summaryRef = useRef<HTMLDivElement>(null);
 
   const isConfigured = Boolean(saved);
+  // Required fields missing from the last saved settings: shown as one notice at the top, each linking to its field.
+  const missingRequired = isConfigured
+    ? ([["contactEmail", "Contact email"], ["address", "Address"], ["name", "Store name"], ["timezone", "Timezone"]] as const).filter(([key]) => !String(baseline[key] ?? "").trim())
+    : [];
   const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(baseline) || logoDraftPending, [form, baseline, logoDraftPending]);
 
   // Unsaved-change protection for reloads, tab closes and in-app links.
@@ -256,7 +260,7 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
   if (loadError) {
     return (
       <div className="p-4 md:p-6">
-        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <div role="alert" className="rounded-[6px] border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <p className="font-medium">Store settings could not be loaded.</p>
           <p className="mt-1">{loadError}</p>
           <Button type="button" variant="outline" size="sm" className="mt-3 min-h-11" onClick={() => window.location.reload()}>
@@ -270,10 +274,37 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
   return (
     <form onSubmit={submit} className="space-y-6 px-4 pt-6 md:px-6" aria-describedby="store-settings-status">
       {!isConfigured ? (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
+        <div className="rounded-[6px] border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
           <div className="flex items-start gap-3">
             <Store className="mt-0.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <p className="font-medium">Store not configured. The storefront is unavailable until these settings are saved.</p>
+          </div>
+        </div>
+      ) : null}
+
+      {missingRequired.length ? (
+        <div role="status" className="flex flex-col gap-2 rounded-[6px] border border-amber-500/50 bg-amber-500/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-medium">
+            {missingRequired.length === 1 ? `${missingRequired[0][1]} is missing.` : `Missing: ${missingRequired.map(([, label]) => label.toLowerCase()).join(", ")}.`}
+            <span className="font-normal text-muted-foreground"> Required for order receipts and customer contact.</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {missingRequired.map(([key, label]) => (
+              <Button key={key} asChild size="sm" variant="outline" className="min-h-9 rounded-[6px] bg-background active:scale-[0.97]">
+                <a
+                  href={`#${FIELD_IDS[key]}`}
+                  onClick={(event) => {
+                    const target = document.getElementById(FIELD_IDS[key]);
+                    if (!target) return;
+                    event.preventDefault();
+                    target.scrollIntoView({ block: "center", behavior: "smooth" });
+                    target.focus({ preventScroll: true });
+                  }}
+                >
+                  Add {label.toLowerCase()}
+                </a>
+              </Button>
+            ))}
           </div>
         </div>
       ) : null}
@@ -282,7 +313,7 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         {status ? (
           <div
             className={cn(
-              "rounded-xl border p-3 text-sm",
+              "rounded-[6px] border p-3 text-sm",
               status.kind === "success"
                 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
                 : "border-destructive/30 bg-destructive/10 text-destructive",
@@ -308,17 +339,18 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         ) : null}
       </div>
 
-      <fieldset disabled={isPending} className="divide-y divide-border">
+      {/* Scroll margins keep a focused or linked field clear of the Save bar and the page header. */}
+      <fieldset disabled={isPending} className="divide-y divide-border [&_input]:scroll-mb-28 [&_input]:scroll-mt-24 [&_select]:scroll-mb-28 [&_select]:scroll-mt-24 [&_textarea]:scroll-mb-28">
         <SettingsSection title="Identity">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="name" label="Store name" required error={fieldErrors.name}>
-              <Input id={FIELD_IDS.name} required maxLength={200} value={form.name} onChange={(event) => update("name", event.target.value)} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined} />
+              <Input className="rounded-[6px]" id={FIELD_IDS.name} required maxLength={200} value={form.name} onChange={(event) => update("name", event.target.value)} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined} />
             </Field>
             <Field id="tagline" label="Tagline" error={fieldErrors.tagline}>
-              <Input id={FIELD_IDS.tagline} maxLength={300} value={form.tagline} onChange={(event) => update("tagline", event.target.value)} aria-invalid={Boolean(fieldErrors.tagline)} aria-describedby={fieldErrors.tagline ? "tagline-error" : undefined} />
+              <Input className="rounded-[6px]" id={FIELD_IDS.tagline} maxLength={300} value={form.tagline} onChange={(event) => update("tagline", event.target.value)} aria-invalid={Boolean(fieldErrors.tagline)} aria-describedby={fieldErrors.tagline ? "tagline-error" : undefined} />
             </Field>
             <Field id="description" label="Description" className="sm:col-span-2" error={fieldErrors.description}>
-              <Textarea id={FIELD_IDS.description} maxLength={2000} value={form.description} onChange={(event) => update("description", event.target.value)} rows={3} aria-invalid={Boolean(fieldErrors.description)} aria-describedby={fieldErrors.description ? "description-error" : undefined} />
+              <Textarea className="rounded-[6px]" id={FIELD_IDS.description} maxLength={2000} value={form.description} onChange={(event) => update("description", event.target.value)} rows={3} aria-invalid={Boolean(fieldErrors.description)} aria-describedby={fieldErrors.description ? "description-error" : undefined} />
             </Field>
           </div>
         </SettingsSection>
@@ -335,8 +367,9 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
               <FieldError id="logoIcon" message={fieldErrors.logoIcon} />
             </div>
             <div>
-              <Label htmlFor={FIELD_IDS.logoColor} className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Colour · <span className="tabular-nums">{form.logoColor}°</span>
+              <Label htmlFor={FIELD_IDS.logoColor} className="flex items-center gap-2 text-sm">
+                <span className="size-5 shrink-0 rounded-[4px] border border-border" style={{ backgroundColor: `oklch(0.6 0.15 ${Number(form.logoColor) || 0})` }} aria-hidden="true" />
+                Colour <span className="tabular-nums text-muted-foreground">{form.logoColor}°</span>
               </Label>
               <input
                 id={FIELD_IDS.logoColor}
@@ -355,13 +388,13 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         <SettingsSection title="Contact and location">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="address" label="Address" required className="sm:col-span-2" error={fieldErrors.address}>
-              <Input id={FIELD_IDS.address} required maxLength={500} autoComplete="street-address" value={form.address} onChange={(event) => update("address", event.target.value)} aria-invalid={Boolean(fieldErrors.address)} aria-describedby={fieldErrors.address ? "address-error" : undefined} />
+              <Input className="rounded-[6px]" id={FIELD_IDS.address} required maxLength={500} autoComplete="street-address" value={form.address} onChange={(event) => update("address", event.target.value)} aria-invalid={Boolean(fieldErrors.address)} aria-describedby={fieldErrors.address ? "address-error" : undefined} />
             </Field>
             <Field id="phone" label="Phone" error={fieldErrors.phone}>
-              <Input id={FIELD_IDS.phone} type="tel" maxLength={100} autoComplete="tel" value={form.phone} onChange={(event) => update("phone", event.target.value)} aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "phone-error" : undefined} />
+              <Input className="rounded-[6px]" id={FIELD_IDS.phone} type="tel" maxLength={100} autoComplete="tel" value={form.phone} onChange={(event) => update("phone", event.target.value)} aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "phone-error" : undefined} />
             </Field>
             <Field id="contactEmail" label="Contact email" required error={fieldErrors.contactEmail}>
-              <Input id={FIELD_IDS.contactEmail} type="email" required autoComplete="email" value={form.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} aria-invalid={Boolean(fieldErrors.contactEmail)} aria-describedby={fieldErrors.contactEmail ? "contactEmail-error" : undefined} />
+              <Input className="rounded-[6px]" id={FIELD_IDS.contactEmail} type="email" required autoComplete="email" value={form.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} aria-invalid={Boolean(fieldErrors.contactEmail)} aria-describedby={fieldErrors.contactEmail ? "contactEmail-error" : undefined} />
             </Field>
             <Field id="timezone" label="Timezone" required className="sm:col-span-2" error={fieldErrors.timezone}>
               <select
@@ -371,7 +404,7 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
                 onChange={(event) => update("timezone", event.target.value)}
                 aria-invalid={Boolean(fieldErrors.timezone)}
                 aria-describedby={fieldErrors.timezone ? "timezone-error" : undefined}
-                className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                className="h-10 w-full min-w-0 rounded-[6px] border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
               >
                 {form.timezone && !timeZones.includes(form.timezone) ? <option value={form.timezone}>{form.timezone}</option> : null}
                 {!form.timezone ? <option value="">Select timezone</option> : null}
@@ -400,19 +433,26 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
             <NumberField field="pickupCapacityPerWindow" label="Orders per window" value={form.pickupCapacityPerWindow} error={fieldErrors.pickupCapacityPerWindow} onChange={(value) => update("pickupCapacityPerWindow", value)} />
             <NumberField field="taxRateBasisPoints" label="Sales tax (%)" step={0.001} min={0} max={100} value={form.taxRateBasisPoints} error={fieldErrors.taxRateBasisPoints} onChange={(value) => update("taxRateBasisPoints", value)} />
             <Field id="currencyCode" label="Currency">
-              <Input id="store-currency" value={form.currencyCode} readOnly aria-readonly="true" className="bg-muted/50" />
+              <Input id="store-currency" value={form.currencyCode} readOnly aria-readonly="true" className="rounded-[6px] bg-muted/50" />
             </Field>
             <Field id="locale" label="Locale">
-              <Input id="store-locale" value={form.locale} readOnly aria-readonly="true" className="bg-muted/50" />
+              <Input id="store-locale" value={form.locale} readOnly aria-readonly="true" className="rounded-[6px] bg-muted/50" />
             </Field>
           </div>
         </SettingsSection>
       </fieldset>
 
-      {/* Right padding keeps Save clear of the floating assistant button (3rem at 0.75rem from the corner). */}
-      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-border bg-background/90 py-3 pl-4 pr-20 backdrop-blur md:-mx-6 md:pl-6">
+      {/*
+        The Save bar sits in flow at the end of the form and only pins to the viewport bottom
+        while there are unsaved changes, so on a clean page it never covers a field (it used to
+        sit over Timezone). Right padding keeps Save clear of the floating assistant button.
+      */}
+      <div className={cn(
+        "-mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-border bg-background py-3 pl-4 pr-20 md:-mx-6 md:pl-6",
+        isDirty || isPending ? "sticky bottom-0 z-10 shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.25)]" : "",
+      )}>
         {isDirty && !isPending ? <span className="mr-auto inline-flex items-center gap-2 text-sm text-muted-foreground"><span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />Unsaved changes</span> : null}
-        <Button type="submit" className="min-h-11 rounded-full px-5" disabled={isPending}>
+        <Button type="submit" className="min-h-11 rounded-[6px] px-5 active:scale-[0.97]" disabled={isPending}>
           <Save className="mr-2 h-4 w-4" aria-hidden="true" />
           {isPending ? "Saving…" : isConfigured ? "Save changes" : "Configure store"}
         </Button>
@@ -491,7 +531,7 @@ function NumberField({
   const limits = PICKUP_LIMITS[field];
   return (
     <Field id={field} label={label} required hint={hint} error={error}>
-      <Input
+      <Input className="rounded-[6px]"
         id={FIELD_IDS[field]}
         type="number"
         inputMode={step < 1 ? "decimal" : "numeric"}

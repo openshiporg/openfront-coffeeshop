@@ -33,7 +33,7 @@ export function CancelPurchaseOrderButton({ purchaseOrderId, poNumber, revalidat
 
   return (
     <>
-      <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => { setError(null); setOpen(true); }}>
+      <Button type="button" size="sm" variant="outline" className="rounded-[6px]" onClick={() => { setError(null); setOpen(true); }}>
         Cancel PO
       </Button>
       <Dialog open={open} onOpenChange={(next) => (pending ? undefined : setOpen(next))}>
@@ -48,8 +48,8 @@ export function CancelPurchaseOrderButton({ purchaseOrderId, poNumber, revalidat
           </div>
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter className="flex-row justify-end gap-2">
-            <Button type="button" variant="ghost" className="rounded-full" onClick={() => setOpen(false)} disabled={pending}>Keep</Button>
-            <Button type="button" variant="destructive" className="rounded-full" onClick={confirm} disabled={pending}>{pending ? "Cancelling…" : "Cancel PO"}</Button>
+            <Button type="button" variant="ghost" className="rounded-[6px]" onClick={() => setOpen(false)} disabled={pending}>Keep</Button>
+            <Button type="button" variant="destructive" className="rounded-[6px]" onClick={confirm} disabled={pending}>{pending ? "Cancelling…" : "Cancel PO"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

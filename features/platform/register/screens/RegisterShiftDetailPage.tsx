@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 import { formatStoreDateTime } from "@/lib/date-time";
-import { PlatformEmpty, PlatformHeader, PlatformSection } from "@/features/platform/components/PlatformPage";
-import { StatusDot, StatusTitle } from "@/features/platform/components/StatusTitle";
+import { PlatformEmpty, PlatformHeader, PlatformSection, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
+import { StatusDot } from "@/features/platform/components/StatusTitle";
 import {
   MOVEMENT_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -85,15 +85,15 @@ function Pager({ label, page, total, href }: { label: string; page: number; tota
   return (
     <nav aria-label={label} className="flex items-center gap-2">
       <span className="text-sm tabular-nums text-muted-foreground">{page}/{pageCount}</span>
-      {page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={href(page - 1)} scroll={false}>Newer</Link></Button> : null}
-      {page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={href(page + 1)} scroll={false}>Older</Link></Button> : null}
+      {page > 1 ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={href(page - 1)} scroll={false}>Newer</Link></Button> : null}
+      {page < pageCount ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={href(page + 1)} scroll={false}>Older</Link></Button> : null}
     </nav>
   );
 }
 
 function Fact({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className="min-w-0 rounded-lg bg-muted/60 px-3 py-2">
+    <div className="min-w-0 bg-background px-3 py-2">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={`font-semibold tabular-nums ${className || ""}`}>{children}</dd>
     </div>
@@ -103,13 +103,14 @@ function Fact({ label, children, className }: { label: string; children: ReactNo
 function OrderLink({ order }: { order: OrderRef }) {
   if (!order?.orderNumber) return null;
   return (
-    <Link href={`/dashboard/platform/orders?search=${encodeURIComponent(order.orderNumber)}`} className="inline-flex shrink-0 items-center gap-1 font-medium hover:underline">
+    <Link href={`/dashboard/platform/orders?search=${encodeURIComponent(order.orderNumber)}`} className="inline-flex shrink-0 items-center gap-1 font-medium tabular-nums underline-offset-4 hover:underline">
       #{order.orderNumber}<ArrowUpRight className="size-4" aria-hidden="true" />
     </Link>
   );
 }
 
-const rowClass = "flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm";
+const stackRow = "max-md:mb-2 max-md:grid max-md:grid-cols-2 max-md:gap-x-3 max-md:gap-y-1 max-md:rounded-[6px] max-md:border max-md:bg-background max-md:p-3 max-md:[&>td]:border-0 max-md:[&>td]:p-0";
+const stackTable = "max-md:border-0 max-md:bg-transparent max-md:[&_table]:block max-md:[&_tbody]:block max-md:[&_thead]:hidden";
 
 export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages: ShiftDetailPages }) {
   const skip = (page: number) => (page - 1) * REGISTER_PAGE_SIZE;
@@ -142,7 +143,7 @@ export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages
     return (
       <PageContainer title="Shift" breadcrumbs={breadcrumbs} header={<PlatformHeader title="Shift" />}>
         <div className="px-4 pb-24 md:px-6">
-          {response.success ? <PlatformEmpty>Shift not found.</PlatformEmpty> : <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Unable to load this shift.</p>}
+          {response.success ? <PlatformEmpty>Shift not found.</PlatformEmpty> : <p role="alert" className="rounded-[6px] border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Unable to load this shift.</p>}
         </div>
       </PageContainer>
     );
@@ -163,9 +164,14 @@ export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages
         {shift.closedAt ? <span>Closed {formatStoreDateTime(shift.closedAt, timezone)}{shift.closedBy?.name ? ` · ${shift.closedBy.name}` : ""}</span> : null}
       </>}
       actions={status === "open" ? (
-        <Button asChild className="min-h-10 rounded-full">
-          <Link href="/dashboard/platform/pos">Open POS<ArrowUpRight className="size-4" aria-hidden="true" /></Link>
-        </Button>
+        <>
+          <Button asChild className="min-h-10 rounded-[6px] active:scale-[0.97]">
+            <Link href="/dashboard/platform/pos#drawer">Close shift</Link>
+          </Button>
+          <Button asChild variant="outline" className="min-h-10 rounded-[6px] active:scale-[0.97]">
+            <Link href="/dashboard/platform/pos">Open POS<ArrowUpRight className="size-4" aria-hidden="true" /></Link>
+          </Button>
+        </>
       ) : null}
     />
   );
@@ -179,8 +185,13 @@ export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages
   return (
     <PageContainer title={title} header={header} breadcrumbs={breadcrumbs}>
       <div className="space-y-8 px-4 pb-24 md:px-6">
-        <PlatformSection id="shift-summary-heading" title="Summary">
-          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-4">
+        <PlatformSection id="shift-summary-heading" title="Cash count">
+          <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-[6px] border bg-border text-sm">
+            <Fact label="Expected cash">{money(shift.expectedCashCents)}</Fact>
+            <Fact label="Counted cash">{shift.countedCashCents === null ? "—" : money(shift.countedCashCents)}</Fact>
+            <Fact label="Variance" className={variance ? "text-red-600 dark:text-red-400" : undefined}>{variance === null ? "—" : formatSignedMoney(variance, currency)}</Fact>
+          </dl>
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[6px] border bg-border text-sm sm:grid-cols-4">
             <Fact label="Opening float">{money(shift.openingCashCents)}</Fact>
             <Fact label="Cash sales">{money(shift.cashSalesCents)}</Fact>
             <Fact label="Cash refunds">{money(shift.cashRefundsCents)}</Fact>
@@ -189,100 +200,85 @@ export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages
             <Fact label="Tips">{money(shift.tipsCents)}</Fact>
             <Fact label="Pay-ins">{money(shift.payInsCents)}</Fact>
             <Fact label="Pay-outs and drops">{money(shift.payOutsCents)}</Fact>
-            <Fact label="Expected cash">{money(shift.expectedCashCents)}</Fact>
-            <Fact label="Counted cash">{shift.countedCashCents === null ? "—" : money(shift.countedCashCents)}</Fact>
-            <Fact label="Variance" className={variance ? "text-red-600 dark:text-red-400" : undefined}>{variance === null ? "—" : formatSignedMoney(variance, currency)}</Fact>
           </dl>
         </PlatformSection>
 
         <PlatformSection id="shift-movements-heading" title="Cash movements" meta={data?.movementsCount ?? 0} actions={<Pager label="Cash movement pages" page={pages.movementsPage} total={data?.movementsCount ?? 0} href={href("movementsPage")} />}>
           {movements.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <PlatformTable label="Cash movements" className={stackTable} head={[{ label: "Movement" }, { label: "Reason" }, { label: "Recorded" }, { label: "Amount", className: "text-right" }]}>
               {movements.map((movement) => (
-                <li key={movement.id} className={rowClass}>
-                  <div className="min-w-0 space-y-0.5">
-                    <p className="font-medium">{MOVEMENT_LABELS[movement.type || ""] || movement.type} · {movement.movementNumber}</p>
-                    {movement.reason ? <p className="text-muted-foreground [overflow-wrap:anywhere]">{movement.reason}</p> : null}
-                    <p className="text-xs text-muted-foreground">{formatStoreDateTime(movement.recordedAt, timezone)}{movement.recordedBy?.name ? ` · ${movement.recordedBy.name}` : ""}</p>
-                  </div>
-                  <span className="shrink-0 font-semibold tabular-nums">{formatSignedMoney(movement.type === "pay_in" ? movement.amountCents : -Number(movement.amountCents || 0), currency)}</span>
-                </li>
+                <tr key={movement.id} className={stackRow}>
+                  <td className={`${platformTd} whitespace-nowrap font-medium`}>{MOVEMENT_LABELS[movement.type || ""] || movement.type} <span className="tabular-nums text-muted-foreground">{movement.movementNumber}</span></td>
+                  <td className={`${platformTd} min-w-[12rem] text-muted-foreground max-md:order-last max-md:col-span-2 max-md:min-w-0 [overflow-wrap:anywhere]`}>{movement.reason || "—"}</td>
+                  <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:col-span-2 max-md:text-xs`}>{formatStoreDateTime(movement.recordedAt, timezone)}{movement.recordedBy?.name ? ` · ${movement.recordedBy.name}` : ""}</td>
+                  <td className={`${platformTd} text-right font-semibold tabular-nums max-md:col-start-2 max-md:row-start-1`}>{formatSignedMoney(movement.type === "pay_in" ? movement.amountCents : -Number(movement.amountCents || 0), currency)}</td>
+                </tr>
               ))}
-            </ul>
+            </PlatformTable>
           ) : <PlatformEmpty>No cash movements.</PlatformEmpty>}
         </PlatformSection>
 
         <PlatformSection id="shift-receipts-heading" title="POS receipts" meta={data?.receiptsCount ?? 0} actions={<Pager label="Receipt pages" page={pages.receiptsPage} total={data?.receiptsCount ?? 0} href={href("receiptsPage")} />}>
           {receipts.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <PlatformTable label="POS receipts" className={stackTable} head={[{ label: "Receipt" }, { label: "Status" }, { label: "Closed" }, { label: "Tip", className: "text-right" }, { label: "Total", className: "text-right" }, { label: "Order" }]}>
               {receipts.map((receipt) => {
                 const receiptStatus = receipt.status || "open";
                 return (
-                  <li key={receipt.id} className={rowClass}>
-                    <div className="min-w-0 space-y-0.5">
-                      <StatusTitle as="p" tone={POS_STATUS_TONES[receiptStatus] || "zinc"} status={POS_STATUS_LABELS[receiptStatus] || receiptStatus} className="font-medium">
-                        {receipt.receiptNumber} · <span className="tabular-nums">{money(receipt.totalCents)}</span>
-                      </StatusTitle>
-                      <p className="text-xs text-muted-foreground">
-                        {formatStoreDateTime(receipt.closedAt || receipt.createdAt, timezone)}
-                        {receipt.cashier?.name ? ` · ${receipt.cashier.name}` : ""}
-                        {receipt.tipCents ? ` · Tip ${money(receipt.tipCents)}` : ""}
-                      </p>
-                    </div>
-                    <OrderLink order={receipt.cafeOrder} />
-                  </li>
+                  <tr key={receipt.id} className={stackRow}>
+                    <td className={`${platformTd} whitespace-nowrap font-medium tabular-nums`}>{receipt.receiptNumber}</td>
+                    <td className={`${platformTd} whitespace-nowrap max-md:text-right`}><span className="inline-flex items-center gap-1.5"><StatusDot tone={POS_STATUS_TONES[receiptStatus] || "zinc"} />{POS_STATUS_LABELS[receiptStatus] || receiptStatus}</span></td>
+                    <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:col-span-2 max-md:text-xs`}>{formatStoreDateTime(receipt.closedAt || receipt.createdAt, timezone)}{receipt.cashier?.name ? ` · ${receipt.cashier.name}` : ""}</td>
+                    <td className={`${platformTd} text-right tabular-nums text-muted-foreground max-md:text-left`}>{receipt.tipCents ? money(receipt.tipCents) : "—"}</td>
+                    <td className={`${platformTd} text-right font-semibold tabular-nums`}>{money(receipt.totalCents)}</td>
+                    <td className={`${platformTd} whitespace-nowrap max-md:col-span-2`}><OrderLink order={receipt.cafeOrder} /></td>
+                  </tr>
                 );
               })}
-            </ul>
+            </PlatformTable>
           ) : <PlatformEmpty>No receipts.</PlatformEmpty>}
         </PlatformSection>
 
         <PlatformSection id="shift-payments-heading" title="Payments" meta={data?.paymentsCount ?? 0} actions={<Pager label="Payment pages" page={pages.paymentsPage} total={data?.paymentsCount ?? 0} href={href("paymentsPage")} />}>
           {payments.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <PlatformTable label="Shift payments" className={stackTable} head={[{ label: "Time" }, { label: "Method" }, { label: "Status" }, { label: "Amount", className: "text-right" }, { label: "Refunded", className: "text-right" }, { label: "Order" }]}>
               {payments.map((payment) => {
                 const paymentStatus = payment.status || "pending";
                 return (
-                  <li key={payment.id} className={rowClass}>
-                    <div className="min-w-0 space-y-0.5">
-                      <StatusTitle as="p" tone={PAYMENT_STATUS_TONES[paymentStatus] || "zinc"} status={PAYMENT_STATUS_LABELS[paymentStatus] || paymentStatus} className="font-medium">
-                        {PAYMENT_METHOD_LABELS[payment.method || ""] || payment.method} · <span className="tabular-nums">{money(payment.amount)}</span>
-                      </StatusTitle>
-                      <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                        <span>{formatStoreDateTime(payment.processedAt || payment.createdAt, timezone)}</span>
-                        {payment.refundedAmount ? <span className="text-rose-600 dark:text-rose-400">Refunded {money(payment.refundedAmount)}</span> : null}
-                      </p>
-                    </div>
-                    <OrderLink order={payment.order} />
-                  </li>
+                  <tr key={payment.id} className={stackRow}>
+                    <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:col-span-2 max-md:text-xs`}>{formatStoreDateTime(payment.processedAt || payment.createdAt, timezone)}</td>
+                    <td className={platformTd}>{PAYMENT_METHOD_LABELS[payment.method || ""] || payment.method}</td>
+                    <td className={`${platformTd} whitespace-nowrap max-md:text-right`}><span className="inline-flex items-center gap-1.5"><StatusDot tone={PAYMENT_STATUS_TONES[paymentStatus] || "zinc"} />{PAYMENT_STATUS_LABELS[paymentStatus] || paymentStatus}</span></td>
+                    <td className={`${platformTd} text-right font-semibold tabular-nums max-md:text-left`}>{money(payment.amount)}</td>
+                    <td className={`${platformTd} text-right tabular-nums ${payment.refundedAmount ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"}`}>{payment.refundedAmount ? money(payment.refundedAmount) : "—"}</td>
+                    <td className={`${platformTd} whitespace-nowrap max-md:col-span-2`}><OrderLink order={payment.order} /></td>
+                  </tr>
                 );
               })}
-            </ul>
+            </PlatformTable>
           ) : <PlatformEmpty>No payments.</PlatformEmpty>}
         </PlatformSection>
 
         <PlatformSection id="shift-refunds-heading" title="Refunds paid out" meta={data?.refundsCount ?? 0} actions={<Pager label="Refund pages" page={pages.refundsPage} total={data?.refundsCount ?? 0} href={href("refundsPage")} />}>
           {refunds.length ? (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <PlatformTable label="Refunds paid out" className={stackTable} head={[{ label: "Refunded" }, { label: "Method" }, { label: "Reason" }, { label: "Amount", className: "text-right" }, { label: "Order" }]}>
               {refunds.map((refund) => (
-                <li key={refund.id} className={rowClass}>
-                  <div className="min-w-0 space-y-0.5">
-                    <p className="font-medium">
-                      {PAYMENT_METHOD_LABELS[refund.method || ""] || refund.method} · <span className="tabular-nums text-rose-600 dark:text-rose-400">{formatSignedMoney(-Number(refund.refundedAmount || 0), currency)}</span>
-                      <span className="text-muted-foreground"> of {money(refund.amount)}</span>
-                    </p>
-                    {refund.refundReason ? <p className="text-muted-foreground [overflow-wrap:anywhere]">{refund.refundReason}</p> : null}
-                    <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                      <span>{formatStoreDateTime(refund.refundedAt, timezone)}</span>
-                      {refund.registerShift && refund.registerShift.id !== shift.id ? (
-                        <Link href={`/dashboard/platform/register/${refund.registerShift.id}`} className="hover:text-foreground hover:underline">Sale shift {refund.registerShift.shiftNumber}</Link>
-                      ) : null}
-                    </p>
-                  </div>
-                  <OrderLink order={refund.order} />
-                </li>
+                <tr key={refund.id} className={stackRow}>
+                  <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:col-span-2 max-md:text-xs`}>
+                    {formatStoreDateTime(refund.refundedAt, timezone)}
+                    {refund.registerShift && refund.registerShift.id !== shift.id ? (
+                      <Link href={`/dashboard/platform/register/${refund.registerShift.id}`} className="block text-xs underline-offset-4 hover:text-foreground hover:underline">Sale shift {refund.registerShift.shiftNumber}</Link>
+                    ) : null}
+                  </td>
+                  <td className={platformTd}>{PAYMENT_METHOD_LABELS[refund.method || ""] || refund.method}</td>
+                  <td className={`${platformTd} min-w-[12rem] text-muted-foreground max-md:order-last max-md:col-span-2 max-md:min-w-0 [overflow-wrap:anywhere]`}>{refund.refundReason || "—"}</td>
+                  <td className={`${platformTd} text-right tabular-nums`}>
+                    <span className="font-semibold text-rose-600 dark:text-rose-400">{formatSignedMoney(-Number(refund.refundedAmount || 0), currency)}</span>
+                    <span className="block text-xs text-muted-foreground">of {money(refund.amount)}</span>
+                  </td>
+                  <td className={`${platformTd} whitespace-nowrap max-md:col-span-2`}><OrderLink order={refund.order} /></td>
+                </tr>
               ))}
-            </ul>
+            </PlatformTable>
           ) : <PlatformEmpty>No refunds.</PlatformEmpty>}
         </PlatformSection>
       </div>

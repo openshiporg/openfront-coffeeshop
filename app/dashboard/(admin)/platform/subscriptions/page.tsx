@@ -12,7 +12,7 @@ function single(value: string | string[] | undefined) {
 export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
   const statusParam = single(params.status);
-  const status: SubscriptionFilter = (SUBSCRIPTION_FILTERS as readonly string[]).includes(statusParam) ? statusParam as SubscriptionFilter : "all";
+  const status: SubscriptionFilter = (SUBSCRIPTION_FILTERS as readonly string[]).includes(statusParam) ? statusParam as SubscriptionFilter : "current";
   const page = Math.max(1, Math.min(10_000, Number.parseInt(single(params.page), 10) || 1));
   return <SubscriptionListPage search={single(params.search).trim().slice(0, 200)} status={status} page={page} />;
 }

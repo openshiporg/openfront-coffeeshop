@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
+import { Permanent_Marker, Sofia_Sans, Sofia_Sans_Condensed } from "next/font/google";
 
 import { getStoreLogoThemeHue } from "@/features/keystone/lib/brand-colors";
 import { UnconfiguredStorefront } from "@/features/storefront/components/StorefrontShell";
@@ -9,15 +9,23 @@ import { getCoffeeStore, getCoffeeStoreResult } from "@/features/storefront/lib/
 // One storefront font/brand frame for every storefront route (the (storefront)
 // group layout and the root `/` home). Dashboard typography stays on the root
 // layout's Geist variables; these fonts are scoped to `.sf-root`.
-const sfDisplay = Bricolage_Grotesque({
+// "The marked cup": a condensed print sans for what is printed on the cup (box
+// labels, headings), its regular width for reading, and a marker hand used only
+// for what is written on it (names, chosen options, counts, order numbers).
+const sfDisplay = Sofia_Sans_Condensed({
   variable: "--font-sf-display",
   subsets: ["latin"],
-  axes: ["opsz"],
 });
 
-const sfBody = Instrument_Sans({
+const sfBody = Sofia_Sans({
   variable: "--font-sf-body",
   subsets: ["latin"],
+});
+
+const sfMarker = Permanent_Marker({
+  variable: "--font-sf-marker",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 type StorefrontBrandStyle = CSSProperties & { "--sf-brand-hue": string };
@@ -50,7 +58,7 @@ export async function StorefrontFrame({
   };
 
   return (
-    <div className={`sf-root ${sfDisplay.variable} ${sfBody.variable}`} style={style}>
+    <div className={`sf-root ${sfDisplay.variable} ${sfBody.variable} ${sfMarker.variable}`} style={style}>
       {result.kind !== "unconfigured" || !requireStore ? children : <UnconfiguredStorefront />}
     </div>
   );

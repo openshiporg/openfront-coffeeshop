@@ -89,7 +89,7 @@ export function RecipeFormSheet({ recipe, disabled = false }: { recipe?: RecipeD
 
   return (
     <>
-      <Button type="button" variant={editing ? "outline" : "default"} className="rounded-full" disabled={disabled} onClick={() => openSheet(true)}>
+      <Button type="button" variant={editing ? "outline" : "default"} className="rounded-[6px]" disabled={disabled} onClick={() => openSheet(true)}>
         {editing ? <Pencil className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
         {editing ? "Edit" : "New recipe"}
       </Button>
@@ -143,11 +143,11 @@ export function RecipeFormSheet({ recipe, disabled = false }: { recipe?: RecipeD
                 <Label htmlFor="recipe-allergens">Allergen notes</Label>
                 <Textarea id="recipe-allergens" rows={3} value={draft.allergenNotes} maxLength={5000} onChange={(event) => update({ allergenNotes: event.currentTarget.value })} />
               </div>
-              <p role="alert" aria-live="assertive" className={serverError ? "rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive" : "sr-only"}>{serverError || ""}</p>
+              <p role="alert" aria-live="assertive" className={serverError ? "rounded-[6px] border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive" : "sr-only"}>{serverError || ""}</p>
             </div>
             <SheetFooter className="mt-auto flex-row justify-end gap-2">
-              <Button type="button" variant="ghost" className="rounded-full" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" className="rounded-full" disabled={pending}>{pending ? "Saving…" : editing ? "Save" : "Create recipe"}</Button>
+              <Button type="button" variant="ghost" className="rounded-[6px]" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="submit" className="rounded-[6px]" disabled={pending}>{pending ? "Saving…" : editing ? "Save" : "Create recipe"}</Button>
             </SheetFooter>
           </form>
         </SheetContent>

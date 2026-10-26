@@ -1,15 +1,14 @@
 import Link from "next/link";
-import { CircleDashed, Coffee, Search, Ticket, Zap } from "lucide-react";
+import { Search, Zap } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import { formatStaffPickupTime } from "@/lib/date-time";
-import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
-import { PlatformEmpty, PlatformHeader, PlatformSection } from "@/features/platform/components/PlatformPage";
-import { StatusTitle, type StatusTone } from "@/features/platform/components/StatusTitle";
+import { PlatformEmpty, PlatformHeader, PlatformSection, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
+import { StatusDot, type StatusTone } from "@/features/platform/components/StatusTitle";
+import { FilterSelect } from "../components/FilterSelect";
+import { PickupClock } from "../components/PickupClock";
 import { OrderQueueAutoRefresh } from "../components/OrderQueueAutoRefresh";
 import { AcceptPickupAction, ApplyLoyaltyAction, OrderStatusActions, RecordPaymentActions, RefundPaymentActions } from "../components/OrderStatusActions";
 import type { CafeOrderQueueItem, OrderFulfillmentFilter, OrderStatusFilter } from "../types";
@@ -107,83 +106,86 @@ function money(cents = 0) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-function OrderTicketCard({ order, capabilities, storeTimezone }: { order: CafeOrderQueueItem; capabilities: OrderQueueCapabilities; storeTimezone: string | null }) {
-  const fulfillment = order.fulfillmentType ? FULFILLMENT_LABELS[order.fulfillmentType] || order.fulfillmentType : null;
-  const source = order.orderSource ? SOURCE_LABELS[order.orderSource] || order.orderSource : null;
-  const live = ACTIVE_ORDER_STATUSES.has(order.status);
-  const facts = [
-    fulfillment,
-    source,
-    order.paymentState ? PAYMENT_STATE_LABELS[order.paymentState] || order.paymentState : null,
-    order.loyaltyApplied ? "Rewards applied" : null,
-  ].filter(Boolean);
+function orderFacts(order: CafeOrderQueueItem) {
+  return [
+    order.fulfillmentType ? FULFILLMENT_LABELS[order.fulfillmentType] || order.fulfillmentType : null,
+    order.orderSource ? SOURCE_LABELS[order.orderSource] || order.orderSource : null,
+  ].filter(Boolean) as string[];
+}
+
+function OrderItemsList({ order, showBarStatus }: { order: CafeOrderQueueItem; showBarStatus: boolean }) {
+  if (!order.orderItems?.length) return <span className="text-muted-foreground">No items</span>;
+  return (
+    <ul className="space-y-1">
+      {order.orderItems.map((item) => (
+        <li key={item.id} className="flex items-baseline gap-2">
+          <span className="w-6 shrink-0 tabular-nums text-muted-foreground">{item.quantity}×</span>
+          <span className="min-w-0 flex-1">
+            <span className="font-medium [overflow-wrap:anywhere]">{item.itemNameSnapshot || "Menu item"}</span>
+            {item.customizationsSummary ? <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{item.customizationsSummary}</span> : null}
+          </span>
+          {showBarStatus && item.barStatus ? <span className="shrink-0 text-xs text-muted-foreground">{BAR_STATUS_LABELS[item.barStatus] || item.barStatus}</span> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function OrderStatusCell({ order }: { order: CafeOrderQueueItem }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <StatusDot tone={STATUS_COLORS[order.status] || "zinc"} pulse={order.status === "open"} />
+      {STATUS_LABELS[order.status] || order.status}
+    </span>
+  );
+}
+
+function OrderActions({ order, capabilities }: { order: CafeOrderQueueItem; capabilities: OrderQueueCapabilities }) {
   const hasActions = (capabilities.canManageOrders && (order.actions.length > 0 || (order.status === "open" && order.fulfillmentType === "pickup")))
     || order.canRecordPayment || order.refundablePayments.length > 0 || (order.canApplyLoyalty && order.customerEmail);
-  // Phone widths: a right gutter keeps the fixed assistant button (bottom-right, 48px) off card actions at any scroll position.
+  const pendingPayment = capabilities.canManagePayments && order.paymentState === "pending";
+  if (!hasActions && !pendingPayment) return null;
   return (
-    <article
+    <div className="space-y-2">
+      {pendingPayment ? <p role="status" className="text-sm text-muted-foreground">Payment attempt awaiting its result.</p> : null}
+      {capabilities.canManageOrders && order.status === "open" && order.fulfillmentType === "pickup" ? <AcceptPickupAction orderId={order.id} /> : null}
+      {capabilities.canManageOrders ? <OrderStatusActions orderId={order.id} actions={order.actions} /> : null}
+      {order.canRecordPayment ? <RecordPaymentActions orderId={order.id} total={order.total} /> : null}
+      {order.refundablePayments.length ? <RefundPaymentActions payments={order.refundablePayments} /> : null}
+      {order.canApplyLoyalty && order.customerEmail ? <ApplyLoyaltyAction orderId={order.id} customerEmail={order.customerEmail} customerName={order.customerName} /> : null}
+    </div>
+  );
+}
+
+/** One live ticket as a dense row: who and what, when it is due, status, then the next action. */
+function LiveOrderRow({ order, capabilities, storeTimezone }: { order: CafeOrderQueueItem; capabilities: OrderQueueCapabilities; storeTimezone: string | null }) {
+  const facts = orderFacts(order);
+  const payment = order.paymentState ? PAYMENT_STATE_LABELS[order.paymentState] || order.paymentState : null;
+  return (
+    <li
       aria-labelledby={`order-${order.id}-title`}
-      className={`flex min-w-0 flex-col overflow-hidden max-sm:mr-12 rounded-xl border bg-card shadow-xs ${order.isRush && live ? "border-red-500/40 ring-1 ring-red-500/20" : "border-border"}`}
+      className={`grid gap-x-6 gap-y-3 px-4 py-3.5 md:grid-cols-[minmax(10rem,13rem)_minmax(0,1fr)_minmax(6.5rem,8rem)] xl:grid-cols-[minmax(10rem,13rem)_minmax(0,1fr)_minmax(6.5rem,8rem)_minmax(15rem,20rem)] ${order.isRush ? "bg-red-500/[0.04]" : ""}`}
     >
-      <header className="flex items-start justify-between gap-3 px-4 pt-4">
-        <div className="min-w-0 space-y-1">
-          <StatusTitle
-            id={`order-${order.id}-title`}
-            tone={STATUS_COLORS[order.status] || "zinc"}
-            pulse={order.status === "open"}
-            status={STATUS_LABELS[order.status] || order.status}
-            className="text-base font-semibold tracking-tight"
-          >
-            <span className="block truncate" title={`#${order.orderNumber}`}>#{order.orderNumber}</span>
-          </StatusTitle>
-          <p className="truncate text-sm font-medium">{order.pickupName || order.customerName || "Guest"}</p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="text-sm font-semibold tabular-nums">{order.promisedAt ? formatStaffPickupTime(order.promisedAt, storeTimezone) : "ASAP"}</p>
-          <p className="text-sm tabular-nums text-muted-foreground">{money(order.total)}</p>
-        </div>
-      </header>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 pt-1.5 text-xs text-muted-foreground">
-        {order.isRush ? <span className="inline-flex items-center gap-1 font-semibold text-red-600 dark:text-red-400"><Zap className="size-3" aria-hidden="true" />Rush</span> : null}
-        {facts.map((fact, index) => (
-          <span key={`${fact}-${index}`} className="inline-flex items-center gap-2">
-            {index > 0 || order.isRush ? <span className="size-0.5 rounded-full bg-muted-foreground/60" aria-hidden="true" /> : null}
-            {fact}
-          </span>
-        ))}
+      <div className="min-w-0 space-y-1">
+        <h3 id={`order-${order.id}-title`} className="flex flex-wrap items-baseline gap-x-2 text-base font-semibold tabular-nums [overflow-wrap:anywhere]">
+          #{order.orderNumber}
+          {order.isRush ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400"><Zap className="size-3" aria-hidden="true" />Rush</span> : null}
+        </h3>
+        <p className="text-sm font-medium [overflow-wrap:anywhere]">{order.pickupName || order.customerName || "Guest"}</p>
+        <p className="text-sm"><OrderStatusCell order={order} /></p>
+        <p className="text-xs text-muted-foreground">{[...facts, payment, order.loyaltyApplied ? "Rewards applied" : null].filter(Boolean).join(" · ")}</p>
       </div>
-
-      {order.orderItems?.length ? (
-        <ul className="mx-4 mt-3 divide-y divide-dashed divide-border border-y border-dashed border-border">
-          {order.orderItems.map((item) => (
-            <li key={item.id} className="flex items-start justify-between gap-3 py-2">
-              <div className="flex min-w-0 gap-2.5">
-                <span className="w-6 shrink-0 font-mono text-sm tabular-nums text-muted-foreground">{item.quantity}×</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium [overflow-wrap:anywhere]">{item.itemNameSnapshot || "Menu item"}</p>
-                  {item.customizationsSummary ? <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{item.customizationsSummary}</p> : null}
-                </div>
-              </div>
-              {item.barStatus ? <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{BAR_STATUS_LABELS[item.barStatus] || item.barStatus}</span> : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {capabilities.canManagePayments && order.paymentState === "pending" ? (
-        <p role="status" className="mx-4 mt-3 text-sm text-muted-foreground">Payment attempt awaiting its result.</p>
-      ) : null}
-
-      {hasActions ? (
-        <div className="mt-auto space-y-2.5 p-4 pt-3">
-          {capabilities.canManageOrders && order.status === "open" && order.fulfillmentType === "pickup" ? <AcceptPickupAction orderId={order.id} /> : null}
-          {capabilities.canManageOrders ? <OrderStatusActions orderId={order.id} actions={order.actions} /> : null}
-          {order.canRecordPayment ? <RecordPaymentActions orderId={order.id} total={order.total} /> : null}
-          {order.refundablePayments.length ? <RefundPaymentActions payments={order.refundablePayments} /> : null}
-          {order.canApplyLoyalty && order.customerEmail ? <ApplyLoyaltyAction orderId={order.id} customerEmail={order.customerEmail} customerName={order.customerName} /> : null}
-        </div>
-      ) : <div className="pb-4" />}
-    </article>
+      <div className="min-w-0 text-sm">
+        <OrderItemsList order={order} showBarStatus />
+      </div>
+      <div className="flex items-start justify-between gap-3 text-sm md:flex-col md:justify-start md:gap-1">
+        <PickupClock promisedAt={order.promisedAt} storeTimezone={storeTimezone} live />
+        <span className="tabular-nums text-muted-foreground">{money(order.total)}</span>
+      </div>
+      <div className="min-w-0 md:col-span-3 xl:col-span-1">
+        <OrderActions order={order} capabilities={capabilities} />
+      </div>
+    </li>
   );
 }
 
@@ -214,13 +216,16 @@ export async function OrderListPage({
   const showActive = status === "all" || ACTIVE_ORDER_STATUSES.has(status);
   const showHistory = status === "all" || HISTORY_ORDER_STATUSES.has(status);
   const nothingMatches = Boolean(queue) && !tickets.length && !activeCursor && !historyCursor;
+  const pageLink = "inline-flex h-8 items-center rounded-[6px] border px-3 text-sm font-medium transition-[background-color,transform] duration-150 ease-out hover:bg-muted active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   const header = (
     <PlatformHeader
       title="Orders"
       meta={queue ? (
         <>
-          <span className="inline-flex items-center gap-1.5"><span className="relative inline-flex size-2 rounded-full bg-green-500" aria-hidden="true" />Live · refreshes every 10s</span>
+          <span className="inline-flex items-center gap-1.5"><StatusDot tone="green" />Live · refreshes every 10s</span>
+          <span className="tabular-nums">{queue.summary.activeCount} in queue</span>
+          {queue.summary.readyCount ? <span className="tabular-nums">{queue.summary.readyCount} ready for pickup</span> : null}
         </>
       ) : null}
     />
@@ -235,57 +240,38 @@ export async function OrderListPage({
       <OrderQueueAutoRefresh />
       {/* Bottom padding lets the last tickets scroll clear of the floating assistant button. */}
       <div className="space-y-8 px-4 pb-24 md:px-6">
-        <div className="space-y-3">
-          {/* Wraps instead of overflowing: fulfilment drops to its own row when both tracks don't fit. */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <nav aria-label="Status" className="min-w-0 max-w-full">
-              <PillTrack label="Status">
-                {STATUS_TABS.map((tab) => (
-                  <PillLink key={tab.value} href={orderQueueHref({ ...view, status: tab.value })} active={tab.value === status} count={queue ? tab.count(queue.summary) : undefined}>
-                    {tab.label}
-                  </PillLink>
-                ))}
-              </PillTrack>
-            </nav>
-            <nav aria-label="Fulfillment" className="min-w-0 max-w-full">
-              <PillTrack label="Fulfillment">
-                {FULFILLMENT_TABS.map((tab) => (
-                  <PillLink key={tab.value} href={orderQueueHref({ ...view, fulfillment: tab.value })} active={tab.value === fulfillment}>
-                    {tab.label}
-                  </PillLink>
-                ))}
-              </PillTrack>
-            </nav>
+        <form method="get" role="search" aria-label="Filter orders" className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-[1_1_16rem] sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <label htmlFor="order-search" className="sr-only">Search orders</label>
+            <Input id="order-search" type="search" name="search" defaultValue={search} placeholder="Order #, name or email" className="h-9 rounded-[6px] pl-8" />
           </div>
-          <form method="get" role="search" className="flex max-w-xl items-center gap-2">
-            {status !== "all" ? <input type="hidden" name="status" value={status} /> : null}
-            {fulfillment !== "all" ? <input type="hidden" name="fulfillment" value={fulfillment} /> : null}
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-              <label htmlFor="order-search" className="sr-only">Search orders</label>
-              <Input id="order-search" type="search" name="search" defaultValue={search} placeholder="Order #, name or email" className="h-10 rounded-full pl-9" />
-            </div>
-            <Button type="submit" variant="outline" className="h-10 rounded-full">Search</Button>
-            {search ? <Button asChild variant="ghost" className="h-10 rounded-full"><Link href={orderQueueHref({ ...view, search: "" })}>Clear</Link></Button> : null}
-          </form>
-        </div>
+          <label htmlFor="order-status" className="sr-only">Status</label>
+          <FilterSelect id="order-status" name="status" defaultValue={status} className="flex-1 sm:flex-none">
+            {STATUS_TABS.map((tab) => (
+              <option key={tab.value} value={tab.value}>{tab.value === "all" ? "All statuses" : tab.label}{queue ? ` (${tab.count(queue.summary)})` : ""}</option>
+            ))}
+          </FilterSelect>
+          <label htmlFor="order-fulfillment" className="sr-only">Fulfillment</label>
+          <FilterSelect id="order-fulfillment" name="fulfillment" defaultValue={fulfillment} className="flex-1 sm:flex-none">
+            {FULFILLMENT_TABS.map((tab) => <option key={tab.value} value={tab.value}>{tab.value === "all" ? "All channels" : tab.label}</option>)}
+          </FilterSelect>
+          <Button type="submit" variant="outline" size="icon" className="size-9 rounded-[6px]" aria-label="Apply filters"><Search className="size-4" aria-hidden="true" /></Button>
+          {search || status !== "all" || fulfillment !== "all" ? <Link href={orderQueueHref({ search: "", status: "all", fulfillment: "all" })} className="px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</Link> : null}
+        </form>
 
         {!response.success ? (
-          <Alert variant="destructive" role="alert">
+          <Alert variant="destructive" role="alert" className="rounded-[6px]">
             <AlertTitle>Unable to load orders</AlertTitle>
             <AlertDescription>
               <div className="mt-2 flex flex-wrap gap-2">
-                <Button asChild size="sm" variant="outline"><Link href={orderQueueHref(view, { activeCursor, historyCursor })}>Try again</Link></Button>
-                {activeCursor || historyCursor ? <Button asChild size="sm" variant="outline"><Link href={orderQueueHref(view)}>First page</Link></Button> : null}
+                <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={orderQueueHref(view, { activeCursor, historyCursor })}>Try again</Link></Button>
+                {activeCursor || historyCursor ? <Button asChild size="sm" variant="outline" className="rounded-[6px]"><Link href={orderQueueHref(view)}>First page</Link></Button> : null}
               </div>
             </AlertDescription>
           </Alert>
         ) : nothingMatches ? (
-          search ? (
-            <EmptyState title="No matching orders" description={`Nothing matches "${search}".`} icons={[Search, CircleDashed]} />
-          ) : (
-            <EmptyState title="No orders" description="No orders in this view." icons={[Ticket, Coffee]} />
-          )
+          <PlatformEmpty>{search ? `No orders match "${search}".` : "No orders in this view."}</PlatformEmpty>
         ) : queue ? (
           <>
             {showActive ? (
@@ -295,15 +281,15 @@ export async function OrderListPage({
                 meta={queue.activeCount}
                 actions={(
                   <nav aria-label="Active order pages" className="flex flex-wrap items-center gap-2">
-                    {activeCursor ? <Button asChild size="sm" variant="ghost" className="rounded-full"><Link href={orderQueueHref(view, { historyCursor })}>Oldest first</Link></Button> : null}
-                    {queue.activeHasMore && queue.activeNextCursor ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={orderQueueHref(view, { activeCursor: queue.activeNextCursor, historyCursor })}>Next 100</Link></Button> : null}
+                    {activeCursor ? <Link className={pageLink} href={orderQueueHref(view, { historyCursor })}>Oldest first</Link> : null}
+                    {queue.activeHasMore && queue.activeNextCursor ? <Link className={pageLink} href={orderQueueHref(view, { activeCursor: queue.activeNextCursor, historyCursor })}>Next 100</Link> : null}
                   </nav>
                 )}
               >
                 {activeTickets.length ? (
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {activeTickets.map((order) => <OrderTicketCard key={order.id} order={order} capabilities={capabilities} storeTimezone={queue.storeTimezone} />)}
-                  </div>
+                  <ol className="divide-y rounded-[6px] border bg-background">
+                    {activeTickets.map((order) => <LiveOrderRow key={order.id} order={order} capabilities={capabilities} storeTimezone={queue.storeTimezone} />)}
+                  </ol>
                 ) : (
                   <PlatformEmpty>{activeCursor ? "No more active orders." : "Queue is clear."}</PlatformEmpty>
                 )}
@@ -315,18 +301,39 @@ export async function OrderListPage({
                 id="order-history-heading"
                 title="History"
                 meta={queue.historyCount}
-                className={showActive ? "border-t border-border pt-8" : undefined}
                 actions={(
                   <nav aria-label="Order history pages" className="flex flex-wrap items-center gap-2">
-                    {historyCursor ? <Button asChild size="sm" variant="ghost" className="rounded-full"><Link href={orderQueueHref(view, { activeCursor })}>Newest first</Link></Button> : null}
-                    {queue.historyHasMore && queue.historyNextCursor ? <Button asChild size="sm" variant="outline" className="rounded-full"><Link href={orderQueueHref(view, { activeCursor, historyCursor: queue.historyNextCursor })}>Next 100</Link></Button> : null}
+                    {historyCursor ? <Link className={pageLink} href={orderQueueHref(view, { activeCursor })}>Newest first</Link> : null}
+                    {queue.historyHasMore && queue.historyNextCursor ? <Link className={pageLink} href={orderQueueHref(view, { activeCursor, historyCursor: queue.historyNextCursor })}>Next 100</Link> : null}
                   </nav>
                 )}
               >
                 {historyTickets.length ? (
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {historyTickets.map((order) => <OrderTicketCard key={order.id} order={order} capabilities={capabilities} storeTimezone={queue.storeTimezone} />)}
-                  </div>
+                  <PlatformTable
+                    label="Order history"
+                    className="max-md:border-0 max-md:bg-transparent max-md:[&_table]:block max-md:[&_tbody]:block max-md:[&_thead]:hidden"
+                    head={[
+                      { label: "Order", className: "max-md:hidden" },
+                      { label: "Guest", className: "max-md:hidden" },
+                      { label: "Items", className: "max-md:hidden" },
+                      { label: "Channel", className: "max-md:hidden" },
+                      { label: "Status", className: "max-md:hidden" },
+                      { label: "Total", className: "text-right max-md:hidden" },
+                      { label: <span className="sr-only">Actions</span>, className: "max-md:hidden" },
+                    ]}
+                  >
+                    {historyTickets.map((order) => (
+                      <tr key={order.id} className="max-md:mb-2 max-md:grid max-md:grid-cols-2 max-md:gap-x-3 max-md:rounded-[6px] max-md:border max-md:bg-background max-md:p-3 max-md:[&>td]:border-0 max-md:[&>td]:p-0">
+                        <td className={`${platformTd} font-semibold tabular-nums whitespace-nowrap max-md:col-span-1`}>#{order.orderNumber}</td>
+                        <td className={`${platformTd} max-md:text-right [overflow-wrap:anywhere]`}>{order.pickupName || order.customerName || "Guest"}</td>
+                        <td className={`${platformTd} min-w-[14rem] max-md:col-span-2 max-md:min-w-0 max-md:pt-2`}><OrderItemsList order={order} showBarStatus={false} /></td>
+                        <td className={`${platformTd} whitespace-nowrap text-muted-foreground max-md:pt-2`}>{orderFacts(order).join(" · ") || "—"}</td>
+                        <td className={`${platformTd} max-md:pt-2 max-md:text-right`}><OrderStatusCell order={order} /></td>
+                        <td className={`${platformTd} text-right tabular-nums max-md:col-span-2 max-md:pt-1`}>{money(order.total)}</td>
+                        <td className={`${platformTd} max-md:col-span-2 max-md:pt-2 md:w-px md:whitespace-nowrap`}><OrderActions order={order} capabilities={capabilities} /></td>
+                      </tr>
+                    ))}
+                  </PlatformTable>
                 ) : (
                   <PlatformEmpty>{historyCursor ? "No more history." : "No completed, cancelled or refunded orders."}</PlatformEmpty>
                 )}

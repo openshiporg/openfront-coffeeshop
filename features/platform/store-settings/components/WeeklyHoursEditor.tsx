@@ -4,14 +4,13 @@
 // shape: one opening window per weekday, or closed.
 
 import { useId, useState } from 'react'
-import { AlertCircle, CalendarClock, Copy } from 'lucide-react'
+import { AlertCircle, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { WEEKDAYS, type Weekday } from '../lib/store-settings-input'
-import { PillButton, PillTrack } from '@/features/platform/components/PillTabs'
 
 export type HoursRow = { day: Weekday; closed: boolean; open: string; close: string }
 
@@ -78,33 +77,36 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
   }
 
   return (
-    <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-      <div className="flex items-center gap-2 bg-muted/20 px-5 py-3">
-        <CalendarClock size={13} className="text-muted-foreground" aria-hidden="true" />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">Weekly hours</span>
-      </div>
-
-      <div className="px-3 py-3">
-        <PillTrack label="Choose a day to edit">
-          {hours.map((row) => (
-            <PillButton
+    <div className="divide-y divide-border overflow-hidden rounded-[6px] border border-border bg-card">
+      <div role="radiogroup" aria-label="Choose a day to edit" className="grid grid-cols-7 gap-px bg-border">
+        {hours.map((row) => {
+          const selected = row.day === activeDay
+          return (
+            <button
               key={row.day}
-              active={row.day === activeDay}
+              type="button"
+              role="radio"
+              aria-checked={selected}
               onClick={() => setActiveDay(row.day)}
               aria-label={`${row.day}${row.day === todayKey ? ' (today)' : ''}, ${row.closed ? 'closed' : `${row.open || '--:--'} to ${row.close || '--:--'}`}`}
-              className="min-h-10 px-3"
+              className={cn(
+                'flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-sm font-medium outline-none transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.97] focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                selected ? 'bg-foreground text-background' : 'bg-card text-foreground hover:bg-muted',
+              )}
             >
-              <span className={cn('size-1.5 rounded-full', row.closed ? 'bg-muted-foreground/40' : 'bg-emerald-500')} aria-hidden="true" />
               <span className={row.day === todayKey ? 'underline decoration-dotted underline-offset-4' : undefined}>{row.day.slice(0, 3)}</span>
-            </PillButton>
-          ))}
-        </PillTrack>
+              <span className={cn('text-[11px] font-normal tabular-nums', selected ? 'text-background/75' : row.closed ? 'text-muted-foreground' : 'text-emerald-700 dark:text-emerald-400')}>
+                {row.closed ? 'Closed' : row.open ? row.open : 'Open'}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <div className="flex items-center justify-between gap-3 px-5 py-3">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{active.day}</p>
-          <p className="mt-0.5 text-sm font-semibold">{active.closed ? 'Closed' : 'Open for pickup'}</p>
+          <p className="text-sm font-semibold">{active.day}</p>
+          <p className="text-xs text-muted-foreground">{active.closed ? 'Closed' : 'Open for pickup'}</p>
         </div>
         <div className="flex items-center gap-2.5">
           <Label htmlFor={`${id}-open-switch`} className="text-xs text-muted-foreground">
@@ -125,7 +127,7 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
       ) : (
         <div className="grid grid-cols-2 divide-x divide-border">
           <div className="px-5 py-3">
-            <Label htmlFor={`${id}-open`} className="text-[11px] uppercase tracking-wider text-muted-foreground">Opens</Label>
+            <Label htmlFor={`${id}-open`} className="text-xs text-muted-foreground">Opens</Label>
             <Input
               id={`${id}-open`}
               type="time"
@@ -133,11 +135,11 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
               disabled={disabled}
               value={active.open}
               onChange={(event) => updateDay(active.day, { open: event.target.value })}
-              className="mt-1.5 h-11 text-sm font-semibold"
+              className="mt-1.5 h-11 rounded-[6px] text-sm font-semibold"
             />
           </div>
           <div className="px-5 py-3">
-            <Label htmlFor={`${id}-close`} className="text-[11px] uppercase tracking-wider text-muted-foreground">Closes</Label>
+            <Label htmlFor={`${id}-close`} className="text-xs text-muted-foreground">Closes</Label>
             <Input
               id={`${id}-close`}
               type="time"
@@ -145,14 +147,14 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
               disabled={disabled}
               value={active.close}
               onChange={(event) => updateDay(active.day, { close: event.target.value })}
-              className="mt-1.5 h-11 text-sm font-semibold"
+              className="mt-1.5 h-11 rounded-[6px] text-sm font-semibold"
             />
           </div>
         </div>
       )}
 
       <div className="flex items-center gap-2 px-5 py-3">
-        <Button type="button" variant="ghost" size="sm" className="min-h-11 px-2.5 text-xs text-muted-foreground" disabled={disabled} onClick={() => copyToAll(active.day)}>
+        <Button type="button" variant="ghost" size="sm" className="min-h-11 rounded-[6px] px-2.5 text-xs text-muted-foreground" disabled={disabled} onClick={() => copyToAll(active.day)}>
           <Copy size={11} className="mr-1" aria-hidden="true" />
           Copy {active.day} to all days
         </Button>

@@ -22,7 +22,7 @@ export function StorefrontMedia({
 
   if (source) {
     return (
-      <div className={`relative overflow-hidden bg-[var(--sf-inset)] ${className}`} style={{ position: "relative", minHeight: "1px" }}>
+      <div className={`sf-media ${className}`} style={{ position: "relative", minHeight: "1px" }}>
         <Image
           src={source}
           alt={item.name}
@@ -37,17 +37,17 @@ export function StorefrontMedia({
     );
   }
 
-  // No photo: a tinted tile with the item's initial, never a placeholder label.
+  // No photo: a band-tinted tile with the item's initial, never a placeholder label.
   return (
     <div
-      className={`relative grid place-items-center overflow-hidden bg-[radial-gradient(120%_90%_at_30%_20%,var(--sf-accent-soft),var(--sf-inset-strong))] ${className}`}
+      className={`sf-media-blank ${className}`}
       style={{ position: "relative", minHeight: "1px" }}
       role="img"
       aria-label={item.name}
     >
       <span
         aria-hidden="true"
-        className={`sf-display select-none text-[var(--sf-accent)] ${emphasize ? "text-[clamp(4rem,14vw,8rem)] opacity-70" : "text-[2.25rem] opacity-60"}`}
+        className={`sf-display sf-media-initial ${emphasize ? "is-large" : ""}`}
       >
         {item.name.trim().charAt(0).toUpperCase()}
       </span>

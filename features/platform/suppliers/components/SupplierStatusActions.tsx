@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteSupplier, setSupplierStatus } from "../actions/suppliers";
 import { SUPPLIERS_PATH } from "../lib/suppliers";
@@ -43,17 +45,35 @@ export function SupplierStatusActions({ id, name, status, canDelete }: { id: str
     });
   }
 
+  const transitions = TRANSITIONS[status] ?? TRANSITIONS.active;
+  // Pause / Activate stay visible; Archive and Delete are rarer and final, so they sit last in a menu.
+  const primary = transitions.filter((transition) => transition.status !== "archived");
+  const archive = transitions.find((transition) => transition.status === "archived");
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {(TRANSITIONS[status] ?? TRANSITIONS.active).map((transition) => (
-        <Button key={transition.status} type="button" variant="outline" className="rounded-full" disabled={pending} onClick={() => move(transition.status)}>
-          {transition.label}
+      {primary.map((transition) => (
+        <Button key={transition.status} type="button" variant="outline" className="rounded-[6px] active:scale-[0.97]" disabled={pending} onClick={() => move(transition.status)}>
+          {pending ? "Saving…" : transition.label}
         </Button>
       ))}
-      {canDelete ? (
-        <Button type="button" variant="ghost" className="rounded-full text-destructive hover:text-destructive" disabled={pending} onClick={() => { setDeleteError(null); setConfirmDelete(true); }}>
-          Delete
-        </Button>
+      {archive || canDelete ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="size-9 rounded-[6px] active:scale-[0.97]" disabled={pending} aria-label="More supplier actions">
+              <MoreHorizontal className="size-4" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="rounded-[6px]">
+            {archive ? <DropdownMenuItem className="rounded-[4px]" onSelect={() => move(archive.status)}>{archive.label}</DropdownMenuItem> : null}
+            {archive && canDelete ? <DropdownMenuSeparator /> : null}
+            {canDelete ? (
+              <DropdownMenuItem variant="destructive" className="rounded-[4px]" onSelect={() => { setDeleteError(null); setConfirmDelete(true); }}>
+                Delete supplier
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ) : null}
       {error ? <p role="alert" className="basis-full text-sm text-destructive">{error}</p> : null}
       <Dialog open={confirmDelete} onOpenChange={(next) => (pending ? undefined : setConfirmDelete(next))}>
@@ -64,8 +84,8 @@ export function SupplierStatusActions({ id, name, status, canDelete }: { id: str
           </DialogHeader>
           {deleteError ? <p role="alert" className="text-sm text-destructive">{deleteError}</p> : null}
           <DialogFooter className="flex-row justify-end gap-2">
-            <Button type="button" variant="ghost" className="rounded-full" onClick={() => setConfirmDelete(false)} disabled={pending}>Keep</Button>
-            <Button type="button" variant="destructive" className="rounded-full" onClick={remove} disabled={pending}>{pending ? "Deleting…" : "Delete"}</Button>
+            <Button type="button" variant="ghost" className="rounded-[6px]" onClick={() => setConfirmDelete(false)} disabled={pending}>Keep</Button>
+            <Button type="button" variant="destructive" className="rounded-[6px]" onClick={remove} disabled={pending}>{pending ? "Deleting…" : "Delete"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

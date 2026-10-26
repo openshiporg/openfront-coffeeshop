@@ -53,15 +53,15 @@ export function SearchPicker<T extends { id: string; name: string | null }>({
   if (selected && !open) {
     const detail = describe?.(selected);
     return (
-      <div className={cn("flex min-h-10 items-center justify-between gap-2 rounded-md border bg-background px-3 py-1.5", invalid && "border-destructive")}>
+      <div className={cn("flex min-h-10 items-center justify-between gap-2 rounded-[6px] border bg-background px-3 py-1.5", invalid && "border-destructive")}>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{selected.name || "Untitled"}</p>
           {detail ? <p className="truncate text-xs text-muted-foreground">{detail}</p> : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          {!disabled ? <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={() => setOpen(true)}>Change</Button> : null}
+          {!disabled ? <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" onClick={() => setOpen(true)}>Change</Button> : null}
           {clearable && !disabled ? (
-            <Button type="button" size="icon" variant="ghost" className="size-8 rounded-full" aria-label="Clear" onClick={() => { onSelect(null); setOpen(true); }}>
+            <Button type="button" size="icon" variant="ghost" className="size-8 rounded-[6px]" aria-label="Clear" onClick={() => { onSelect(null); setOpen(true); }}>
               <X className="size-4" aria-hidden="true" />
             </Button>
           ) : null}
@@ -87,7 +87,7 @@ export function SearchPicker<T extends { id: string; name: string | null }>({
           onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
         />
       </div>
-      <div role="listbox" aria-label={placeholder} className="max-h-56 overflow-y-auto rounded-md border">
+      <div role="listbox" aria-label={placeholder} className="max-h-56 overflow-y-auto rounded-[6px] border">
         {options === null || (loading && !options.length) ? (
           <p className="px-3 py-3 text-sm text-muted-foreground">Loading…</p>
         ) : options.length ? (
@@ -115,7 +115,7 @@ export function SearchPicker<T extends { id: string; name: string | null }>({
           <p className="px-3 py-3 text-sm text-muted-foreground">{emptyLabel}</p>
         )}
       </div>
-      {selected ? <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={() => setOpen(false)}>Keep {selected.name || "current"}</Button> : null}
+      {selected ? <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" onClick={() => setOpen(false)}>Keep {selected.name || "current"}</Button> : null}
     </div>
   );
 }

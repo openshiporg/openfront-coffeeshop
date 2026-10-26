@@ -15,9 +15,9 @@ export async function PosPage() {
     return (
       <PageContainer title="POS" header={header} breadcrumbs={breadcrumbs}>
         <div className="px-4 pb-8 md:px-6">
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-destructive/40 bg-destructive/5 p-4 text-sm">
             <p className="font-medium">Register unavailable. Nothing was changed.</p>
-            <Button asChild variant="outline" className="rounded-full"><Link href="/dashboard/platform/pos" prefetch={false}>Try again</Link></Button>
+            <Button asChild variant="outline" className="rounded-[6px]"><Link href="/dashboard/platform/pos" prefetch={false}>Try again</Link></Button>
           </div>
         </div>
       </PageContainer>

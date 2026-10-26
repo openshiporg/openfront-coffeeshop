@@ -9,6 +9,7 @@ import { getCoffeeStoreResult } from "@/features/storefront/lib/data/store";
 import { ReceiptRefreshButton } from "@/features/storefront/components/ReceiptRefreshButton";
 import { ReceiptRewardsPanel } from "@/features/storefront/components/ReceiptRewardsPanel";
 import { ReceiptPayOnline } from "@/features/storefront/components/ReceiptPayOnline";
+import { MarkerTick } from "@/features/storefront/components/MarkerTick";
 import type { CafeOrderItemSnapshot, CafePickupOrder } from "@/features/storefront/lib/data/orders";
 import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, resolveOrderConfirmation } from "@/features/storefront/lib/orderConfirmation";
 
@@ -78,27 +79,27 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
         </Link>
 
         {order ? (
-          <div className="sf-split mt-2">
+          <div className="sf-split">
             <section className="sf-ticket min-w-0" aria-labelledby="receipt-title">
               <div className="sf-ticket-section">
                 <h1 id="receipt-title" className="sf-display sf-page-title sf-status [overflow-wrap:anywhere]">
                   <span className={`sf-dot !size-3 ${statusDot(order.status)}`} aria-hidden="true" />
                   <span>{statusCopy?.label}</span>
                 </h1>
-                <p className="sf-muted mt-2">{statusCopy?.message}</p>
-                <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+                <p className="sf-page-lead">{statusCopy?.message}</p>
+                <dl className="sf-receipt-facts">
                   <div>
-                    <dt className="sf-label">Order</dt>
-                    <dd className="sf-mono font-semibold">#{order.orderNumber}</dd>
+                    <dt>Order</dt>
+                    <dd className="sf-marker">#{order.orderNumber}</dd>
                   </div>
                   <div>
-                    <dt className="sf-label">Name</dt>
-                    <dd className="font-semibold [overflow-wrap:anywhere]">{order.pickupName || "Guest"}</dd>
+                    <dt>Name on the cup</dt>
+                    <dd className="sf-marker [overflow-wrap:anywhere]">{order.pickupName || "Guest"}</dd>
                   </div>
                   {statusCopy?.showPickupEstimate ? (
                     <div>
-                      <dt className="sf-label">{order.status === "open" ? "Requested pickup" : "Pickup"}</dt>
-                      <dd className="font-semibold">{formatPickupTime(order.promisedAt, store?.timezone)}</dd>
+                      <dt>{order.status === "open" ? "Requested pickup" : "Pickup"}</dt>
+                      <dd className="sf-receipt-time">{formatPickupTime(order.promisedAt, store?.timezone)}</dd>
                     </div>
                   ) : null}
                 </dl>
@@ -113,7 +114,7 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                         className={`sf-step ${index < stepIndex ? "is-done" : ""} ${index === stepIndex ? "is-current is-done" : ""}`}
                         aria-current={index === stepIndex ? "step" : undefined}
                       >
-                        <span className="sf-dot" aria-hidden="true" />
+                        <span className="sf-step-box" aria-hidden="true">{index <= stepIndex ? <MarkerTick /> : null}</span>
                         {step.label}
                       </li>
                     ))}
@@ -121,10 +122,8 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                 </div>
               ) : null}
 
-              <div className="sf-perf" aria-hidden="true" />
-
               <div className="sf-ticket-section">
-                <h2 className="sf-label mb-4">{order.status === "open" ? "Requested items" : "Items"}</h2>
+                <h2 className="sf-box-label">{order.status === "open" ? "Requested items" : "Items"}</h2>
                 {order.orderItems?.map((item: CafeOrderItemSnapshot) => (
                   <div key={item.id} className="sf-line">
                     <StorefrontMedia
@@ -139,12 +138,12 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                     <div className="min-w-0">
                       <div className="sf-line-top">
                         <p className="sf-line-name">
-                          <span className="sf-mono">{item.quantity}×</span> {item.itemNameSnapshot}
+                          <span className="sf-marker">{item.quantity}×</span> {item.itemNameSnapshot}
                         </p>
-                        <p className="sf-mono shrink-0 font-semibold">{formatMoney(item.price * item.quantity, order.currencyCode)}</p>
+                        <p className="sf-price">{formatMoney(item.price * item.quantity, order.currencyCode)}</p>
                       </div>
                       {item.modifierSnapshot?.length ? (
-                        <ul className="sf-line-mods">
+                        <ul className="sf-line-mods sf-marker">
                           {item.modifierSnapshot.map((modifier) => (
                             <li key={`${modifier.id}:${modifier.name}`}>
                               {modifier.name}
@@ -160,14 +159,12 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                   </div>
                 ))}
                 {order.specialInstructions ? (
-                  <div className="mt-4">
-                    <h3 className="sf-label mb-1">Order notes</h3>
+                  <div className="sf-order-notes">
+                    <h3 className="sf-box-label">Order notes</h3>
                     <p className="sf-line-note">“{order.specialInstructions}”</p>
                   </div>
                 ) : null}
               </div>
-
-              <div className="sf-perf" aria-hidden="true" />
 
               <div className="sf-ticket-section">
                 <dl className="sf-totals">
@@ -190,7 +187,7 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                     <dd className="sf-mono">{formatMoney(order.total, order.currencyCode)}</dd>
                   </div>
                 </dl>
-                {payment ? <p className="sf-muted mt-3 text-sm font-semibold">{payment}</p> : null}
+                {payment ? <p className="sf-pay-note">{payment}</p> : null}
                 {store?.onlinePayment && !order.paidAt && order.total > 0 && ["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(order.status) ? (
                   <ReceiptPayOnline
                     orderId={order.id}
@@ -201,13 +198,13 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
               </div>
             </section>
 
-            <aside className="sf-panel sf-sticky-panel text-center" aria-labelledby="handoff-title">
-              <h2 id="handoff-title" className="sf-label">Handoff code</h2>
-              <p className="sf-handoff mt-3 [overflow-wrap:anywhere]">{order.handoffCode || "—"}</p>
-              <p className="sf-muted mt-3 text-sm">Show this at the counter</p>
-              <div className="mt-5 grid justify-items-center gap-2">
+            <aside className="sf-panel sf-sticky-panel sf-handoff-panel" aria-labelledby="handoff-title">
+              <h2 id="handoff-title" className="sf-box-label">Handoff code</h2>
+              <p className="sf-handoff sf-marker [overflow-wrap:anywhere]">{order.handoffCode || "—"}</p>
+              <p className="sf-muted">Show this at the counter</p>
+              <div className="sf-handoff-refresh">
                 <ReceiptRefreshButton />
-                <p className="text-xs text-[var(--sf-ink-faint)]">Status as of {loadedAt}</p>
+                <p className="sf-fine">Status as of {loadedAt}</p>
               </div>
               {order.rewardsLinked || order.rewardsEligible ? (
                 <ReceiptRewardsPanel
@@ -220,11 +217,11 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
             </aside>
           </div>
         ) : failureCopy ? (
-          <div className="sf-empty mt-4">
-            <h1 className="sf-display text-2xl text-[var(--sf-ink)]">{failureCopy.title}</h1>
+          <div className="sf-empty">
+            <h1 className="sf-display sf-panel-title">{failureCopy.title}</h1>
             <p className="max-w-md">{failureCopy.message}</p>
             {confirmation.kind === "unavailable" ? (
-              <div className="mt-3">
+              <div>
                 <ReceiptRefreshButton label="Try again" />
               </div>
             ) : null}

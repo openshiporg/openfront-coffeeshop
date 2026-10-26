@@ -29,6 +29,9 @@ export const INVENTORY_UNITS = [
 
 export const STOCK_FILTERS = ["all", "low", "out"] as const;
 export type StockFilter = (typeof STOCK_FILTERS)[number];
+/** List tabs: "reorder" (low + out, the default view) plus the stock filters the loader understands. */
+export const INVENTORY_TABS = ["reorder", ...STOCK_FILTERS] as const;
+export type InventoryTab = (typeof INVENTORY_TABS)[number];
 export type StockState = "ok" | "low" | "out";
 
 export const STOCK_STATE: Record<StockState, { label: string; tone: StatusTone }> = {
@@ -104,14 +107,14 @@ export function parseQuantity(text: string): string | null {
   return trimmed;
 }
 
-export type InventoryListView = { search: string; category: string; stock: StockFilter; page: number };
+export type InventoryListView = { search: string; category: string; stock: InventoryTab; page: number };
 
 export function inventoryListHref(view: InventoryListView, updates: Partial<InventoryListView> = {}) {
   const merged = { ...view, ...updates };
   const params = new URLSearchParams();
   if (merged.search) params.set("search", merged.search);
   if (merged.category) params.set("category", merged.category);
-  if (merged.stock !== "all") params.set("stock", merged.stock);
+  if (merged.stock !== "reorder") params.set("stock", merged.stock);
   if (merged.page > 1) params.set("page", String(merged.page));
   const query = params.toString();
   return `${INVENTORY_PATH}${query ? `?${query}` : ""}`;

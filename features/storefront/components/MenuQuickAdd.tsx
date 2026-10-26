@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Plus, SlidersHorizontal } from "lucide-react";
+import { Plus } from "lucide-react";
+import { MarkerTick } from "./MarkerTick";
 import type { StorefrontMenuItem } from "@/features/storefront/lib/data/menu";
 import { quoteCafePickupOrder } from "@/features/storefront/lib/data/orders";
 import { buildQuotedCartLine, defaultModifierIds, requiresCustomization } from "@/features/storefront/lib/cart/menuCart";
@@ -26,9 +27,8 @@ export function MenuQuickAdd({ item }: { item: StorefrontMenuItem }) {
   if (mustCustomize) {
     return (
       <div className="sf-quick">
-        <Link href={`/menu/${item.id}`} className="sf-quick-btn" aria-label={`Choose options for ${item.name}`}>
-          <SlidersHorizontal className="size-4" aria-hidden="true" />
-          <span className="sr-only sm:not-sr-only">Options</span>
+        <Link href={`/menu/${item.id}`} className="sf-quick-btn sf-quick-btn-text" aria-label={`Choose options for ${item.name}`}>
+          Choose
         </Link>
       </div>
     );
@@ -67,7 +67,7 @@ export function MenuQuickAdd({ item }: { item: StorefrontMenuItem }) {
         disabled={pending}
         aria-label={added ? `${item.name} added to cart` : `Add ${item.name} to cart`}
       >
-        {added ? <Check className="size-4" aria-hidden="true" /> : <Plus className={`size-4 ${pending ? "animate-pulse" : ""}`} aria-hidden="true" />}
+        {added ? <MarkerTick /> : <Plus className={`size-5 ${pending ? "animate-pulse" : ""}`} aria-hidden="true" />}
         <span className="sr-only" aria-live="polite">{pending ? "Adding" : added ? "Added" : ""}</span>
       </button>
       {error ? <p className="sf-quick-error" role="alert">{error}</p> : null}

@@ -19,7 +19,7 @@ export function CreateCateringSheet({ timezone }: { timezone: string }) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)} className="rounded-full"><Plus aria-hidden="true" />New inquiry</Button>
+      <Button onClick={() => setOpen(true)} className="rounded-[6px]"><Plus aria-hidden="true" />New inquiry</Button>
       <SheetContent aria-describedby={undefined} className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader><SheetTitle>New catering inquiry</SheetTitle></SheetHeader>
         <div className="mt-4">

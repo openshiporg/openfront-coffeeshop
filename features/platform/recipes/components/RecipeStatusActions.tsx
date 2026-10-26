@@ -73,19 +73,19 @@ export function RecipeStatusActions({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {status !== "active" ? (
-          <Button type="button" className="rounded-full" disabled={busy || !canActivate} title={canActivate ? undefined : "Add an ingredient first"} onClick={() => move("active")}>
+          <Button type="button" className="rounded-[6px]" disabled={busy || !canActivate} title={canActivate ? undefined : "Add an ingredient first"} onClick={() => move("active")}>
             <CircleCheck className="size-4" aria-hidden="true" />
             {pending === "active" ? "Activating…" : "Activate"}
           </Button>
         ) : null}
         {status !== "draft" ? (
-          <Button type="button" variant="outline" className="rounded-full" disabled={busy} onClick={() => move("draft")}>
+          <Button type="button" variant="outline" className="rounded-[6px]" disabled={busy} onClick={() => move("draft")}>
             <FilePen className="size-4" aria-hidden="true" />
             {pending === "draft" ? "Moving…" : "Move to draft"}
           </Button>
         ) : null}
         {status !== "archived" ? (
-          <Button type="button" variant="ghost" className="rounded-full text-destructive" disabled={busy} onClick={() => move("archived")}>
+          <Button type="button" variant="ghost" className="rounded-[6px] text-destructive" disabled={busy} onClick={() => move("archived")}>
             <Archive className="size-4" aria-hidden="true" />
             {pending === "archived" ? "Archiving…" : "Archive"}
           </Button>
@@ -99,13 +99,13 @@ export function RecipeStatusActions({
             <DialogTitle>{menuItemName ? `${menuItemName} already has an active recipe` : "Another recipe is active"}</DialogTitle>
             <DialogDescription className="sr-only">Active recipes for this menu item</DialogDescription>
           </DialogHeader>
-          <ul className="divide-y rounded-md border text-sm">
+          <ul className="divide-y rounded-[6px] border text-sm">
             {(conflicts ?? []).map((conflict) => <li key={conflict.id} className="px-3 py-2 font-medium">{conflict.name || "Untitled"}</li>)}
           </ul>
           <p role="alert" aria-live="assertive" className={dialogError ? "text-sm text-destructive" : "sr-only"}>{dialogError || ""}</p>
           <DialogFooter className="gap-2">
-            <Button type="button" variant="ghost" className="rounded-full" disabled={busy} onClick={() => setConflicts(null)}>Cancel</Button>
-            <Button type="button" className="rounded-full" disabled={busy} onClick={archiveOthersAndActivate}>
+            <Button type="button" variant="ghost" className="rounded-[6px]" disabled={busy} onClick={() => setConflicts(null)}>Cancel</Button>
+            <Button type="button" className="rounded-[6px]" disabled={busy} onClick={archiveOthersAndActivate}>
               {pending === "archive-others" ? "Updating…" : conflicts && conflicts.length > 1 ? `Archive ${conflicts.length} and activate` : "Archive it and activate"}
             </Button>
           </DialogFooter>

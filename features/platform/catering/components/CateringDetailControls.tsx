@@ -33,7 +33,7 @@ export function EditCateringFactsSheet({ orderId, initial, timezone, disabled }:
   const [open, setOpen] = React.useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button variant="outline" size="sm" className="rounded-full" disabled={disabled} onClick={() => setOpen(true)}><Pencil aria-hidden="true" />Edit</Button>
+      <Button variant="outline" size="sm" className="rounded-[6px]" disabled={disabled} onClick={() => setOpen(true)}><Pencil aria-hidden="true" />Edit</Button>
       <SheetContent aria-describedby={undefined} className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader><SheetTitle>Edit event</SheetTitle></SheetHeader>
         <div className="mt-4">
@@ -89,7 +89,7 @@ export function QuoteEditor({ orderId, subtotalCents, editable }: { orderId: str
           onChange={(event) => { setValue(event.target.value); setError(null); setSaved(false); }}
           className="max-w-40 tabular-nums"
         />
-        <Button type="submit" variant="outline" size="sm" className="rounded-full" disabled={!editable || pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
+        <Button type="submit" variant="outline" size="sm" className="rounded-[6px]" disabled={!editable || pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
         {saved && !dirty ? <span role="status" className="text-xs text-muted-foreground">Saved</span> : null}
       </div>
       {!editable ? <p className="text-xs text-muted-foreground">Locked after the quote is sent.</p> : null}
@@ -122,7 +122,7 @@ export function NotesEditor({ orderId, notes, disabled }: { orderId: string; not
       <Label htmlFor="catering-notes" className="sr-only">Notes</Label>
       <Textarea id="catering-notes" rows={4} maxLength={5000} value={value} disabled={disabled || pending} onChange={(event) => { setValue(event.target.value); setSaved(false); }} />
       <div className="flex items-center gap-2">
-        <Button type="submit" variant="outline" size="sm" className="rounded-full" disabled={disabled || pending || !dirty}>{pending ? "Saving…" : "Save notes"}</Button>
+        <Button type="submit" variant="outline" size="sm" className="rounded-[6px]" disabled={disabled || pending || !dirty}>{pending ? "Saving…" : "Save notes"}</Button>
         {saved && !dirty ? <span role="status" className="text-xs text-muted-foreground">Saved</span> : null}
       </div>
       <ErrorText message={error} />
@@ -153,12 +153,12 @@ export function CateringTransitions({ orderId, status, subtotalCents }: { orderI
     <div className="grid gap-2">
       <div className="flex flex-wrap gap-2">
         {next.filter((target) => target !== "cancelled").map((target) => (
-          <Button key={target} className="rounded-full" disabled={Boolean(pending) || (target === "quoted" && needsQuote)} onClick={() => run(target)}>
+          <Button key={target} className="rounded-[6px]" disabled={Boolean(pending) || (target === "quoted" && needsQuote)} onClick={() => run(target)}>
             {pending === target ? "Saving…" : CATERING_TRANSITION_LABELS[target]}
           </Button>
         ))}
         {next.includes("cancelled") ? (
-          <Button variant="outline" className="rounded-full text-destructive" disabled={Boolean(pending)} onClick={() => setConfirmCancel(true)}>Cancel order</Button>
+          <Button variant="outline" className="rounded-[6px] text-destructive" disabled={Boolean(pending)} onClick={() => setConfirmCancel(true)}>Cancel order</Button>
         ) : null}
       </div>
       {next.includes("quoted") && needsQuote ? <p className="text-xs text-muted-foreground">Quote amount required.</p> : null}

@@ -15,17 +15,17 @@ export function CustomerPasswordResetForm({ token }: { token?: string }) {
         <ArrowLeft className="size-4" aria-hidden="true" />
         Sign in
       </Link>
-      <div className="sf-panel mt-2">
-        <h1 id="reset-title" className="sf-display text-2xl">{mode === "reset" ? "Choose a new password" : "Reset password"}</h1>
+      <div className="sf-panel">
+        <h1 id="reset-title" className="sf-display sf-page-title">{mode === "reset" ? "Choose a new password" : "Reset password"}</h1>
         {!done ? (
-          <form action={action} className="mt-5 grid gap-4">
+          <form action={action} className="sf-form-stack">
             <input type="hidden" name="mode" value={mode} />
             {token ? <input type="hidden" name="token" value={token} /> : null}
             <label htmlFor="reset-email" className="sf-form-label">Email<input id="reset-email" name="email" className="sf-field" type="email" autoComplete="email" required maxLength={320} /></label>
             {mode === "reset" ? (
               <>
                 <label htmlFor="reset-password" className="sf-form-label">
-                  <span>New password <span className="font-normal text-[var(--sf-ink-faint)]">· 12+ characters</span></span>
+                  <span>New password <span className="sf-optional">at least 12 characters</span></span>
                   <input id="reset-password" name="password" className="sf-field" type="password" autoComplete="new-password" required minLength={12} maxLength={128} />
                 </label>
                 <label htmlFor="reset-confirm" className="sf-form-label">Confirm new password<input id="reset-confirm" name="confirm" className="sf-field" type="password" autoComplete="new-password" required minLength={12} maxLength={128} /></label>
@@ -35,7 +35,7 @@ export function CustomerPasswordResetForm({ token }: { token?: string }) {
             <button className="sf-btn sf-btn-primary sf-btn-lg sf-btn-block" disabled={pending}>{pending ? "Please wait…" : mode === "reset" ? "Reset password" : "Send reset link"}</button>
           </form>
         ) : (
-          <p className="sf-alert-success mt-5" role="status">{state?.message}</p>
+          <p className="sf-alert-success" role="status">{state?.message}</p>
         )}
       </div>
     </section>

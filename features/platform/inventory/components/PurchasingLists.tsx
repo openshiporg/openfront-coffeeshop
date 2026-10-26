@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpRight } from "lucide-react";
 
 import { StatusTitle } from "@/features/platform/components/StatusTitle";
 import { formatStoreDateTime } from "@/lib/date-time";
@@ -8,11 +7,11 @@ import { CancelPurchaseOrderButton } from "./CancelPurchaseOrderButton";
 import { formatCents, formatQuantity, INVENTORY_PATH, LOT_STATUS, PO_STATUS, SUPPLIERS_PATH, unitLabel } from "../lib/inventory";
 import type { InventoryLotRow, PurchaseOrderRow } from "../lib/types";
 
-/** Link to another record or page: always carries the up-right arrow. */
+/** Link to another record: underlined on hover, no trailing icon (it wrapped onto its own line). */
 export function RecordLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-0.5 font-medium underline-offset-4 hover:underline">
-      {children}<ArrowUpRight className="size-3.5 shrink-0" aria-hidden="true" />
+    <Link href={href} className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground">
+      {children}
     </Link>
   );
 }
@@ -35,7 +34,7 @@ export function PurchaseOrderList({
   show: "supplier" | "item";
 }) {
   return (
-    <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+    <ul className="divide-y divide-border rounded-[6px] border border-border bg-card">
       {orders.map((order) => {
         const status = PO_STATUS[order.status || ""] ?? { label: order.status || "Unknown", tone: "zinc" as const };
         const unit = unitLabel(order.inventoryItem?.unit);
@@ -67,7 +66,7 @@ export function PurchaseOrderList({
 export function LotList({ lots, timezone, show }: { lots: InventoryLotRow[]; timezone: string | null; show: "supplier" | "item" }) {
   const sorted = [...lots].sort((a, b) => lotOrder(a) - lotOrder(b));
   return (
-    <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+    <ul className="divide-y divide-border rounded-[6px] border border-border bg-card">
       {sorted.map((lot) => {
         const status = LOT_STATUS[lot.status || ""] ?? { label: lot.status || "Unknown", tone: "zinc" as const };
         const unit = unitLabel(lot.inventoryItem?.unit);

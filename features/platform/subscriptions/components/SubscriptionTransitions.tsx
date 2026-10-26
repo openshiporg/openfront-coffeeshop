@@ -39,12 +39,12 @@ export function SubscriptionTransitions({ subscriptionId, status }: { subscripti
     <div className="grid gap-2">
       <div className="flex flex-wrap gap-2">
         {next.filter((target) => target !== "cancelled").map((target) => (
-          <Button key={target} className="rounded-full" variant={target === "paused" ? "outline" : "default"} disabled={Boolean(pending)} onClick={() => run(target)}>
+          <Button key={target} className="rounded-[6px]" variant={target === "paused" ? "outline" : "default"} disabled={Boolean(pending)} onClick={() => run(target)}>
             {pending === target ? "Saving…" : transitionLabel(status, target)}
           </Button>
         ))}
         {next.includes("cancelled") ? (
-          <Button variant="outline" className="rounded-full text-destructive" disabled={Boolean(pending)} onClick={() => setConfirmCancel(true)}>Cancel subscription</Button>
+          <Button variant="outline" className="rounded-[6px] text-destructive" disabled={Boolean(pending)} onClick={() => setConfirmCancel(true)}>Cancel subscription</Button>
         ) : null}
       </div>
       <p role="alert" aria-live="assertive" className={error ? "text-sm text-destructive" : "sr-only"}>{error || ""}</p>
