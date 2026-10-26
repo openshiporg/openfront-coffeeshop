@@ -58,6 +58,7 @@ Live: https://openfront-coffee-shop-production.up.railway.app (coffee-shop.opens
 ## Commits (master, auto-deployed)
 - `85cabd7` Full redesign: coffee shop platform as the bar, storefront as the marked cup
 - `6e7c9f5` Coffee shop finish-review fixes: inventory loads again, menu opens as a grid of cups, truthful pickup when closed
+- `fa30255` Platform: flatten the shared button bevel inside platform screens (flat ink primary, no shadow or inset ring). Found while reviewing the sibling real-estate build. The shared shadcn `Button` draws a gradient, a 2px bottom border, a shadow and an inset ring; `PlatformLayout` neutralises them with scoped selectors. Buttons inside portalled sheets and dialogs sit outside that subtree and keep the shared style.
 
 ## Screenshots
 - `before/`: 43 captures (Playwright Chromium, live).
