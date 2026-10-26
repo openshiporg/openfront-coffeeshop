@@ -1,0 +1,388 @@
+[
+  {
+    "vp": "desktop",
+    "name": "home",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "menu-item",
+    "route": "/menu/cmvobie2d0018r301kno8rz84",
+    "status": 200,
+    "finalPath": "/menu/cmvobie2d0018r301kno8rz84",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "catering",
+    "route": "/catering",
+    "status": 200,
+    "finalPath": "/catering",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "checkout",
+    "route": "/checkout",
+    "status": 200,
+    "finalPath": "/checkout",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "account",
+    "route": "/account",
+    "status": 200,
+    "finalPath": "/account",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-pos",
+    "route": "/dashboard/platform/pos",
+    "status": 200,
+    "finalPath": "/dashboard/platform/pos",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-orders",
+    "route": "/dashboard/platform/orders",
+    "status": 200,
+    "finalPath": "/dashboard/platform/orders",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-kds",
+    "route": "/dashboard/platform/kds",
+    "status": 200,
+    "finalPath": "/dashboard/platform/kds",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-coffee-operations",
+    "route": "/dashboard/platform/coffee-operations",
+    "status": 200,
+    "finalPath": "/dashboard/platform/coffee-operations",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-menu",
+    "route": "/dashboard/platform/menu",
+    "status": 200,
+    "finalPath": "/dashboard/platform/menu",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-recipes",
+    "route": "/dashboard/platform/recipes",
+    "status": 200,
+    "finalPath": "/dashboard/platform/recipes",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-recipe-detail",
+    "route": "/dashboard/platform/recipes/cmvobie5a002dr301mclrickw",
+    "status": 200,
+    "finalPath": "/dashboard/platform/recipes/cmvobie5a002dr301mclrickw",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-inventory",
+    "route": "/dashboard/platform/inventory",
+    "status": 200,
+    "finalPath": "/dashboard/platform/inventory",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-inventory-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-suppliers",
+    "route": "/dashboard/platform/suppliers",
+    "status": 200,
+    "finalPath": "/dashboard/platform/suppliers",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-supplier-detail",
+    "route": "/dashboard/platform/suppliers/cmvobie4y0027r301cn1r4l0n",
+    "status": 200,
+    "finalPath": "/dashboard/platform/suppliers/cmvobie4y0027r301cn1r4l0n",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-register",
+    "route": "/dashboard/platform/register",
+    "status": 200,
+    "finalPath": "/dashboard/platform/register",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-register-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-catering",
+    "route": "/dashboard/platform/catering",
+    "status": 200,
+    "finalPath": "/dashboard/platform/catering",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-catering-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-loyalty",
+    "route": "/dashboard/platform/loyalty",
+    "status": 200,
+    "finalPath": "/dashboard/platform/loyalty",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-loyalty-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-subscriptions",
+    "route": "/dashboard/platform/subscriptions",
+    "status": 200,
+    "finalPath": "/dashboard/platform/subscriptions",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-subscription-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-reports",
+    "route": "/dashboard/platform/reports",
+    "status": 200,
+    "finalPath": "/dashboard/platform/reports",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-store-settings",
+    "route": "/dashboard/platform/store-settings",
+    "status": 200,
+    "finalPath": "/dashboard/platform/store-settings",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "home",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "menu-item",
+    "route": "/menu/cmvobie2d0018r301kno8rz84",
+    "status": 200,
+    "finalPath": "/menu/cmvobie2d0018r301kno8rz84",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "catering",
+    "route": "/catering",
+    "status": 200,
+    "finalPath": "/catering",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "checkout",
+    "route": "/checkout",
+    "status": 200,
+    "finalPath": "/checkout",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "account",
+    "route": "/account",
+    "status": 200,
+    "finalPath": "/account",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-pos",
+    "route": "/dashboard/platform/pos",
+    "status": 200,
+    "finalPath": "/dashboard/platform/pos",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-orders",
+    "route": "/dashboard/platform/orders",
+    "status": 200,
+    "finalPath": "/dashboard/platform/orders",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-kds",
+    "route": "/dashboard/platform/kds",
+    "status": 200,
+    "finalPath": "/dashboard/platform/kds",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-coffee-operations",
+    "route": "/dashboard/platform/coffee-operations",
+    "status": 200,
+    "finalPath": "/dashboard/platform/coffee-operations",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-menu",
+    "route": "/dashboard/platform/menu",
+    "status": 200,
+    "finalPath": "/dashboard/platform/menu",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-recipes",
+    "route": "/dashboard/platform/recipes",
+    "status": 200,
+    "finalPath": "/dashboard/platform/recipes",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-recipe-detail",
+    "route": "/dashboard/platform/recipes/cmvobie5a002dr301mclrickw",
+    "status": 200,
+    "finalPath": "/dashboard/platform/recipes/cmvobie5a002dr301mclrickw",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-inventory",
+    "route": "/dashboard/platform/inventory",
+    "status": 200,
+    "finalPath": "/dashboard/platform/inventory",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-inventory-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-suppliers",
+    "route": "/dashboard/platform/suppliers",
+    "status": 200,
+    "finalPath": "/dashboard/platform/suppliers",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-supplier-detail",
+    "route": "/dashboard/platform/suppliers/cmvobie4y0027r301cn1r4l0n",
+    "status": 200,
+    "finalPath": "/dashboard/platform/suppliers/cmvobie4y0027r301cn1r4l0n",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-register",
+    "route": "/dashboard/platform/register",
+    "status": 200,
+    "finalPath": "/dashboard/platform/register",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-register-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-catering",
+    "route": "/dashboard/platform/catering",
+    "status": 200,
+    "finalPath": "/dashboard/platform/catering",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-catering-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-loyalty",
+    "route": "/dashboard/platform/loyalty",
+    "status": 200,
+    "finalPath": "/dashboard/platform/loyalty",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-loyalty-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-subscriptions",
+    "route": "/dashboard/platform/subscriptions",
+    "status": 200,
+    "finalPath": "/dashboard/platform/subscriptions",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-subscription-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-reports",
+    "route": "/dashboard/platform/reports",
+    "status": 200,
+    "finalPath": "/dashboard/platform/reports",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-store-settings",
+    "route": "/dashboard/platform/store-settings",
+    "status": 200,
+    "finalPath": "/dashboard/platform/store-settings",
+    "overflowX": 0
+  }
+]

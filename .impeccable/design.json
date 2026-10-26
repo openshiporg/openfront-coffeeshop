@@ -1,0 +1,609 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T12:00:00Z",
+  "title": "Design System: Openfront Coffee Shop",
+  "extensions": {
+    "colorMeta": {
+      "cup-paper": {
+        "role": "neutral",
+        "displayName": "Cup Paper",
+        "canonical": "oklch(98.4% 0.004 240)",
+        "tonalRamp": [
+          "oklch(15% 0.004 240)",
+          "oklch(26% 0.004 240)",
+          "oklch(37% 0.004 240)",
+          "oklch(48% 0.004 240)",
+          "oklch(60% 0.004 240)",
+          "oklch(72% 0.004 240)",
+          "oklch(84% 0.004 240)",
+          "oklch(95% 0.004 240)"
+        ]
+      },
+      "cup-white": {
+        "role": "neutral",
+        "displayName": "Cup White",
+        "canonical": "oklch(100% 0 0)",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(37% 0 0)",
+          "oklch(48% 0 0)",
+          "oklch(60% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "marker-ink": {
+        "role": "neutral",
+        "displayName": "Marker Ink",
+        "canonical": "oklch(19% 0.006 260)",
+        "tonalRamp": [
+          "oklch(15% 0.006 260)",
+          "oklch(26% 0.006 260)",
+          "oklch(37% 0.006 260)",
+          "oklch(48% 0.006 260)",
+          "oklch(60% 0.006 260)",
+          "oklch(72% 0.006 260)",
+          "oklch(84% 0.006 260)",
+          "oklch(95% 0.006 260)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "oklch(42% 0.012 255)",
+        "tonalRamp": [
+          "oklch(15% 0.012 255)",
+          "oklch(26% 0.012 255)",
+          "oklch(37% 0.012 255)",
+          "oklch(48% 0.012 255)",
+          "oklch(60% 0.012 255)",
+          "oklch(72% 0.012 255)",
+          "oklch(84% 0.012 255)",
+          "oklch(95% 0.012 255)"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Faint Ink",
+        "canonical": "oklch(50% 0.012 255)",
+        "tonalRamp": [
+          "oklch(15% 0.012 255)",
+          "oklch(26% 0.012 255)",
+          "oklch(37% 0.012 255)",
+          "oklch(48% 0.012 255)",
+          "oklch(60% 0.012 255)",
+          "oklch(72% 0.012 255)",
+          "oklch(84% 0.012 255)",
+          "oklch(95% 0.012 255)"
+        ]
+      },
+      "rule-soft": {
+        "role": "neutral",
+        "displayName": "Soft Rule",
+        "canonical": "oklch(87% 0.006 250)",
+        "tonalRamp": [
+          "oklch(15% 0.006 250)",
+          "oklch(26% 0.006 250)",
+          "oklch(37% 0.006 250)",
+          "oklch(48% 0.006 250)",
+          "oklch(60% 0.006 250)",
+          "oklch(72% 0.006 250)",
+          "oklch(84% 0.006 250)",
+          "oklch(95% 0.006 250)"
+        ]
+      },
+      "band": {
+        "role": "primary",
+        "displayName": "Merchant Band (runtime hue; demo 260)",
+        "canonical": "oklch(46% 0.14 var(--sf-theme-hue))",
+        "tonalRamp": [
+          "oklch(15% 0.14 260)",
+          "oklch(26% 0.14 260)",
+          "oklch(37% 0.14 260)",
+          "oklch(48% 0.14 260)",
+          "oklch(60% 0.14 260)",
+          "oklch(72% 0.14 260)",
+          "oklch(84% 0.14 260)",
+          "oklch(95% 0.14 260)"
+        ]
+      },
+      "band-deep": {
+        "role": "primary",
+        "displayName": "Band Deep",
+        "canonical": "oklch(37% 0.12 var(--sf-theme-hue))",
+        "tonalRamp": [
+          "oklch(15% 0.12 260)",
+          "oklch(26% 0.12 260)",
+          "oklch(37% 0.12 260)",
+          "oklch(48% 0.12 260)",
+          "oklch(60% 0.12 260)",
+          "oklch(72% 0.12 260)",
+          "oklch(84% 0.12 260)",
+          "oklch(95% 0.12 260)"
+        ]
+      },
+      "band-ink": {
+        "role": "primary",
+        "displayName": "Band Ink",
+        "canonical": "oklch(38% 0.13 var(--sf-theme-hue))",
+        "tonalRamp": [
+          "oklch(15% 0.13 260)",
+          "oklch(26% 0.13 260)",
+          "oklch(37% 0.13 260)",
+          "oklch(48% 0.13 260)",
+          "oklch(60% 0.13 260)",
+          "oklch(72% 0.13 260)",
+          "oklch(84% 0.13 260)",
+          "oklch(95% 0.13 260)"
+        ]
+      },
+      "band-tint": {
+        "role": "primary",
+        "displayName": "Band Tint (marked box)",
+        "canonical": "oklch(94.5% 0.03 var(--sf-theme-hue))",
+        "tonalRamp": [
+          "oklch(15% 0.03 260)",
+          "oklch(26% 0.03 260)",
+          "oklch(37% 0.03 260)",
+          "oklch(48% 0.03 260)",
+          "oklch(60% 0.03 260)",
+          "oklch(72% 0.03 260)",
+          "oklch(84% 0.03 260)",
+          "oklch(95% 0.03 260)"
+        ]
+      },
+      "band-wash": {
+        "role": "primary",
+        "displayName": "Band Wash (hover)",
+        "canonical": "oklch(97.5% 0.014 var(--sf-theme-hue))",
+        "tonalRamp": [
+          "oklch(15% 0.014 260)",
+          "oklch(26% 0.014 260)",
+          "oklch(37% 0.014 260)",
+          "oklch(48% 0.014 260)",
+          "oklch(60% 0.014 260)",
+          "oklch(72% 0.014 260)",
+          "oklch(84% 0.014 260)",
+          "oklch(95% 0.014 260)"
+        ]
+      },
+      "on-band": {
+        "role": "primary",
+        "displayName": "On Band",
+        "canonical": "oklch(100% 0 0)",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(37% 0 0)",
+          "oklch(48% 0 0)",
+          "oklch(60% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "kraft": {
+        "role": "secondary",
+        "displayName": "Kraft Sleeve",
+        "canonical": "oklch(76% 0.062 70)",
+        "tonalRamp": [
+          "oklch(15% 0.062 70)",
+          "oklch(26% 0.062 70)",
+          "oklch(37% 0.062 70)",
+          "oklch(48% 0.062 70)",
+          "oklch(60% 0.062 70)",
+          "oklch(72% 0.062 70)",
+          "oklch(84% 0.062 70)",
+          "oklch(95% 0.062 70)"
+        ]
+      },
+      "kraft-light": {
+        "role": "secondary",
+        "displayName": "Kraft Tray",
+        "canonical": "oklch(88% 0.04 74)",
+        "tonalRamp": [
+          "oklch(15% 0.04 74)",
+          "oklch(26% 0.04 74)",
+          "oklch(37% 0.04 74)",
+          "oklch(48% 0.04 74)",
+          "oklch(60% 0.04 74)",
+          "oklch(72% 0.04 74)",
+          "oklch(84% 0.04 74)",
+          "oklch(95% 0.04 74)"
+        ]
+      },
+      "kraft-deep": {
+        "role": "secondary",
+        "displayName": "Kraft Rule",
+        "canonical": "oklch(54% 0.07 62)",
+        "tonalRamp": [
+          "oklch(15% 0.07 62)",
+          "oklch(26% 0.07 62)",
+          "oklch(37% 0.07 62)",
+          "oklch(48% 0.07 62)",
+          "oklch(60% 0.07 62)",
+          "oklch(72% 0.07 62)",
+          "oklch(84% 0.07 62)",
+          "oklch(95% 0.07 62)"
+        ]
+      },
+      "kraft-ink": {
+        "role": "secondary",
+        "displayName": "Kraft Ink",
+        "canonical": "oklch(30% 0.03 60)",
+        "tonalRamp": [
+          "oklch(15% 0.03 60)",
+          "oklch(26% 0.03 60)",
+          "oklch(37% 0.03 60)",
+          "oklch(48% 0.03 60)",
+          "oklch(60% 0.03 60)",
+          "oklch(72% 0.03 60)",
+          "oklch(84% 0.03 60)",
+          "oklch(95% 0.03 60)"
+        ]
+      },
+      "state-open": {
+        "role": "status",
+        "displayName": "Open",
+        "canonical": "oklch(50% 0.13 150)",
+        "tonalRamp": [
+          "oklch(15% 0.13 150)",
+          "oklch(26% 0.13 150)",
+          "oklch(37% 0.13 150)",
+          "oklch(48% 0.13 150)",
+          "oklch(60% 0.13 150)",
+          "oklch(72% 0.13 150)",
+          "oklch(84% 0.13 150)",
+          "oklch(95% 0.13 150)"
+        ]
+      },
+      "state-closed": {
+        "role": "status",
+        "displayName": "Closed",
+        "canonical": "oklch(52% 0.18 28)",
+        "tonalRamp": [
+          "oklch(15% 0.18 28)",
+          "oklch(26% 0.18 28)",
+          "oklch(37% 0.18 28)",
+          "oklch(48% 0.18 28)",
+          "oklch(60% 0.18 28)",
+          "oklch(72% 0.18 28)",
+          "oklch(84% 0.18 28)",
+          "oklch(95% 0.18 28)"
+        ]
+      },
+      "state-pending": {
+        "role": "status",
+        "displayName": "Pending",
+        "canonical": "oklch(64% 0.14 75)",
+        "tonalRamp": [
+          "oklch(15% 0.14 75)",
+          "oklch(26% 0.14 75)",
+          "oklch(37% 0.14 75)",
+          "oklch(48% 0.14 75)",
+          "oklch(60% 0.14 75)",
+          "oklch(72% 0.14 75)",
+          "oklch(84% 0.14 75)",
+          "oklch(95% 0.14 75)"
+        ]
+      },
+      "danger-ink": {
+        "role": "status",
+        "displayName": "Danger Ink",
+        "canonical": "oklch(45% 0.17 28)",
+        "tonalRamp": [
+          "oklch(15% 0.17 28)",
+          "oklch(26% 0.17 28)",
+          "oklch(37% 0.17 28)",
+          "oklch(48% 0.17 28)",
+          "oklch(60% 0.17 28)",
+          "oklch(72% 0.17 28)",
+          "oklch(84% 0.17 28)",
+          "oklch(95% 0.17 28)"
+        ]
+      },
+      "danger-bg": {
+        "role": "status",
+        "displayName": "Danger Wash",
+        "canonical": "oklch(96.5% 0.02 28)",
+        "tonalRamp": [
+          "oklch(15% 0.02 28)",
+          "oklch(26% 0.02 28)",
+          "oklch(37% 0.02 28)",
+          "oklch(48% 0.02 28)",
+          "oklch(60% 0.02 28)",
+          "oklch(72% 0.02 28)",
+          "oklch(84% 0.02 28)",
+          "oklch(95% 0.02 28)"
+        ]
+      },
+      "success-ink": {
+        "role": "status",
+        "displayName": "Success Ink",
+        "canonical": "oklch(38% 0.1 150)",
+        "tonalRamp": [
+          "oklch(15% 0.1 150)",
+          "oklch(26% 0.1 150)",
+          "oklch(37% 0.1 150)",
+          "oklch(48% 0.1 150)",
+          "oklch(60% 0.1 150)",
+          "oklch(72% 0.1 150)",
+          "oklch(84% 0.1 150)",
+          "oklch(95% 0.1 150)"
+        ]
+      },
+      "success-bg": {
+        "role": "status",
+        "displayName": "Success Wash",
+        "canonical": "oklch(96% 0.03 150)",
+        "tonalRamp": [
+          "oklch(15% 0.03 150)",
+          "oklch(26% 0.03 150)",
+          "oklch(37% 0.03 150)",
+          "oklch(48% 0.03 150)",
+          "oklch(60% 0.03 150)",
+          "oklch(72% 0.03 150)",
+          "oklch(84% 0.03 150)",
+          "oklch(95% 0.03 150)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Item page title."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "Merchant name on the band sign."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles; section titles at clamp(1.875rem, 5vw, 2.75rem)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Cup names (1.1875rem phone, 1.375rem from 640px)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Reading copy in Sofia Sans."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Printed box labels, buttons, tracks; uppercase."
+      },
+      "marker": {
+        "displayName": "Marker",
+        "purpose": "Written things only: names, chosen options, counts, order numbers, 'today'."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Storefront press and mark easing."
+      },
+      {
+        "name": "dur-press",
+        "value": "140ms",
+        "purpose": "Button/box press scale and hover fills."
+      },
+      {
+        "name": "dur-mark",
+        "value": "240ms",
+        "purpose": "Marker tick stroke-dashoffset draw; removed under reduced motion (tick shows drawn)."
+      },
+      {
+        "name": "sleeve-in",
+        "value": "260ms translateY(100%) to 0",
+        "purpose": "Sleeve bar arrival; none under reduced motion."
+      },
+      {
+        "name": "platform-press",
+        "value": "150ms ease-out, scale(0.97-0.98)",
+        "purpose": "Platform buttons, Segmented, bump buttons."
+      },
+      {
+        "name": "kds-tick",
+        "value": "15000ms",
+        "purpose": "Ticket age refresh interval."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "nav",
+        "value": "960px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ],
+    "runtime": {
+      "bandHue": "--sf-theme-hue = var(--sf-logo-hue, var(--sf-brand-hue)); --sf-brand-hue = (260 + saved logoColor rotation) mod 360, default 45; demo logoColor 0 -> 260 (blue).",
+      "adaptations": [
+        "Cup tiles are rectangular with the printed band: clipping a tapered cup silhouette cut the 1px side rules.",
+        "The demo band is blue because the saved logo colour (hue 0) maps through the settings preset base of 260; it is the merchant's setting."
+      ],
+      "untouched": "Shared dashboard shell (features/dashboard/**, proxy.ts, app/dashboard/** outside platform routes) and components/ui/** are unchanged and byte-identical to Openfront E-commerce."
+    },
+    "provenance": {
+      "commits": [
+        "85cabd7",
+        "6e7c9f5"
+      ],
+      "live": "https://openfront-coffee-shop-production.up.railway.app",
+      "finishReview": "ship (all eight material fixes resolved)"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Band-filled square action (Add to order, Place order).",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Add to order</button>",
+      "css": ":host{--sf-theme-hue:260;--sf-paper:oklch(98.4% 0.004 240);--sf-cup:oklch(100% 0 0);--sf-ink:oklch(19% 0.006 260);--sf-ink-muted:oklch(42% 0.012 255);--sf-ink-faint:oklch(50% 0.012 255);--sf-band:oklch(46% 0.14 var(--sf-theme-hue));--sf-band-deep:oklch(37% 0.12 var(--sf-theme-hue));--sf-band-ink:oklch(38% 0.13 var(--sf-theme-hue));--sf-band-tint:oklch(94.5% 0.03 var(--sf-theme-hue));--sf-band-wash:oklch(97.5% 0.014 var(--sf-theme-hue));--sf-kraft:oklch(76% 0.062 70);--sf-kraft-light:oklch(88% 0.04 74);--sf-kraft-deep:oklch(54% 0.07 62);--sf-ease-out:cubic-bezier(0.23,1,0.32,1);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:2.75rem;padding:0 1.125rem;border:1.5px solid var(--sf-ink);border-radius:0;background:var(--sf-cup);color:var(--sf-ink);font-size:1rem;font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-weight:750;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;transition:transform 140ms var(--sf-ease-out),background-color 140ms ease}.ds-btn-primary{border-color:var(--sf-band);background:var(--sf-band);color:#fff}.ds-btn-primary:hover{border-color:var(--sf-band-deep);background:var(--sf-band-deep)}.ds-btn:active{transform:scale(0.97)}.ds-btn:focus-visible{outline:2px solid var(--sf-band);outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Default ink-framed square button on cup white.",
+      "html": "<button class=\"ds-btn-outline\">View menu</button>",
+      "css": ":host{--sf-theme-hue:260;--sf-paper:oklch(98.4% 0.004 240);--sf-cup:oklch(100% 0 0);--sf-ink:oklch(19% 0.006 260);--sf-ink-muted:oklch(42% 0.012 255);--sf-ink-faint:oklch(50% 0.012 255);--sf-band:oklch(46% 0.14 var(--sf-theme-hue));--sf-band-deep:oklch(37% 0.12 var(--sf-theme-hue));--sf-band-ink:oklch(38% 0.13 var(--sf-theme-hue));--sf-band-tint:oklch(94.5% 0.03 var(--sf-theme-hue));--sf-band-wash:oklch(97.5% 0.014 var(--sf-theme-hue));--sf-kraft:oklch(76% 0.062 70);--sf-kraft-light:oklch(88% 0.04 74);--sf-kraft-deep:oklch(54% 0.07 62);--sf-ease-out:cubic-bezier(0.23,1,0.32,1);} .ds-btn-outline{display:inline-flex;align-items:center;min-height:2.75rem;padding:0 1.125rem;border:1.5px solid var(--sf-ink);border-radius:0;background:var(--sf-cup);color:var(--sf-ink);font-size:1rem;font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-weight:750;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;transition:background-color 140ms ease,transform 140ms var(--sf-ease-out)}.ds-btn-outline:hover{background:var(--sf-band-wash)}.ds-btn-outline:active{transform:scale(0.97)}.ds-btn-outline:focus-visible{outline:2px solid var(--sf-band);outline-offset:2px}"
+    },
+    {
+      "name": "Cup Tile",
+      "kind": "card",
+      "refersTo": "cup-tile",
+      "description": "Menu item: printed category band, square photo, name, price, quick-add box (marked when added).",
+      "html": "<article class=\"ds-cup\"><div class=\"ds-cup-band\">Espresso</div><div class=\"ds-cup-photo\"></div><div class=\"ds-cup-print\"><a class=\"ds-cup-name\" href=\"#\">Vanilla Latte</a><div class=\"ds-cup-foot\"><span class=\"ds-cup-price\">$5.25</span><button class=\"ds-quick is-added\" aria-label=\"Added\"><svg class=\"ds-tick\" viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path d=\"M5 17.5c2.6 1.7 5 4.3 7 7.4C15.6 16.4 20.4 9.9 27.5 5\" pathLength=\"1\"/></svg></button></div></div></article>",
+      "css": ":host{--sf-theme-hue:260;--sf-paper:oklch(98.4% 0.004 240);--sf-cup:oklch(100% 0 0);--sf-ink:oklch(19% 0.006 260);--sf-ink-muted:oklch(42% 0.012 255);--sf-ink-faint:oklch(50% 0.012 255);--sf-band:oklch(46% 0.14 var(--sf-theme-hue));--sf-band-deep:oklch(37% 0.12 var(--sf-theme-hue));--sf-band-ink:oklch(38% 0.13 var(--sf-theme-hue));--sf-band-tint:oklch(94.5% 0.03 var(--sf-theme-hue));--sf-band-wash:oklch(97.5% 0.014 var(--sf-theme-hue));--sf-kraft:oklch(76% 0.062 70);--sf-kraft-light:oklch(88% 0.04 74);--sf-kraft-deep:oklch(54% 0.07 62);--sf-ease-out:cubic-bezier(0.23,1,0.32,1);} .ds-tick{display:block;width:1.625rem;height:1.625rem;overflow:visible}.ds-tick path{fill:none;stroke:var(--sf-ink);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;animation:ds-mark 240ms var(--sf-ease-out) both}@keyframes ds-mark{from{stroke-dashoffset:1}}@media (prefers-reduced-motion:reduce){.ds-tick path{animation:none}} .ds-cup{display:flex;flex-direction:column;width:13rem;background:var(--sf-cup);border:1px solid var(--sf-ink);color:var(--sf-ink);font-family:'Sofia Sans',system-ui,sans-serif}.ds-cup-band{padding:0.25rem 0.625rem 0.3125rem;background:var(--sf-band);color:#fff;font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-size:0.8125rem;font-weight:750;letter-spacing:0.06em;text-transform:uppercase}.ds-cup-photo{aspect-ratio:1/1;background:var(--sf-band-tint);border-bottom:1px solid var(--sf-ink)}.ds-cup-print{display:flex;flex-direction:column;gap:0.25rem;padding:0.625rem 0.625rem 0.5rem}.ds-cup-name{font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-size:1.375rem;font-weight:800;line-height:1.02;color:inherit;text-decoration:none}.ds-cup-name:hover{text-decoration:underline 2px;text-underline-offset:3px}.ds-cup-foot{display:flex;align-items:flex-end;justify-content:space-between;padding-top:0.5rem}.ds-cup-price{font-weight:700;font-variant-numeric:tabular-nums;line-height:2.75rem}.ds-quick{display:grid;place-items:center;width:2.75rem;height:2.75rem;border:1.5px solid var(--sf-ink);background:var(--sf-cup);cursor:pointer;transition:background-color 140ms ease,transform 140ms var(--sf-ease-out)}.ds-quick:hover,.ds-quick.is-added{background:var(--sf-band-tint)}.ds-quick:active{transform:scale(0.95)}.ds-quick .ds-tick{width:1.75rem;height:1.75rem}"
+    },
+    {
+      "name": "Option Boxes",
+      "kind": "custom",
+      "refersTo": "option-box",
+      "description": "Item-page modifier row: label, written choice in marker, Changed mark, boxes with Standard notes and marker ticks.",
+      "html": "<fieldset class=\"ds-row\"><div class=\"ds-row-head\"><span class=\"ds-row-label\">Milk</span><span class=\"ds-row-rule\">Choose 1</span></div><div class=\"ds-written\"><span class=\"ds-marker\">Oat</span><span class=\"ds-changed\">Changed</span></div><div class=\"ds-boxes\"><label class=\"ds-box\"><span class=\"ds-sq\"></span><span class=\"ds-name\">Whole</span><span class=\"ds-note\">Standard</span></label><label class=\"ds-box is-marked\"><span class=\"ds-sq\"><svg class=\"ds-tick\" viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path d=\"M5 17.5c2.6 1.7 5 4.3 7 7.4C15.6 16.4 20.4 9.9 27.5 5\" pathLength=\"1\"/></svg></span><span class=\"ds-name\">Oat</span><span class=\"ds-note\">+$0.75</span></label></div></fieldset>",
+      "css": ":host{--sf-theme-hue:260;--sf-paper:oklch(98.4% 0.004 240);--sf-cup:oklch(100% 0 0);--sf-ink:oklch(19% 0.006 260);--sf-ink-muted:oklch(42% 0.012 255);--sf-ink-faint:oklch(50% 0.012 255);--sf-band:oklch(46% 0.14 var(--sf-theme-hue));--sf-band-deep:oklch(37% 0.12 var(--sf-theme-hue));--sf-band-ink:oklch(38% 0.13 var(--sf-theme-hue));--sf-band-tint:oklch(94.5% 0.03 var(--sf-theme-hue));--sf-band-wash:oklch(97.5% 0.014 var(--sf-theme-hue));--sf-kraft:oklch(76% 0.062 70);--sf-kraft-light:oklch(88% 0.04 74);--sf-kraft-deep:oklch(54% 0.07 62);--sf-ease-out:cubic-bezier(0.23,1,0.32,1);} .ds-tick{display:block;width:1.625rem;height:1.625rem;overflow:visible}.ds-tick path{fill:none;stroke:var(--sf-ink);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;animation:ds-mark 240ms var(--sf-ease-out) both}@keyframes ds-mark{from{stroke-dashoffset:1}}@media (prefers-reduced-motion:reduce){.ds-tick path{animation:none}} .ds-row{border:0;margin:0;padding:0;width:20rem;color:var(--sf-ink);font-family:'Sofia Sans',system-ui,sans-serif}.ds-row-head{display:flex;justify-content:space-between;align-items:baseline}.ds-row-label{font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-size:1.0625rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase}.ds-row-rule{font-size:0.8125rem;color:var(--sf-ink-muted)}.ds-written{display:flex;align-items:center;gap:0.625rem;min-height:2rem;padding-top:0.25rem}.ds-marker{font-family:'Permanent Marker','Comic Sans MS',cursive;font-size:1.375rem;line-height:1.15}.ds-changed{padding:0.0625rem 0.375rem;border:1px solid var(--sf-band-ink);background:var(--sf-band-tint);color:var(--sf-band-ink);font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-size:0.75rem;font-weight:750;letter-spacing:0.07em;text-transform:uppercase}.ds-boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(8rem,1fr));margin-top:0.375rem;padding:0 1px 1px 0}.ds-box{display:grid;grid-template-areas:'sq name' 'sq note';grid-template-columns:auto 1fr;align-items:center;column-gap:0.625rem;min-height:3.5rem;margin:0 -1px -1px 0;padding:0.5rem 0.75rem;border:1px solid var(--sf-ink);background:var(--sf-cup);cursor:pointer;transition:background-color 140ms ease}.ds-box:hover{background:var(--sf-band-wash)}.ds-box.is-marked{background:var(--sf-band-tint)}.ds-box:focus-within{outline:2px solid var(--sf-band);outline-offset:-4px}.ds-sq{grid-area:sq;display:grid;place-items:center;width:1.75rem;height:1.75rem;border:1.5px solid var(--sf-ink);background:var(--sf-cup)}.ds-name{grid-area:name;font-weight:650;line-height:1.2}.ds-note{grid-area:note;font-size:0.8125rem;color:var(--sf-ink-muted)}"
+    },
+    {
+      "name": "Name Box",
+      "kind": "input",
+      "refersTo": "name-box",
+      "description": "Checkout name field, written on the cup in marker; standard fields use the same frame in body type.",
+      "html": "<label class=\"ds-label\">Name on the cup<input class=\"ds-field ds-namebox\" value=\"Sam\"></label>",
+      "css": ":host{--sf-theme-hue:260;--sf-paper:oklch(98.4% 0.004 240);--sf-cup:oklch(100% 0 0);--sf-ink:oklch(19% 0.006 260);--sf-ink-muted:oklch(42% 0.012 255);--sf-ink-faint:oklch(50% 0.012 255);--sf-band:oklch(46% 0.14 var(--sf-theme-hue));--sf-band-deep:oklch(37% 0.12 var(--sf-theme-hue));--sf-band-ink:oklch(38% 0.13 var(--sf-theme-hue));--sf-band-tint:oklch(94.5% 0.03 var(--sf-theme-hue));--sf-band-wash:oklch(97.5% 0.014 var(--sf-theme-hue));--sf-kraft:oklch(76% 0.062 70);--sf-kraft-light:oklch(88% 0.04 74);--sf-kraft-deep:oklch(54% 0.07 62);--sf-ease-out:cubic-bezier(0.23,1,0.32,1);} .ds-label{display:grid;gap:0.375rem;width:18rem;color:var(--sf-ink);font-size:0.9375rem;font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-weight:750;letter-spacing:0.05em;text-transform:uppercase;}.ds-field{min-height:2.75rem;padding:0.625rem 0.75rem;border:1px solid var(--sf-ink);border-radius:0;background:var(--sf-cup);color:var(--sf-ink);text-transform:none;letter-spacing:0;transition:border-color 140ms ease}.ds-namebox{min-height:3.5rem;border-width:2px;font-family:'Permanent Marker',cursive;font-size:1.5rem;font-weight:400}.ds-field:focus{border-color:var(--sf-band);outline:2px solid var(--sf-band);outline-offset:0}"
+    },
+    {
+      "name": "Track",
+      "kind": "nav",
+      "refersTo": "button-outline",
+      "description": "Storefront tabs/segments: square boxes on one hairline; current inverts to ink.",
+      "html": "<nav class=\"ds-track\"><a class=\"ds-ti\" aria-current=\"page\" href=\"#\">All</a><a class=\"ds-ti\" href=\"#\">Espresso</a><a class=\"ds-ti\" href=\"#\">Cold</a><a class=\"ds-ti\" href=\"#\">Bakery</a></nav>",
+      "css": ":host{--sf-theme-hue:260;--sf-paper:oklch(98.4% 0.004 240);--sf-cup:oklch(100% 0 0);--sf-ink:oklch(19% 0.006 260);--sf-ink-muted:oklch(42% 0.012 255);--sf-ink-faint:oklch(50% 0.012 255);--sf-band:oklch(46% 0.14 var(--sf-theme-hue));--sf-band-deep:oklch(37% 0.12 var(--sf-theme-hue));--sf-band-ink:oklch(38% 0.13 var(--sf-theme-hue));--sf-band-tint:oklch(94.5% 0.03 var(--sf-theme-hue));--sf-band-wash:oklch(97.5% 0.014 var(--sf-theme-hue));--sf-kraft:oklch(76% 0.062 70);--sf-kraft-light:oklch(88% 0.04 74);--sf-kraft-deep:oklch(54% 0.07 62);--sf-ease-out:cubic-bezier(0.23,1,0.32,1);} .ds-track{display:flex;flex-wrap:wrap;padding:0 1px 1px 0}.ds-ti{display:inline-flex;align-items:center;min-height:2.75rem;margin:0 -1px -1px 0;padding:0 0.875rem;border:1px solid var(--sf-ink);background:var(--sf-cup);color:var(--sf-ink);font-size:0.9375rem;font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-weight:750;letter-spacing:0.05em;text-transform:uppercase;text-decoration:none;transition:background-color 140ms ease}.ds-ti:hover{background:var(--sf-band-wash)}.ds-ti[aria-current=page]{position:relative;z-index:1;background:var(--sf-ink);color:var(--sf-cup)}.ds-ti:focus-visible{position:relative;z-index:2;outline:2px solid var(--sf-band);outline-offset:-4px}"
+    },
+    {
+      "name": "Sleeve Bar",
+      "kind": "custom",
+      "refersTo": "sleeve-bar",
+      "description": "Kraft cart bar docked once anything is in the order; marker count and ink CTA.",
+      "html": "<div class=\"ds-sleeve\"><span class=\"ds-count\"><span class=\"ds-mk\">2</span> in your order</span><a class=\"ds-cta\" href=\"#\">Checkout</a></div>",
+      "css": ":host{--sf-theme-hue:260;--sf-paper:oklch(98.4% 0.004 240);--sf-cup:oklch(100% 0 0);--sf-ink:oklch(19% 0.006 260);--sf-ink-muted:oklch(42% 0.012 255);--sf-ink-faint:oklch(50% 0.012 255);--sf-band:oklch(46% 0.14 var(--sf-theme-hue));--sf-band-deep:oklch(37% 0.12 var(--sf-theme-hue));--sf-band-ink:oklch(38% 0.13 var(--sf-theme-hue));--sf-band-tint:oklch(94.5% 0.03 var(--sf-theme-hue));--sf-band-wash:oklch(97.5% 0.014 var(--sf-theme-hue));--sf-kraft:oklch(76% 0.062 70);--sf-kraft-light:oklch(88% 0.04 74);--sf-kraft-deep:oklch(54% 0.07 62);--sf-ease-out:cubic-bezier(0.23,1,0.32,1);} .ds-sleeve{display:flex;align-items:center;justify-content:space-between;gap:1rem;width:24rem;min-height:4rem;padding:0.625rem 1rem;border:1px solid var(--sf-kraft-deep);border-top-width:2px;background:var(--sf-kraft);color:var(--sf-ink);font-family:'Sofia Sans',system-ui,sans-serif;font-weight:650;animation:ds-in 260ms var(--sf-ease-out) both}@keyframes ds-in{from{transform:translateY(100%)}}@media (prefers-reduced-motion:reduce){.ds-sleeve{animation:none}}.ds-count{display:inline-flex;align-items:center;gap:0.5rem}.ds-mk{font-family:'Permanent Marker',cursive;font-weight:400;font-size:1.75rem;line-height:1}.ds-cta{display:inline-flex;align-items:center;min-height:2.75rem;padding:0 1rem;background:var(--sf-ink);color:var(--sf-cup);font-family:'Sofia Sans Condensed',system-ui,sans-serif;font-weight:750;letter-spacing:0.05em;text-transform:uppercase;text-decoration:none}.ds-cta:hover{background:oklch(30% 0.008 260)}.ds-cta:focus-visible{outline:2px solid var(--sf-band);outline-offset:2px}"
+    },
+    {
+      "name": "Platform Underline Tabs",
+      "kind": "nav",
+      "refersTo": "platform-button",
+      "description": "Flat underline tabs with tabular counts on one rule (shell neutrals, Geist).",
+      "html": "<div class=\"ds-ptabs\"><button class=\"ds-ptab is-active\">Live <span class=\"ds-pc\">4</span></button><button class=\"ds-ptab\">History <span class=\"ds-pc\">120</span></button><button class=\"ds-ptab\">Catering <span class=\"ds-pc\">2</span></button></div>",
+      "css": ".ds-ptabs{display:flex;align-items:flex-end;gap:1.25rem;border-bottom:1px solid #e4e4e7;font-family:Geist,system-ui,sans-serif}.ds-ptab{display:inline-flex;align-items:center;gap:0.375rem;height:2.25rem;margin-bottom:-1px;padding:0;border:0;border-bottom:2px solid transparent;background:none;color:#71717a;font-size:0.875rem;font-weight:500;cursor:pointer;transition:color 150ms,border-color 150ms}.ds-ptab:hover{border-bottom-color:#e4e4e7;color:#09090b}.ds-ptab.is-active{border-bottom-color:#09090b;color:#09090b}.ds-ptab:focus-visible{outline:2px solid #a1a1aa;outline-offset:2px}.ds-pc{font-size:0.75rem;font-variant-numeric:tabular-nums;opacity:0.8}"
+    },
+    {
+      "name": "Platform Segmented",
+      "kind": "chip",
+      "refersTo": "platform-segmented",
+      "description": "In-form choice of 2-5 values: 6px frame, hairline segments, chosen filled ink.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\"><button class=\"ds-sg is-on\" role=\"radio\" aria-checked=\"true\">Card</button><button class=\"ds-sg\" role=\"radio\" aria-checked=\"false\">Cash</button><button class=\"ds-sg\" role=\"radio\" aria-checked=\"false\">Gift</button></div>",
+      "css": ".ds-seg{display:inline-flex;overflow:hidden;border:1px solid #e4e4e7;border-radius:6px;background:#fff;font-family:Geist,system-ui,sans-serif}.ds-sg{height:2.5rem;padding:0 0.75rem;border:0;background:none;color:#71717a;font-size:0.875rem;font-weight:500;cursor:pointer;transition:background-color 150ms ease-out,color 150ms,transform 150ms}.ds-sg+.ds-sg{border-left:1px solid #e4e4e7}.ds-sg:hover{background:#f4f4f5;color:#09090b}.ds-sg.is-on{background:#09090b;color:#fff}.ds-sg:active{transform:scale(0.98)}.ds-sg:focus-visible{outline:2px solid #a1a1aa;outline-offset:-2px}"
+    },
+    {
+      "name": "KDS Ticket with Age Weight",
+      "kind": "card",
+      "refersTo": "platform-bump-button",
+      "description": "Station column ticket: 6px card, dot-plus-word status, age timer whose weight rises with time, 56px bump button.",
+      "html": "<section class=\"ds-col\"><header class=\"ds-colh\"><span>Espresso bar</span><span>3</span></header><article class=\"ds-tk\"><div class=\"ds-tkh\"><span class=\"ds-st\"><span class=\"ds-dot\"></span>#1042 <small>In production</small></span><span class=\"ds-age a10\">12m</span></div><div class=\"ds-tkb\">Vanilla latte, oat<button class=\"ds-bump\">Ready</button></div></article></section>",
+      "css": ".ds-col{width:18rem;font-family:Geist,system-ui,sans-serif;color:#09090b}.ds-colh{display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:2px solid #09090b;font-size:0.875rem;font-weight:600;font-variant-numeric:tabular-nums}.ds-tk{margin-top:0.75rem;border:1px solid #e4e4e7;border-radius:6px;background:#fff}.ds-tkh{display:flex;justify-content:space-between;align-items:center;padding:0.625rem 1rem;border-bottom:1px solid #e4e4e7;font-size:0.875rem}.ds-st{display:inline-flex;align-items:center;gap:0.5rem;font-weight:600}.ds-st small{font-size:0.75rem;font-weight:500;color:#71717a}.ds-dot{width:0.5rem;height:0.5rem;border-radius:9999px;background:#f59e0b}.ds-age{font-size:1rem;font-variant-numeric:tabular-nums}.ds-age.a0{font-weight:400;color:#71717a}.ds-age.a5{font-weight:500}.ds-age.a10{font-weight:600;color:#b45309}.ds-age.a15{font-weight:700;color:#dc2626}.ds-tkb{padding:0.75rem 1rem 1rem}.ds-bump{display:block;width:100%;min-height:3.5rem;margin-top:1rem;border:0;border-radius:6px;background:#09090b;color:#fff;font-size:1.125rem;font-weight:600;cursor:pointer;transition:opacity 150ms ease-out,transform 150ms ease-out}.ds-bump:hover{opacity:0.9}.ds-bump:active{transform:scale(0.98)}.ds-bump:focus-visible{outline:2px solid #a1a1aa;outline-offset:2px}"
+    },
+    {
+      "name": "Platform Table",
+      "kind": "custom",
+      "refersTo": "platform-table",
+      "description": "Dense operator table: 6px hairline frame, muted header band, ~40px rows, status as dot plus word.",
+      "html": "<div class=\"ds-tw\"><table class=\"ds-t\"><thead><tr><th>Order</th><th>Status</th><th>Total</th></tr></thead><tbody><tr><td>#1042</td><td><span class=\"ds-tdot\"></span>Ready</td><td>$9.50</td></tr><tr><td>#1041</td><td><span class=\"ds-tdot q\"></span>Queued</td><td>$4.25</td></tr></tbody></table></div>",
+      "css": ".ds-tw{overflow-x:auto;border:1px solid #e4e4e7;border-radius:6px;background:#fff;font-family:Geist,system-ui,sans-serif}.ds-t{width:100%;border-collapse:collapse;font-size:0.875rem;color:#09090b}.ds-t th{height:2.25rem;padding:0 0.75rem;border-bottom:1px solid #e4e4e7;background:rgba(244,244,245,0.4);text-align:left;font-size:0.75rem;font-weight:500;color:#71717a}.ds-t td{padding:0.625rem 0.75rem;border-bottom:1px solid #e4e4e7;font-variant-numeric:tabular-nums}.ds-t tr:last-child td{border-bottom:0}.ds-t tbody tr:hover{background:rgba(244,244,245,0.5)}.ds-tdot{display:inline-block;width:0.5rem;height:0.5rem;margin-right:0.5rem;border-radius:9999px;background:#22c55e}.ds-tdot.q{background:#3b82f6}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Marked Cup (storefront) / The Bar (platform)",
+    "overview": "A café order is written on the cup: a printed grid of boxes and the barista's marker filling them in. The storefront is that cup. Bright cool-white paper, a printed band in the merchant's own colour across the top of the page and every product, a kraft-brown sleeve for the cart and the checkout tray, black marker ink. Printed things (headings, box labels, buttons) are set in a condensed sans; written things (the customer's name, chosen options, counts, the order number, \"today\" on the hours table) are in a marker hand. Everything is square: 1px ink print rules, no radii, no pills. It is phone-first, with 44px targets, two columns of cups, and a sticky kraft sleeve once something is in the order.\n\nThe platform is the bar: every operator screen opens on the next drink to make or ring up. It inherits the shell's neutral palette and type, adds flat 6px corners (4px for small inner pieces), underline tabs with counts, dense hairline tables, and status as a dot plus a word. The one signature move is ticket age on the KDS, which gets heavier and warmer as a ticket gets old.",
+    "keyCharacteristics": [
+      "Storefront: cool cup paper, a merchant-hue band, kraft sleeve, black marker ink; square everything.",
+      "Two type voices on the storefront: printed (Sofia Sans Condensed / Sofia Sans) and written (Permanent Marker).",
+      "Marker ticks draw themselves with stroke-dashoffset in 240ms and appear already drawn under reduced motion.",
+      "Platform: shell neutrals, explicit 6px/4px radii, underline tabs, Segmented choices, dense tables, dot-plus-word status.",
+      "KDS: station columns with age weight."
+    ],
+    "rules": [
+      {
+        "name": "The Merchant's Band Rule",
+        "body": "The band hue is the merchant's setting and is never hard-coded. The demo band renders blue because Neighborhood Roast's saved logo colour is hue 0, which the settings preset maps onto the 260 base. That is the merchant's choice, not a palette decision. Design every band surface to work at any hue.",
+        "section": "colors"
+      },
+      {
+        "name": "The Kraft Is the Cart Rule",
+        "body": "Kraft appears only where the order lives: the sleeve bar and the checkout tray.",
+        "section": "colors"
+      },
+      {
+        "name": "The Written-Only Rule",
+        "body": "Permanent Marker is used only for what a barista writes: the customer's name (the checkout name box and the barista note), chosen options, item counts and the cart badge, the order number, and \"today\". Never use it for headings, prices, buttons or decoration.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "Prices, hours and every platform age, time or amount use tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Print-Rule Depth Rule",
+        "body": "Separation is a ruled line or a fill change, never a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Dot-Plus-Word Rule",
+        "body": "Platform status is an 8px dot and a word. Colour appears only where it carries meaning.",
+        "section": "components"
+      },
+      {
+        "name": "The Explicit Radius Rule",
+        "body": "Every platform corner is `rounded-[6px]` or `rounded-[4px]`. Never inherit the 10px dashboard `--radius` from `components/ui` defaults.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** derive every band surface from the band variables, so the merchant's saved logo colour sets the hue.",
+      "**Do** keep storefront boxes square, sharing one hairline (-1px overlap) and framed in marker ink.",
+      "**Do** reserve Permanent Marker for written things: names, chosen options, counts, order numbers and \"today\".",
+      "**Do** mark a changed option with **Changed** and a default with **Standard**, and draw the marker tick with stroke-dashoffset in 240ms, appearing already drawn under reduced motion.",
+      "**Do** keep kraft for the cart (the sleeve bar and the checkout tray).",
+      "**Do** keep 44px minimum targets on the storefront.",
+      "**Do** pass explicit `rounded-[6px]` (or `rounded-[4px]` for small inner pieces) on every platform surface and `components/ui` instance.",
+      "**Do** use underline tabs with counts for platform views, and Segmented for in-form value choices.",
+      "**Do** show platform status as a dot plus a word, and ticket age with its weight ramp."
+    ],
+    "donts": [
+      "**Don't** use pills or rounded corners on the storefront, or pill-shaped or heavily rounded tabs, chips or cards on the platform (owner rule, 2026-10-25).",
+      "**Don't** hard-code a band colour or assume the band is blue.",
+      "**Don't** clip cup tiles to a tapered silhouette; it cuts the 1px side rules.",
+      "**Don't** add shadows to either world.",
+      "**Don't** fake kraft texture (corrugation); the sleeve is flat.",
+      "**Don't** edit the shared dashboard shell or `components/ui/**`; adapt with explicit classes.",
+      "**Don't** invent claims (roaster partners, origins, awards) or pickup times that don't come from settings."
+    ]
+  }
+}
