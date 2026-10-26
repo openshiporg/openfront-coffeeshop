@@ -30,9 +30,9 @@ const FIELDS = `
 `;
 
 const LIST_QUERY = `
-  query PlatformSubscriptionList($where: SubscriptionWhereInput!, $orderBy: [SubscriptionOrderByInput!]!, $take: Int!, $skip: Int!, $search: SubscriptionWhereInput!, $onHoldWhere: SubscriptionWhereInput!, $includeOnHold: Boolean!) {
+  query PlatformSubscriptionList($where: SubscriptionWhereInput!, $orderBy: [SubscriptionOrderByInput!]!, $take: Int!, $skip: Int!, $search: SubscriptionWhereInput!, $onHoldWhere: SubscriptionWhereInput!, $onHoldTake: Int!) {
     subscriptions(where: $where, orderBy: $orderBy, take: $take, skip: $skip) { ${FIELDS} }
-    onHold: subscriptions(where: $onHoldWhere, orderBy: [{ updatedAt: desc }], take: 50) @include(if: $includeOnHold) { ${FIELDS} }
+    onHold: subscriptions(where: $onHoldWhere, orderBy: [{ updatedAt: desc }], take: $onHoldTake) { ${FIELDS} }
     filtered: subscriptionsCount(where: $where)
     all: subscriptionsCount(where: $search)
     trialing: subscriptionsCount(where: { AND: [$search, { status: { equals: "trialing" } }] })
@@ -128,7 +128,8 @@ export async function SubscriptionListPage({ search, status, page }: { search: s
       orderBy: current ? [{ renewsAt: "asc" }, { createdAt: "desc" }] : [{ createdAt: "desc" }],
       search: searchFilter,
       onHoldWhere: { AND: [searchFilter, { status: { equals: "paused" } }] },
-      includeOnHold: current && page === 1,
+      // take: 0 rather than @include(if:) — this server rejects variable-driven directives.
+      onHoldTake: current && page === 1 ? 50 : 0,
       take: SUBSCRIPTION_PAGE_SIZE,
       skip: (page - 1) * SUBSCRIPTION_PAGE_SIZE,
     }, { cache: "no-store" }),

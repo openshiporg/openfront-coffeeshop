@@ -71,6 +71,11 @@ const FULFILLMENT_LABELS: Record<string, string> = { pickup: "Pickup", counter: 
 const SOURCE_LABELS: Record<string, string> = { online: "Online", pos: "POS", kiosk: "Kiosk", phone: "Phone" };
 const PAYMENT_STATE_LABELS: Record<string, string> = { unpaid: "Unpaid", pending: "Payment pending", paid: "Paid", refunded: "Refunded" };
 const BAR_STATUS_LABELS: Record<string, string> = { new: "New", queued: "Queued", preparing: "Preparing", ready: "Ready", handed_off: "Handed off", voided: "Voided" };
+// The bar line status that just repeats the order status. Only a line that differs gets its own label.
+const BAR_STATUS_MATCHING_ORDER: Record<string, string[]> = {
+  open: ["new"], accepted: ["new"], paid: ["new"], in_bar_queue: ["new", "queued"], preparing: ["preparing"],
+  ready: ["ready"], completed: ["handed_off"], cancelled: ["voided"], refunded: ["voided"],
+};
 
 const STATUS_TABS: Array<{ value: OrderStatusFilter; label: string; count: (summary: OrderQueueSummary) => number }> = [
   { value: "all", label: "All", count: (summary) => summary.allCount },
@@ -124,7 +129,9 @@ function OrderItemsList({ order, showBarStatus }: { order: CafeOrderQueueItem; s
             <span className="font-medium [overflow-wrap:anywhere]">{item.itemNameSnapshot || "Menu item"}</span>
             {item.customizationsSummary ? <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{item.customizationsSummary}</span> : null}
           </span>
-          {showBarStatus && item.barStatus ? <span className="shrink-0 text-xs text-muted-foreground">{BAR_STATUS_LABELS[item.barStatus] || item.barStatus}</span> : null}
+          {showBarStatus && item.barStatus && !BAR_STATUS_MATCHING_ORDER[order.status]?.includes(item.barStatus)
+            ? <span className="shrink-0 text-xs text-muted-foreground">Bar: {BAR_STATUS_LABELS[item.barStatus] || item.barStatus}</span>
+            : null}
         </li>
       ))}
     </ul>
@@ -240,7 +247,7 @@ export async function OrderListPage({
       <OrderQueueAutoRefresh />
       {/* Bottom padding lets the last tickets scroll clear of the floating assistant button. */}
       <div className="space-y-8 px-4 pb-24 md:px-6">
-        <form method="get" role="search" aria-label="Filter orders" className="flex flex-wrap items-center gap-2">
+        <form method="get" role="search" aria-label="Filter orders" className="relative flex flex-wrap items-center gap-2 [overflow-x:clip] [overflow-clip-margin:4px]">
           <div className="relative min-w-0 flex-[1_1_16rem] sm:max-w-sm">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <label htmlFor="order-search" className="sr-only">Search orders</label>

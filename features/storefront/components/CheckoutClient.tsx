@@ -7,7 +7,7 @@ import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { createCafePickupOrder, quoteCafePickupOrder, type CafeOrderQuote, type PickupOrderRequest } from "@/features/storefront/lib/data/orders";
 import { startOnlinePayment } from "@/features/storefront/lib/data/payment";
 import { formatMoney } from "@/features/storefront/lib/format";
-import { formatPickupTime, groupPickupSlots, pickupSlots } from "@/features/storefront/lib/hours";
+import { formatPickupTime, groupPickupSlots, openState, pickupSlots } from "@/features/storefront/lib/hours";
 import type { CheckoutCustomer } from "@/features/storefront/lib/data/account";
 import { CART_EVENT, CART_LIMITS, CART_STORAGE_KEY, cartQuantity, loadCartLines, removeCartLines, saveCartLines } from "@/features/storefront/lib/cart/storage";
 import type { CartLine } from "@/features/storefront/lib/cart/types";
@@ -252,11 +252,19 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
   }
 
   // The pickup time leads the pickup box: the quoted time once there is something to price,
-  // the store's usual lead time (from settings) before that.
+  // the store's usual lead time (from settings) before that. While closed, the lead time
+  // counts from opening, not from ordering. Computed only after the cart loads (client clock).
+  const storeState = cartLoaded && hours ? openState(hours.weeklyHours, hours.timezone) : null;
+  const opensText = storeState?.kind === "closed" ? storeState.label.replace(/^Closed · opens/, "Opens") : null;
+  const emptyPickupText = opensText === "Closed"
+    ? "Closed · no opening hours posted"
+    : opensText
+      ? pickupLeadMinutes ? `${opensText} · ready about ${pickupLeadMinutes} min after` : `${opensText} · pickup after we open`
+      : pickupLeadMinutes ? `Usually ready about ${pickupLeadMinutes} min after you order` : "Add something to see a pickup time";
   const pickupText = !cartLoaded
     ? "Loading…"
     : !lines.length
-      ? pickupLeadMinutes ? `Usually ready about ${pickupLeadMinutes} min after you order` : "Add something to see a pickup time"
+      ? emptyPickupText
       : quotePending
         ? "Checking…"
         : chosenSlot && scheduled
@@ -276,9 +284,11 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
       <div className="sf-split">
         <section className="sf-tray min-w-0" aria-labelledby="order-lines-title">
           <div className="sf-tray-section">
-            <h2 id="order-lines-title" className="sf-box-label">
-              Items{totalQuantity ? <span className="sf-marker sf-tray-count"> {totalQuantity}</span> : null}
-            </h2>
+            {lines.length ? (
+              <h2 id="order-lines-title" className="sf-box-label">
+                Items{totalQuantity ? <span className="sf-marker sf-tray-count"> {totalQuantity}</span> : null}
+              </h2>
+            ) : null}
             {lines.map((line, index) => (
               <article key={line.cartId} className="sf-line">
                 <StorefrontMedia
@@ -332,7 +342,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
             ) : null}
             {cartLoaded && !lines.length ? (
               <div className="sf-tray-empty">
-                <strong>Nothing in your order yet</strong>
+                <h2 id="order-lines-title" className="sf-tray-empty-title">Nothing in your order yet</h2>
                 <span>Pick a drink or pastry from the menu and it lands here.</span>
                 <Link href="/#menu" className="sf-btn sf-btn-ink">Browse the menu</Link>
               </div>

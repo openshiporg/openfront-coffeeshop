@@ -259,7 +259,7 @@ function MenuItemCard({ item, categories, canManage, commands, notify }: { item:
             <span className="min-w-0">
               <span className={`block font-medium [overflow-wrap:anywhere] ${!item.available ? "text-muted-foreground" : ""}`}>
                 {item.name}
-                {!item.available ? <span className="ml-2 text-xs font-medium text-muted-foreground">Unavailable</span> : item.soldOut ? <span className="ml-2 text-xs font-medium text-red-600 dark:text-red-400">Out of stock</span> : null}
+                {!item.available ? <span className="ml-2 text-xs font-medium text-muted-foreground">Unavailable</span> : item.soldOut ? <span className="ml-2 text-xs font-medium text-red-600 dark:text-red-400">Out of stock</span> : <span className="ml-2 text-xs font-medium text-muted-foreground">Selling</span>}
               </span>
               <span className="block text-xs text-muted-foreground">
                 {item.category?.name || "Uncategorized"} · {stationLabel(item.barStation)} · <span className="tabular-nums">{item.prepTimeMinutes ?? 0} min</span>

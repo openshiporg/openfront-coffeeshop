@@ -338,7 +338,7 @@ export async function RegisterListPage({ state }: { state: RegisterListState }) 
                 <PillLink size="md" href={registerListHref({ ...state, view: "payments", page: 1 })} active={state.view === "payments"}>Payments</PillLink>
               </PillTrack>
             </nav>
-            <form method="get" role="search" aria-label={state.view === "shifts" ? "Filter shifts" : "Filter payments"} className="flex flex-wrap items-center gap-2">
+            <form method="get" role="search" aria-label={state.view === "shifts" ? "Filter shifts" : "Filter payments"} className="relative flex flex-wrap items-center gap-2 [overflow-x:clip] [overflow-clip-margin:4px]">
               {state.view === "payments" ? <input type="hidden" name="view" value="payments" /> : null}
               {state.view === "payments" ? (
                 <div className="relative min-w-0 flex-[1_1_10rem] sm:w-44 sm:flex-none">

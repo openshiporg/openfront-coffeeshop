@@ -34,10 +34,10 @@ export function StorefrontCartLink() {
   const count = useCartCount();
 
   return (
-    <Link href="/checkout" className="sf-cart-link" aria-label={`Cart, ${itemsLabel(count)}`}>
+    <Link href="/checkout" className="sf-cart-link" aria-label={count > 0 ? `Cart, ${itemsLabel(count)}` : "Cart, empty"}>
       <ShoppingBag className="size-4" aria-hidden="true" />
       <span className="sf-cart-word" aria-hidden="true">Cart</span>
-      <span className="sf-cart-badge" aria-hidden="true">{count}</span>
+      {count > 0 ? <span className="sf-cart-badge" aria-hidden="true">{count}</span> : null}
     </Link>
   );
 }

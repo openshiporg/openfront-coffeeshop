@@ -20,12 +20,16 @@ import type { InventoryDetailData, InventoryDetailItem, InventoryListData, Inven
 
 const ITEM_FIELDS = "id name category unit currentStock reorderPoint parLevel costPerUnit supplierName sku";
 
+// No @include/@skip with variables here: this server's Yoga + Keystone stack rejects every
+// variable-driven directive ("...was not provided a runtime value"), failing the whole query.
+// Rows the view doesn't need are skipped with take: 0 instead.
+
 const INVENTORY_LIST_QUERY = `
-  query CoffeeInventoryList($where: InventoryItemWhereInput!, $outWhere: InventoryItemWhereInput!, $inStockWhere: InventoryItemWhereInput!, $rowsWhere: InventoryItemWhereInput!, $take: Int!, $skip: Int!, $scanTake: Int!, $includeRows: Boolean!) {
+  query CoffeeInventoryList($where: InventoryItemWhereInput!, $outWhere: InventoryItemWhereInput!, $inStockWhere: InventoryItemWhereInput!, $rowsWhere: InventoryItemWhereInput!, $rowsTake: Int!, $skip: Int!, $scanTake: Int!) {
     authenticatedItem { ... on User { id role { canManageInventory } } }
     allCount: inventoryItemsCount(where: $where)
     outCount: inventoryItemsCount(where: $outWhere)
-    rows: inventoryItems(where: $rowsWhere, orderBy: [{ name: asc }], take: $take, skip: $skip) @include(if: $includeRows) { ${ITEM_FIELDS} }
+    rows: inventoryItems(where: $rowsWhere, orderBy: [{ name: asc }], take: $rowsTake, skip: $skip) { ${ITEM_FIELDS} }
     inStock: inventoryItems(where: $inStockWhere, orderBy: [{ name: asc }], take: $scanTake) { ${ITEM_FIELDS} }
     suppliers(where: { status: { equals: "active" } }, orderBy: [{ name: asc }], take: 200) { name }
   }
@@ -62,10 +66,9 @@ export async function loadInventoryList(view: InventoryListView): Promise<{ succ
       outWhere,
       rowsWhere: view.stock === "out" ? outWhere : where,
       inStockWhere: { AND: [where, { currentStock: { gt: "0" } }] },
-      take: INVENTORY_PAGE_SIZE,
+      rowsTake: view.stock === "low" ? 0 : INVENTORY_PAGE_SIZE,
       skip,
       scanTake: LOW_STOCK_SCAN_CAP,
-      includeRows: view.stock !== "low",
     },
     { cache: "no-store" },
   );

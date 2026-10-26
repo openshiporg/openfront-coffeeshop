@@ -69,6 +69,8 @@ type RecordRow = { id: string; title: React.ReactNode; status?: string | null; d
 
 /** Recent records as a compact table: record, status, details, amount. */
 function RecordList({ id, title, href, rows, empty, valueLabel = '' }: { id: string; title: string; href: string; rows: RecordRow[]; empty: string; valueLabel?: string }) {
+  // A list whose records carry no status (ingredients) drops the column instead of printing a row of dashes.
+  const showStatus = rows.some((row) => row.status);
   return (
     <section aria-labelledby={id} className="min-w-0 space-y-2">
       <header className="flex items-baseline justify-between gap-3">
@@ -80,7 +82,7 @@ function RecordList({ id, title, href, rows, empty, valueLabel = '' }: { id: str
           label={title}
           head={[
             { label: 'Record' },
-            { label: 'Status', className: 'max-sm:hidden' },
+            ...(showStatus ? [{ label: 'Status', className: 'max-sm:hidden' }] : []),
             { label: 'Details', className: 'max-md:hidden' },
             { label: valueLabel || <span className="sr-only">Value</span>, className: 'text-right' },
           ]}
@@ -92,9 +94,11 @@ function RecordList({ id, title, href, rows, empty, valueLabel = '' }: { id: str
                 <span className="block text-xs font-normal text-muted-foreground md:hidden">{row.detail}</span>
                 {row.status ? <span className="mt-0.5 flex items-center gap-1.5 text-xs font-normal sm:hidden"><StatusDot tone={tone(row.status)} /><span className="capitalize">{label(row.status)}</span></span> : null}
               </td>
-              <td className={`${platformTd} whitespace-nowrap max-sm:hidden`}>
-                {row.status ? <span className="inline-flex items-center gap-1.5"><StatusDot tone={tone(row.status)} /><span className="capitalize">{label(row.status)}</span></span> : <span className="text-muted-foreground">—</span>}
-              </td>
+              {showStatus ? (
+                <td className={`${platformTd} whitespace-nowrap max-sm:hidden`}>
+                  {row.status ? <span className="inline-flex items-center gap-1.5"><StatusDot tone={tone(row.status)} /><span className="capitalize">{label(row.status)}</span></span> : <span className="text-muted-foreground">—</span>}
+                </td>
+              ) : null}
               <td className={`${platformTd} text-muted-foreground max-md:hidden [overflow-wrap:anywhere]`}>{row.detail}</td>
               <td className={`${platformTd} whitespace-nowrap text-right tabular-nums`}>{row.value ?? ''}</td>
             </tr>
@@ -215,13 +219,18 @@ export async function CoffeeOperationsPage({ searchParams }: { searchParams: Pro
                   title="Suppliers"
                   href="/dashboard/suppliers"
                   empty="No suppliers."
-                  rows={data.suppliers.map((supplier) => ({
-                    id: supplier.id,
-                    title: supplier.name,
-                    status: supplier.status,
-                    detail: <>{supplier.contactName || 'No contact'} · {supplier.email || supplier.phone || 'No contact details'}</>,
-                    value: <span className="text-muted-foreground">{supplier.leadTimeDays ?? 0}d lead</span>,
-                  }))}
+                  valueLabel="Lead time"
+                  rows={data.suppliers.map((supplier) => {
+                    const reach = supplier.email || supplier.phone || 'No contact details';
+                    return {
+                      id: supplier.id,
+                      title: supplier.name,
+                      status: supplier.status,
+                      // Half-width table: the address truncates, the full one stays on hover and to assistive tech via title.
+                      detail: <span className="flex min-w-0 max-w-[16rem] items-baseline gap-1"><span className="shrink-0">{supplier.contactName || 'No contact'} ·</span><span className="min-w-0 truncate" title={reach}>{reach}</span></span>,
+                      value: supplier.leadTimeDays == null ? <span className="text-muted-foreground">—</span> : <span className="text-muted-foreground">{supplier.leadTimeDays} {supplier.leadTimeDays === 1 ? 'day' : 'days'}</span>,
+                    };
+                  })}
                 />
               </>
             ) : null}

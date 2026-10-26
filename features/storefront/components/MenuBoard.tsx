@@ -14,9 +14,11 @@ const UNCATEGORIZED_LABEL = "More";
 
 // One cup on the menu: the merchant's printed band, the photo, the printed name and
 // price, and the quick-add box the barista's marker ticks.
-function MenuCup({ item, eager }: { item: StorefrontMenuItem; eager: boolean }) {
+// On the All view every cup shares one grid, so the category prints on the cup's band.
+function MenuCup({ item, eager, band }: { item: StorefrontMenuItem; eager: boolean; band?: string }) {
   return (
-    <article className={`sf-cup ${item.available ? "" : "is-unavailable"}`}>
+    <article className={`sf-cup ${item.available ? "" : "is-unavailable"} ${band ? "has-band-print" : ""}`}>
+      {band ? <p className="sf-cup-band">{band}</p> : null}
       <Link href={`/menu/${item.id}`} className="sf-cup-photo" tabIndex={-1} aria-hidden="true">
         <StorefrontMedia item={item} className="h-full w-full" sizes="(min-width: 1024px) 18rem, (min-width: 640px) 30vw, 50vw" eager={eager} />
       </Link>
@@ -106,6 +108,9 @@ export function MenuBoard({
     },
   ].filter((section) => section.items.length > 0);
   const filtered = Boolean(search || categoryId);
+  // All view: one grid of cups, in menu order, so the first screen opens on cups, not headings.
+  const allView = !categoryId;
+  const cups = sections.flatMap((section) => section.items.map((item) => ({ item, band: section.name })));
 
   return (
     <>
@@ -135,7 +140,11 @@ export function MenuBoard({
         </p>
       ) : null}
 
-      {sections.length > 0 ? <div className="sf-menu-sections">{sections.map((section, sectionIndex) => (
+      {sections.length > 0 && allView ? (
+        <div className="sf-cup-grid sf-cup-grid-all">
+          {cups.map(({ item, band }, index) => <MenuCup key={item.id} item={item} eager={index < 4} band={band} />)}
+        </div>
+      ) : sections.length > 0 ? <div className="sf-menu-sections">{sections.map((section, sectionIndex) => (
         <section key={section.id} className="sf-menu-section" aria-labelledby={`menu-section-${section.id}`}>
           <div className="sf-menu-section-head">
             <div className="min-w-0">
