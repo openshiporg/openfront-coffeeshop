@@ -784,6 +784,17 @@ html:has(.sf-root) body {
   color: var(--sf-ink-muted);
 }
 
+.sf-empty :is(h1, h2) {
+  color: var(--sf-ink);
+}
+
+.sf-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
 .sf-empty strong {
   font-family: var(--font-sf-display), system-ui, sans-serif;
   font-size: 1.5rem;
@@ -1377,6 +1388,16 @@ textarea.sf-field {
 }
 
 /* ── Footer (quiet) ─────────────────────────────────────── */
+
+/* Short pages (receipt states, sign-in) keep the footer on the bottom edge. */
+.sf-root:has(> .sf-footer) {
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-root > .sf-footer {
+  margin-top: auto;
+}
 
 .sf-footer {
   padding-block: 1.75rem 6rem;

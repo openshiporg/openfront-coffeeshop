@@ -220,11 +220,11 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
           <div className="sf-empty">
             <h1 className="sf-display sf-panel-title">{failureCopy.title}</h1>
             <p className="max-w-md">{failureCopy.message}</p>
-            {confirmation.kind === "unavailable" ? (
-              <div>
-                <ReceiptRefreshButton label="Try again" />
-              </div>
-            ) : null}
+            <div className="sf-empty-actions">
+              {confirmation.kind === "unavailable" ? <ReceiptRefreshButton label="Try again" /> : null}
+              <Link href="/#menu" className="sf-btn sf-btn-ghost">Back to menu</Link>
+              <Link href="/account" className="sf-btn sf-btn-quiet">Your orders</Link>
+            </div>
           </div>
         ) : null}
       </main>
