@@ -135,8 +135,8 @@ export default async function handleCafePaymentWebhook(_root: unknown, args: Arg
             status: "captured",
             processedAt: settledAt,
             failureMessage: cancelled ? "Paid after the order was cancelled; refund it" : "",
-            // Refunds go to the payment intent, not the hosted page.
-            ...(verified.providerPaymentId.startsWith("pi_") ? { providerPaymentId: verified.providerPaymentId } : {}),
+            // The hosted page reference (cs_…) stays: the evidence trigger makes it immutable once
+            // assigned, and refunds resolve its payment intent from Stripe.
           },
         });
         if (payment.orderId && !cancelled) {

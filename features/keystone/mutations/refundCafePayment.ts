@@ -67,7 +67,14 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     const isOnline = payment.provider === "pp_stripe_stripe";
     if (!isOnline && payment.provider !== "pp_system_default") throw new Error("Refunds for this payment provider aren't supported");
     if (!["cash", "card"].includes(String(payment.method))) throw new Error("Unsupported refund tender");
-    if (isOnline && !String(payment.providerPaymentId || "").startsWith("pi_")) throw cafeCustomerError("This online payment hasn't finished settling. Try the refund again shortly.");
+    // Hosted Checkout payments keep their page reference (cs_…); the refund goes to its payment intent.
+    let refundTarget = String(payment.providerPaymentId || "");
+    if (isOnline && refundTarget.startsWith("cs_")) {
+      const page = await executePaymentProviderAdapter({ provider: { code: "pp_stripe_stripe" }, functionName: "getPaymentStatusFunction", args: { providerPaymentId: refundTarget } }).catch(() => null);
+      const intent = (page?.data as Record<string, unknown> | undefined)?.payment_intent;
+      refundTarget = typeof intent === "string" ? intent : "";
+    }
+    if (isOnline && !refundTarget.startsWith("pi_")) throw cafeCustomerError("This online payment hasn't finished settling. Try the refund again shortly.");
     if (!isOnline && payment.method === "card" && externalReference.length < 4) throw new Error("Record the external terminal refund reference before updating the cafe ledger");
     if (payment.refundIdempotencyKey && payment.refundIdempotencyKey !== key) throw new Error("A different refund request already owns this payment");
     const order = await tx.cafeOrder.findUnique({
@@ -126,7 +133,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
       const result = await executePaymentProviderAdapter({
         provider: { code: "pp_stripe_stripe" },
         functionName: "refundPaymentFunction",
-        args: { providerPaymentId: String(payment.providerPaymentId), amount, reason, idempotencyKey: `refund:${key}`, currencyCode: String(payment.currencyCode || "USD") },
+        args: { providerPaymentId: refundTarget, amount, reason, idempotencyKey: `refund:${key}`, currencyCode: String(payment.currencyCode || "USD") },
       }).catch(() => null);
       if (!result?.success || !["refunded", "pending"].includes(String(result.status))) throw cafeCustomerError("The card refund didn't go through. Nothing was recorded; try again.");
       providerRefundId = result.providerPaymentId ? String(result.providerPaymentId) : null;
