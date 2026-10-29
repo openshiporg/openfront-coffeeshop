@@ -1,6 +1,10 @@
+<!-- logo -->
+
 # Openfront Coffee Shop
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fopenshiporg%2Fopenfront-coffee-shop&env=DATABASE_URL%2CSESSION_SECRET)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fopenshiporg%2Fopenfront-coffeeshop&env=DATABASE_URL%2CSESSION_SECRET)
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/openfront-coffee-shop)
 
 Openfront Coffee Shop is a self-hostable cafe ordering and operations application. Customers can browse the menu, order for pickup, and review their orders. Cafe teams manage counter orders, production queues, payments, recipes, inventory, loyalty, catering, and shifts.
 
@@ -10,12 +14,10 @@ Openfront Coffee Shop is a self-hostable cafe ordering and operations applicatio
 
 ![Drink image included with the Coffee Shop menu](public/images/vanilla-latte.jpg)
 
-Explore the application locally using the setup instructions below.
-
 | | |
 |---|---|
-| **Public application** | `/` on your development URL |
-| **Dashboard** | `/dashboard` on your development URL |
+| **Storefront** | [coffee-shop.openship.org](https://coffee-shop.openship.org) |
+| **Dashboard** | [coffee-shop.openship.org/dashboard](https://coffee-shop.openship.org/dashboard) |
 
 [Learn more →](https://openship.org/products/openfront-coffee-shop)
 
