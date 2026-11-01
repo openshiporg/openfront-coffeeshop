@@ -1,11 +1,14 @@
 import Link from "next/link";
-import { sanitizeStoreLogoSvg } from "@/features/lib/sanitize-store-logo";
 import { normalizeStoreLogoColor } from "@/features/platform/store-settings/lib/store-logo";
 import type { CoffeeStorefrontStore } from "../lib/data/store";
+import { storeOwnMark } from "../lib/store-mark";
 
-/** The saved mark from Store Settings, in its saved colour. Never a drawn-in logo. */
+/**
+ * The mark the store set in Store Settings, in its saved colour. With no mark, or only
+ * the platform placeholder, nothing renders and the store name stands alone.
+ */
 export function StoreMark({ store, className = "" }: { store: CoffeeStorefrontStore; className?: string }) {
-  const svg = sanitizeStoreLogoSvg(store.logoIcon || "");
+  const svg = storeOwnMark(store.logoIcon);
   if (!svg) return null;
   return (
     <span className={`sf-mark ${className}`} aria-hidden="true">
