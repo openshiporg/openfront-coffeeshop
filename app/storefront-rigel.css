@@ -812,6 +812,7 @@ textarea.sf-field { min-height: 5.5rem; resize: vertical; }
 .sf-quick-btn {
   display: inline-grid;
   place-items: center;
+  position: relative;
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 12px;
@@ -824,6 +825,14 @@ textarea.sf-field { min-height: 5.5rem; resize: vertical; }
 .sf-quick-btn:active:not(:disabled) { transform: scale(0.94); }
 .sf-quick-btn.is-added { background: var(--sf-open); }
 .sf-quick-btn:disabled { cursor: progress; }
+/* Phones: the design's smaller add square, with the 44px tap area kept by an invisible ring. */
+@media (max-width: 1023px) {
+  .sf-quick-btn { width: 2.25rem; height: 2.25rem; border-radius: 10px; }
+  .sf-quick-btn::after { content: ""; position: absolute; inset: -0.25rem; }
+  .sf-quick-btn svg { width: 1.125rem; height: 1.125rem; }
+  .sf-row-name { font-weight: 400; }
+  .sf-pickup-card strong { font-weight: 400; }
+}
 .sf-quick-off { color: var(--sf-ink-faint); font-size: 0.875rem; white-space: nowrap; }
 .sf-quick-error {
   position: absolute;
@@ -1049,8 +1058,7 @@ textarea.sf-field { min-height: 5.5rem; resize: vertical; }
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
-  background: oklch(100% 0 0 / 0.96);
-  backdrop-filter: blur(14px);
+  background: var(--sf-card);
   border-top: 1px solid var(--sf-line);
 }
 .sf-addbar .sf-btn-lg { flex: 1; justify-content: space-between; white-space: nowrap; padding: 0 1.25rem; }
