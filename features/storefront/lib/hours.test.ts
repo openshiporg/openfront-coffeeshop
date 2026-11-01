@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatClock, formatPickupTime, groupPickupSlots, hoursRows, isOpenAt, openState, pickupSlots } from "./hours";
+import { cafeEarliestPickupMinutes, coffeeFirstPickupMinutes } from "../../lib/pickup-quote";
+import { earliestPickup, formatClock, formatPickupTime, groupPickupSlots, hoursRows, isOpenAt, openState, pickupSlots } from "./hours";
 
 const week = [
   { day: "Sunday", open: "08:00", close: "15:00" },
@@ -70,4 +71,53 @@ test("pickupSlots runs through the end of tomorrow and groups by store day", () 
   const groups = groupPickupSlots(slots, "America/Chicago", now);
   assert.deepEqual(groups.map((group) => group.label), ["Today", "Tomorrow"]);
   assert.equal(groups[1].slots.length, 42);
+});
+
+// The live demo's settings: New York, 12-minute lead, Mon-Fri 7-5, Sat 8-4, Sun 8-3.
+const demoStore = {
+  timezone: "America/New_York",
+  pickupLeadTimeMinutes: 12,
+  weeklyHours: [
+    ...["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => ({ day, open: "07:00", close: "17:00" })),
+    { day: "Saturday", open: "08:00", close: "16:00" },
+    { day: "Sunday", open: "08:00", close: "15:00" },
+  ],
+};
+
+/** The time checkout offers first: the server quote's estimatedPickupMinutes from the same instant. */
+function serverQuote(at: Date, prepTimes: Array<number | null> = []) {
+  const offset = coffeeFirstPickupMinutes(demoStore, cafeEarliestPickupMinutes(demoStore.pickupLeadTimeMinutes, prepTimes), [["all_day"]], at);
+  assert.notEqual(offset, null);
+  return new Date(at.getTime() + offset! * 60_000);
+}
+
+function clock(at: Date | null) {
+  assert.ok(at);
+  return new Intl.DateTimeFormat("en-US", { timeZone: demoStore.timezone, weekday: "short", hour: "numeric", minute: "2-digit" }).format(at);
+}
+
+test("closed overnight: the storefront names the opening time checkout offers, not opening plus the lead", () => {
+  const sundayEvening = new Date("2026-11-01T20:08:00Z"); // Sun 3:08 PM EST, just closed
+  assert.equal(clock(earliestPickup(demoStore, sundayEvening)), "Mon 7:00 AM");
+  assert.equal(earliestPickup(demoStore, sundayEvening)?.getTime(), serverQuote(sundayEvening).getTime());
+});
+
+test("open: both add the lead time to now", () => {
+  const mondayMorning = new Date("2026-11-02T15:00:00Z"); // Mon 10:00 AM EST
+  assert.equal(clock(earliestPickup(demoStore, mondayMorning)), "Mon 10:12 AM");
+  assert.equal(earliestPickup(demoStore, mondayMorning)?.getTime(), serverQuote(mondayMorning).getTime());
+});
+
+test("a bag item that takes longer than the lead time moves both the same way", () => {
+  const nearOpening = new Date("2026-11-02T11:55:00Z"); // Mon 6:55 AM EST, opens at 7
+  assert.equal(clock(earliestPickup(demoStore, nearOpening, [20])), "Mon 7:20 AM");
+  assert.equal(earliestPickup(demoStore, nearOpening, [20])?.getTime(), serverQuote(nearOpening, [20]).getTime());
+});
+
+test("agrees with the quote at every quarter hour across a week, including the DST change", () => {
+  const start = new Date("2026-10-28T04:00:00Z").getTime();
+  for (let at = start; at < start + 7 * 86_400_000; at += 15 * 60_000) {
+    const now = new Date(at);
+    assert.equal(earliestPickup(demoStore, now)?.getTime(), serverQuote(now).getTime(), now.toISOString());
+  }
 });

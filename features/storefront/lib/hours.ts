@@ -1,5 +1,7 @@
 // Open/closed state from the store's saved weekly hours, in the store's own time zone.
 
+import { coffeeFirstPickupAt } from "@/features/lib/pickup-quote";
+
 export type HoursRow = { day: string; open: string; close: string; closed: boolean };
 export type OpenState = { kind: "open" | "closed" | "unknown"; label: string };
 
@@ -97,16 +99,15 @@ export function isOpenAt(value: unknown, timeZone: string | null | undefined, at
   return clock.minutes >= minutes(row.open)! && clock.minutes < minutes(row.close)!;
 }
 
-/** Earliest ready time from the store's own hours and lead time: now plus the lead while open,
- *  otherwise the next opening plus the lead (searched in 15-minute steps over the next week). */
-export function earliestPickup(hours: { weeklyHours: unknown; timezone: string | null | undefined; pickupLeadTimeMinutes?: number | null }, now = new Date()) {
-  const lead = (hours.pickupLeadTimeMinutes ?? 0) * 60_000;
-  const step = 15 * 60_000;
-  if (isOpenAt(hours.weeklyHours, hours.timezone, now)) return new Date(now.getTime() + lead);
-  for (let at = Math.ceil(now.getTime() / step) * step; at < now.getTime() + 7 * 86_400_000; at += step) {
-    if (isOpenAt(hours.weeklyHours, hours.timezone, new Date(at))) return new Date(at + lead);
-  }
-  return null;
+/** Earliest pickup the checkout quote will offer: the same rule the server quotes with (store lead time or
+ *  the slowest item's prep time, then the first minute inside the store's hours), so the sidebar, the order
+ *  rail and checkout always name the same time. Pass the bag's prep times once something is in it. */
+export function earliestPickup(
+  hours: { weeklyHours: unknown; timezone: string | null | undefined; pickupLeadTimeMinutes?: number | null },
+  now = new Date(),
+  prepTimes: Array<number | null | undefined> = [],
+) {
+  return coffeeFirstPickupAt(hours, prepTimes, [["all_day"]], now);
 }
 
 /** "Today", "Tomorrow" or the short weekday of `at`, on the store's calendar. */

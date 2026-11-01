@@ -26,15 +26,18 @@ export function OrderPanel({ hours }: { hours: Hours }) {
   const [readyAt, setReadyAt] = React.useState<string | null>(null);
   const count = cartQuantity(lines);
 
+  const prepKey = lines.map((line) => line.prepTimeMinutes ?? "").join(",");
+
   React.useEffect(() => {
+    const prepTimes = prepKey ? prepKey.split(",").map((value) => (value ? Number(value) : null)) : [];
     const update = () => {
-      const at = earliestPickup(hours);
+      const at = earliestPickup(hours, new Date(), prepTimes);
       setReadyAt(at ? clockIn(at, hours.timezone) : null);
     };
     update();
     const timer = window.setInterval(update, 60_000);
     return () => window.clearInterval(timer);
-  }, [hours]);
+  }, [hours, prepKey]);
 
   function setQuantity(cartId: string, quantity: number) {
     const next = lines.map((line) => (line.cartId === cartId ? { ...line, quantity } : line)).filter((line) => line.quantity > 0);

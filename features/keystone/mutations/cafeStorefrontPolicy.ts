@@ -6,13 +6,7 @@ import { cafeCustomerError } from "../lib/cafeCustomerError";
 
 /** Shared storefront rules so the quote, menu and order creation agree. */
 
-export const CAFE_PICKUP_PREP_BUFFER_MINUTES = 5;
-
-/** Earliest pickup the cafe will accept for an online request: the configured lead time or the slowest item's prep time. */
-export function cafeEarliestPickupMinutes(storeLeadMinutes: number, prepTimes: Array<number | null | undefined>) {
-  const prep = prepTimes.map((minutes) => (Number.isFinite(Number(minutes)) ? Number(minutes) : 0) + CAFE_PICKUP_PREP_BUFFER_MINUTES);
-  return Math.max(5, Number(storeLeadMinutes) || 0, ...prep);
-}
+export { CAFE_PICKUP_PREP_BUFFER_MINUTES, cafeEarliestPickupMinutes } from "../../lib/pickup-quote";
 
 export type CafeQuoteTerms = {
   currencyCode: string;
