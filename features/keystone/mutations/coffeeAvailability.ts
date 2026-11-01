@@ -23,14 +23,15 @@ function minutes(value?: string | null) {
   return hour <= 23 && minute <= 59 ? hour * 60 + minute : null;
 }
 
+const zoneFormats = new Map<string, Intl.DateTimeFormat>();
+
 function zonedParts(at: Date, timezone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(at);
+  let format = zoneFormats.get(timezone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "long", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    zoneFormats.set(timezone, format);
+  }
+  const parts = format.formatToParts(at);
   const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || "";
   return { day: value("weekday"), minuteOfDay: Number(value("hour")) * 60 + Number(value("minute")) };
 }
@@ -96,14 +97,13 @@ export function coffeeFirstPickupMinutes(
   serviceWindowSets: ReadonlyArray<readonly string[]> = [["all_day"]],
   at = new Date(),
 ) {
-  const { day, minuteOfDay } = zonedParts(at, settings.timezone || "America/New_York");
+  const timezone = settings.timezone || "America/New_York";
   const hours = normalizeWeeklyHours(settings.weeklyHours);
-  const dayIndex = (DAY_NAMES as readonly string[]).indexOf(day);
-  if (dayIndex === -1) return null;
+  // Each candidate is read on the store's clock as a real instant. Adding minutes to today's wall-clock
+  // minute assumes every day is 1440 minutes long, which is an hour off across a DST change.
   for (let offset = Math.max(0, Math.ceil(earliestMinutes)); offset <= COFFEE_PICKUP_SCHEDULE_MAX_MINUTES; offset++) {
-    const total = minuteOfDay + offset;
-    const candidateDay = DAY_NAMES[(dayIndex + Math.floor(total / 1440)) % 7];
-    if (serviceWindowSets.every((windows) => openAtMinute(hours, candidateDay, total % 1440, windows))) return offset;
+    const { day, minuteOfDay } = zonedParts(new Date(at.getTime() + offset * 60_000), timezone);
+    if (serviceWindowSets.every((windows) => openAtMinute(hours, day, minuteOfDay, windows))) return offset;
   }
   return null;
 }
