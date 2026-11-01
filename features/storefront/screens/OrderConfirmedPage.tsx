@@ -71,7 +71,7 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
   const stepIndex = order ? PROGRESS.findIndex((step) => step.statuses.includes(order.status)) : -1;
 
   return (
-    <StorefrontShell>
+    <StorefrontShell active="orders">
       <main className="sf-container sf-page">
         <Link href="/" className="sf-back-link">
           <ArrowLeft className="size-4" aria-hidden="true" />

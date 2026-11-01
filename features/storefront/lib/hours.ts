@@ -97,6 +97,27 @@ export function isOpenAt(value: unknown, timeZone: string | null | undefined, at
   return clock.minutes >= minutes(row.open)! && clock.minutes < minutes(row.close)!;
 }
 
+/** Earliest ready time from the store's own hours and lead time: now plus the lead while open,
+ *  otherwise the next opening plus the lead (searched in 15-minute steps over the next week). */
+export function earliestPickup(hours: { weeklyHours: unknown; timezone: string | null | undefined; pickupLeadTimeMinutes?: number | null }, now = new Date()) {
+  const lead = (hours.pickupLeadTimeMinutes ?? 0) * 60_000;
+  const step = 15 * 60_000;
+  if (isOpenAt(hours.weeklyHours, hours.timezone, now)) return new Date(now.getTime() + lead);
+  for (let at = Math.ceil(now.getTime() / step) * step; at < now.getTime() + 7 * 86_400_000; at += step) {
+    if (isOpenAt(hours.weeklyHours, hours.timezone, new Date(at))) return new Date(at + lead);
+  }
+  return null;
+}
+
+/** "Today", "Tomorrow" or the short weekday of `at`, on the store's calendar. */
+export function pickupDayLabel(at: Date, timeZone: string | null | undefined, now = new Date()) {
+  const zone = safeZone(timeZone);
+  const day = storeDayKey(at, zone);
+  if (day === storeDayKey(now, zone)) return "Today";
+  if (day === storeDayKey(new Date(now.getTime() + 86_400_000), zone)) return "Tomorrow";
+  return new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long" }).format(at);
+}
+
 /** Pickup choices from the earliest pickup: that time, then each later window start while the store is open,
  *  through the end of tomorrow in the store's time zone. Capacity per window does the throttling. */
 export function pickupSlots(value: unknown, timeZone: string | null | undefined, earliest: Date, windowMinutes: number, now = new Date()) {

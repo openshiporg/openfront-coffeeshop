@@ -47,7 +47,7 @@ async function RewardsPanel({ email }: { email: string }) {
   const punched = Math.floor((progress / 100) * PUNCHES);
   const credits = rewards?.drinkCredits || 0;
   return (
-    <section className="sf-panel" aria-labelledby="rewards-title">
+    <section id="rewards" className="sf-panel" aria-labelledby="rewards-title">
       <h2 id="rewards-title" className="sf-display sf-panel-title">Rewards</h2>
       {!result?.success ? (
         <p className="sf-muted">Rewards can’t be loaded right now.</p>
@@ -137,7 +137,7 @@ async function AccountContent({ searchParams }: { searchParams: Promise<{ after?
         <form action={customerSignOut}><button className="sf-btn sf-btn-ghost">Sign out</button></form>
       </div>
       <div className="sf-split">
-        <section aria-labelledby="orders-title" className="min-w-0">
+        <section id="orders" aria-labelledby="orders-title" className="min-w-0">
           <h2 id="orders-title" className="sf-display sf-panel-title">Orders</h2>
           {account.orders.length === 0 ? (
             <div className="sf-empty">
@@ -185,5 +185,5 @@ async function AccountContent({ searchParams }: { searchParams: Promise<{ after?
 }
 
 export default function AccountPage(props: { searchParams: Promise<{ after?: string }> }) {
-  return <StorefrontShell><AccountContent {...props} /></StorefrontShell>;
+  return <StorefrontShell active="account"><AccountContent {...props} /></StorefrontShell>;
 }

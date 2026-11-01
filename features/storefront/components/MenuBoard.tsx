@@ -2,34 +2,97 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
-import type { StorefrontMenuCategory, StorefrontMenuItem } from "@/features/storefront/lib/data/menu";
+import { Bean, ChevronRight, Coffee, Croissant, CupSoda, LayoutGrid, Leaf, Milk, Plus, Search, Snowflake, Sparkles, type LucideIcon } from "lucide-react";
+import type { StorefrontMenuCategory, StorefrontMenuItem, StorefrontModifier } from "@/features/storefront/lib/data/menu";
 import { loadMoreStorefrontMenu } from "@/features/storefront/lib/data/menuActions";
-import { formatMoney } from "@/features/storefront/lib/format";
+import { formatMoney, formatModifierAdjustment } from "@/features/storefront/lib/format";
+import { modifierGroups } from "@/features/storefront/lib/cart/menuCart";
 import { StorefrontMedia } from "./StorefrontMedia";
 import { MenuQuickAdd } from "./MenuQuickAdd";
 
 const UNCATEGORIZED = "uncategorized";
 const UNCATEGORIZED_LABEL = "More";
 
-// One cup on the menu: the merchant's printed band, the photo, the printed name and
-// price, and the quick-add box the barista's marker ticks.
-// On the All view every cup shares one grid, so the category prints on the cup's band.
-function MenuCup({ item, eager, band }: { item: StorefrontMenuItem; eager: boolean; band?: string }) {
+function categoryIcon(name: string): LucideIcon {
+  const value = name.toLowerCase();
+  if (/(pastr|bake|croissant|food|bite)/.test(value)) return Croissant;
+  if (/(bean|retail|bag|shop)/.test(value)) return Bean;
+  if (/(cold|iced|ice)/.test(value)) return CupSoda;
+  if (/(tea|matcha)/.test(value)) return Leaf;
+  if (/(signature|special|season)/.test(value)) return Sparkles;
+  return Coffee;
+}
+
+function groupIcon(group: string): LucideIcon {
+  if (group === "milk") return Milk;
+  if (group === "ice") return Snowflake;
+  if (group === "grind") return Bean;
+  return CupSoda;
+}
+
+/** The item's own options as chips: standard choices plainly, up to two paid or alternate extras with a plus. */
+function optionChips(item: StorefrontMenuItem) {
+  const groups = modifierGroups(item);
+  const standard: Array<{ key: string; label: string; group: string }> = [];
+  const extras: Array<{ key: string; label: string; group: string }> = [];
+  for (const group of groups) {
+    for (const modifier of group.modifiers as StorefrontModifier[]) {
+      if (!modifier.inStock) continue;
+      if (modifier.defaultSelected) standard.push({ key: modifier.id, label: modifier.name, group: group.key });
+      else extras.push({
+        key: modifier.id,
+        label: `${modifier.name}${modifier.priceAdjustment ? ` ${formatModifierAdjustment(modifier.priceAdjustment)}` : ""}`,
+        group: group.key,
+      });
+    }
+  }
+  return { standard: standard.slice(0, 2), extras: extras.slice(0, standard.length >= 2 ? 1 : 2) };
+}
+
+function MenuRow({ item, eager }: { item: StorefrontMenuItem; eager: boolean }) {
+  const chips = optionChips(item);
   return (
-    <article className={`sf-cup ${item.available ? "" : "is-unavailable"} ${band ? "has-band-print" : ""}`}>
-      {band ? <p className="sf-cup-band">{band}</p> : null}
-      <Link href={`/menu/${item.id}`} className="sf-cup-photo" tabIndex={-1} aria-hidden="true">
-        <StorefrontMedia item={item} className="h-full w-full" sizes="(min-width: 1024px) 18rem, (min-width: 640px) 30vw, 50vw" eager={eager} />
+    <article className={`sf-row-item ${item.available ? "" : "is-unavailable"}`}>
+      <Link href={`/menu/${item.id}`} className="sf-row-photo" tabIndex={-1} aria-hidden="true">
+        <StorefrontMedia item={item} className="h-full w-full" sizes="(min-width: 1024px) 15rem, 8rem" eager={eager} />
       </Link>
-      <div className="sf-cup-print">
-        <Link href={`/menu/${item.id}`} className="sf-cup-name">{item.name}</Link>
-        {item.shortDescription ? <p className="sf-cup-desc">{item.shortDescription}</p> : null}
-        <div className="sf-cup-foot">
-          <span className="sf-cup-price">{formatMoney(item.price)}</span>
-          {item.popular ? <span className="sf-cup-tag">Popular</span> : null}
-          <MenuQuickAdd item={item} />
+      <div className="sf-row-body">
+        <div className="sf-row-top">
+          <Link href={`/menu/${item.id}`} className="sf-row-name">{item.name}</Link>
+          <span className="sf-row-price sf-row-price-top">{formatMoney(item.price)}</span>
         </div>
+        {item.shortDescription ? <p className="sf-row-desc">{item.shortDescription}</p> : null}
+        <div className="sf-row-foot">
+          {chips.standard.length || chips.extras.length ? (
+            <ul className="sf-chips" aria-label={`${item.name} options`}>
+              {chips.standard.map((chip) => {
+                const Icon = groupIcon(chip.group);
+                return <li key={chip.key} className="sf-chip"><Icon className="sf-chip-icon" aria-hidden="true" />{chip.label}</li>;
+              })}
+              {chips.extras.map((chip) => (
+                <li key={chip.key} className="sf-chip"><Plus className="sf-chip-plus" aria-hidden="true" />{chip.label}</li>
+              ))}
+            </ul>
+          ) : <span />}
+          <div className="sf-row-buy">
+            <span className="sf-row-price sf-row-price-buy">{formatMoney(item.price)}</span>
+            <MenuQuickAdd item={item} />
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function BeanCard({ item }: { item: StorefrontMenuItem }) {
+  return (
+    <article className="sf-bean">
+      <Link href={`/menu/${item.id}`} className="sf-bean-photo" tabIndex={-1} aria-hidden="true">
+        <StorefrontMedia item={item} className="h-full w-full" sizes="12rem" />
+      </Link>
+      <div className="sf-bean-body">
+        <Link href={`/menu/${item.id}`} className="sf-bean-name">{item.name}</Link>
+        <span className="sf-bean-price">{formatMoney(item.price)}</span>
       </div>
     </article>
   );
@@ -92,38 +155,43 @@ export function MenuBoard({
     }
   }
 
-  const knownCategories = new Set(categories.map((category) => category.id));
-  const sections = [
-    ...categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      items: items.filter((item) => item.category?.id === category.id),
-    })),
-    {
-      id: UNCATEGORIZED,
-      name: UNCATEGORIZED_LABEL,
-      description: null,
-      items: items.filter((item) => !item.category || !knownCategories.has(item.category.id)),
-    },
-  ].filter((section) => section.items.length > 0);
+  const categoryOrder = new Map(categories.map((category, index) => [category.id, index]));
+  const ordered = [...items].sort((a, b) => (categoryOrder.get(a.category?.id || "") ?? 999) - (categoryOrder.get(b.category?.id || "") ?? 999));
   const filtered = Boolean(search || categoryId);
-  // All view: one grid of cups, in menu order, so the first screen opens on cups, not headings.
   const allView = !categoryId;
-  const cups = sections.flatMap((section) => section.items.map((item) => ({ item, band: section.name })));
+  const retail = allView ? ordered.filter((item) => item.barStation === "retail_shelf") : [];
+  const counter = allView ? ordered.filter((item) => item.barStation !== "retail_shelf") : ordered;
+  // All view: the café's featured and popular picks first, then everything else it makes.
+  const featured = allView && !search ? counter.filter((item) => item.featured || item.popular) : counter;
+  const rest = allView && !search ? counter.filter((item) => !item.featured && !item.popular) : [];
+  const activeCategory = categoryId === UNCATEGORIZED ? { id: UNCATEGORIZED, name: UNCATEGORIZED_LABEL, description: null } : categories.find((category) => category.id === categoryId);
+  const heading = search ? `Results for “${search}”` : activeCategory ? activeCategory.name : featured.length ? "Featured" : "Menu";
+  const retailCategory = retail.find((item) => item.category)?.category;
+  const retailDescription = retailCategory ? categories.find((category) => category.id === retailCategory.id)?.description : null;
 
   return (
     <>
       <div className="sf-menu-bar">
-        <nav className="sf-track" aria-label="Menu categories">
-          <Link href={filterHref(search, "")} className="sf-track-item" aria-current={!categoryId ? "page" : undefined}>All</Link>
-          {categories.map((category) => (
-            <Link key={category.id} href={filterHref(search, category.id)} className="sf-track-item" aria-current={categoryId === category.id ? "page" : undefined}>{category.name}</Link>
-          ))}
+        <nav className="sf-cats" aria-label="Menu categories">
+          <Link href={filterHref(search, "")} className="sf-cat" aria-current={!categoryId ? "page" : undefined}>
+            <LayoutGrid aria-hidden="true" />All
+          </Link>
+          {categories.map((category) => {
+            const Icon = categoryIcon(category.name);
+            return (
+              <Link key={category.id} href={filterHref(search, category.id)} className="sf-cat" aria-current={categoryId === category.id ? "page" : undefined}>
+                <Icon aria-hidden="true" />{category.name}
+              </Link>
+            );
+          })}
           {hasUncategorized ? (
-            <Link href={filterHref(search, UNCATEGORIZED)} className="sf-track-item" aria-current={categoryId === UNCATEGORIZED ? "page" : undefined}>{UNCATEGORIZED_LABEL}</Link>
+            <Link href={filterHref(search, UNCATEGORIZED)} className="sf-cat" aria-current={categoryId === UNCATEGORIZED ? "page" : undefined}>{UNCATEGORIZED_LABEL}</Link>
           ) : null}
         </nav>
+      </div>
+
+      <div className="sf-feature-head">
+        <h2 id="menu-title" className="sf-feature-title">{heading}</h2>
         <form className="sf-search" action="/#menu" method="get" role="search">
           <Search className="size-4" aria-hidden="true" />
           <label htmlFor="menu-search" className="sr-only">Search the menu</label>
@@ -132,29 +200,45 @@ export function MenuBoard({
           <button type="submit" className="sr-only">Search</button>
         </form>
       </div>
-
       {search ? (
         <p className="sf-results" role="status">
-          <span>Results for “{search}”</span>
           <Link href={filterHref("", categoryId)} className="sf-link">Clear search</Link>
         </p>
+      ) : activeCategory?.description ? <p className="sf-results">{activeCategory.description}</p> : null}
+
+      {featured.length ? (
+        <div className="sf-rows-list">{featured.map((item, index) => <MenuRow key={item.id} item={item} eager={index < 4} />)}</div>
       ) : null}
 
-      {sections.length > 0 && allView ? (
-        <div className="sf-cup-grid sf-cup-grid-all">
-          {cups.map(({ item, band }, index) => <MenuCup key={item.id} item={item} eager={index < 4} band={band} />)}
-        </div>
-      ) : sections.length > 0 ? <div className="sf-menu-sections">{sections.map((section, sectionIndex) => (
-        <section key={section.id} className="sf-menu-section" aria-labelledby={`menu-section-${section.id}`}>
-          <div className="sf-menu-section-head">
-            <div className="min-w-0">
-              <h3 id={`menu-section-${section.id}`} className="sf-display">{section.name}</h3>
-              {section.description ? <p>{section.description}</p> : null}
+      {rest.length ? (
+        <>
+          <h2 className="sf-feature-title sf-feature-title-sub">More from the bar</h2>
+          <div className="sf-rows-list">{rest.map((item) => <MenuRow key={item.id} item={item} eager={false} />)}</div>
+        </>
+      ) : null}
+
+      {retail.length ? (
+        <section className="sf-beans" aria-labelledby="beans-title">
+          <Link href={retailCategory ? filterHref("", retailCategory.id) : "/#menu"} className="sf-beans-head">
+            <span>
+              <span id="beans-title" className="sf-beans-title">{retailCategory?.name || "Beans"}</span>
+              {retailDescription ? <span className="sf-beans-sub">{retailDescription}</span> : null}
+            </span>
+            <ChevronRight className="size-5" aria-hidden="true" />
+          </Link>
+          <div className="sf-beans-promo">
+            <div className="sf-beans-promo-photo"><StorefrontMedia item={retail[0]} className="h-full w-full" sizes="16rem" /></div>
+            <div className="sf-beans-promo-body">
+              <p className="sf-beans-promo-title">Our {retailCategory?.name.replace(/^retail\s+/i, "") || "Beans"}</p>
+              {retailDescription ? <p className="sf-beans-promo-sub">{retailDescription}</p> : null}
+              <Link href={retailCategory ? filterHref("", retailCategory.id) : `/menu/${retail[0].id}`} className="sf-beans-promo-link">Shop now <ChevronRight className="size-4" aria-hidden="true" /></Link>
             </div>
           </div>
-          <div className="sf-cup-grid">{section.items.map((item) => <MenuCup key={item.id} item={item} eager={sectionIndex === 0} />)}</div>
+          <div className="sf-beans-track">{retail.map((item) => <BeanCard key={item.id} item={item} />)}</div>
         </section>
-      ))}</div> : (
+      ) : null}
+
+      {!featured.length && !rest.length && !retail.length ? (
         <div className="sf-empty">
           {filtered ? (
             <>
@@ -165,7 +249,7 @@ export function MenuBoard({
             <strong>No menu items available</strong>
           )}
         </div>
-      )}
+      ) : null}
 
       {cursor ? (
         <div className="sf-more" aria-live="polite">

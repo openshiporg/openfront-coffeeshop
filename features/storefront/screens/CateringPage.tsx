@@ -10,7 +10,7 @@ export default async function CateringPage() {
   const store = storeResult.kind === "ok" ? storeResult.store : null;
   const timeZone = cateringTimeZone(store?.timezone);
   return (
-    <StorefrontShell cartBar={false}>
+    <StorefrontShell cartBar={false} active="catering">
       <main className="sf-container sf-page">
         <h1 className="sf-display sf-page-title">Catering</h1>
         <p className="sf-page-lead">Tell us about the event and we’ll reply with a quote.</p>

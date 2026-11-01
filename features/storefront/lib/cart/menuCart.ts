@@ -42,6 +42,12 @@ export function defaultModifierIds(item: StorefrontMenuItem) {
   );
 }
 
+/** True when the item's standard choices already satisfy every required group, so it can be added in one tap. */
+export function quickAddReady(item: StorefrontMenuItem) {
+  const defaults = new Set(defaultModifierIds(item));
+  return modifierGroups(item).every((group) => group.modifiers.filter((modifier) => defaults.has(modifier.id)).length >= group.minimum);
+}
+
 export function buildQuotedCartLine(
   item: StorefrontMenuItem,
   quote: CafeOrderQuote,

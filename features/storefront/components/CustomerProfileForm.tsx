@@ -6,7 +6,7 @@ import { updateCustomerProfileAction } from "../lib/data/account";
 export function CustomerProfileForm({ name, phone }: { name: string; phone?: string | null }) {
   const [state, action, pending] = useActionState(updateCustomerProfileAction, null);
   return (
-    <form action={action} className="sf-panel sf-form-stack" aria-labelledby="profile-title">
+    <form id="profile" action={action} className="sf-panel sf-form-stack" aria-labelledby="profile-title">
       <h2 id="profile-title" className="sf-display sf-panel-title">Profile</h2>
       <label htmlFor="profile-name" className="sf-form-label">
         Name

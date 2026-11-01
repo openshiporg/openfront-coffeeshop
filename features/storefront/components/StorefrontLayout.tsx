@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Metadata } from "next";
-import { Permanent_Marker, Sofia_Sans, Sofia_Sans_Condensed } from "next/font/google";
+import { Instrument_Serif, Jost } from "next/font/google";
 
 import { getStoreLogoThemeHue } from "@/features/keystone/lib/brand-colors";
 import { UnconfiguredStorefront } from "@/features/storefront/components/StorefrontShell";
@@ -9,23 +9,18 @@ import { getCoffeeStore, getCoffeeStoreResult } from "@/features/storefront/lib/
 // One storefront font/brand frame for every storefront route (the (storefront)
 // group layout and the root `/` home). Dashboard typography stays on the root
 // layout's Geist variables; these fonts are scoped to `.sf-root`.
-// "The marked cup": a condensed print sans for what is printed on the cup (box
-// labels, headings), its regular width for reading, and a marker hand used only
-// for what is written on it (names, chosen options, counts, order numbers).
-const sfDisplay = Sofia_Sans_Condensed({
-  variable: "--font-sf-display",
-  subsets: ["latin"],
-});
-
-const sfBody = Sofia_Sans({
+// Rigel: a light geometric sans for reading and labels, and an italic display
+// serif for the few large greeting lines (welcome, order, page titles).
+const sfBody = Jost({
   variable: "--font-sf-body",
   subsets: ["latin"],
 });
 
-const sfMarker = Permanent_Marker({
-  variable: "--font-sf-marker",
+const sfScript = Instrument_Serif({
+  variable: "--font-sf-script",
   subsets: ["latin"],
   weight: "400",
+  style: ["normal", "italic"],
 });
 
 type StorefrontBrandStyle = CSSProperties & { "--sf-brand-hue": string };
@@ -58,7 +53,7 @@ export async function StorefrontFrame({
   };
 
   return (
-    <div className={`sf-root ${sfDisplay.variable} ${sfBody.variable} ${sfMarker.variable}`} style={style}>
+    <div className={`sf-root ${sfBody.variable} ${sfScript.variable}`} style={style}>
       {result.kind !== "unconfigured" || !requireStore ? children : <UnconfiguredStorefront />}
     </div>
   );

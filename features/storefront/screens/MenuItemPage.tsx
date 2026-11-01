@@ -42,7 +42,7 @@ export async function MenuItemPage({ id }: { id: string }) {
   ].filter((fact): fact is string => Boolean(fact));
 
   return (
-    <StorefrontShell cartBar={false}>
+    <StorefrontShell cartBar={false} rail tabbar={false} active="menu">
       <main className="sf-container sf-page sf-has-addbar">
         <Link href="/#menu" className="sf-back-link">
           <ArrowLeft className="size-4" aria-hidden="true" />
@@ -53,7 +53,7 @@ export async function MenuItemPage({ id }: { id: string }) {
             <div className="sf-item-photo">
               <StorefrontMedia item={item} className="h-full w-full" emphasize eager sizes="(min-width: 1024px) 34rem, 100vw" />
             </div>
-            <h1 id="item-title" className="sf-display sf-item-title">{item.name}</h1>
+            <h1 id="item-title" className="sf-item-title">{item.name}</h1>
             {item.shortDescription ? <p className="sf-item-lead">{item.shortDescription}</p> : null}
             {facts.length ? (
               <ul className="sf-facts">
