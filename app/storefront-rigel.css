@@ -1410,7 +1410,6 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
 @keyframes sf-pickpick-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .sf-pickpick-pop { animation: none; } }
 .sf-pickpick-list { display: grid; gap: 0.5rem; }
-.sf-pickpick-day span { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .sf-pickpick-day {
   position: sticky; top: -0.5rem; z-index: 1;
   padding: 0.5rem 0.25rem 0.375rem; background: var(--sf-card);

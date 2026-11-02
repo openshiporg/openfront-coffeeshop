@@ -80,7 +80,7 @@ export function PickupTimePicker({
             <div role="listbox" aria-label="Pickup time" className="sf-pickpick-list">
               {groups.map((group) => (
                 <div key={group.key} role="group" aria-label={group.label} className="sf-pickpick-group">
-                  <p className="sf-pickpick-day" aria-hidden="true">{group.label}{group.slots[0]?.getTime() === earliest ? <span> · earliest first</span> : null}</p>
+                  <p className="sf-pickpick-day" aria-hidden="true">{group.label}</p>
                   <div className="sf-pickpick-grid">
                     {group.slots.map((slot) => {
                       const selected = chosen?.getTime() === slot.getTime();
