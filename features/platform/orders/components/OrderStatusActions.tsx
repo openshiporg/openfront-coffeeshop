@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { acceptPickupLabel } from "../lib/accept-label";
 import { acceptCafePickupOrderAction, applyOrderLoyaltyAction, recordCafePaymentAction, refundCafePaymentAction, updateCafeOrderStatusAction } from "../actions/order-status";
 import { clearCommandIntent, newCommandKey, readCommandIntent, writeCommandIntent } from "../lib/commandIntent";
 
@@ -64,7 +65,8 @@ export function OrderStatusActions({ orderId, actions }: { orderId: string; acti
   );
 }
 
-export function AcceptPickupAction({ orderId }: { orderId: string }) {
+/** `paid`: the guest already paid online, so accepting sends it straight to paid. */
+export function AcceptPickupAction({ orderId, paid = false }: { orderId: string; paid?: boolean }) {
   const router = useRouter();
   const storageKey = `coffee-accept-order:${orderId}`;
   const [pending, setPending] = React.useState(false);
@@ -83,7 +85,7 @@ export function AcceptPickupAction({ orderId }: { orderId: string }) {
   }
   return (
     <div className="space-y-2">
-      <Button type="button" className="min-h-10 w-full rounded-[6px] active:scale-[0.97] sm:w-auto" disabled={pending} onClick={accept}>{pending ? "Accepting…" : "Accept unpaid pickup"}</Button>
+      <Button type="button" className="min-h-10 w-full rounded-[6px] active:scale-[0.97] sm:w-auto" disabled={pending} onClick={accept}>{pending ? "Accepting…" : acceptPickupLabel(paid)}</Button>
       <ActionError message={error} />
     </div>
   );

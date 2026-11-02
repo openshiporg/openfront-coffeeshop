@@ -155,7 +155,7 @@ function OrderActions({ order, capabilities }: { order: CafeOrderQueueItem; capa
   return (
     <div className="space-y-2">
       {pendingPayment ? <p role="status" className="text-sm text-muted-foreground">Payment attempt awaiting its result.</p> : null}
-      {capabilities.canManageOrders && order.status === "open" && order.fulfillmentType === "pickup" ? <AcceptPickupAction orderId={order.id} /> : null}
+      {capabilities.canManageOrders && order.status === "open" && order.fulfillmentType === "pickup" ? <AcceptPickupAction orderId={order.id} paid={order.paymentState === "paid"} /> : null}
       {capabilities.canManageOrders ? <OrderStatusActions orderId={order.id} actions={order.actions} /> : null}
       {order.canRecordPayment ? <RecordPaymentActions orderId={order.id} total={order.total} /> : null}
       {order.refundablePayments.length ? <RefundPaymentActions payments={order.refundablePayments} /> : null}
