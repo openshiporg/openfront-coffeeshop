@@ -3,6 +3,7 @@ import { denyAll } from "@keystone-6/core/access";
 import { decimal, integer, json, relationship, select, text } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
+import { mergeStoreSettingRecord } from "../lib/store-setting-merge";
 import { COFFEE_CURRENCY_CODE_PATTERN, validCoffeeTimezone } from "../lib/store-locale-policy";
 import {
   COFFEE_BRAND_COLORS,
@@ -29,7 +30,7 @@ export const StoreSetting = list({
     // same effective-record policy as the Store Settings screen.
     validate: ({ operation, resolvedData, item, addValidationError }) => {
       if (operation === "delete") return;
-      const merged = { ...(item ?? {}), ...(resolvedData ?? {}) } as Record<string, unknown>;
+      const merged = mergeStoreSettingRecord(item, resolvedData);
       for (const message of storeSettingRecordErrors(merged)) addValidationError(message);
     },
   },
