@@ -1,5 +1,4 @@
 import { keystoneContext } from '../../features/keystone/context'
-import { useDemoGuardErrors } from '../../features/keystone/lib/demo-guard'
 import { createYoga } from "graphql-yoga";
 // @ts-ignore
 import processRequest from "graphql-upload/processRequest.js";
@@ -18,7 +17,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   return createYoga({
-    plugins: [useDemoGuardErrors()],
     renderGraphiQL: process.env.NODE_ENV !== "production"
       ? () => {
           return `
