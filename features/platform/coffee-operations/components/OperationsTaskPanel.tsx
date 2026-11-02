@@ -35,6 +35,8 @@ import {
   type Page,
   type ReceiptPurchaseOrder,
 } from "../lib/operationsTypes";
+import { PlatformSelect } from "@/features/platform/components/PlatformSelect";
+import { PlatformDateInput, PlatformDateTimeInput } from "@/features/platform/components/PlatformDateTime";
 
 type ActionResult = { success: boolean; error?: string };
 type Pick = { id: string; name: string; unit: string | null };
@@ -154,7 +156,6 @@ function FormMessage({ error, status }: { error: string | null; status: string |
   );
 }
 
-const selectClass = "h-10 w-full min-w-0 rounded-[6px] border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 const fieldClass = "h-10 rounded-[6px]";
 
 /** Server-searched, keyset-paged chooser. The selected record is kept by id across searches and pages. */
@@ -185,21 +186,24 @@ function OptionPicker(props: {
     <div className="grid min-w-0 gap-1.5 sm:col-span-2">
       <Label htmlFor={props.id}>{props.label}</Label>
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-        <select
-          id={props.id}
-          value={props.selected?.id || ""}
-          disabled={props.disabled || (props.page.loadError && !props.selected)}
-          onChange={(event) => {
-            const option = options.find((candidate) => candidate.id === event.currentTarget.value);
-            if (option) props.onSelect({ id: option.id, name: describe(option), unit: option.unit });
-            else if (!event.currentTarget.value) props.onSelect(null);
-          }}
-          className={`${selectClass} sm:flex-1`}
-        >
-          <option value="">Select {props.noun}</option>
-          {selectedMissing && props.selected ? <option value={props.selected.id}>{props.selected.name}</option> : null}
-          {options.map((option) => <option key={option.id} value={option.id}>{describe(option)}</option>)}
-        </select>
+        <div className="min-w-0 sm:flex-1">
+          <PlatformSelect
+            id={props.id}
+            value={props.selected?.id || ""}
+            disabled={props.disabled || (props.page.loadError && !props.selected)}
+            placeholder={`Select ${props.noun}`}
+            searchable={false}
+            onValueChange={(next) => {
+              const option = options.find((candidate) => candidate.id === next);
+              if (option) props.onSelect({ id: option.id, name: describe(option), unit: option.unit });
+              else if (!next) props.onSelect(null);
+            }}
+            options={[
+              ...(selectedMissing && props.selected ? [{ value: props.selected.id, label: props.selected.name }] : []),
+              ...options.map((option) => ({ value: option.id, label: describe(option) })),
+            ]}
+          />
+        </div>
         {/* Server search narrows the choices; Enter runs it. */}
         <div className="relative min-w-0 sm:w-52 sm:shrink-0">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -541,7 +545,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                   <Input id="prep-quantity" className={fieldClass} inputMode="decimal" value={prep.quantity} onChange={(event) => setPrep({ quantity: event.currentTarget.value })} required />
                 </Field>
                 <Field id="prep-expires" label="Use by (this device’s time)" hint={prep.expiresLocal ? localTimeMessage("Use by", prepExpiry) : "Optional"}>
-                  <Input id="prep-expires" className={fieldClass} type="datetime-local" value={prep.expiresLocal} disabled={!timesAvailable} onChange={(event) => setPrep({ expiresLocal: event.currentTarget.value })} aria-describedby="prep-expires-hint" />
+                  <PlatformDateTimeInput id="prep-expires" value={prep.expiresLocal} disabled={!timesAvailable} onChange={(next) => setPrep({ expiresLocal: next })} aria-describedby="prep-expires-hint" />
                 </Field>
                 <div className="sm:col-span-2">
                   <Field id="prep-notes" label="Notes">
@@ -593,10 +597,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                   <Input id="waste-quantity" className={fieldClass} inputMode="decimal" value={waste.quantity} onChange={(event) => setWaste({ quantity: event.currentTarget.value })} required />
                 </Field>
                 <Field id="waste-reason" label="Reason">
-                  <select id="waste-reason" value={waste.reason} onChange={(event) => setWaste({ reason: event.currentTarget.value })} required className={selectClass}>
-                    <option value="">Select reason</option>
-                    {WASTE_REASON_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
+                  <PlatformSelect id="waste-reason" value={waste.reason} onValueChange={(next) => setWaste({ reason: next })} placeholder="Select reason" options={WASTE_REASON_OPTIONS} />
                 </Field>
                 <div className="sm:col-span-2">
                   <Field id="waste-notes" label="Notes">
@@ -660,7 +661,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                   <Input id="po-cost" className={fieldClass} inputMode="decimal" value={purchase.unitCost} onChange={(event) => setPurchase({ unitCost: event.currentTarget.value })} required />
                 </Field>
                 <Field id="po-expected" label="Expected delivery date">
-                  <Input id="po-expected" className={fieldClass} type="date" value={purchase.expectedDate} onChange={(event) => setPurchase({ expectedDate: event.currentTarget.value })} />
+                  <PlatformDateInput id="po-expected" value={purchase.expectedDate} onChange={(next) => setPurchase({ expectedDate: next })} />
                 </Field>
                 <Field id="po-notes" label="Notes">
                   <Input id="po-notes" className={fieldClass} maxLength={500} value={purchase.notes} onChange={(event) => setPurchase({ notes: event.currentTarget.value })} />
@@ -721,21 +722,16 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                 {!timesAvailable ? <p role="alert" className="text-sm text-destructive sm:col-span-2">{typeof tz === "string" && validCoffeeTimezone(tz) ? "This device's timezone could not be determined, so shifts cannot be scheduled here." : "Set a valid store timezone in Store Settings before scheduling shifts."}</p> : null}
                 <OptionPicker id="shift-staff" label="Staff member" noun="staff" page={data.staffMembers} selected={shift.staff} onSelect={(staff) => setShift({ staff })} searchParam="staffSearch" cursorParam="staffCursor" urlState={urlState} describe={(option) => option.detail && option.detail !== option.name ? `${option.name} (${option.detail})` : option.name} />
                 <Field id="shift-role" label="Role">
-                  <select id="shift-role" value={shift.role} onChange={(event) => setShift({ role: event.currentTarget.value })} className={selectClass}>
-                    <option value="barista">Barista</option>
-                    <option value="shift_lead">Shift lead</option>
-                    <option value="kitchen">Kitchen</option>
-                    <option value="manager">Manager</option>
-                  </select>
+                  <PlatformSelect id="shift-role" value={shift.role} onValueChange={(next) => setShift({ role: next })} options={[{ value: "barista", label: "Barista" }, { value: "shift_lead", label: "Shift lead" }, { value: "kitchen", label: "Kitchen" }, { value: "manager", label: "Manager" }]} />
                 </Field>
                 <Field id="shift-notes" label="Notes">
                   <Input id="shift-notes" className={fieldClass} maxLength={500} value={shift.notes} onChange={(event) => setShift({ notes: event.currentTarget.value })} />
                 </Field>
                 <Field id="shift-start" label="Starts (this device’s time)" hint={localTimeMessage("Start", shiftStart)}>
-                  <Input id="shift-start" className={fieldClass} type="datetime-local" value={shift.startsLocal} disabled={!timesAvailable} onChange={(event) => setShift({ startsLocal: event.currentTarget.value })} aria-describedby="shift-start-hint" required />
+                  <PlatformDateTimeInput id="shift-start" value={shift.startsLocal} disabled={!timesAvailable} onChange={(next) => setShift({ startsLocal: next })} aria-describedby="shift-start-hint" />
                 </Field>
                 <Field id="shift-end" label="Ends (this device’s time)" hint={localTimeMessage("End", shiftEnd)}>
-                  <Input id="shift-end" className={fieldClass} type="datetime-local" value={shift.endsLocal} disabled={!timesAvailable} onChange={(event) => setShift({ endsLocal: event.currentTarget.value })} aria-describedby="shift-end-hint" required />
+                  <PlatformDateTimeInput id="shift-end" value={shift.endsLocal} disabled={!timesAvailable} onChange={(next) => setShift({ endsLocal: next })} aria-describedby="shift-end-hint" />
                 </Field>
                 <FormMessage error={errors.shift ?? null} status={statuses.shift ?? null} />
                 <div className="flex flex-wrap gap-2 sm:col-span-2">
@@ -765,7 +761,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
               </dl>
             ) : null}
             <Field id="receive-expiry" label="Expiry printed on the delivery (this device’s time)" hint={receiveExpiry ? localTimeMessage("Expiry", receiveExpiryResolution) : "Optional"}>
-              <Input id="receive-expiry" className={fieldClass} type="datetime-local" value={receiveExpiry} disabled={!timesAvailable} onChange={(event) => setReceiveExpiry(event.currentTarget.value)} aria-describedby="receive-expiry-hint" />
+              <PlatformDateTimeInput id="receive-expiry" value={receiveExpiry} disabled={!timesAvailable} onChange={setReceiveExpiry} aria-describedby="receive-expiry-hint" />
             </Field>
             <div className="flex items-start gap-2">
               <Checkbox id="receive-confirm" checked={receiveConfirmed} onCheckedChange={(checked) => setReceiveConfirmed(checked === true)} />

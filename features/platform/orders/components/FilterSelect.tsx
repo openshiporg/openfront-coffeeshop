@@ -1,20 +1,36 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import * as React from "react";
+import { PlatformSelect, type PlatformSelectOption } from "@/features/platform/components/PlatformSelect";
 import { cn } from "@/lib/utils";
 
-/** Compact native select that submits its GET form as soon as the value changes. */
-export function FilterSelect({ className, children, ...props }: ComponentProps<"select">) {
+function optionsFrom(children: React.ReactNode): PlatformSelectOption[] {
+  const options: PlatformSelectOption[] = [];
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement<{ value?: string | number; children?: React.ReactNode; disabled?: boolean }>(child)) return;
+    if (child.type === React.Fragment) { options.push(...optionsFrom(child.props.children)); return; }
+    const label = React.Children.toArray(child.props.children).join("");
+    options.push({ value: String(child.props.value ?? label), label, disabled: child.props.disabled });
+  });
+  return options;
+}
+
+/**
+ * Compact GET-form filter: `<option>` children become a popover list, and choosing one
+ * submits the surrounding form (the value travels in a hidden input named `name`).
+ */
+export function FilterSelect({ id, name, defaultValue, className, children, "aria-label": ariaLabel }: {
+  id?: string;
+  name: string;
+  defaultValue?: string;
+  className?: string;
+  children: React.ReactNode;
+  "aria-label"?: string;
+}) {
+  const options = optionsFrom(children);
   return (
-    <select
-      {...props}
-      onChange={(event) => event.currentTarget.form?.requestSubmit()}
-      className={cn(
-        "h-9 min-w-0 rounded-[6px] border border-input bg-background px-2.5 pr-8 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        className,
-      )}
-    >
-      {children}
-    </select>
+    <div className={cn("min-w-0", className)}>
+      <PlatformSelect id={id} name={name} defaultValue={defaultValue} options={options} submitOnChange searchable={false} size="sm" aria-label={ariaLabel} />
+    </div>
   );
 }

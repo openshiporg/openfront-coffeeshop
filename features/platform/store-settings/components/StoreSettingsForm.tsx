@@ -18,6 +18,7 @@ import {
   type CoffeeStoreSettingsData,
   type CoffeeStoreSettingsInput,
 } from "../lib/store-settings-input";
+import { PlatformSelect } from "@/features/platform/components/PlatformSelect";
 
 const DEFAULT_WEEKLY_HOURS: CoffeeStoreSettingsInput["weeklyHours"] = [
   { day: "Monday", open: "07:00", close: "17:00" },
@@ -397,19 +398,19 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
               <Input className="rounded-[6px]" id={FIELD_IDS.contactEmail} type="email" required autoComplete="email" value={form.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} aria-invalid={Boolean(fieldErrors.contactEmail)} aria-describedby={fieldErrors.contactEmail ? "contactEmail-error" : undefined} />
             </Field>
             <Field id="timezone" label="Timezone" required className="sm:col-span-2" error={fieldErrors.timezone}>
-              <select
+              <PlatformSelect
                 id={FIELD_IDS.timezone}
-                required
                 value={form.timezone}
-                onChange={(event) => update("timezone", event.target.value)}
+                onValueChange={(next) => update("timezone", next)}
+                placeholder="Select timezone"
+                searchable
                 aria-invalid={Boolean(fieldErrors.timezone)}
                 aria-describedby={fieldErrors.timezone ? "timezone-error" : undefined}
-                className="h-10 w-full min-w-0 rounded-[6px] border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-              >
-                {form.timezone && !timeZones.includes(form.timezone) ? <option value={form.timezone}>{form.timezone}</option> : null}
-                {!form.timezone ? <option value="">Select timezone</option> : null}
-                {timeZones.map((zone) => <option key={zone} value={zone}>{zone.replaceAll("_", " ")}</option>)}
-              </select>
+                options={[
+                  ...(form.timezone && !timeZones.includes(form.timezone) ? [{ value: form.timezone, label: form.timezone }] : []),
+                  ...timeZones.map((zone) => ({ value: zone, label: zone.replaceAll("_", " ") })),
+                ]}
+              />
             </Field>
           </div>
         </SettingsSection>

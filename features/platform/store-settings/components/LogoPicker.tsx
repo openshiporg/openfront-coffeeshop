@@ -155,7 +155,7 @@ export function LogoPicker({ value, hue, onChange, onPendingDraftChange }: LogoP
             aria-describedby={`${fieldId}-status`}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="mt-1.5 min-h-32 resize-y rounded-[6px] font-mono text-[11px] leading-4"
+            className="mt-1.5 min-h-32 resize-y rounded-[6px] font-mono text-xs leading-4"
             placeholder='<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">…</svg>'
             spellCheck={false}
             aria-invalid={draft.length > 0 && !hasValidDraft}

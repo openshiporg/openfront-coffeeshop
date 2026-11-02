@@ -13,6 +13,7 @@ import { parseDollars } from "@/features/platform/catering/lib/store-time";
 import { cn } from "@/lib/utils";
 import { createSubscriptionAction, searchLoyaltyAccountsAction } from "../actions/subscriptions";
 import { BILLING_INTERVALS, INTERVAL_LABELS, defaultRenewal, type LoyaltyAccountOption, type SubscriptionInput } from "../lib/subscriptions";
+import { PlatformDateInput } from "@/features/platform/components/PlatformDateTime";
 
 type Errors = Partial<Record<keyof SubscriptionInput | "form", string>>;
 
@@ -159,16 +160,16 @@ export function CreateSubscriptionSheet({ today }: { today: string }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="new-subscription-starts">Starts</Label>
-              <Input id="new-subscription-starts" type="date" value={draft.startsOn} onChange={(event) => update({ startsOn: event.target.value })} aria-invalid={errors.startsOn ? true : undefined} />
+              <PlatformDateInput id="new-subscription-starts" value={draft.startsOn} clearable={false} onChange={(value) => update({ startsOn: value })} aria-invalid={errors.startsOn ? true : undefined} />
               <FieldError id="new-subscription-starts-error" message={errors.startsOn} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-subscription-renews">Renews</Label>
-              <Input
+              <PlatformDateInput
                 id="new-subscription-renews"
-                type="date"
                 value={draft.renewsOn}
-                onChange={(event) => { setRenewalTouched(true); update({ renewsOn: event.target.value }, true); }}
+                clearable={false}
+                onChange={(value) => { setRenewalTouched(true); update({ renewsOn: value }, true); }}
                 aria-invalid={errors.renewsOn ? true : undefined}
               />
               <FieldError id="new-subscription-renews-error" message={errors.renewsOn} />

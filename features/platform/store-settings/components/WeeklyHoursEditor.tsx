@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { WEEKDAYS, type Weekday } from '../lib/store-settings-input'
+import { PlatformTimeInput } from '@/features/platform/components/PlatformDateTime'
 
 export type HoursRow = { day: Weekday; closed: boolean; open: string; close: string }
 
@@ -128,26 +129,22 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
         <div className="grid grid-cols-2 divide-x divide-border">
           <div className="px-5 py-3">
             <Label htmlFor={`${id}-open`} className="text-xs text-muted-foreground">Opens</Label>
-            <Input
+            <PlatformTimeInput
               id={`${id}-open`}
-              type="time"
-              required
               disabled={disabled}
               value={active.open}
-              onChange={(event) => updateDay(active.day, { open: event.target.value })}
-              className="mt-1.5 h-11 rounded-[6px] text-sm font-semibold"
+              onChange={(value) => updateDay(active.day, { open: value })}
+              className="mt-1.5 h-11 font-semibold"
             />
           </div>
           <div className="px-5 py-3">
             <Label htmlFor={`${id}-close`} className="text-xs text-muted-foreground">Closes</Label>
-            <Input
+            <PlatformTimeInput
               id={`${id}-close`}
-              type="time"
-              required
               disabled={disabled}
               value={active.close}
-              onChange={(event) => updateDay(active.day, { close: event.target.value })}
-              className="mt-1.5 h-11 rounded-[6px] text-sm font-semibold"
+              onChange={(value) => updateDay(active.day, { close: value })}
+              className="mt-1.5 h-11 font-semibold"
             />
           </div>
         </div>

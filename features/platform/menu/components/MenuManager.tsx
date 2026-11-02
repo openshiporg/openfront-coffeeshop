@@ -41,9 +41,9 @@ import {
   type MenuManagerItem,
   type MenuModifier,
 } from "../types";
+import { PlatformSelect } from "@/features/platform/components/PlatformSelect";
 
 const MENU_PATH = "/dashboard/platform/menu";
-const selectClass = "h-9 w-full min-w-0 rounded-[6px] border border-input bg-background px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50";
 const checkboxClass = "size-4 rounded-[4px] border-input accent-primary";
 
 type Feedback = { tone: "error" | "status"; message: string } | null;
@@ -436,17 +436,15 @@ function ItemDetailsDialog({ open, onOpenChange, item, categories, busy, onSave 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor={`${prefix}-category`}>Category</Label>
-              <select id={`${prefix}-category`} className={selectClass} value={value.categoryId} onChange={(event) => set("categoryId", event.target.value)}>
-                <option value="">Uncategorized</option>
-                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                {value.categoryId && !categories.some((category) => category.id === value.categoryId) && <option value={value.categoryId}>{item.category?.name || "Current category"}</option>}
-              </select>
+              <PlatformSelect id={`${prefix}-category`} size="sm" value={value.categoryId} onValueChange={(next) => set("categoryId", next)} options={[
+                { value: "", label: "Uncategorized" },
+                ...categories.map((category) => ({ value: category.id, label: category.name })),
+                ...(value.categoryId && !categories.some((category) => category.id === value.categoryId) ? [{ value: value.categoryId, label: item.category?.name || "Current category" }] : []),
+              ]} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor={`${prefix}-station`}>Station</Label>
-              <select id={`${prefix}-station`} className={selectClass} value={value.barStation} onChange={(event) => set("barStation", event.target.value)}>
-                {BAR_STATIONS.map((station) => <option key={station.value} value={station.value}>{station.label}</option>)}
-              </select>
+              <PlatformSelect id={`${prefix}-station`} size="sm" value={value.barStation} onValueChange={(next) => set("barStation", next)} options={BAR_STATIONS} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor={`${prefix}-prep`}>Prep time (minutes)</Label>
@@ -517,16 +515,11 @@ function CreateItemDialog({ open, onOpenChange, categories, commands, notify }: 
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-item-category">Category</Label>
-              <select id="new-item-category" className={selectClass} value={draft.categoryId} onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}>
-                <option value="">Uncategorized</option>
-                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
+              <PlatformSelect id="new-item-category" size="sm" value={draft.categoryId} onValueChange={(next) => setDraft({ ...draft, categoryId: next })} options={[{ value: "", label: "Uncategorized" }, ...categories.map((category) => ({ value: category.id, label: category.name }))]} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-item-station">Station</Label>
-              <select id="new-item-station" className={selectClass} value={draft.barStation} onChange={(event) => setDraft({ ...draft, barStation: event.target.value })}>
-                {BAR_STATIONS.map((station) => <option key={station.value} value={station.value}>{station.label}</option>)}
-              </select>
+              <PlatformSelect id="new-item-station" size="sm" value={draft.barStation} onValueChange={(next) => setDraft({ ...draft, barStation: next })} options={BAR_STATIONS} />
             </div>
           </div>
           <div className="grid gap-1.5">
@@ -755,9 +748,7 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-group`}>Group</Label>
-          <select id={`${prefix}-group`} className={selectClass} value={draft.value.modifierGroup} onChange={(event) => set("modifierGroup", event.target.value)}>
-            {MODIFIER_GROUPS.map((group) => <option key={group.value} value={group.value}>{group.label}</option>)}
-          </select>
+          <PlatformSelect id={`${prefix}-group`} size="sm" value={draft.value.modifierGroup} onValueChange={(next) => set("modifierGroup", next)} options={MODIFIER_GROUPS} />
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-group-label`}>Group label</Label>
@@ -919,10 +910,7 @@ function InventoryPicker({ id, label, value, initial, onChange }: { id: string; 
         />
         <Button type="button" size="sm" variant="outline" className="h-9 rounded-[6px]" disabled={loading} onClick={find}>{loading ? "Searching…" : "Find"}</Button>
       </div>
-      <select id={id} aria-label={label} className={selectClass} value={value || ""} onChange={(event) => onChange(event.target.value || null)}>
-        <option value="">{options.length ? "Choose an ingredient" : "Search to list ingredients"}</option>
-        {options.map((option) => <option key={option.id} value={option.id}>{option.name}{option.unit ? ` (${option.unit})` : ""}</option>)}
-      </select>
+      <PlatformSelect id={id} aria-label={label} size="sm" value={value || ""} onValueChange={(next) => onChange(next || null)} placeholder={options.length ? "Choose an ingredient" : "Search to list ingredients"} searchable={false} options={options.map((option) => ({ value: option.id, label: `${option.name}${option.unit ? ` (${option.unit})` : ""}` }))} />
       <div aria-live="polite" className="text-xs text-muted-foreground">
         {error ? <span className="text-destructive">{error}</span> : searched && !options.length ? "No matching inventory." : hasMore ? "More match. Refine the search." : ""}
       </div>
@@ -970,9 +958,7 @@ function NewModifierForm({ item, commands, notify }: { item: MenuManagerItem; co
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-group`}>Group</Label>
-          <select id={`${prefix}-group`} className={selectClass} value={draft.modifierGroup} onChange={(event) => setDraft({ ...draft, modifierGroup: event.target.value })}>
-            {MODIFIER_GROUPS.map((group) => <option key={group.value} value={group.value}>{group.label}</option>)}
-          </select>
+          <PlatformSelect id={`${prefix}-group`} size="sm" value={draft.modifierGroup} onValueChange={(next) => setDraft({ ...draft, modifierGroup: next })} options={MODIFIER_GROUPS} />
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={`${prefix}-price`}>Price change</Label>

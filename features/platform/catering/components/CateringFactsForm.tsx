@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatStoreDateTime, storeZoneAbbreviation } from "@/lib/date-time";
 import type { ActionResult, CateringFactsInput } from "../lib/catering";
 import { EMAIL_PATTERN, storeLocalToInstant } from "../lib/store-time";
+import { PlatformDateTimeInput } from "@/features/platform/components/PlatformDateTime";
 
 export type CateringFactsDraft = CateringFactsInput & { notes: string };
 
@@ -108,7 +109,13 @@ export function CateringFactsForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor={`${idPrefix}-eventAtLocal`}>Event time{zone ? ` (${zone})` : ""}</Label>
-          <Input {...field("eventAtLocal")} type="datetime-local" />
+          <PlatformDateTimeInput
+            id={`${idPrefix}-eventAtLocal`}
+            value={draft.eventAtLocal}
+            onChange={(value) => { setDraft((current) => ({ ...current, eventAtLocal: value })); setErrors((current) => ({ ...current, eventAtLocal: undefined, form: undefined })); }}
+            aria-invalid={errors.eventAtLocal ? true : undefined}
+            aria-describedby={errors.eventAtLocal ? `${idPrefix}-eventAtLocal-error` : undefined}
+          />
           {resolved?.ok ? <p className="text-xs text-muted-foreground">{formatStoreDateTime(resolved.iso, timezone)}</p> : null}
           <FieldError id={`${idPrefix}-eventAtLocal-error`} message={errors.eventAtLocal} />
         </div>

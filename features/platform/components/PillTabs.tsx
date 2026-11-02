@@ -6,13 +6,13 @@ import { cn } from "@/lib/utils";
  * Platform view tabs. The names are kept from the earlier pill kit so every
  * screen keeps compiling; they now render as flat underline tabs on one rule
  * (owner rule, 2026-10-25: no pill or rounded tabs, radii at most 6px). The row
- * scrolls sideways on narrow screens instead of wrapping. For a choice between
+ * wraps on narrow screens so every tab stays visible (no hidden sideways scroll). For a choice between
  * values inside a form (tender, size), use `Segmented` instead.
  */
 export function PillTrack({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
   return (
-    <div className={cn("relative max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", className)}>
-      <div role="group" aria-label={label} className="flex min-w-max items-end gap-5 border-b">
+    <div className={cn("relative min-w-0 max-w-full", className)}>
+      <div role="group" aria-label={label} className="flex flex-wrap items-end gap-x-5 border-b">
         {children}
       </div>
     </div>

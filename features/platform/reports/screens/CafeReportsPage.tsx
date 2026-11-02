@@ -12,6 +12,7 @@ import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
 import { formatStoreDateTime } from "@/lib/date-time";
 import { addBusinessDays, isBusinessDate } from "../lib/businessDate";
 import { loadCoffeeReports, type ReportsProjection } from "../lib/reportResponse";
+import { PlatformDateInput } from "@/features/platform/components/PlatformDateTime";
 
 const REPORTS_QUERY = `
   query CoffeeReports($period: String, $startDate: String, $endDate: String, $lowStockPage: Int) {
@@ -122,11 +123,11 @@ function PeriodForm({ input, error }: { input: PeriodInput; error: string | null
           <input type="hidden" name="period" value="custom" />
           <div className="grid gap-1.5">
             <Label htmlFor="report-start">Start</Label>
-            <Input id="report-start" name="startDate" type="date" className="rounded-[6px]" defaultValue={input.startDate} aria-describedby={error ? "report-period-error" : undefined} />
+            <PlatformDateInput id="report-start" name="startDate" defaultValue={input.startDate} clearable={false} className="w-40" aria-describedby={error ? "report-period-error" : undefined} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="report-end">End</Label>
-            <Input id="report-end" name="endDate" type="date" className="rounded-[6px]" defaultValue={input.endDate} aria-describedby={error ? "report-period-error" : undefined} />
+            <PlatformDateInput id="report-end" name="endDate" defaultValue={input.endDate} clearable={false} className="w-40" aria-describedby={error ? "report-period-error" : undefined} />
           </div>
           <Button type="submit" className="rounded-[6px] active:scale-[0.97]">Apply</Button>
           {error ? <p id="report-period-error" role="alert" className="basis-full text-sm text-destructive">{error}</p> : null}
@@ -292,7 +293,7 @@ export async function CafeReportsPage({ searchParams }: { searchParams?: Promise
             <p className="text-sm tabular-nums"><Link href="/dashboard/platform/orders" className="font-medium underline decoration-border underline-offset-4 hover:decoration-foreground">{count(sales.openTicketCount)} open tickets now, {count(sales.readyTicketCount)} ready</Link></p>
           ) : null}
           {mismatch ? <p role="alert" className="text-sm text-destructive">Payments use more than one currency; collected totals can&apos;t be combined.</p> : null}
-          {collections && collections.needsReviewCount > 0 ? <p role="status" className="text-sm text-muted-foreground">{count(collections.needsReviewCount)} payments have refund details needing review; included as recorded.</p> : null}
+          {collections && collections.needsReviewCount > 0 ? <p role="status" className="text-sm text-muted-foreground">{collections.needsReviewCount === 1 ? "1 payment has refund details needing review; included as recorded." : `${count(collections.needsReviewCount)} payments have refund details needing review; included as recorded.`}</p> : null}
 
           {hasActivity || previousActivity ? (
             <PlatformTable
