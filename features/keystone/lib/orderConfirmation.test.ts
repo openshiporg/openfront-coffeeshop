@@ -23,6 +23,13 @@ test("sends once on success, linking the receipt key, and records sent", async (
   assert.ok(!JSON.stringify([...events.values()]).includes("kkkk"));
 });
 
+test("the provider message id is recorded with a sent status", async () => {
+  configure(true);
+  const { events, prisma } = fakePrisma();
+  await deliverOrderConfirmation(prisma, order, async () => ({ sent: true, messageId: "<abc@resend>" }));
+  assert.equal(events.get("order:o1:confirmation_email_result:v1").payload.messageId, "<abc@resend>");
+});
+
 test("a replay does not resend", async () => {
   configure(true);
   const { prisma } = fakePrisma();
