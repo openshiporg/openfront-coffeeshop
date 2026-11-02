@@ -5,6 +5,7 @@ import { PICKUP_LIMITS, weeklyHoursSchema } from "../../../keystone/lib/store-se
 import { COFFEE_BRAND_COLOR_VALUES, DEFAULT_COFFEE_BRAND_COLOR } from "../../../keystone/lib/brand-colors";
 import { sanitizeStoreLogoSvg } from "../../../lib/sanitize-store-logo";
 import { DEFAULT_STORE_LOGO_COLOR, DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor } from "../../store-settings/lib/store-logo";
+import { MENU_TEMPERATURES } from "../../../keystone/lib/menu-temperature";
 
 /**
  * One browser-safe onboarding contract shared by the setup preview and the
@@ -66,6 +67,8 @@ const menuItemSchema = z.object({
   price: int(0, 1_000_000),
   prepTimeMinutes: int(0, 240).default(5),
   barStation: z.enum(BAR_STATIONS).default("espresso_bar"),
+  // Omitted = the station default (cold bar iced, pastry and retail none, otherwise hot).
+  temperatureOptions: z.array(z.enum(MENU_TEMPERATURES)).max(3).optional(),
   featured: z.boolean().default(false),
   popular: z.boolean().default(false),
   imageUrl: z.string().trim().max(1000).regex(/^\/[^/\\]/, "Menu images must be a site path such as /images/latte.jpg").optional(),

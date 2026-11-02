@@ -18,9 +18,9 @@
       { "name": "Pastries", "description": "Fresh bakery favorites.", "sortOrder": 2 }
     ],
     "menuItems": [
-      { "name": "Americano", "shortDescription": "Double espresso topped with hot water.", "price": 425, "prepTimeMinutes": 4, "barStation": "espresso_bar", "featured": true, "popular": true, "categoryName": "Espresso", "imageUrl": "/images/americano.jpg" },
-      { "name": "Vanilla Latte", "shortDescription": "Espresso, milk, and house vanilla.", "price": 625, "prepTimeMinutes": 5, "barStation": "espresso_bar", "featured": true, "popular": true, "categoryName": "Espresso", "imageUrl": "/images/vanilla-latte.jpg" },
-      { "name": "Almond Croissant", "shortDescription": "Butter croissant with almond cream.", "price": 495, "prepTimeMinutes": 2, "barStation": "pastry_case", "featured": false, "popular": true, "categoryName": "Pastries", "imageUrl": "/images/almond-croissant.jpg" }
+      { "name": "Americano", "shortDescription": "Double espresso topped with hot water.", "price": 425, "prepTimeMinutes": 4, "barStation": "espresso_bar", "temperatureOptions": ["hot"], "featured": true, "popular": true, "categoryName": "Espresso", "imageUrl": "/images/americano.jpg" },
+      { "name": "Vanilla Latte", "shortDescription": "Espresso, milk, and house vanilla.", "price": 625, "prepTimeMinutes": 5, "barStation": "espresso_bar", "temperatureOptions": ["hot"], "featured": true, "popular": true, "categoryName": "Espresso", "imageUrl": "/images/vanilla-latte.jpg" },
+      { "name": "Almond Croissant", "shortDescription": "Butter croissant with almond cream.", "price": 495, "prepTimeMinutes": 2, "barStation": "pastry_case", "temperatureOptions": [], "featured": false, "popular": true, "categoryName": "Pastries", "imageUrl": "/images/almond-croissant.jpg" }
     ],
     "modifiers": [
       { "menuItemName": "Americano", "name": "12 oz", "modifierGroup": "size", "modifierGroupLabel": "Size", "priceAdjustment": 0, "defaultSelected": true, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "none" },
@@ -73,11 +73,11 @@
       { "name": "Retail Beans", "description": "Whole beans and brew-at-home staples.", "sortOrder": 4 }
     ],
     "menuItems": [
-      { "name": "Americano", "shortDescription": "Double espresso topped with hot water.", "price": 425, "prepTimeMinutes": 4, "barStation": "espresso_bar", "featured": true, "popular": true, "categoryName": "Espresso", "imageUrl": "/images/americano.jpg" },
-      { "name": "Vanilla Latte", "shortDescription": "Espresso, milk, and house vanilla.", "price": 625, "prepTimeMinutes": 5, "barStation": "espresso_bar", "featured": true, "popular": true, "categoryName": "Signature Drinks", "imageUrl": "/images/vanilla-latte.jpg" },
-      { "name": "Cardamom Cold Brew", "shortDescription": "Slow-steeped cold brew with sweet spice.", "price": 575, "prepTimeMinutes": 3, "barStation": "cold_bar", "featured": true, "popular": false, "categoryName": "Signature Drinks", "imageUrl": "/images/cardamom-cold-brew.jpg" },
-      { "name": "Almond Croissant", "shortDescription": "Butter croissant with almond cream.", "price": 495, "prepTimeMinutes": 2, "barStation": "pastry_case", "featured": false, "popular": true, "categoryName": "Pastries", "imageUrl": "/images/almond-croissant.jpg" },
-      { "name": "House Blend Beans", "shortDescription": "12 oz whole-bean bag for home brew.", "price": 1800, "prepTimeMinutes": 0, "barStation": "retail_shelf", "featured": false, "popular": false, "categoryName": "Retail Beans", "imageUrl": "/images/house-blend-beans.jpg" }
+      { "name": "Americano", "shortDescription": "Double espresso topped with hot water.", "price": 425, "prepTimeMinutes": 4, "barStation": "espresso_bar", "temperatureOptions": ["hot"], "featured": true, "popular": true, "categoryName": "Espresso", "imageUrl": "/images/americano.jpg" },
+      { "name": "Vanilla Latte", "shortDescription": "Espresso, milk, and house vanilla.", "price": 625, "prepTimeMinutes": 5, "barStation": "espresso_bar", "temperatureOptions": ["hot"], "featured": true, "popular": true, "categoryName": "Signature Drinks", "imageUrl": "/images/vanilla-latte.jpg" },
+      { "name": "Cardamom Cold Brew", "shortDescription": "Slow-steeped cold brew with sweet spice.", "price": 575, "prepTimeMinutes": 3, "barStation": "cold_bar", "temperatureOptions": ["iced"], "featured": true, "popular": false, "categoryName": "Signature Drinks", "imageUrl": "/images/cardamom-cold-brew.jpg" },
+      { "name": "Almond Croissant", "shortDescription": "Butter croissant with almond cream.", "price": 495, "prepTimeMinutes": 2, "barStation": "pastry_case", "temperatureOptions": [], "featured": false, "popular": true, "categoryName": "Pastries", "imageUrl": "/images/almond-croissant.jpg" },
+      { "name": "House Blend Beans", "shortDescription": "12 oz bag of our house blend, whole bean or ground to order.", "price": 1800, "prepTimeMinutes": 0, "barStation": "retail_shelf", "temperatureOptions": [], "featured": false, "popular": false, "categoryName": "Retail Beans", "imageUrl": "/images/house-blend-beans.jpg" }
     ],
     "modifiers": [
       { "menuItemName": "Americano", "name": "12 oz", "modifierGroup": "size", "modifierGroupLabel": "Size", "priceAdjustment": 0, "defaultSelected": true, "required": true, "minSelections": 1, "maxSelections": 1, "inventoryAction": "none" },

@@ -2,6 +2,7 @@ import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
+import { defaultTemperatureOptions } from "../lib/menu-temperature";
 
 type Context = {
   session?: Session;
@@ -198,7 +199,7 @@ export async function createCoffeeMenuItem(
         available: true,
         prepTimeMinutes: intent.prepTimeMinutes,
         barStation: intent.station,
-        temperatureOptions: ["hot"],
+        temperatureOptions: defaultTemperatureOptions(intent.station),
         serviceWindows: ["all_day"],
         categoryId: intent.categoryId,
       },

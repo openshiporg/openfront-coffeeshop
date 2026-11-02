@@ -5,6 +5,7 @@ import { parseOnboardingData, type OnboardingData } from "../../platform/onboard
 import { permissions, type Session } from "../access";
 import { enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
+import { defaultTemperatureOptions } from "../lib/menu-temperature";
 
 type Args = { template: "minimal" | "full" | "custom"; data?: unknown };
 type Counts = { storeSettings: number; categories: number; menuItems: number; modifiers: number; inventoryItems: number; paymentProviders: number; suppliers: number; recipes: number; ingredients: number; purchaseOrders: number; staffShifts: number; loyaltyAccounts: number; cateringOrders: number };
@@ -149,8 +150,7 @@ async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: st
       price: item.price,
       prepTimeMinutes: item.prepTimeMinutes,
       barStation: item.barStation,
-      // Pastries and retail goods aren't served at a temperature.
-      ...(item.barStation === "retail_shelf" || item.barStation === "pastry_case" ? { temperatureOptions: [] } : {}),
+      temperatureOptions: item.temperatureOptions ?? defaultTemperatureOptions(item.barStation),
       featured: item.featured,
       popular: item.popular,
       imageUrl: item.imageUrl || null,
