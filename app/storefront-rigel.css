@@ -1486,3 +1486,9 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-row-price-top { font-size: 1.125rem; }
   .sf-chips { flex: 1; max-height: 2rem; overflow: hidden; }
 }
+/* Desktop rows as in Rigel's mock: a compact photo, and the option chips on one line (the item page lists every option). */
+@media (min-width: 1280px) {
+  .sf-row-item { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 1.75rem; padding: 1rem 0; }
+  .sf-chips { flex: 1; flex-wrap: wrap; max-height: 2rem; overflow: hidden; }
+  .sf-row-foot { align-items: center; padding-top: 0.75rem; }
+}
