@@ -95,7 +95,7 @@ export function WeeklyHoursEditor({ hours, timezone, error, disabled, onChange }
               )}
             >
               <span className={row.day === todayKey ? 'underline decoration-dotted underline-offset-4' : undefined}>{row.day.slice(0, 3)}</span>
-              <span className={cn('text-[11px] font-normal tabular-nums', selected ? 'text-background/75' : row.closed ? 'text-muted-foreground' : 'text-emerald-700 dark:text-emerald-400')}>
+              <span className={cn('text-xs font-normal tabular-nums', selected ? 'text-background/75' : row.closed ? 'text-muted-foreground' : 'text-emerald-700 dark:text-emerald-400')}>
                 {row.closed ? 'Closed' : row.open ? row.open : 'Open'}
               </span>
             </button>

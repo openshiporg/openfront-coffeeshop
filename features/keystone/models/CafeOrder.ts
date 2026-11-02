@@ -18,6 +18,8 @@ export const CafeOrder = list({
     },
   },
   ui: {
+    // Orders are known by their number everywhere staff see them (relationship columns, pickers).
+    labelField: "orderNumber",
     hideCreate: true,
     hideDelete: true,
     itemView: { defaultFieldMode: "read" },

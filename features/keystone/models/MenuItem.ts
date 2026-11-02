@@ -18,7 +18,7 @@ export const MenuItem = list({
   },
   ui: {
     listView: {
-      initialColumns: ["name", "category", "price", "available", "barStation", "prepTimeMinutes"],
+      initialColumns: ["name", "category", "displayPrice", "available", "barStation", "prepTimeMinutes"],
     },
   },
   fields: {
@@ -112,6 +112,7 @@ export const MenuItem = list({
       defaultValue: ["all_day"],
     }),
     displayPrice: virtual({
+      label: "Price",
       field: graphql.field({
         type: graphql.String,
         resolve(item: BaseItem) {

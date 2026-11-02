@@ -1,6 +1,8 @@
 import { list } from "@keystone-6/core";
 import { denyAll } from "@keystone-6/core/access";
-import { integer, relationship, select, text, timestamp } from "@keystone-6/core/fields";
+import { graphql } from "@keystone-6/core";
+import { integer, relationship, select, text, timestamp, virtual } from "@keystone-6/core/fields";
+import type { BaseItem } from "@keystone-6/core/types";
 
 import { permissions } from "../access";
 import { requiredStoreRelationship } from "./requiredRelationship";
@@ -15,7 +17,7 @@ export const Payment = list({
       delete: denyAll,
     },
   },
-  ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["order", "status", "method", "amount", "processedAt"] } },
+  ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["order", "status", "method", "displayAmount", "processedAt"] } },
   fields: {
     idempotencyKey: text({
       isIndexed: "unique",
@@ -57,6 +59,18 @@ export const Payment = list({
     }),
     amount: integer({ validation: { isRequired: true, min: 0 }, ui: { description: "Amount in cents" } }),
     currencyCode: text({ defaultValue: "USD" }),
+    // The amount as staff read it ($5.39), next to the stored cents.
+    displayAmount: virtual({
+      label: "Amount",
+      field: graphql.field({
+        type: graphql.String,
+        resolve(item: BaseItem) {
+          const cents = typeof item.amount === "number" ? item.amount : 0;
+          const currency = typeof item.currencyCode === "string" && /^[A-Z]{3}$/.test(item.currencyCode) ? item.currencyCode : "USD";
+          return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+        },
+      }),
+    }),
     provider: text({ defaultValue: "manual" }),
     providerPaymentId: text(),
     failureMessage: text(),

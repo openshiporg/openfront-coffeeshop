@@ -2008,6 +2008,7 @@ type Payment {
   method: String
   amount: Int
   currencyCode: String
+  displayAmount: String
   provider: String
   providerPaymentId: String
   failureMessage: String
