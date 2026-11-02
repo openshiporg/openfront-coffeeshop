@@ -7,7 +7,7 @@ import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { createCafePickupOrder, quoteCafePickupOrder, type CafeOrderQuote, type PickupOrderRequest } from "@/features/storefront/lib/data/orders";
 import { startOnlinePayment } from "@/features/storefront/lib/data/payment";
 import { formatMoney } from "@/features/storefront/lib/format";
-import { formatPickupTime, groupPickupSlots, openState, pickupSlots } from "@/features/storefront/lib/hours";
+import { formatPickupTime, openState, pickupSlots } from "@/features/storefront/lib/hours";
 import type { CheckoutCustomer } from "@/features/storefront/lib/data/account";
 import { CART_EVENT, CART_LIMITS, CART_STORAGE_KEY, cartQuantity, loadCartLines, removeCartLines, saveCartLines } from "@/features/storefront/lib/cart/storage";
 import type { CartLine } from "@/features/storefront/lib/cart/types";
@@ -20,6 +20,7 @@ import {
   type CheckoutAttempt,
 } from "@/features/storefront/lib/checkout/requestIdentity";
 import { StorefrontMedia } from "./StorefrontMedia";
+import { PickupTimePicker } from "./PickupTimePicker";
 
 const UNCONFIRMED_MESSAGE = "We couldn’t confirm this pickup request. Retrying sends the same request, so it can’t create a second order.";
 const QUOTE_FAILED_MESSAGE = "We couldn’t price this cart right now. Some items may be unavailable or sold out. Try again, or remove an item.";
@@ -38,14 +39,6 @@ function quoteItems(lines: CartLine[]) {
 }
 
 type StoreHours = { weeklyHours: unknown; timezone: string };
-
-function slotTime(slot: Date, timeZone: string | null | undefined) {
-  try {
-    return new Intl.DateTimeFormat("en-US", { timeZone: timeZone || "UTC", hour: "numeric", minute: "2-digit" }).format(slot);
-  } catch {
-    return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" }).format(slot);
-  }
-}
 
 export function CheckoutClient({ customer = null, hours = null, onlinePayment = false, pickupLeadMinutes = null }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null; onlinePayment?: boolean; pickupLeadMinutes?: number | null }) {
   const router = useRouter();
@@ -421,25 +414,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                 <input id="checkout-phone" name="phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} type="tel" inputMode="tel" autoComplete="tel" maxLength={50} className="sf-field" />
               </label>
               {slots.length > 1 ? (
-                <label htmlFor="checkout-pickup" className="sf-form-label">
-                  Pickup time
-                  <select
-                    id="checkout-pickup"
-                    value={chosenSlot?.getTime() ?? ""}
-                    onChange={(event) => setPickupChoice(Number(event.target.value))}
-                    className="sf-field"
-                  >
-                    {groupPickupSlots(slots, hours?.timezone).map((group) => (
-                      <optgroup key={group.key} label={group.label}>
-                        {group.slots.map((slot) => (
-                          <option key={slot.getTime()} value={slot.getTime()}>
-                            {group.label} {slotTime(slot, hours?.timezone)}{slot === slots[0] ? " · earliest" : ""}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </label>
+                <PickupTimePicker slots={slots} value={chosenSlot} onChange={setPickupChoice} timeZone={hours?.timezone} disabled={frozen} />
               ) : null}
               {onlinePayment ? (
                 <div className="sf-form-label">
