@@ -517,6 +517,19 @@ async function createOrderTransaction({
   return order.id;
 }
 
+/** Runs after the order transaction has committed; it never throws and never blocks the order. */
+async function sendConfirmationAfterCommit(context: CreateCafePickupOrderContext, orderId: string) {
+  try {
+    const prisma = context.prisma as any;
+    const full = await prisma.cafeOrder.findUnique({ where: { id: orderId }, include: { store: { select: { name: true, timezone: true } }, orderItems: { select: { itemNameSnapshot: true, quantity: true, price: true } } } });
+    // Loaded lazily so the mail path never joins the keystone import graph at build time.
+    const { deliverOrderConfirmation } = await import("../lib/orderConfirmation");
+    await deliverOrderConfirmation(prisma, full);
+  } catch (error) {
+    console.error("Order confirmation email failed:", error instanceof Error ? error.message : "unknown");
+  }
+}
+
 export default async function createCafePickupOrder(
   _root: unknown,
   args: CreateCafePickupOrderArgs,
@@ -614,7 +627,10 @@ export default async function createCafePickupOrder(
         { maxWait: 5000, timeout: 10000, isolationLevel: "ReadCommitted" },
       );
       const persisted = await context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_RETURN_QUERY });
-      if (persisted) return persisted;
+      if (persisted) {
+        if (!isStaff) await sendConfirmationAfterCommit(context, orderId);
+        return persisted;
+      }
       if (attempt === MAX_TRANSACTION_RETRIES) throw new Error("Pickup order transaction did not commit");
     } catch (error) {
       if (!transactionConflict(error) || attempt === MAX_TRANSACTION_RETRIES) throw error;
