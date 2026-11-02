@@ -29,7 +29,7 @@ export function FilterSelect({ id, name, defaultValue, className, children, "ari
 }) {
   const options = optionsFrom(children);
   return (
-    <div className={cn("min-w-0", className)}>
+    <div className={cn("min-w-[9rem] shrink-0", className)}>
       <PlatformSelect id={id} name={name} defaultValue={defaultValue} options={options} submitOnChange searchable={false} size="sm" aria-label={ariaLabel} />
     </div>
   );
