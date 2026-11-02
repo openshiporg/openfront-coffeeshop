@@ -1,6 +1,8 @@
 // One confirmation email per order, sent after the order transaction has committed.
-// The CoffeeDomainEvent row (unique eventKey) is the dedupe record and carries the status in its payload.
-// It is written directly (no outbox delivery), so no consumer ever picks it up.
+// CoffeeDomainEvent is append-only (database trigger), so two rows are written, never updated:
+//   order:{id}:confirmation_email:v1         the claim; its unique eventKey is the dedupe record
+//   order:{id}:confirmation_email_result:v1  the outcome (sent | failed | skipped_*) in its payload
+// They are written directly (no outbox delivery), so no consumer ever picks them up.
 
 type Send = (order: any) => Promise<{ sent: boolean; error?: string }>;
 
@@ -12,17 +14,19 @@ export async function deliverOrderConfirmation(prisma: any, order: any, send?: S
   try {
     if (!order?.customerEmail) return;
     const eventKey = `order:${order.id}:confirmation_email:v1`;
-    let event: any;
     try {
-      event = await prisma.coffeeDomainEvent.create({
-        data: { eventKey, eventType: "order.confirmation_email", aggregateType: "order", aggregateId: order.id, storeId: order.storeId, payload: { status: "sending" }, payloadHash: eventKey },
+      await prisma.coffeeDomainEvent.create({
+        data: { eventKey, eventType: "order.confirmation_email", aggregateType: "order", aggregateId: order.id, storeId: order.storeId, payload: { status: "claimed" }, payloadHash: eventKey },
         select: { id: true },
       });
     } catch (error) {
       if ((error as { code?: string })?.code === "P2002") return; // already claimed: replay or concurrent completion
       throw error;
     }
-    const mark = (status: string, error?: string) => prisma.coffeeDomainEvent.update({ where: { id: event.id }, data: { payload: { status, ...(error ? { error: error.slice(0, 200) } : {}) } } });
+    const resultKey = `order:${order.id}:confirmation_email_result:v1`;
+    const mark = (status: string, error?: string) => prisma.coffeeDomainEvent.create({
+      data: { eventKey: resultKey, eventType: "order.confirmation_email_result", aggregateType: "order", aggregateId: order.id, storeId: order.storeId, payload: { status, ...(error ? { error: error.slice(0, 200) } : {}) }, payloadHash: `${resultKey}:${status}` },
+    });
     try {
       if (!orderConfirmationConfigured()) { await mark("skipped_not_configured"); return; }
       const zone = order.store?.timezone || "UTC";
