@@ -38,7 +38,9 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
   if (!store) return <StorefrontShell store={null} />;
 
   const search = firstParam(filters.q);
-  const categoryId = firstParam(filters.category);
+  // "?category=all" is the All chip spelled out: no filter.
+  const rawCategory = firstParam(filters.category).trim();
+  const categoryId = rawCategory.toLowerCase() === "all" ? "" : rawCategory;
   const menu = await getStorefrontMenu(search, categoryId);
   const items = menu.kind === "ok" ? menu.items : [];
   // Closed, but the menu still takes orders for the next opening: say so on the pickup line.
