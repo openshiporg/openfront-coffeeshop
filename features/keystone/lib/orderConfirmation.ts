@@ -4,7 +4,7 @@
 //   order:{id}:confirmation_email_result:v1  the outcome (sent | failed | skipped_*) in its payload
 // They are written directly (no outbox delivery), so no consumer ever picks them up.
 
-type Send = (order: any) => Promise<{ sent: boolean; error?: string; messageId?: string }>;
+type Send = (order: any) => Promise<{ sent: boolean; error?: string; messageId?: string; response?: string }>;
 
 export function orderConfirmationConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASSWORD && process.env.SMTP_STORE_LINK);
@@ -24,8 +24,8 @@ export async function deliverOrderConfirmation(prisma: any, order: any, send?: S
       throw error;
     }
     const resultKey = `order:${order.id}:confirmation_email_result:v1`;
-    const mark = (status: string, error?: string, messageId?: string) => prisma.coffeeDomainEvent.create({
-      data: { eventKey: resultKey, eventType: "order.confirmation_email_result", aggregateType: "order", aggregateId: order.id, storeId: order.storeId, payload: { status, ...(messageId ? { messageId: messageId.slice(0, 200) } : {}), ...(error ? { error: error.slice(0, 200) } : {}) }, payloadHash: `${resultKey}:${status}` },
+    const mark = (status: string, error?: string, messageId?: string, response?: string) => prisma.coffeeDomainEvent.create({
+      data: { eventKey: resultKey, eventType: "order.confirmation_email_result", aggregateType: "order", aggregateId: order.id, storeId: order.storeId, payload: { status, ...(messageId ? { messageId: messageId.slice(0, 200) } : {}), ...(response ? { smtpResponse: response.slice(0, 300) } : {}), ...(error ? { error: error.slice(0, 200) } : {}) }, payloadHash: `${resultKey}:${status}` },
     });
     try {
       if (!orderConfirmationConfigured()) { await mark("skipped_not_configured"); return; }
@@ -43,7 +43,7 @@ export async function deliverOrderConfirmation(prisma: any, order: any, send?: S
         total: money(order.total),
         link: `${String(process.env.SMTP_STORE_LINK).replace(/\/$/, "")}/order-confirmed?id=${encodeURIComponent(order.id)}&key=${encodeURIComponent(order.secretKey)}`,
       });
-      await (result.sent ? mark("sent", undefined, result.messageId) : mark("failed", result.error || "send_failed"));
+      await (result.sent ? mark("sent", undefined, result.messageId, result.response) : mark("failed", result.error || "send_failed"));
     } catch (error) {
       try { await mark("failed", error instanceof Error ? error.message : "send_failed"); } catch { /* the order is committed; bookkeeping must never surface */ }
     }
