@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Save, Store } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { LogoPicker } from "./LogoPicker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import { Code } from "lucide-react";
+import { LOGO_ICONS, HUE_PRESETS } from "../lib/icon-registry";
+import { StoreSettingsSaveBar } from "./StoreSettingsSaveBar";
 import { WeeklyHoursEditor, fromHoursRows, toHoursRows, type HoursRow } from "./WeeklyHoursEditor";
 import { DEFAULT_STORE_LOGO_ICON } from "../lib/store-logo";
 import { saveCoffeeStoreSettingsAction } from "../actions/store-settings";
@@ -139,18 +144,25 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
   const [baseline, setBaseline] = useState<FormState>(() => toFormState(initialSettings));
   const [form, setForm] = useState<FormState>(baseline);
   const [conflict, setConflict] = useState<CoffeeStoreSettingsData | null | undefined>(undefined);
-  const [logoDraftPending, setLogoDraftPending] = useState(false);
   // Filled after mount: server and browser ICU zone lists can differ.
   const [timeZones, setTimeZones] = useState<string[]>([]);
   useEffect(() => setTimeZones(supportedTimeZones()), []);
   const summaryRef = useRef<HTMLDivElement>(null);
+
+  // Same names as the E-commerce logo block, over this page's form state.
+  const logoIcon = form.logoIcon
+  const logoColor = form.logoColor
+  const setLogoIcon = (value: string) => update("logoIcon", value)
+  const setLogoColor = (value: string) => update("logoColor", value)
+  // Find matching preset icon, but don't default to first icon if not found
+  const selectedIcon = LOGO_ICONS.find((icon) => icon.lightSvg === logoIcon)
 
   const isConfigured = Boolean(saved);
   // Required fields missing from the last saved settings: shown as one notice at the top, each linking to its field.
   const missingRequired = isConfigured
     ? ([["contactEmail", "Contact email"], ["address", "Address"], ["name", "Store name"], ["timezone", "Timezone"]] as const).filter(([key]) => !String(baseline[key] ?? "").trim())
     : [];
-  const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(baseline) || logoDraftPending, [form, baseline, logoDraftPending]);
+  const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(baseline), [form, baseline]);
 
   // Unsaved-change protection for reloads, tab closes and in-app links.
   useEffect(() => {
@@ -189,7 +201,6 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
     });
   };
 
-  const onPendingDraftChange = useCallback((pending: boolean) => setLogoDraftPending(pending), []);
 
   const showErrors = (errors: Partial<Record<string, string>>, message: string) => {
     setFieldErrors(errors);
@@ -206,12 +217,6 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
     if (isPending) return;
     setStatus(null);
     setConflict(undefined);
-
-    if (logoDraftPending) {
-      setStatus({ kind: "error", message: "Apply or discard your custom SVG logo before saving." });
-      requestAnimationFrame(() => (document.querySelector("[data-logo-draft]") as HTMLElement | null)?.focus());
-      return;
-    }
 
     const input = toInput(form);
     const parsed = coffeeStoreSettingsInputSchema.safeParse(input);
@@ -273,7 +278,7 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6 px-4 pt-6 md:px-6" aria-describedby="store-settings-status">
+    <form onSubmit={submit} className="space-y-6 px-4 pb-24 pt-6 md:px-6 md:pb-0" aria-describedby="store-settings-status">
       {!isConfigured ? (
         <div className="rounded-[6px] border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
           <div className="flex items-start gap-3">
@@ -357,32 +362,133 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         </SettingsSection>
 
         <SettingsSection title="Logo">
-          <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-start">
-            <div id={FIELD_IDS.logoIcon} tabIndex={-1} className="outline-none">
-              <LogoPicker
-                value={form.logoIcon}
-                hue={form.logoColor}
-                onChange={(svg) => update("logoIcon", svg)}
-                onPendingDraftChange={onPendingDraftChange}
-              />
-              <FieldError id="logoIcon" message={fieldErrors.logoIcon} />
+          <div id={FIELD_IDS.logoIcon} tabIndex={-1} className="space-y-6 outline-none">
+          {/* Logo Icon Selector */}
+          <div>
+            <Label>Logo Icon</Label>
+            <div className="mt-2 flex items-center gap-2">
+              <Select
+                value={selectedIcon?.id || ''}
+                onValueChange={(id) => {
+                  const icon = LOGO_ICONS.find((i) => i.id === id);
+                  if (icon) setLogoIcon(icon.lightSvg);
+                }}
+              >
+                <SelectPrimitive.Trigger
+                  className={cn(
+                    'flex h-12 w-12 shrink-0 rounded-lg border border-input bg-background focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 p-0 overflow-hidden items-center justify-center'
+                  )}
+                >
+                  <div
+                    dangerouslySetInnerHTML={{ __html: logoIcon }}
+                    style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                    className="[&>svg]:w-6 [&>svg]:h-6"
+                  />
+                </SelectPrimitive.Trigger>
+                <SelectContent className="border-border dark:border-blue-700">
+                  {LOGO_ICONS.map((icon) => (
+                    <SelectItem key={icon.id} value={icon.id}>
+                      <span className="flex items-center gap-3">
+                        <div
+                          dangerouslySetInnerHTML={{ __html: icon.lightSvg }}
+                          style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                          className="[&>svg]:w-6 [&>svg]:h-6"
+                        />
+                        <span>
+                          <span className="block font-medium text-gray-900 dark:text-gray-100">
+                            {icon.name}
+                          </span>
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* SVG Code Editor Popover */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 shrink-0"
+                    type="button"
+                  >
+                    <Code className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[min(500px,calc(100vw-2rem))]" align="start">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Edit SVG Code</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Edit the SVG code directly. Changes will be reflected in the icon preview.
+                      </p>
+                    </div>
+                    <Textarea
+                      value={logoIcon}
+                      onChange={(e) => setLogoIcon(e.target.value)}
+                      className="font-mono text-xs min-h-[300px]"
+                      placeholder="<svg>...</svg>"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm text-muted-foreground">Preview:</div>
+                      <div
+                        dangerouslySetInnerHTML={{ __html: logoIcon }}
+                        style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                        className="[&>svg]:w-8 [&>svg]:h-8 flex items-center justify-center p-2 border rounded"
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
-            <div>
-              <Label htmlFor={FIELD_IDS.logoColor} className="flex items-center gap-2 text-sm">
-                <span className="size-5 shrink-0 rounded-[4px] border border-border" style={{ backgroundColor: `oklch(0.6 0.15 ${Number(form.logoColor) || 0})` }} aria-hidden="true" />
-                Colour <span className="tabular-nums text-muted-foreground">{form.logoColor}°</span>
-              </Label>
-              <input
-                id={FIELD_IDS.logoColor}
-                type="range"
-                min="0"
-                max="359"
-                value={form.logoColor}
-                onChange={(event) => update("logoColor", event.target.value)}
-                aria-valuetext={`${form.logoColor} degrees`}
-                className="mt-2 min-h-11 w-full cursor-pointer accent-foreground"
-              />
+          </div>
+
+          {/* Logo Color Selector */}
+          <div>
+            <Label>Logo Color</Label>
+            <div className="mt-2">
+              <Select
+                value={logoColor}
+                onValueChange={(value) => setLogoColor(value)}
+              >
+                <SelectPrimitive.Trigger
+                  className={cn(
+                    'flex h-12 w-12 shrink-0 rounded-lg border border-input bg-background focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 p-0 overflow-hidden items-center justify-center'
+                  )}
+                >
+                  <SelectValue>
+                    <div
+                      className="w-6 h-6 rounded-full"
+                      style={{
+                        background: `hsl(${(240 + parseInt(logoColor)) % 360}, 70%, 50%)`
+                      }}
+                    />
+                  </SelectValue>
+                </SelectPrimitive.Trigger>
+                <SelectContent className="border-border dark:border-blue-700">
+                  <div className="grid grid-cols-4 gap-2 p-2">
+                    {HUE_PRESETS.map((preset) => (
+                      <SelectItem
+                        key={preset.value}
+                        value={preset.value.toString()}
+                        className="cursor-pointer p-0 h-12 w-12 flex items-center justify-center [&>span:first-child]:hidden"
+                      >
+                        <div
+                          className="w-6 h-6 rounded-full"
+                          style={{
+                            background: `hsl(${(240 + preset.value) % 360}, 70%, 50%)`
+                          }}
+                        />
+                      </SelectItem>
+                    ))}
+                  </div>
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+            <FieldError id="logoIcon" message={fieldErrors.logoIcon} />
           </div>
         </SettingsSection>
 
@@ -443,21 +549,17 @@ export function StoreSettingsForm({ initialSettings, loadError }: StoreSettingsF
         </SettingsSection>
       </fieldset>
 
-      {/*
-        The Save bar sits in flow at the end of the form and only pins to the viewport bottom
-        while there are unsaved changes, so on a clean page it never covers a field (it used to
-        sit over Timezone). Right padding keeps Save clear of the floating assistant button.
-      */}
-      <div className={cn(
-        "-mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-border bg-background py-3 pl-4 pr-20 md:-mx-6 md:pl-6",
-        isDirty || isPending ? "sticky bottom-0 z-10 shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.25)]" : "",
-      )}>
-        {isDirty && !isPending ? <span className="mr-auto inline-flex items-center gap-2 text-sm text-muted-foreground"><span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />Unsaved changes</span> : null}
-        <Button type="submit" className="min-h-11 rounded-[6px] px-5 active:scale-[0.97]" disabled={isPending}>
-          <Save className="mr-2 h-4 w-4" aria-hidden="true" />
-          {isPending ? "Saving…" : isConfigured ? "Save changes" : "Configure store"}
-        </Button>
-      </div>
+      <StoreSettingsSaveBar
+        isSaving={isPending}
+        status={isDirty && !isPending ? "Unsaved changes" : null}
+        className="justify-end border-t border-border py-3"
+        button={
+          <Button type="submit" className="min-h-11 rounded-[6px] px-5 active:scale-[0.97]" disabled={isPending}>
+            <Save className="mr-2 h-4 w-4" aria-hidden="true" />
+            {isPending ? "Saving…" : isConfigured ? "Save changes" : "Configure store"}
+          </Button>
+        }
+      />
     </form>
   );
 }
