@@ -28,6 +28,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* 12px text floor. The shared dashboard files keep the reference text-[10px] utility; this
+   unlayered rule outranks Tailwind's utilities layer so it never renders below 12px. */
+.text-\[10px\] {
+  font-size: 12px;
+}
+
 @media (max-width: 767px) {
   button, [role="button"], [role="option"], [role="tab"],
   [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"],
