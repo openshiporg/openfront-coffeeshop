@@ -4,6 +4,7 @@ import { hasCafeSettlement, lockCoffeeOrder, type SettlementEvidence } from "./c
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { fingerprintInput } from "./idempotency";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
+import { loyaltyLinkDecision } from "./loyaltyLink";
 
 type ApplyCafeLoyaltyArgs = {
   orderId: string;
@@ -31,6 +32,7 @@ type LoyaltyAccountRecord = {
 };
 
 type TransactionClient = {
+  user: { findUnique(args: Record<string, unknown>): Promise<{ id: string; email: string | null; loyaltyAccount: { id: string } | null } | null> };
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
   cafeOrder: {
     findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null>;
@@ -150,6 +152,11 @@ export default async function applyCafeLoyalty(
     const now = new Date();
     const earnedPoints = pointsForSubtotal(Number(order.subtotal || 0));
     const existing = await tx.loyaltyAccount.findFirst({ where: { customerEmail: email } });
+    // The signed-in customer who placed this order, when their sign-in email is the rewards email.
+    const signedInUser = isOrderCustomer
+      ? await tx.user.findUnique({ where: { id: String(order.customerId) }, select: { id: true, email: true, loyaltyAccount: { select: { id: true } } } })
+      : null;
+    const signedIn = signedInUser ? { id: signedInUser.id, email: signedInUser.email, loyaltyAccountId: signedInUser.loyaltyAccount?.id || null } : null;
     let id: string;
     let newlyEarnedCredits: number;
 
@@ -159,7 +166,9 @@ export default async function applyCafeLoyalty(
       // the account's own signed-in customer; otherwise staff review and apply it.
       const ownerId = existing.customerId ? String(existing.customerId) : null;
       const isSignedInOwner = Boolean(ownerId) && context.session?.listKey === "User" && context.session.itemId === ownerId && String(order.customerId || "") === ownerId;
-      if (!isOperator && !isSignedInOwner) {
+      // An email-only account is claimed by the signed-in customer whose sign-in email it carries.
+      const link = loyaltyLinkDecision({ account: { id: String(existing.id), customerId: ownerId, customerEmail: String(existing.customerEmail || "") }, user: signedIn }) === "link";
+      if (!isOperator && !isSignedInOwner && !link) {
         throw cafeCustomerError("This email already has a rewards account. Sign in to that account, or ask the cafe to apply this purchase.");
       }
       // Paused or closed accounts stay that way; a purchase is not consent to reopen them.
@@ -175,6 +184,7 @@ export default async function applyCafeLoyalty(
           visits: Number(existing.visits || 0) + 1,
           firstVisitAt: existing.firstVisitAt || now,
           lastVisitAt: now,
+          ...(link && signedIn ? { customerId: signedIn.id } : {}),
         },
         select: { id: true },
       });
@@ -195,6 +205,8 @@ export default async function applyCafeLoyalty(
           visits: 1,
           firstVisitAt: now,
           lastVisitAt: now,
+          // New accounts opened by the signed-in customer belong to them; guests stay email-only.
+          ...(signedIn && signedIn.email?.trim().toLowerCase() === email && !signedIn.loyaltyAccountId ? { customerId: signedIn.id } : {}),
         },
         select: { id: true },
       });

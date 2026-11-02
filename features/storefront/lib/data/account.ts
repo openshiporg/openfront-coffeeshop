@@ -52,6 +52,8 @@ export async function getCustomerAccount(after?: string) {
   const identity = await keystoneClient<{ authenticatedItem: { id: string; name: string; email?: string | null; phone?: string | null } | null }>(`query CustomerIdentity { authenticatedItem { ... on User { id name email phone } } }`, {}, { cache: "no-store" });
   if (!identity.success) throw new Error("Account is temporarily unavailable.");
   if (!identity.data.authenticatedItem) return null;
+  // Backfill: claim the email-only rewards account that carries this sign-in email (idempotent).
+  await keystoneClient(`mutation LinkCoffeeCustomerLoyalty { linkCoffeeCustomerLoyalty }`, {}, { cache: "no-store" }).catch(() => null);
   const result = await keystoneClient<{ getCoffeeCustomerOrders: { orders: CustomerOrder[]; nextCursor: string | null } }>(`query CustomerOrders($after: ID) { getCoffeeCustomerOrders(after: $after) { orders { id orderNumber status total currencyCode createdAt } nextCursor } }`, { after: after || null }, { cache: "no-store" });
   if (!result.success) throw new Error("Orders could not be loaded.");
   return { user: identity.data.authenticatedItem, ...result.data.getCoffeeCustomerOrders };

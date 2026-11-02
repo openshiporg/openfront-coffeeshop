@@ -4573,6 +4573,7 @@ type Mutation {
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   registerCoffeeCustomer(name: String!, email: String!, password: String!): Boolean!
   updateCoffeeCustomerProfile(name: String!, phone: String): Boolean!
+  linkCoffeeCustomerLoyalty: Boolean!
   createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, idempotencyKey: String, receiptKey: String, registerShiftId: ID, tipCents: Int, quoteFingerprint: String, externalCardReference: String, externalCardApproved: Boolean, cashTenderedCents: Int, items: [CafePickupOrderItemInput!]!): CafeOrderReceipt!
   updateCafeOrderStatus(orderId: ID!, status: String!): CoffeeOrderStatusReceipt
   updateCafeOrderItemStatus(orderItemId: ID!, status: String!, expectedStatus: String!, idempotencyKey: String!): CoffeeKdsCommandReceipt!

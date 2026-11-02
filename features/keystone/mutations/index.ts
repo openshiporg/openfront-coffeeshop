@@ -20,6 +20,7 @@ import { getCoffeeKdsRecoveryScope } from "./coffeeKdsAuthority";
 import getCafeOrder from "./getCafeOrder";
 import getCafeLoyaltyAccount from "./getCafeLoyaltyAccount";
 import applyCafeLoyalty from "./applyCafeLoyalty";
+import linkCoffeeCustomerLoyalty from "./linkCoffeeCustomerLoyalty";
 import initiateCafePaymentSession from "./initiateCafePaymentSession";
 import getCoffeeStore from "./getCoffeeStore";
 import getCoffeeMenu from "./getCoffeeMenu";
@@ -67,6 +68,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
       type Mutation {
         registerCoffeeCustomer(name: String!, email: String!, password: String!): Boolean!
         updateCoffeeCustomerProfile(name: String!, phone: String): Boolean!
+        linkCoffeeCustomerLoyalty: Boolean!
         createCafePickupOrder(
           customerName: String!
           customerEmail: String
@@ -477,6 +479,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
       Mutation: {
         registerCoffeeCustomer,
         updateCoffeeCustomerProfile,
+        linkCoffeeCustomerLoyalty,
         createCafePickupOrder,
         updateCafeOrderStatus,
         updateCafeOrderItemStatus,
