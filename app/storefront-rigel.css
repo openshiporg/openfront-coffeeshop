@@ -245,15 +245,15 @@ html:has(.sf-root) body {
   position: absolute;
   top: 0.25rem;
   right: 0.125rem;
-  min-width: 1.125rem;
-  height: 1.125rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
   padding: 0 0.25rem;
   border-radius: 999px;
   background: var(--sf-accent);
   color: var(--sf-on-accent);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  line-height: 1.125rem;
+  line-height: 1.25rem;
   text-align: center;
 }
 
@@ -849,8 +849,8 @@ textarea.sf-field { min-height: 5.5rem; resize: vertical; }
   .sf-row-name { font-size: 0.9375rem; font-weight: 400; }
   .sf-row-desc { font-size: 0.75rem; -webkit-line-clamp: 1; }
   .sf-row-price-buy { font-size: 0.875rem; }
-  .sf-chips { gap: 0.25rem; max-height: 1.25rem; }
-  .sf-chip { min-height: 1.25rem; padding: 0 0.4375rem; font-size: 0.65625rem; }
+  .sf-chips { gap: 0.25rem; max-height: 1.375rem; }
+  .sf-chip { min-height: 1.375rem; padding: 0 0.5rem; font-size: 0.75rem; }
   .sf-chip-plus { width: 0.6875rem; height: 0.6875rem; }
 
   .sf-cat { position: relative; min-height: 1.75rem; padding: 0 0.6875rem; gap: 0.3125rem; font-size: 0.78125rem; }
@@ -1148,6 +1148,9 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
 .sf-receipt-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem; margin-top: 1.5rem; }
 .sf-receipt-facts dt { color: var(--sf-ink-faint); font-size: 0.8125rem; }
 .sf-receipt-facts dd { font-size: 1.0625rem; font-weight: 500; }
+/* An order number is one token: it never breaks mid-number. */
+.sf-receipt-facts dd.sf-order-no { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sf-receipt-facts:has(.sf-order-no) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
 .sf-receipt-time { font-variant-numeric: tabular-nums; }
 .sf-order-notes { margin-top: 1rem; }
 
@@ -1212,7 +1215,9 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
 .sf-row-sub { color: var(--sf-ink-faint); font-size: 0.875rem; }
 .sf-order-row {
   display: grid;
-  gap: 0.25rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
   padding: 1rem 1.25rem;
   background: var(--sf-card);
   border: 1px solid var(--sf-line);
@@ -1220,7 +1225,8 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   transition: border-color var(--sf-dur) var(--sf-ease-out);
 }
 .sf-order-row:hover { border-color: var(--sf-line-strong); }
-.sf-order-row-sub { color: var(--sf-ink-faint); font-size: 0.875rem; }
+.sf-order-row-sub { grid-column: 1 / -1; color: var(--sf-ink-faint); font-size: 0.875rem; }
+.sf-order-row .sf-marker, .sf-order-row .sf-price { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sf-pager { display: flex; gap: 0.75rem; margin-top: 1rem; }
 
 .sf-rewards-line { color: var(--sf-ink-soft); }
@@ -1283,8 +1289,8 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-cartbar-media { width: 2.125rem; height: 2.125rem; border-radius: 8px; }
   .sf-cartbar-text { line-height: 1.2; }
   .sf-cartbar-text strong { font-size: 0.8125rem; }
-  .sf-cartbar-text span { font-size: 0.6875rem; }
-  .sf-cartbar-count { min-width: 1.125rem; height: 1.125rem; border-radius: 6px; font-size: 0.6875rem; }
+  .sf-cartbar-text span { font-size: 0.75rem; }
+  .sf-cartbar-count { min-width: 1.25rem; height: 1.25rem; border-radius: 6px; font-size: 0.75rem; }
   .sf-cartbar-total { font-size: 0.875rem; }
   .sf-cartbar-cta { position: relative; min-height: 2.125rem; padding: 0 0.875rem; font-size: 0.8125rem; }
   .sf-cartbar-cta::after { content: ""; position: absolute; inset: -0.3125rem 0; }
@@ -1294,7 +1300,7 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-pickup-card { gap: 0.75rem; padding: 0.75rem 0.875rem; border-radius: 16px; }
   .sf-pickup-card > svg:first-child { width: 1.125rem; height: 1.125rem; }
   .sf-pickup-card strong { font-size: 0.9375rem; }
-  .sf-pickup-card span span { font-size: 0.71875rem; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; }
+  .sf-pickup-card span span { font-size: 0.75rem; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; }
   .sf-pickup-card-chev { width: 1rem; height: 1rem; }
 
   /* Item page at the menu's scale. */
@@ -1311,11 +1317,60 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-box::after { content: ""; position: absolute; inset: -0.375rem 0; }
   .sf-box-square { width: 1rem; height: 1rem; }
   .sf-box-square .sf-tick { width: 0.6875rem; height: 0.6875rem; }
-  .sf-box-note { font-size: 0.6875rem; }
+  .sf-box-note { font-size: 0.75rem; }
   .sf-addbar { gap: 0.5rem; padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom)); }
   .sf-addbar .sf-btn-lg { min-height: 2.75rem; font-size: 0.9375rem; padding: 0 1.125rem; }
   .sf-addbar .sf-stepper { padding: 0; }
   .sf-addbar .sf-stepper > span { min-width: 1.25rem; font-size: 0.9375rem; }
   .sf-addbar .sf-stepper svg { width: 0.875rem; height: 0.875rem; }
   .sf-has-addbar { padding-bottom: 5.5rem; }
+}
+
+/* Phone nits: header circles, search pill, bean cards (Rigel home-phone) */
+@media (max-width: 1023px) {
+  .sf-topbar .sf-icon-btn, .sf-topbar .sf-cart-link { width: 2.25rem; height: 2.25rem; }
+  .sf-topbar .sf-icon-btn svg, .sf-topbar .sf-cart-link svg { width: 1.125rem; height: 1.125rem; }
+  .sf-topbar .sf-icon-btn::after, .sf-topbar .sf-cart-link::after { content: ""; position: absolute; inset: -0.25rem; }
+  .sf-topbar-actions { gap: 0.5rem; }
+  .sf-topbar .sf-cart-badge { top: -0.125rem; right: -0.25rem; }
+
+  .sf-search, .sf-search:focus-within { width: auto; min-height: 2.25rem; padding: 0 0.75rem; gap: 0.375rem; font-size: 0.8125rem; }
+  .sf-search input { width: 5.25rem; min-height: 2.125rem !important; }
+  .sf-search:focus-within input { width: 7.5rem; }
+  .sf-search svg { width: 0.875rem; height: 0.875rem; }
+  .sf-feature-head { margin-top: 0.25rem; }
+
+  .sf-beans { margin-top: 1.75rem; }
+  .sf-beans-head { margin-bottom: 0.75rem; }
+  .sf-beans-title { font-size: 1.25rem; }
+  .sf-beans-sub { font-size: 0.8125rem; }
+  .sf-beans-track { grid-auto-columns: calc((100% - 0.625rem) / 2.1); gap: 0.625rem; }
+  .sf-bean { grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 0.625rem; padding: 0.5rem; border-radius: 14px; }
+  .sf-bean-photo { aspect-ratio: 1; border-radius: 10px; overflow: hidden; }
+  .sf-bean-body { padding: 0; gap: 0.125rem; }
+  .sf-bean-name { font-size: 0.8125rem; line-height: 1.25; }
+  .sf-bean-price { font-size: 0.8125rem; }
+}
+
+/* Inner pages on phones at the menu's scale: account, checkout, receipt. */
+@media (max-width: 1023px) {
+  .sf-page { padding-top: 1rem; }
+  .sf-page-title { font-size: 2rem; }
+  .sf-page-lead { font-size: 0.875rem; margin-top: 0.375rem; }
+  .sf-panel-title { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .sf-tray-empty-title { font-size: 1.625rem; }
+  .sf-account-who { font-size: 0.9375rem; margin-top: 0.25rem; }
+  .sf-muted, .sf-empty span { font-size: 0.875rem; }
+  .sf-empty strong { font-size: 1rem; }
+  .sf-form-label { font-size: 0.8125rem; }
+  .sf-field { font-size: 1rem; }
+  .sf-btn { font-size: 0.875rem; }
+  .sf-btn-lg { min-height: 2.75rem; font-size: 0.9375rem; padding: 0 1.25rem; }
+  .sf-line-name { font-size: 0.9375rem; }
+  .sf-pickup-time { font-size: 0.875rem; }
+  .sf-receipt-facts { gap: 0.75rem; margin-top: 1rem; }
+  .sf-receipt-facts dt { font-size: 0.75rem; }
+  .sf-receipt-facts dd { font-size: 0.9375rem; }
+  .sf-handoff { font-size: 2.25rem; }
+  .sf-fine { font-size: 0.75rem; }
 }

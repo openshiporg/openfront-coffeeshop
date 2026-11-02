@@ -90,7 +90,7 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                 <dl className="sf-receipt-facts">
                   <div>
                     <dt>Order</dt>
-                    <dd className="sf-marker">#{order.orderNumber}</dd>
+                    <dd className="sf-marker sf-order-no">#{order.orderNumber}</dd>
                   </div>
                   <div>
                     <dt>Name on the cup</dt>
