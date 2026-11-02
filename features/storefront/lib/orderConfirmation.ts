@@ -55,7 +55,7 @@ const CUSTOMER_ORDER_STATUS_COPY: Readonly<Record<string, CustomerOrderStatusCop
   },
   refunded: {
     label: "Refunded",
-    message: "This order is marked refunded. This page cannot verify when or how any funds were returned.",
+    message: "The cafe refunded this order. Contact the cafe if you have a question about it.",
     showPickupEstimate: false,
   },
 };
