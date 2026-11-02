@@ -89,7 +89,7 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
                 <MapPin className="size-5" aria-hidden="true" />
                 <span className="min-w-0">
                   <strong>Pickup on {streetName(store.address)}</strong>
-                  <span>{store.name} · {store.address}</span>
+                  <span><span className="sf-pickup-store">{store.name} · </span>{store.address}</span>
                 </span>
                 <ChevronRight className="size-5 sf-pickup-card-chev" aria-hidden="true" />
               </a>
