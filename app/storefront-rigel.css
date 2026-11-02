@@ -1492,3 +1492,13 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-chips { flex: 1; flex-wrap: wrap; max-height: 2rem; overflow: hidden; }
   .sf-row-foot { align-items: center; padding-top: 0.75rem; }
 }
+/* Desktop: one row of category chips (it scrolls sideways when they don't fit), so FEATURED sits where Rigel's mock has it. */
+@media (min-width: 1024px) {
+  .sf-cats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-right: 2rem;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+  }
+}
