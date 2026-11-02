@@ -5,6 +5,7 @@ import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeSettlement, lockCoffeeOrder, requireCafeTenderOperator, type SettlementEvidence } from "./coffeeOrderPolicy";
 import { executePaymentProviderAdapter } from "../utils/paymentProviderAdapter";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
+import { reverseLoyaltyEarning } from "./loyaltyReversal";
 
 type Args = { paymentId: string; amount?: number | null; reason?: string | null; externalRefundReference?: string | null; idempotencyKey?: string | null };
 type Model = { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null>; findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>>; update(args: Record<string, unknown>): Promise<unknown>; create(args: Record<string, unknown>): Promise<unknown> };
@@ -115,15 +116,16 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
       const earned = await tx.loyaltyEvent.findMany({ where: { orderId: order.id, accountId: current.id, type: "earned" }, take: 2 });
       if (earned.length !== 1) throw new Error("Loyalty earning evidence requires reconciliation before refund");
       const points = Number(earned[0].pointsDelta || 0);
-      const lifetimePoints = Number(current.lifetimePoints || 0);
-      const visits = Number(current.visits || 0);
       // Reverse exactly the original earning; inconsistent history is reconciled, never clamped away.
-      if (!Number.isSafeInteger(points) || points < 0 || lifetimePoints < points || visits < 1) throw new Error("Loyalty history requires reconciliation before refund");
-      const remaining = Number(current.pointsBalance || 0) + Number(current.drinkCredits || 0) * 100 - points;
-      if (remaining < 0) throw new Error("Spent loyalty rewards require a manual refund reconciliation");
-      const credits = Math.floor(remaining / 100);
-      await tx.loyaltyAccount.update({ where: { id: current.id }, data: { pointsBalance: remaining % 100, drinkCredits: credits, lifetimePoints: lifetimePoints - points, visits: visits - 1 } });
-      await tx.loyaltyEvent.create({ data: { accountId: current.id, orderId: order.id, type: "refund_reversal", pointsDelta: -points, drinkCreditsDelta: credits - Number(current.drinkCredits || 0), note: `Reversed ${points} points earned on this order after full refund of payment ${args.paymentId}`, createdById: actorId } });
+      const reversal = reverseLoyaltyEarning({
+        pointsBalance: Number(current.pointsBalance || 0),
+        drinkCredits: Number(current.drinkCredits || 0),
+        lifetimePoints: Number(current.lifetimePoints || 0),
+        visits: Number(current.visits || 0),
+      }, points);
+      if (!reversal.ok) throw new Error(reversal.error);
+      await tx.loyaltyAccount.update({ where: { id: current.id }, data: reversal.next });
+      await tx.loyaltyEvent.create({ data: { accountId: current.id, orderId: order.id, type: "refund_reversal", pointsDelta: -points, drinkCreditsDelta: reversal.drinkCreditsDelta, note: `Reversed ${points} points earned on this order after full refund of payment ${args.paymentId}`, createdById: actorId } });
     }
     const now = new Date();
     let providerRefundId: string | null = null;
