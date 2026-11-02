@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // Stripe and PayPal stay registered on the old webhook URL; serve it from the reference route.
+  async rewrites() {
+    return [{ source: '/api/payment-providers/:providerId/webhook', destination: '/api/payment-webhooks/:providerId' }];
+  },
   images: {
     remotePatterns: [
       {
