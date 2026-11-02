@@ -2,6 +2,7 @@ import { createAuth } from "@keystone-6/auth";
 import { config } from "@keystone-6/core";
 import "dotenv/config";
 import { models } from "./models";
+import { withDemoGuard } from "./lib/demo-guard";
 import { revocableStatelessSessions } from "./revocableSession";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
@@ -111,7 +112,7 @@ export default withAuth(
       url: databaseURL,
       extendPrismaSchema: (schema) => `${schema}\n\nmodel GraphQLRateLimitBucket {\n  bucketKey   String\n  windowStart DateTime @postgresql.Timestamptz\n  requestCount Int @default(0)\n  costUnits    Int @default(0)\n  expiresAt    DateTime @postgresql.Timestamptz\n\n  @@id([bucketKey, windowStart])\n  @@index([expiresAt])\n}\n`,
     },
-    lists: models,
+    lists: withDemoGuard(models),
     storage: {
       my_images: {
         kind: "s3",
