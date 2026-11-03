@@ -1,7 +1,7 @@
 import { ClientError, GraphQLClient } from "graphql-request";
 
 import { getAuthHeaders } from "@/features/dashboard/lib/cookies";
-import { getGraphQLEndpoint } from "@/features/dashboard/lib/getBaseUrl";
+import { getServerGraphQLTarget } from "@/features/dashboard/lib/getBaseUrl";
 import { PUBLIC_REQUEST_ERROR } from "@/features/dashboard/lib/security";
 import { CAFE_CUSTOMER_ERROR_CODE } from "@/features/keystone/lib/cafeCustomerError";
 
@@ -23,7 +23,9 @@ export function validationMessages(message: string): string[] {
  *  messages (written by our hooks) and cafe command refusals; every other failure stays generic. */
 export async function platformRequest<T>(query: string, variables: Record<string, unknown> = {}): Promise<PlatformResponse<T>> {
   try {
-    const client = new GraphQLClient(await getGraphQLEndpoint(), { credentials: "include", redirect: "error", headers: (await getAuthHeaders()) || {} });
+    // Built per request, so the signed identity is the CURRENT visitor's.
+    const target = await getServerGraphQLTarget();
+    const client = new GraphQLClient(target.endpoint, { credentials: "include", redirect: "error", ...(target.fetch ? { fetch: target.fetch } : {}), headers: (await getAuthHeaders()) || {} });
     return { success: true, data: await client.request<T>(query, variables) };
   } catch (error) {
     if (error instanceof ClientError) {
