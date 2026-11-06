@@ -1,3 +1,4 @@
+import { latestDayClose, triggerEndOfDayClose } from "./endOfDayClose";
 import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership } from "../lib/coffeeDomainOutbox";
 import { KDS_ITEM_TRANSITIONS, type KdsItemStatus } from "./kdsPolicy";
@@ -39,6 +40,7 @@ type Context = {
     cateringOrder: ListModel;
     wasteLog: ListModel;
     payment: ListModel;
+    coffeeDomainEvent: { findFirst(args: Record<string, unknown>): Promise<{ payload: unknown } | null> };
   };
 };
 
@@ -202,6 +204,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
   const activeCursor = decodeActiveOrderCursor(args.activeCursor, search, filterKey);
   const historyCursor = decodeHistoryOrderCursor(args.historyCursor, search, filterKey);
   const includeHistory = args.includeCompleted !== false;
+  triggerEndOfDayClose(context.prisma);
   const store = await primaryStore(context);
   if (activeCursor && activeCursor.storeId !== store.id) throw new Error("Invalid active order cursor");
   if (historyCursor && historyCursor.storeId !== store.id) throw new Error("Invalid history order cursor");
@@ -290,6 +293,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
     storeTimezone: store.storeTimezone,
     activeCount: liveCount,
     staleCount,
+    lastDayClose: activeCursor ? null : await latestDayClose(context.prisma, store.id).catch(() => null),
     activeHasMore,
     activeNextCursor,
     historyCount,
@@ -363,6 +367,7 @@ export async function getCoffeeKdsBoard(_root: unknown, args: { cursor?: string 
   const limit = args.limit ?? KDS_PAGE_SIZE;
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > KDS_PAGE_SIZE) throw new Error(`KDS page size must be between 1 and ${KDS_PAGE_SIZE}`);
   const cursor = args.cursor == null ? null : decodeKdsCursor(args.cursor);
+  triggerEndOfDayClose(context.prisma);
   const store = await primaryStore(context);
   // Order-ahead tickets reach the make queue KDS_RELEASE_MINUTES before their pickup time;
   // a line already started stays on the board.

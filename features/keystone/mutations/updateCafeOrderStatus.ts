@@ -11,7 +11,7 @@ type CafeOrderTimestampField = "startedAt" | "readyAt" | "completedAt" | "cancel
 type OrderItemBarStatus = "queued" | "preparing" | "ready" | "handed_off" | "voided";
 type OrderItemTimestampField = "queuedAt" | "startedAt" | "readyAt" | "handedOffAt";
 type OrderRecord = { id: string; storeId: string; orderNumber: string; status: CafeOrderStatus; total: number; discount: number; payments: SettlementEvidence[]; orderItems: Array<{ id: string; barStatus: string }> };
-type TransactionClient = {
+export type TransactionClient = {
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
   storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> };
   cafeOrder: {
@@ -60,6 +60,65 @@ const itemTimestampMap: Partial<Record<OrderItemBarStatus, OrderItemTimestampFie
   handed_off: "handedOffAt",
 };
 
+/** Puts back the stock and prepared batches an unprepared order reserved (cancel and end-of-day close). */
+export async function releaseOrderReservations(tx: TransactionClient, order: { id: string; orderNumber: string }, storeId: string, actorId: string | null, now: Date) {
+    const reservations = await tx.stockMovement.findMany({
+      where: { orderId: order.id, type: "sale" },
+      orderBy: { id: "asc" },
+      select: { inventoryItemId: true, inventoryLotId: true, quantity: true },
+    });
+    const inventoryTotals = new Map<string, number>();
+    for (const inventoryItemId of [...new Set(reservations.map((reservation) => reservation.inventoryItemId))].sort()) {
+      await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
+    }
+    for (const reservation of reservations) {
+      const quantity = Math.abs(Number(reservation.quantity));
+      if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Order inventory reservation evidence is invalid");
+      inventoryTotals.set(reservation.inventoryItemId, (inventoryTotals.get(reservation.inventoryItemId) || 0) + quantity);
+      // Only a lot this reservation emptied ("consumed") may become usable again, and only while unexpired.
+      // A later quarantine, expiry or other hold is kept: released quantity is not proof the stock is saleable.
+      let lotDisposition = "unlotted stock";
+      if (reservation.inventoryLotId) {
+        const lot = await tx.inventoryLot.findUnique({ where: { id: reservation.inventoryLotId }, select: { quantityRemaining: true, status: true, expiresAt: true } });
+        if (!lot) throw new Error("Reserved inventory lot was not found");
+        const currentStatus = lot.status || "active";
+        const expired = Boolean(lot.expiresAt) && new Date(String(lot.expiresAt)).getTime() <= now.getTime();
+        const nextStatus = currentStatus === "consumed" ? (expired ? "expired" : "active") : currentStatus === "active" && expired ? "expired" : currentStatus;
+        await tx.inventoryLot.update({
+          where: { id: reservation.inventoryLotId },
+          data: { quantityRemaining: Number(lot.quantityRemaining || 0) + quantity, ...(nextStatus !== currentStatus ? { status: nextStatus } : {}) },
+        });
+        lotDisposition = `lot status ${nextStatus}`;
+      }
+      await tx.stockMovement.create({
+        data: {
+          inventoryItemId: reservation.inventoryItemId,
+          inventoryLotId: reservation.inventoryLotId || null,
+          storeId,
+          orderId: order.id,
+          type: "return",
+          quantity,
+          reason: `Cancelled pickup order ${order.orderNumber}`,
+          notes: `Released unprepared order reservation; ${lotDisposition}`,
+          createdById: actorId,
+        },
+      });
+    }
+    for (const [inventoryItemId, quantity] of [...inventoryTotals].sort(([left], [right]) => left.localeCompare(right))) {
+      await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
+      await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: { increment: quantity } } });
+    }
+    const prepConsumptions = await tx.prepBatchConsumption.findMany({ where: { orderId: order.id, quantity: { gt: 0 } }, orderBy: { id: "asc" }, select: { id: true, prepBatchId: true, quantity: true } });
+    for (const consumption of prepConsumptions) {
+      const quantity = Number(consumption.quantity);
+      await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-prep-batch:${consumption.prepBatchId}`);
+      const batch = await tx.prepBatch.findUnique({ where: { id: consumption.prepBatchId }, select: { id: true, storeId: true, quantityRemaining: true } });
+      if (!batch || String(batch.storeId) !== storeId || !Number.isFinite(quantity) || quantity <= 0) throw new Error("Prepared batch reservation evidence is invalid");
+      await tx.prepBatch.update({ where: { id: consumption.prepBatchId }, data: { quantityRemaining: { increment: quantity } } });
+      await tx.prepBatchConsumption.create({ data: { idempotencyKey: `cancel:${order.id}:${consumption.id}`, storeId, orderId: order.id, prepBatchId: consumption.prepBatchId, quantity: -quantity } });
+    }
+}
+
 function isCafeOrderStatus(status: string): status is CafeOrderStatus {
   return (allowedStatuses as readonly string[]).includes(status);
 }
@@ -92,63 +151,7 @@ export default async function updateCafeOrderStatus(
     if (status === "cancelled" && existing.payments.some((payment) => ["pending", "authorized", "captured"].includes(String(payment.status)))) throw new Error("Resolve the payment attempt or refund before cancelling this order");
 
     const now = new Date();
-    if (status === "cancelled") {
-      const reservations = await tx.stockMovement.findMany({
-        where: { orderId: existing.id, type: "sale" },
-        orderBy: { id: "asc" },
-        select: { inventoryItemId: true, inventoryLotId: true, quantity: true },
-      });
-      const inventoryTotals = new Map<string, number>();
-      for (const inventoryItemId of [...new Set(reservations.map((reservation) => reservation.inventoryItemId))].sort()) {
-        await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
-      }
-      for (const reservation of reservations) {
-        const quantity = Math.abs(Number(reservation.quantity));
-        if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Order inventory reservation evidence is invalid");
-        inventoryTotals.set(reservation.inventoryItemId, (inventoryTotals.get(reservation.inventoryItemId) || 0) + quantity);
-        // Only a lot this reservation emptied ("consumed") may become usable again, and only while unexpired.
-        // A later quarantine, expiry or other hold is kept: released quantity is not proof the stock is saleable.
-        let lotDisposition = "unlotted stock";
-        if (reservation.inventoryLotId) {
-          const lot = await tx.inventoryLot.findUnique({ where: { id: reservation.inventoryLotId }, select: { quantityRemaining: true, status: true, expiresAt: true } });
-          if (!lot) throw new Error("Reserved inventory lot was not found");
-          const currentStatus = lot.status || "active";
-          const expired = Boolean(lot.expiresAt) && new Date(String(lot.expiresAt)).getTime() <= now.getTime();
-          const nextStatus = currentStatus === "consumed" ? (expired ? "expired" : "active") : currentStatus === "active" && expired ? "expired" : currentStatus;
-          await tx.inventoryLot.update({
-            where: { id: reservation.inventoryLotId },
-            data: { quantityRemaining: Number(lot.quantityRemaining || 0) + quantity, ...(nextStatus !== currentStatus ? { status: nextStatus } : {}) },
-          });
-          lotDisposition = `lot status ${nextStatus}`;
-        }
-        await tx.stockMovement.create({
-          data: {
-            inventoryItemId: reservation.inventoryItemId,
-            inventoryLotId: reservation.inventoryLotId || null,
-            storeId,
-            orderId: existing.id,
-            type: "return",
-            quantity,
-            reason: `Cancelled pickup order ${existing.orderNumber}`,
-            notes: `Released unprepared order reservation; ${lotDisposition}`,
-            createdById: actorId,
-          },
-        });
-      }
-      for (const [inventoryItemId, quantity] of [...inventoryTotals].sort(([left], [right]) => left.localeCompare(right))) {
-        await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
-        await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: { increment: quantity } } });
-      }
-      const prepConsumptions = await tx.prepBatchConsumption.findMany({ where: { orderId: existing.id, quantity: { gt: 0 } }, orderBy: { id: "asc" }, select: { id: true, prepBatchId: true, quantity: true } });
-      for (const consumption of prepConsumptions) {
-        const quantity = Number(consumption.quantity);
-        await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-prep-batch:${consumption.prepBatchId}`);
-        const batch = await tx.prepBatch.findUnique({ where: { id: consumption.prepBatchId }, select: { id: true, storeId: true, quantityRemaining: true } });
-        if (!batch || String(batch.storeId) !== storeId || !Number.isFinite(quantity) || quantity <= 0) throw new Error("Prepared batch reservation evidence is invalid");
-        await tx.prepBatch.update({ where: { id: consumption.prepBatchId }, data: { quantityRemaining: { increment: quantity } } });
-        await tx.prepBatchConsumption.create({ data: { idempotencyKey: `cancel:${existing.id}:${consumption.id}`, storeId, orderId: existing.id, prepBatchId: consumption.prepBatchId, quantity: -quantity } });
-      }
-    }
+    if (status === "cancelled") await releaseOrderReservations(tx, existing, storeId, actorId, now);
     const timestampField = statusTimestampMap[status];
     await tx.cafeOrder.update({
       where: { id: existing.id },

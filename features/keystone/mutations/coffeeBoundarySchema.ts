@@ -227,6 +227,15 @@ export const coffeeBoundaryTypeDefs = String.raw`
     refundablePayments: [CoffeeRefundablePaymentProjection!]!
     actions: [CoffeeStatusAction!]!
   }
+  type CoffeeDayCloseReport {
+    closedAt: String!
+    storeDay: String!
+    completed: Int!
+    cancelled: Int!
+    noShow: Int!
+    skipped: Int!
+    orderNumbers: [String!]!
+  }
   type CoffeeOrderQueueProjection {
     summary: CoffeeOrderQueueSummary!
     capabilities: CoffeeOrderQueueCapabilities!
@@ -236,6 +245,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     activeHasMore: Boolean!
     activeNextCursor: String
     staleCount: Int!
+    lastDayClose: CoffeeDayCloseReport
     historyCount: Int!
     historyHasMore: Boolean!
     historyNextCursor: String

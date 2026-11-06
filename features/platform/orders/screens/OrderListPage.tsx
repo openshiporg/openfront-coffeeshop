@@ -11,6 +11,7 @@ import { FilterSelect } from "../components/FilterSelect";
 import { PickupClock } from "../components/PickupClock";
 import { OrderQueueAutoRefresh } from "../components/OrderQueueAutoRefresh";
 import { AcceptPickupAction, ApplyLoyaltyAction, OrderStatusActions, RecordPaymentActions, RefundPaymentActions } from "../components/OrderStatusActions";
+import { formatStoreDateTime } from "@/lib/date-time";
 import type { CafeOrderQueueItem, OrderFulfillmentFilter, OrderStatusFilter } from "../types";
 
 const ORDER_QUERY = `
@@ -23,6 +24,7 @@ const ORDER_QUERY = `
       activeHasMore
       activeNextCursor
       staleCount
+      lastDayClose { closedAt storeDay completed cancelled noShow skipped orderNumbers }
       historyCount
       historyHasMore
       historyNextCursor
@@ -50,11 +52,38 @@ type OrderQueueResult = {
   activeHasMore: boolean;
   activeNextCursor: string | null;
   staleCount: number;
+  lastDayClose: DayCloseReport | null;
   historyCount: number;
   historyHasMore: boolean;
   historyNextCursor: string | null;
   tickets: CafeOrderQueueItem[];
 };
+
+type DayCloseReport = { closedAt: string; storeDay: string; completed: number; cancelled: number; noShow: number; skipped: number; orderNumbers: string[] };
+
+/** The end-of-day close report: what the store closed out from earlier days, and when. */
+function DayCloseNotice({ report, storeTimezone }: { report: DayCloseReport; storeTimezone: string | null }) {
+  const parts = [
+    report.completed ? `${report.completed} paid ${report.completed === 1 ? "order" : "orders"} completed` : "",
+    report.cancelled ? `${report.cancelled} unpaid cancelled` : "",
+    report.noShow ? `${report.noShow} no-show${report.noShow === 1 ? "" : "s"} cancelled` : "",
+  ].filter(Boolean);
+  return (
+    <section aria-label="End-of-day close" className="rounded-[6px] border bg-background px-4 py-3 text-sm">
+      <p className="font-medium">End-of-day close · {formatStoreDateTime(report.closedAt, storeTimezone)}</p>
+      <p className="mt-1 text-muted-foreground">
+        Orders from earlier days that were never closed: {parts.join(", ") || "none"}. Paid ones are in History and can still be refunded.
+        {report.skipped ? ` ${report.skipped} left for staff (payment still settling).` : ""}
+      </p>
+      {report.orderNumbers.length ? (
+        <details className="mt-1">
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">{report.orderNumbers.length} order numbers</summary>
+          <p className="mt-1 font-mono text-xs [overflow-wrap:anywhere]">{report.orderNumbers.join(", ")}</p>
+        </details>
+      ) : null}
+    </section>
+  );
+}
 
 type QueueView = { search: string; status: OrderStatusFilter; fulfillment: OrderFulfillmentFilter };
 
@@ -306,13 +335,15 @@ export async function OrderListPage({
               </PlatformSection>
             ) : null}
 
+            {showActive && queue.lastDayClose && Date.now() - new Date(queue.lastDayClose.closedAt).getTime() < 7 * 86_400_000 ? <DayCloseNotice report={queue.lastDayClose} storeTimezone={queue.storeTimezone} /> : null}
+
             {showActive && staleTickets.length ? (
               <PlatformSection
                 id="past-pickups-heading"
                 title="Past pickups not closed"
                 meta={queue.staleCount}
               >
-                <p className="mb-3 text-sm text-muted-foreground">Pickup time passed more than 12 hours ago. These are off the live queue and the bar screen. Close each one: complete it if it was collected, cancel it if not, or refund an online payment.</p>
+                <p className="mb-3 text-sm text-muted-foreground">Pickup time passed more than 12 hours ago, so these are off the live queue and the bar screen. End-of-day close settles them automatically after the store day ends (paid ones complete, unpaid ones cancel), or close one now.</p>
                 <ol className="divide-y rounded-[6px] border bg-background">
                   {staleTickets.map((order) => <LiveOrderRow key={order.id} order={order} capabilities={capabilities} storeTimezone={queue.storeTimezone} />)}
                 </ol>
