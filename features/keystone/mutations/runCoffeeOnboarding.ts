@@ -2,6 +2,7 @@ import { normalizePaymentProviderCode } from "../../integrations/payment";
 import { fingerprintInput } from "./idempotency";
 import seedTemplates from "../../platform/onboarding/lib/seed.json";
 import { parseOnboardingData, type OnboardingData } from "../../platform/onboarding/lib/onboardingSchema";
+import { DEFAULT_STORE_LOGO_COLOR, DEFAULT_STORE_LOGO_ICON } from "../../platform/store-settings/lib/store-logo";
 import { permissions, type Session } from "../access";
 import { enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
@@ -50,7 +51,9 @@ function categoryForInventory(name: string) {
   return "coffee";
 }
 function selectedData(args: Args): OnboardingData {
-  const source = args.template === "custom" ? args.data : seedTemplates[args.template];
+  // As in E-commerce's createStore: the default registry logo and hue under the seed's own store fields.
+  const seed = args.template === "custom" ? null : seedTemplates[args.template];
+  const source = seed ? { ...seed, storeInfo: { logoIcon: DEFAULT_STORE_LOGO_ICON, logoColor: DEFAULT_STORE_LOGO_COLOR, ...seed.storeInfo } } : args.data;
   const result = parseOnboardingData(source);
   if (!result.success) throw new Error(`Setup data is invalid: ${result.errors.join("; ")}`);
   for (const provider of result.data.paymentProviders) normalizePaymentProviderCode(provider.code);

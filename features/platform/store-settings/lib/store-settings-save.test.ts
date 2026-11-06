@@ -58,3 +58,13 @@ test("a partial update keeps stored fields in the record the policy checks", asy
   // Sent values still face the policy.
   assert.notDeepEqual(storeSettingRecordErrors(mergeStoreSettingRecord(item, { locale: "fr-FR" })), []);
 });
+
+test("the default logo is an Untitled UI registry icon (Galileo), and onboarding writes it", async () => {
+  const { DEFAULT_STORE_LOGO_ICON, DEFAULT_STORE_LOGO_COLOR } = await import("./store-logo");
+  assert.equal(LOGO_ICONS.find((icon) => icon.lightSvg.trim() === DEFAULT_STORE_LOGO_ICON)?.id, "galileo");
+  assert.equal(DEFAULT_STORE_LOGO_COLOR, "0");
+  const onboarding = readFileSync(join(__dirname, "../../../keystone/mutations/runCoffeeOnboarding.ts"), "utf8");
+  assert.match(onboarding, /storeInfo: \{ logoIcon: DEFAULT_STORE_LOGO_ICON, logoColor: DEFAULT_STORE_LOGO_COLOR, \.\.\.seed\.storeInfo \}/);
+  const schema = readFileSync(join(__dirname, "../../../../schema.prisma"), "utf8");
+  assert.ok(schema.includes(JSON.stringify(DEFAULT_STORE_LOGO_ICON)), "the column default is the registry icon");
+});
