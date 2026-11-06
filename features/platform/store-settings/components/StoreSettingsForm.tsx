@@ -15,7 +15,7 @@ import { Code } from "lucide-react";
 import { LOGO_ICONS, HUE_PRESETS } from "../lib/icon-registry";
 import { StoreSettingsSaveBar } from "./StoreSettingsSaveBar";
 import { WeeklyHoursEditor, fromHoursRows, toHoursRows, type HoursRow } from "./WeeklyHoursEditor";
-import { DEFAULT_STORE_LOGO_ICON } from "../lib/store-logo";
+import { DEFAULT_STORE_LOGO_COLOR, DEFAULT_STORE_LOGO_ICON } from "../lib/store-logo";
 import { saveCoffeeStoreSettingsAction } from "../actions/store-settings";
 import {
   coffeeStoreSettingsInputSchema,
@@ -94,7 +94,7 @@ function toFormState(settings: CoffeeStoreSettingsData | null): FormState {
     locale: settings?.locale ?? "en-US",
     timezone: settings?.timezone ?? "America/New_York",
     logoIcon: settings?.logoIcon || DEFAULT_STORE_LOGO_ICON,
-    logoColor: settings?.logoColor ?? "0",
+    logoColor: settings?.logoColor ?? DEFAULT_STORE_LOGO_COLOR,
     hours: toHoursRows(settings ? settings.weeklyHours : DEFAULT_WEEKLY_HOURS),
     pickupLeadTimeMinutes: String(settings?.pickupLeadTimeMinutes ?? 12),
     pickupWindowMinutes: String(settings?.pickupWindowMinutes ?? 15),

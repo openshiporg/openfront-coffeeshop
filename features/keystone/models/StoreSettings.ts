@@ -11,7 +11,7 @@ import {
 } from "../lib/brand-colors";
 import { trackingFields } from "./trackingFields";
 import { sanitizeStoreLogoSvg } from "../../lib/sanitize-store-logo";
-import { DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor } from "../../platform/store-settings/lib/store-logo";
+import { DEFAULT_STORE_LOGO_COLOR, DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor } from "../../platform/store-settings/lib/store-logo";
 import { PICKUP_LIMITS, storeSettingRecordErrors } from "../lib/store-settings-input";
 
 export const StoreSetting = list({
@@ -94,7 +94,7 @@ export const StoreSetting = list({
       },
     }),
     logoColor: text({
-      defaultValue: "0",
+      defaultValue: DEFAULT_STORE_LOGO_COLOR,
       hooks: { resolveInput: ({ resolvedData, fieldKey }) => resolvedData[fieldKey] === undefined ? undefined : normalizeStoreLogoColor(resolvedData[fieldKey]) },
     }),
     weeklyHours: json({ defaultValue: [] }),

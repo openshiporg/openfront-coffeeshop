@@ -41,7 +41,7 @@ test("the hue is normalized to 0-359", () => {
   const icon = LOGO_ICONS[0].lightSvg;
   assert.equal(parse(icon, "-90").logoColor, "270");
   assert.equal(parse(icon, "400").logoColor, "40");
-  assert.equal(parse(icon, "red").logoColor, "0");
+  assert.equal(parse(icon, "red").logoColor, "160");
 });
 
 test("an unsafe SVG rejects the save", () => {
@@ -59,10 +59,10 @@ test("a partial update keeps stored fields in the record the policy checks", asy
   assert.notDeepEqual(storeSettingRecordErrors(mergeStoreSettingRecord(item, { locale: "fr-FR" })), []);
 });
 
-test("the default logo is an Untitled UI registry icon (Galileo), and onboarding writes it", async () => {
+test("the default logo is an Untitled UI registry icon (Galileo, espresso brown), and onboarding writes it", async () => {
   const { DEFAULT_STORE_LOGO_ICON, DEFAULT_STORE_LOGO_COLOR } = await import("./store-logo");
   assert.equal(LOGO_ICONS.find((icon) => icon.lightSvg.trim() === DEFAULT_STORE_LOGO_ICON)?.id, "galileo");
-  assert.equal(DEFAULT_STORE_LOGO_COLOR, "0");
+  assert.equal(DEFAULT_STORE_LOGO_COLOR, "160"); // espresso brown; the mark is never purple
   const onboarding = readFileSync(join(__dirname, "../../../keystone/mutations/runCoffeeOnboarding.ts"), "utf8");
   assert.match(onboarding, /storeInfo: \{ logoIcon: DEFAULT_STORE_LOGO_ICON, logoColor: DEFAULT_STORE_LOGO_COLOR, \.\.\.seed\.storeInfo \}/);
   const schema = readFileSync(join(__dirname, "../../../../schema.prisma"), "utf8");
