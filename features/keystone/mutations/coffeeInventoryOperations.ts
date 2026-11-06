@@ -4,6 +4,7 @@ import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
 import { validCoffeeTimezone } from "../lib/store-locale-policy";
 import { isBusinessDate, storeDayStart } from "../../platform/reports/lib/businessDate";
+import { PURCHASE_ORDER_TRANSITIONS, canTransition } from "./transitionPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { consumeActiveInventoryLots, planStockCount, trimLotsToStock, stockCostCents, stockDecimal, stockNumber, stockUnits, storedStockUnits, STOCK_SCALE } from "./inventoryLots";
@@ -220,7 +221,7 @@ export async function receiveCoffeePurchaseOrder(
       if (recordedExpiry !== (expiresAt ? expiresAt.getTime() : null)) throw new Error("This purchase order was already received with a different expiry. Refresh to see the recorded lot.");
       return existingLot;
     }
-    if (order.status !== "submitted" || existingLot) throw new Error(`Cannot receive purchase order with status ${String(order.status)}`);
+    if (!canTransition(PURCHASE_ORDER_TRANSITIONS, String(order.status), "received") || existingLot) throw new Error(`Cannot receive purchase order with status ${String(order.status)}`);
 
     const inventoryItemId = String(order.inventoryItemId || "");
     if (!inventoryItemId) throw new Error("Purchase order has no inventory item");

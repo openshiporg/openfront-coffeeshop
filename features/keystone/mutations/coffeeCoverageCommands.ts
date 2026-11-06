@@ -3,6 +3,7 @@ import { z } from "zod";
 import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
+import { LOYALTY_ACCOUNT_TRANSITIONS, PURCHASE_ORDER_TRANSITIONS, canTransition, evaluateTransition } from "./transitionPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 
@@ -237,6 +238,7 @@ export async function adjustCoffeeLoyaltyAccount(
     const account = await tx.loyaltyAccount.findUnique({ where: { id: args.accountId } });
     if (!account) throw new Error("Rewards account not found");
     assertCoffeeStoreOwnership(account.storeId, storeId, "Rewards account");
+    if (status) evaluateTransition(LOYALTY_ACCOUNT_TRANSITIONS, String(account.status || "active"), status);
     const plan = planLoyaltyAdjustment(account, pointsDelta, drinkCreditsDelta);
     if (!plan.ok) throw cafeCustomerError(plan.message);
     await tx.loyaltyAccount.update({
@@ -287,7 +289,7 @@ export async function cancelCoffeePurchaseOrder(_root: unknown, args: { purchase
     if (!order) throw new Error("Purchase order not found");
     assertCoffeeStoreOwnership(order.storeId, storeId, "Purchase order");
     if (order.status === "cancelled") return order;
-    if (order.status !== "submitted" && order.status !== "draft") throw cafeCustomerError(`A ${String(order.status)} purchase order can't be cancelled`);
+    if (!canTransition(PURCHASE_ORDER_TRANSITIONS, String(order.status), "cancelled")) throw cafeCustomerError(`A ${String(order.status)} purchase order can't be cancelled`);
     const notes = reason ? [String(order.notes || "").trim(), `Cancelled: ${reason}`].filter(Boolean).join("\n") : order.notes;
     const updated = await tx.purchaseOrder.update({ where: { id: order.id }, data: { status: "cancelled", notes } });
     await enqueueCoffeeDomainEvent(tx as never, {

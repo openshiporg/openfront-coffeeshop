@@ -7,6 +7,7 @@ import { executePaymentProviderAdapter } from "../utils/paymentProviderAdapter";
 import { creditCafeGiftCardInTransaction, giftCardTender } from "./giftCards";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
 import { reverseLoyaltyEarning } from "./loyaltyReversal";
+import { CAFE_ORDER_TRANSITIONS, PAYMENT_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
 
 type Args = { paymentId: string; amount?: number | null; reason?: string | null; externalRefundReference?: string | null; idempotencyKey?: string | null };
 type Model = { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null>; findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>>; update(args: Record<string, unknown>): Promise<unknown>; create(args: Record<string, unknown>): Promise<unknown> };
@@ -66,6 +67,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
       return;
     }
     if (payment.status !== "captured") throw new Error(`Cannot refund payment with status ${String(payment.status)}`);
+    evaluateTransition(PAYMENT_TRANSITIONS, "captured", "refunded");
     const isOnline = payment.provider === "pp_stripe_stripe";
     if (!isOnline && payment.provider !== "pp_system_default") throw new Error("Refunds for this payment provider aren't supported");
     if (!["cash", "card", "gift_card"].includes(String(payment.method))) throw new Error("Unsupported refund tender");
@@ -86,6 +88,8 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     });
     if (!order) throw new Error("Payment order not found");
     assertCoffeeStoreOwnership(order.storeId, storeId, "Payment order");
+    // Same lifecycle map as every other order writer: a refunded order cannot be refunded again.
+    evaluateTransition(CAFE_ORDER_TRANSITIONS, String(order.status), "refunded");
     const orderPayments = Array.isArray(order.payments) ? order.payments as SettlementEvidence[] : [];
     assertCafeSettlement(orderPayments, Number(order.total || 0) - Number(order.discount || 0));
     if (!orderPayments.some((candidate) => candidate.id === payment.id && candidate.status === "captured")) throw new Error("Refund payment does not match the order's full settlement");
@@ -153,7 +157,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     const refundNote = isGiftCard ? `${reason}; returned to gift card` : isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
-    await tx.posOrder.updateMany({ where: { cafeOrderId: order.id }, data: { status: "refunded" } });
+    await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
     await enqueueCoffeeDomainEvent(tx as never, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });
   }, { maxWait: 5000, timeout: 20000, isolationLevel: "ReadCommitted" });
   return context.sudo().query.Payment.findOne({ where: { id: args.paymentId }, query });

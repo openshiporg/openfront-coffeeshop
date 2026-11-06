@@ -30,6 +30,10 @@ export default async function updateCateringOrderStatus(_root: unknown, args: { 
     assertCoffeeStoreOwnership(existing.storeId, storeId, "Catering order");
     const transition = evaluateTransition(CATERING_ORDER_TRANSITIONS, String(existing.status), args.status);
     if (transition.replay) return String(existing.id);
+    // The quote amount is locked once quoted, so a quote needs its amount and date first.
+    if (args.status === "quoted" && (Number(existing.subtotalCents || 0) <= 0 || !(existing.eventAt instanceof Date))) {
+      throw new Error("Enter the quoted amount and the event date before marking this inquiry quoted.");
+    }
     await tx.cateringOrder.update({ where: { id: existing.id }, data: { status: args.status } });
     await enqueueCoffeeDomainEvent(tx as never, {
       storeId,

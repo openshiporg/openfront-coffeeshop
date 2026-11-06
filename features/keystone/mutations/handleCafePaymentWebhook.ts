@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { isOnlinePaymentProviderCode, type VerifiedPaymentWebhook } from "../../integrations/payment";
 import { executePaymentProviderAdapter } from "../utils/paymentProviderAdapter";
+import { PAYMENT_TRANSITIONS, canTransition } from "./transitionPolicy";
 import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
 
 type Args = { providerCode: string; rawBody: string; headers: Record<string, string> };
@@ -133,7 +134,9 @@ export default async function handleCafePaymentWebhook(_root: unknown, args: Arg
 
     if (verified.status === "succeeded" && payment) {
       assertSettlementMatches(payment, provider.code, verified);
-      if (payment.status !== "captured") {
+      // Stripe sends several "succeeded" events per payment (different ids): a late one must never pull a
+      // refunded or cancelled payment back to captured.
+      if (payment.status !== "captured" && canTransition(PAYMENT_TRANSITIONS, String(payment.status), "captured")) {
         // Money arrived, so it is always recorded, even on a page that expired a moment earlier;
         // a cancelled order keeps its status and the payment is flagged for a refund.
         const cancelled = Boolean(payment.order && TERMINAL_UNSETTLED_ORDER_STATUSES.has(payment.order.status || ""));
@@ -153,7 +156,7 @@ export default async function handleCafePaymentWebhook(_root: unknown, args: Arg
           await tx.cafeOrder.update({ where: { id: payment.orderId }, data: { paidAt: settledAt, ...(status ? { status } : {}) } });
         }
       }
-    } else if (verified.status === "failed" && payment && (payment.status === "pending" || payment.status === "authorized")) {
+    } else if (verified.status === "failed" && payment && canTransition(PAYMENT_TRANSITIONS, String(payment.status), "failed") && payment.status !== "failed") {
       await tx.payment.update({
         where: { id: payment.id },
         data: { status: "failed", failureMessage: `Provider event ${verified.eventType}` },
