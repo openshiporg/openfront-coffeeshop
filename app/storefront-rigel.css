@@ -1503,3 +1503,7 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
     mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
   }
 }
+
+/* Gift card code on the purchase confirmation: big, spaced and selectable. */
+.sf-gift-code { font-size: 2rem; font-weight: 600; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; user-select: all; overflow-wrap: anywhere; }
+@media (max-width: 380px) { .sf-gift-code { font-size: 1.5rem; } }

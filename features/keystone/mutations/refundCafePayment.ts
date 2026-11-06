@@ -4,6 +4,7 @@ import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } 
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeSettlement, lockCoffeeOrder, requireCafeTenderOperator, type SettlementEvidence } from "./coffeeOrderPolicy";
 import { executePaymentProviderAdapter } from "../utils/paymentProviderAdapter";
+import { creditCafeGiftCardInTransaction, giftCardTender } from "./giftCards";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
 import { reverseLoyaltyEarning } from "./loyaltyReversal";
 
@@ -67,7 +68,8 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     if (payment.status !== "captured") throw new Error(`Cannot refund payment with status ${String(payment.status)}`);
     const isOnline = payment.provider === "pp_stripe_stripe";
     if (!isOnline && payment.provider !== "pp_system_default") throw new Error("Refunds for this payment provider aren't supported");
-    if (!["cash", "card"].includes(String(payment.method))) throw new Error("Unsupported refund tender");
+    if (!["cash", "card", "gift_card"].includes(String(payment.method))) throw new Error("Unsupported refund tender");
+    const isGiftCard = payment.method === "gift_card";
     // Hosted Checkout payments keep their page reference (cs_…); the refund goes to its payment intent.
     let refundTarget = String(payment.providerPaymentId || "");
     if (isOnline && refundTarget.startsWith("cs_")) {
@@ -91,7 +93,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     // Online refunds go back to the card through the provider; only counter refunds pay out of a drawer.
     let shiftId: string | null = null;
     let shift: Record<string, unknown> | null = null;
-    if (!isOnline) {
+    if (!isOnline && !isGiftCard) {
       const shifts = await tx.registerShift.findMany({ where: { storeId, status: "open" }, take: 2, orderBy: { openedAt: "asc" }, select: { id: true } });
       if (shifts.length !== 1) throw new Error("Refunds require exactly one open payout register shift");
       shiftId = String(shifts[0].id);
@@ -139,13 +141,16 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
       }).catch(() => null);
       if (!result?.success || !["refunded", "pending"].includes(String(result.status))) throw cafeCustomerError("The card refund didn't go through. Nothing was recorded; try again.");
       providerRefundId = result.providerPaymentId ? String(result.providerPaymentId) : null;
+    } else if (isGiftCard) {
+      // Gift card tender goes back onto the same card; no drawer or terminal is involved.
+      await creditCafeGiftCardInTransaction(tx, { code: giftCardTender.codeOf(String(payment.providerPaymentId)), amount, ref: `refund:${String(payment.id)}`, now });
     } else if (shift && shiftId) {
       const isCash = payment.method === "cash";
       const cashRefundsCents = Number(shift.cashRefundsCents || 0) + (isCash ? amount : 0);
       const cardRefundsCents = Number(shift.cardRefundsCents || 0) + (isCash ? 0 : amount);
       await tx.registerShift.update({ where: { id: shiftId }, data: { cashRefundsCents, cardRefundsCents, expectedCashCents: Math.max(0, Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - cashRefundsCents + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0)) } });
     }
-    const refundNote = isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
+    const refundNote = isGiftCard ? `${reason}; returned to gift card` : isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
     await tx.posOrder.updateMany({ where: { cafeOrderId: order.id }, data: { status: "refunded" } });

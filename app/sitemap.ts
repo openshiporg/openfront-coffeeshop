@@ -8,5 +8,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = await getBaseUrl();
   const menu = await getStorefrontMenu().catch(() => null);
   const items = menu?.kind === "ok" ? menu.items : [];
-  return [{ url: `${base}/` }, ...items.map((item) => ({ url: `${base}/menu/${item.id}` }))];
+  return [{ url: `${base}/` }, { url: `${base}/catering` }, { url: `${base}/gift-cards` }, ...items.map((item) => ({ url: `${base}/menu/${item.id}` }))];
 }

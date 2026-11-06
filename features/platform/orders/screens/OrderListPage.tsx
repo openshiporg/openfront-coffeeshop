@@ -22,11 +22,12 @@ const ORDER_QUERY = `
       activeCount
       activeHasMore
       activeNextCursor
+      staleCount
       historyCount
       historyHasMore
       historyNextCursor
       tickets {
-        id orderNumber status fulfillmentType orderSource customerName customerEmail pickupName promisedAt total isRush
+        id orderNumber status fulfillmentType orderSource customerName customerEmail pickupName promisedAt total isRush isStale
         paymentState canRecordPayment canApplyLoyalty loyaltyApplied
         actions { status label tone }
         orderItems { id quantity itemNameSnapshot customizationsSummary barStatus station }
@@ -48,6 +49,7 @@ type OrderQueueResult = {
   activeCount: number;
   activeHasMore: boolean;
   activeNextCursor: string | null;
+  staleCount: number;
   historyCount: number;
   historyHasMore: boolean;
   historyNextCursor: string | null;
@@ -218,7 +220,8 @@ export async function OrderListPage({
   const queue = response.success ? response.data.getCoffeeOrderQueue : null;
   const capabilities = queue?.capabilities ?? { canManageOrders: false, canManagePayments: false, canManageLoyalty: false };
   const tickets = queue?.tickets ?? [];
-  const activeTickets = tickets.filter((order) => ACTIVE_ORDER_STATUSES.has(order.status));
+  const activeTickets = tickets.filter((order) => ACTIVE_ORDER_STATUSES.has(order.status) && !order.isStale);
+  const staleTickets = tickets.filter((order) => ACTIVE_ORDER_STATUSES.has(order.status) && order.isStale);
   const historyTickets = tickets.filter((order) => HISTORY_ORDER_STATUSES.has(order.status));
   const showActive = status === "all" || ACTIVE_ORDER_STATUSES.has(status);
   const showHistory = status === "all" || HISTORY_ORDER_STATUSES.has(status);
@@ -300,6 +303,19 @@ export async function OrderListPage({
                 ) : (
                   <PlatformEmpty>{activeCursor ? "No more active orders." : "Queue is clear."}</PlatformEmpty>
                 )}
+              </PlatformSection>
+            ) : null}
+
+            {showActive && staleTickets.length ? (
+              <PlatformSection
+                id="past-pickups-heading"
+                title="Past pickups not closed"
+                meta={queue.staleCount}
+              >
+                <p className="mb-3 text-sm text-muted-foreground">Pickup time passed more than 12 hours ago. These are off the live queue and the bar screen. Close each one: complete it if it was collected, cancel it if not, or refund an online payment.</p>
+                <ol className="divide-y rounded-[6px] border bg-background">
+                  {staleTickets.map((order) => <LiveOrderRow key={order.id} order={order} capabilities={capabilities} storeTimezone={queue.storeTimezone} />)}
+                </ol>
               </PlatformSection>
             ) : null}
 

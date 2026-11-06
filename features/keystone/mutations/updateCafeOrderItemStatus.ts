@@ -86,7 +86,7 @@ export default async function updateCafeOrderItemStatus(
   const expectedStatus = args.expectedStatus;
   const requestFingerprint = fingerprintInput({ orderItemId: args.orderItemId, expectedStatus, status });
 
-  return context.prisma.$transaction(async (rawTx) => {
+  const receipt = await context.prisma.$transaction(async (rawTx) => {
     const tx = rawTx as TransactionClient;
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-kds-command:${commandKey}`);
     // Current authority before any private line lookup, and again after the parent lock wait.
@@ -154,4 +154,11 @@ export default async function updateCafeOrderItemStatus(
     });
     return committedReceipt(tx, { itemId: item.id, orderId: order.id, storeId, actorId, idempotencyKey: clientKey, expectedStatus, requestedStatus: status });
   }, TX_OPTIONS);
+  // The last item turning ready rolls the order to ready; the customer hears about it once.
+  const orderId = receipt?.order?.id;
+  if (status === "ready" && orderId && receipt.order.status === "ready") {
+    const { deliverOrderReady } = await import("../lib/orderConfirmation");
+    await deliverOrderReady(context.prisma, orderId);
+  }
+  return receipt;
 }

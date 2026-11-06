@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Boxes, ClipboardList, Coffee, Gauge, Gift, Monitor, Package, Repeat, Settings2, Truck, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, Boxes, ClipboardList, Coffee, CreditCard, Gauge, Gift, Monitor, Package, Repeat, Settings2, Truck, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react";
 
 export interface PlatformNavItem {
   title: string;
@@ -27,6 +27,7 @@ export const platformNavItems: PlatformNavItem[] = [
   { title: "Suppliers", href: "/platform/suppliers", color: "cyan", description: "Vendors and their purchase orders.", icon: Truck, group: "standalone" },
   { title: "Recipes", href: "/platform/recipes", color: "rose", description: "Recipes, ingredients, and cost per serving.", icon: BookOpen, group: "standalone" },
   { title: "Coffee Operations", href: "/platform/coffee-operations", color: "amber", description: "Purchasing, prep, waste, and staff shifts.", icon: Gauge, group: "standalone" },
+  { title: "Gift Cards", href: "/platform/gift-cards", color: "red", description: "Gift cards sold online, balances, and refunds.", icon: CreditCard, group: "standalone" },
   { title: "Rewards", href: "/platform/loyalty", color: "pink", description: "Loyalty accounts, points, and drink credits.", icon: Gift, group: "standalone" },
   { title: "Catering", href: "/platform/catering", color: "violet", description: "Catering inquiries, quotes, and events.", icon: UtensilsCrossed, group: "standalone" },
   { title: "Subscriptions", href: "/platform/subscriptions", color: "sky", description: "Subscription plans and their status.", icon: Repeat, group: "standalone" },

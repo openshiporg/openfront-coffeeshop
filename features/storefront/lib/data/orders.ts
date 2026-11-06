@@ -17,6 +17,7 @@ export type PickupOrderRequest = {
   requestedPickupMinutes?: number;
   specialInstructions?: string;
   paymentMethod?: string;
+  tipCents?: number;
   quoteFingerprint: string;
   items: PickupOrderItemInput[];
 };
@@ -98,6 +99,7 @@ const CREATE_PICKUP_ORDER_MUTATION = `
     $requestedPickupMinutes: Int
     $specialInstructions: String
     $paymentMethod: String
+    $tipCents: Int
     $items: [CafePickupOrderItemInput!]!
   ) {
     createCafePickupOrder(
@@ -111,6 +113,7 @@ const CREATE_PICKUP_ORDER_MUTATION = `
       requestedPickupMinutes: $requestedPickupMinutes
       specialInstructions: $specialInstructions
       paymentMethod: $paymentMethod
+      tipCents: $tipCents
       items: $items
     ) {
       id
@@ -139,9 +142,9 @@ const CREATE_PICKUP_ORDER_MUTATION = `
   }
 `;
 
-export async function quoteCafePickupOrder(items: PickupOrderItemInput[], options: { requestedPickupMinutes?: number } = {}) {
+export async function quoteCafePickupOrder(items: PickupOrderItemInput[], options: { requestedPickupMinutes?: number; tipCents?: number } = {}) {
   if (!items.length) return { success: true as const, quote: null };
-  const response = await cafeRequest<{ quoteCafeOrder: CafeOrderQuote }>(QUOTE_CAFE_ORDER_QUERY, { items, tipCents: 0, requestedPickupMinutes: options.requestedPickupMinutes ?? null });
+  const response = await cafeRequest<{ quoteCafeOrder: CafeOrderQuote }>(QUOTE_CAFE_ORDER_QUERY, { items, tipCents: options.tipCents ?? 0, requestedPickupMinutes: options.requestedPickupMinutes ?? null });
   if (!response.success) return { success: false as const, error: response.error, customerMessage: response.customerMessage };
   return { success: true as const, quote: response.data.quoteCafeOrder };
 }

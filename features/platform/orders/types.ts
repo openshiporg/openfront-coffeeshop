@@ -31,6 +31,7 @@ export type CafeOrderQueueItem = {
   promisedAt?: string | null;
   total: number;
   isRush?: boolean | null;
+  isStale?: boolean | null;
   orderItems?: CafeOrderQueueItemSnapshot[] | null;
   paymentState?: "unpaid" | "pending" | "paid" | "refunded" | null;
   canRecordPayment: boolean;

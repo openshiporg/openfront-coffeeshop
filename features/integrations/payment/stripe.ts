@@ -150,6 +150,35 @@ export async function generatePaymentLinkFunction(input: CreatePaymentInput): Pr
   };
 }
 
+/** Hosted Checkout for something that isn't an order (a gift card). Metadata rides on both the
+ *  session and its payment intent so either webhook names what was bought. */
+export async function createHostedCheckout(input: { amount: number; currencyCode: string; name: string; successUrl: string; cancelUrl: string; metadata: Record<string, string>; idempotencyKey: string; customerEmail?: string | null }) {
+  const body = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][quantity]": "1",
+    "line_items[0][price_data][currency]": input.currencyCode.toLowerCase(),
+    "line_items[0][price_data][unit_amount]": String(input.amount),
+    "line_items[0][price_data][product_data][name]": input.name,
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+    expires_at: String(Math.floor(Date.now() / 1000) + 30 * 60),
+    ...(input.customerEmail ? { customer_email: input.customerEmail } : {}),
+  });
+  for (const [key, value] of Object.entries(input.metadata)) {
+    body.set(`metadata[${key}]`, value);
+    body.set(`payment_intent_data[metadata][${key}]`, value);
+  }
+  const session = await stripeRequest("/checkout/sessions", body, input.idempotencyKey);
+  return { id: String(session.id || ""), url: typeof session.url === "string" ? session.url : null };
+}
+
+/** Reads a hosted Checkout back: paid, open or expired, with the amount and its payment intent. */
+export async function readHostedCheckout(sessionId: string) {
+  const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+  const state = session.payment_status === "paid" ? "paid" : session.status === "expired" ? "expired" : "open";
+  return { state, amount: Number(session.amount_total ?? 0), currency: String(session.currency || ""), paymentIntent: typeof session.payment_intent === "string" ? session.payment_intent : null };
+}
+
 function verifyStripeSignature(rawBody: string, signatureHeader: string) {
   const parts = signatureHeader.split(",").map((part) => part.trim().split("=", 2));
   const timestamp = parts.find(([key]) => key === "t")?.[1];
@@ -197,6 +226,7 @@ export async function handleWebhookFunction(input: PaymentWebhookInput): Promise
     eventType,
     providerPaymentId,
     paymentId: object.metadata?.paymentId || null,
+    giftCardId: object.metadata?.purpose === "gift_card" ? object.metadata?.giftCardId || null : null,
     orderId: object.metadata?.orderId || null,
     status: classifyStripeEvent(eventType, object),
     amount: object.amount_received ?? object.amount_total ?? object.amount ?? null,

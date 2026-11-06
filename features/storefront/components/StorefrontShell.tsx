@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BookOpen, ClipboardList, Clock3, Coffee, Gift, MapPin, ShoppingBag, Store, UserRound, UtensilsCrossed } from "lucide-react";
+import { BookOpen, ClipboardList, Clock3, Coffee, CreditCard, Gift, MapPin, ShoppingBag, Store, UserRound, UtensilsCrossed } from "lucide-react";
 import { StorefrontCartBar, StorefrontCartLink } from "./StorefrontCartLink";
 import { OrderPanel } from "./OrderPanel";
 import { PickupNow } from "./PickupNow";
@@ -63,7 +63,7 @@ export async function StorefrontShell({
   rail?: boolean;
   /** The phone tab bar; the item page docks its add bar there instead. */
   tabbar?: boolean;
-  active?: "menu" | "orders" | "rewards" | "beans" | "account" | "catering" | "visit" | "checkout";
+  active?: "menu" | "orders" | "rewards" | "beans" | "account" | "catering" | "giftcards" | "visit" | "checkout";
 }) {
   let store = providedStore ?? null;
   if (providedStore === undefined) {
@@ -89,6 +89,7 @@ export async function StorefrontShell({
           <Link href="/account#orders" aria-current={current("orders")}><ClipboardList aria-hidden="true" />Your Orders</Link>
           {beansHref ? <Link href={beansHref} aria-current={current("beans")}><Store aria-hidden="true" />Shop</Link> : null}
           <Link href="/catering" aria-current={current("catering")}><UtensilsCrossed aria-hidden="true" />Catering</Link>
+          <Link href="/gift-cards" aria-current={current("giftcards")}><CreditCard aria-hidden="true" />Gift Cards</Link>
           <Link href="/#visit" aria-current={current("visit")}><Coffee aria-hidden="true" />Our Café</Link>
           <Link href="/account" aria-current={current("account")}><UserRound aria-hidden="true" />Account</Link>
         </nav>
@@ -120,6 +121,7 @@ export async function StorefrontShell({
               <Link href="/#menu">Menu</Link>
               <Link href="/#visit">Hours & location</Link>
               <Link href="/catering">Catering</Link>
+              <Link href="/gift-cards">Gift cards</Link>
               <Link href="/account">Your account</Link>
               <Link href="/checkout">Checkout</Link>
             </nav>

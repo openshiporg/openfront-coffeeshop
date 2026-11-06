@@ -39,10 +39,14 @@ function quoteItems(lines: CartLine[]) {
 }
 
 type StoreHours = { weeklyHours: unknown; timezone: string };
+const TIP_PERCENTS = [0, 15, 18, 20];
 
 export function CheckoutClient({ customer = null, hours = null, onlinePayment = false, pickupLeadMinutes = null }: { customer?: CheckoutCustomer | null; hours?: StoreHours | null; onlinePayment?: boolean; pickupLeadMinutes?: number | null }) {
   const router = useRouter();
   const [payOnline, setPayOnline] = React.useState(false);
+  // Tip is a percent of the subtotal (Toast/Square order-ahead), offered with online card payment.
+  const [tipPercent, setTipPercent] = React.useState(0);
+  const [subtotalHint, setSubtotalHint] = React.useState(0);
   const [lines, setLines] = React.useState<CartLine[]>([]);
   const [cartLoaded, setCartLoaded] = React.useState(false);
   const [customerName, setCustomerName] = React.useState(customer?.name || "");
@@ -97,8 +101,13 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     setQuotePending(true);
     const timer = window.setTimeout(async () => {
       try {
-        const result = await quoteCafePickupOrder(quoteItems(lines));
+        let result = await quoteCafePickupOrder(quoteItems(lines));
         if (requestId !== quoteRequest.current) return;
+        if (result.success && result.quote) setSubtotalHint(result.quote.subtotal);
+        if (result.success && result.quote && tipCentsFor(result.quote.subtotal) > 0) {
+          result = await quoteCafePickupOrder(quoteItems(lines), { tipCents: tipCentsFor(result.quote.subtotal) });
+          if (requestId !== quoteRequest.current) return;
+        }
         if (result.success && result.quote) {
           setQuote(result.quote);
           setQuotedAt(Date.now());
@@ -116,11 +125,15 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
       }
     }, 150);
     return () => window.clearTimeout(timer);
-  }, [lines, quoteRetry]);
+  }, [lines, quoteRetry, tipPercent, payOnline]);
 
   React.useEffect(() => {
     if (error) errorRef.current?.focus();
   }, [error]);
+
+  function tipCentsFor(subtotal: number) {
+    return onlinePayment && payOnline ? Math.round((subtotal * tipPercent) / 100) : 0;
+  }
 
   const frozen = Boolean(attempt) || pending;
   const totalQuantity = cartQuantity(lines);
@@ -192,7 +205,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     setPending(false);
     // If the current price/tax/pickup terms moved, retrying the old request cannot succeed.
     try {
-      const fresh = await quoteCafePickupOrder(current.request.items);
+      const fresh = await quoteCafePickupOrder(current.request.items, { tipCents: current.request.tipCents });
       if (fresh.success && fresh.quote && fresh.quote.quoteFingerprint !== current.request.quoteFingerprint) {
         setError("Prices, tax or availability changed since you reviewed this ticket. If the cafe hasn’t contacted you, discard this request and review the updated total.");
         return;
@@ -217,6 +230,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
         : quote.estimatedPickupMinutes,
       specialInstructions: notes.trim() || undefined,
       paymentMethod: "manual",
+      ...(quote.tip > 0 ? { tipCents: quote.tip } : {}),
       quoteFingerprint: quote.quoteFingerprint,
       items: quoteItems(lines),
     };
@@ -355,6 +369,12 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                     <dt>Tax</dt>
                     <dd>{quote ? formatMoney(quote.tax, currency) : "—"}</dd>
                   </div>
+                  {quote && quote.tip > 0 ? (
+                    <div>
+                      <dt>Tip</dt>
+                      <dd>{formatMoney(quote.tip, currency)}</dd>
+                    </div>
+                  ) : null}
                   <div className="is-total">
                     <dt>Total</dt>
                     <dd>{quote ? formatMoney(quote.total, currency) : "—"}</dd>
@@ -423,6 +443,19 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                     <button type="button" className="sf-track-item" aria-pressed={!payOnline} disabled={frozen} onClick={() => setPayOnline(false)}>Pay at pickup</button>
                     <button type="button" className="sf-track-item" aria-pressed={payOnline} disabled={frozen} onClick={() => setPayOnline(true)}>Pay online</button>
                   </div>
+                </div>
+              ) : null}
+              {onlinePayment && payOnline ? (
+                <div className="sf-form-label">
+                  <span id="checkout-tip-label">Tip the baristas</span>
+                  <div className="sf-track sf-track-fill" role="group" aria-labelledby="checkout-tip-label">
+                    {TIP_PERCENTS.map((percent) => (
+                      <button key={percent} type="button" className="sf-track-item" aria-pressed={tipPercent === percent} disabled={frozen} onClick={() => setTipPercent(percent)}>
+                        {percent ? `${percent}%` : "No tip"}
+                      </button>
+                    ))}
+                  </div>
+                  {tipPercent && subtotalHint ? <span className="sf-fine">{formatMoney(Math.round((subtotalHint * tipPercent) / 100), currency)} goes to the bar team</span> : null}
                 </div>
               ) : null}
               <label htmlFor="checkout-notes" className="sf-form-label">

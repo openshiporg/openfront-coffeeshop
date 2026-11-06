@@ -96,6 +96,7 @@ model StoreSetting {
   cashMovements           CashMovement[]         @relation("CashMovement_store")
   payments                Payment[]              @relation("Payment_store")
   loyaltyAccounts         LoyaltyAccount[]       @relation("LoyaltyAccount_store")
+  giftCards               GiftCard[]             @relation("GiftCard_store")
   subscriptions           Subscription[]         @relation("Subscription_store")
   cateringOrders          CateringOrder[]        @relation("CateringOrder_store")
   paymentEvents           PaymentEvent[]         @relation("PaymentEvent_store")
@@ -476,6 +477,33 @@ model LoyaltyEvent {
   @@index([accountId])
   @@index([orderId])
   @@index([createdById])
+}
+
+model GiftCard {
+  id                String       @id @default(cuid())
+  store             StoreSetting @relation("GiftCard_store", fields: [storeId], references: [id])
+  storeId           String       @map("store")
+  code              String       @unique @default("")
+  status            String?      @default("pending")
+  initialValue      Int
+  balance           Int
+  currencyCode      String       @default("USD")
+  purchaserName     String       @default("")
+  purchaserEmail    String       @default("")
+  recipientName     String       @default("")
+  recipientEmail    String       @default("")
+  message           String       @default("")
+  providerPaymentId String       @default("")
+  refundedAt        DateTime?
+  expiresAt         DateTime?
+  activatedAt       DateTime?
+  emailedAt         DateTime?
+  ledger            Json?        @default("[]")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @default(now()) @updatedAt
+
+  @@index([storeId])
+  @@index([providerPaymentId])
 }
 
 model CoffeeDomainEvent {

@@ -175,5 +175,10 @@ export default async function updateCafeOrderStatus(
     return existing.id;
   }, TX_OPTIONS);
 
+  if (status === "ready") {
+    // After commit: tell an online customer their order is waiting. Never blocks the bar.
+    const { deliverOrderReady } = await import("../lib/orderConfirmation");
+    await deliverOrderReady(context.prisma, orderId);
+  }
   return context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_QUERY });
 }

@@ -51,3 +51,41 @@ export async function deliverOrderConfirmation(prisma: any, order: any, send?: S
     console.error("Order confirmation email bookkeeping failed:", error instanceof Error ? error.message : "unknown");
   }
 }
+
+/** One "ready for pickup" email per order, claimed and recorded like the confirmation. Never throws. */
+export async function deliverOrderReady(prisma: any, orderId: string) {
+  try {
+    const order = await prisma.cafeOrder.findUnique({ where: { id: orderId }, include: { store: { select: { name: true, address: true } } } });
+    if (!order?.customerEmail || order.status !== "ready" || order.orderSource !== "online") return;
+    // A long-stale order is not news; only notify while the pickup is current.
+    if (order.readyAt && Date.now() - new Date(order.readyAt).getTime() > 30 * 60_000) return;
+    const eventKey = `order:${order.id}:ready_email:v1`;
+    try {
+      await prisma.coffeeDomainEvent.create({
+        data: { eventKey, eventType: "order.ready_email", aggregateType: "order", aggregateId: order.id, storeId: order.storeId, payload: { status: "claimed" }, payloadHash: eventKey },
+        select: { id: true },
+      });
+    } catch (error) {
+      if ((error as { code?: string })?.code === "P2002") return;
+      throw error;
+    }
+    const resultKey = `order:${order.id}:ready_email_result:v1`;
+    const mark = (status: string, error?: string, messageId?: string) => prisma.coffeeDomainEvent.create({
+      data: { eventKey: resultKey, eventType: "order.ready_email_result", aggregateType: "order", aggregateId: order.id, storeId: order.storeId, payload: { status, ...(messageId ? { messageId: messageId.slice(0, 200) } : {}), ...(error ? { error: error.slice(0, 200) } : {}) }, payloadHash: `${resultKey}:${status}` },
+    });
+    try {
+      if (!orderConfirmationConfigured()) { await mark("skipped_not_configured"); return; }
+      const { sendOrderReadyEmail } = await import("./orderMail");
+      const result = await sendOrderReadyEmail({
+        to: order.customerEmail, storeName: order.store?.name || "Our cafe", orderNumber: order.orderNumber, name: order.pickupName || order.customerName || "Hi",
+        handoffCode: order.handoffCode || "", address: order.store?.address || "",
+        link: `${String(process.env.SMTP_STORE_LINK).replace(/\/$/, "")}/order-confirmed?id=${encodeURIComponent(order.id)}&key=${encodeURIComponent(order.secretKey)}`,
+      });
+      await (result.sent ? mark("sent", undefined, result.messageId) : mark("failed", result.error || "send_failed"));
+    } catch (error) {
+      try { await mark("failed", error instanceof Error ? error.message : "send_failed"); } catch { /* bookkeeping only */ }
+    }
+  } catch (error) {
+    console.error("Order ready email failed:", error instanceof Error ? error.message : "unknown");
+  }
+}

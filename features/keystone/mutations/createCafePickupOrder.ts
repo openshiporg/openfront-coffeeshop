@@ -344,7 +344,8 @@ async function createOrderTransaction({
 
   const taxRateBasisPoints = Number(settings.taxRateBasisPoints ?? 875);
   const pricedLines = normalizedItems.map((item) => ({ menuItemId: item.menuItem.id, quantity: item.quantity, modifierIds: item.modifierSnapshot.map((modifier) => modifier.id), unitPrice: item.unitPrice }));
-  const { subtotal, tax, tip, total } = calculateCafeTotals(pricedLines, taxRateBasisPoints, isStaff ? Number(args.tipCents || 0) : 0);
+  const { subtotal, tax, tip, total } = calculateCafeTotals(pricedLines, taxRateBasisPoints, Number(args.tipCents || 0));
+  if (!isStaff && tip > subtotal) throw cafeCustomerError("The tip can't be more than the order itself");
   if (args.quoteFingerprint) {
     const current = cafeQuoteFingerprint({ storeId, currencyCode: settings.currencyCode, taxRateBasisPoints, lines: pricedLines, subtotal, tax, tip, total });
     if (current !== args.quoteFingerprint) throw cafeCustomerError("Prices or tax changed since this ticket was reviewed. Review the updated total and submit again.");
@@ -564,7 +565,6 @@ export default async function createCafePickupOrder(
   if (args.cashTenderedCents != null && (paymentMethod !== "cash" || !Number.isSafeInteger(args.cashTenderedCents) || args.cashTenderedCents < 0 || args.cashTenderedCents > 100_000_000)) {
     throw cafeCustomerError("Cash received applies only to a cash sale, as a whole number of cents");
   }
-  if (!isStaff && tipCents > 0) throw new Error("Only staff may add a counter tip");
   if (!isStaff && (paymentMethod === "cash" || paymentMethod === "manual_card")) throw new Error("Immediate-tender payment methods are only available to staff");
   if (!isStaff && orderSource !== "online") throw new Error("Only staff may create non-online orders");
   if (!isStaff && fulfillmentType !== "pickup") throw new Error("Only staff may create non-pickup orders");

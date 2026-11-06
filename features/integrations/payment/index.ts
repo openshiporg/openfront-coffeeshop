@@ -59,6 +59,8 @@ export type VerifiedPaymentWebhook = {
   providerPaymentId: string;
   paymentId?: string | null;
   orderId?: string | null;
+  /** Set when the event is for a gift card purchase rather than an order payment. */
+  giftCardId?: string | null;
   status: "succeeded" | "failed" | "ignored";
   amount?: number | null;
   currencyCode?: string | null;

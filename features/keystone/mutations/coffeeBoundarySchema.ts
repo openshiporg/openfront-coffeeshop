@@ -221,6 +221,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     orderItems: [CafeOrderItemProjection!]!
     paymentState: String
     canRecordPayment: Boolean!
+    isStale: Boolean!
     canApplyLoyalty: Boolean!
     loyaltyApplied: Boolean
     refundablePayments: [CoffeeRefundablePaymentProjection!]!
@@ -234,6 +235,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
     activeCount: Int!
     activeHasMore: Boolean!
     activeNextCursor: String
+    staleCount: Int!
     historyCount: Int!
     historyHasMore: Boolean!
     historyNextCursor: String

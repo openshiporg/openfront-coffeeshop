@@ -30,6 +30,7 @@ import { InventoryItem } from './InventoryItem';
 import { StockMovement } from './StockMovement';
 import { LoyaltyAccount } from './LoyaltyAccount';
 import { LoyaltyEvent } from './LoyaltyEvent';
+import { GiftCard } from './GiftCard';
 
 import type { ListConfig, BaseListTypeInfo } from "@keystone-6/core/types";
 
@@ -65,6 +66,7 @@ export const models = hiddenWithoutReadAccess({
   StockMovement,
   LoyaltyAccount,
   LoyaltyEvent,
+  GiftCard,
   CoffeeDomainEvent,
   CoffeeOutboxDelivery,
   WasteLog,

@@ -38,13 +38,14 @@ export async function acceptCafePickupOrderAction(orderId: string, idempotencyKe
 
 export async function recordCafePaymentAction(
   orderId: string,
-  method: 'cash' | 'card',
+  method: 'cash' | 'card' | 'gift_card',
   idempotencyKey: string,
   card?: { externalCardReference: string; externalCardApproved: boolean },
+  giftCardCode?: string,
 ) {
   const response = await cafeRequest(`
-    mutation RecordCafePayment($orderId: ID!, $method: String!, $idempotencyKey: String!, $externalCardReference: String, $externalCardApproved: Boolean) {
-      recordCafePayment(orderId: $orderId, method: $method, idempotencyKey: $idempotencyKey, externalCardReference: $externalCardReference, externalCardApproved: $externalCardApproved) {
+    mutation RecordCafePayment($orderId: ID!, $method: String!, $idempotencyKey: String!, $externalCardReference: String, $externalCardApproved: Boolean, $giftCardCode: String) {
+      recordCafePayment(orderId: $orderId, method: $method, idempotencyKey: $idempotencyKey, externalCardReference: $externalCardReference, externalCardApproved: $externalCardApproved, giftCardCode: $giftCardCode) {
         id status method amount order { id status }
       }
     }
@@ -54,6 +55,7 @@ export async function recordCafePaymentAction(
     idempotencyKey,
     externalCardReference: method === 'card' ? card?.externalCardReference ?? null : null,
     externalCardApproved: method === 'card' ? card?.externalCardApproved ?? null : null,
+    giftCardCode: method === 'gift_card' ? giftCardCode ?? null : null,
   });
   revalidatePath('/dashboard/platform/orders');
   revalidatePath('/dashboard/platform/kds');
@@ -84,4 +86,12 @@ export async function refundCafePaymentAction(paymentId: string, idempotencyKey:
   revalidatePath('/dashboard/platform/pos');
   revalidatePath('/dashboard/platform/reports');
   return response;
+}
+
+export async function lookupGiftCardAction(code: string) {
+  return cafeRequest<{ lookupCafeGiftCard: { id: string; code: string; status: string; balance: number; currencyCode: string; recipientName?: string | null; expiresAt?: string | null } }>(`
+    query LookupCafeGiftCard($code: String!) {
+      lookupCafeGiftCard(code: $code) { id code status balance currencyCode recipientName expiresAt }
+    }
+  `, { code });
 }

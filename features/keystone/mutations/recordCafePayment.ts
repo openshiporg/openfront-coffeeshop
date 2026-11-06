@@ -8,8 +8,10 @@ import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } 
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { admitOpenCafeOrder, lockAndReadAdmissionLines } from "./acceptCafePickupOrder";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
+import { giftCardTender, normalizeGiftCode, redeemCafeGiftCardInTransaction } from "./giftCards";
+import { cafeCustomerError } from "../lib/cafeCustomerError";
 
-type Args = { orderId: string; method: string; idempotencyKey?: string | null; externalCardReference?: string | null; externalCardApproved?: boolean | null };
+type Args = { orderId: string; method: string; idempotencyKey?: string | null; externalCardReference?: string | null; externalCardApproved?: boolean | null; giftCardCode?: string | null };
 type TransactionClient = {
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
   $queryRawUnsafe<R>(query: string, ...values: unknown[]): Promise<R>;
@@ -47,14 +49,17 @@ const PAYMENT_QUERY = "id status method amount currencyCode provider providerPay
 export default async function recordCafePayment(_root: unknown, args: Args, context: Context) {
   requireCafeTenderOperator(context.session);
   if (!args.orderId) throw new Error("Order id is required");
-  if (!['cash', 'card'].includes(args.method)) throw new Error("Recorded payment method must be cash or card");
+  if (!['cash', 'card', 'gift_card'].includes(args.method)) throw new Error("Recorded payment method must be cash, card or gift card");
+  const giftCode = args.method === "gift_card" ? normalizeGiftCode(args.giftCardCode || "") : "";
+  if (args.method === "gift_card" && !giftCode) throw cafeCustomerError("Enter the 12-character gift card code.");
+  if (args.method !== "gift_card" && args.giftCardCode) throw new Error("A gift card code applies only to a gift card payment");
   // Same operator-attested terminal evidence the POS card tender requires.
   const externalCardReference = args.externalCardReference?.trim() || "";
   if (args.method === "card") {
     if (args.externalCardApproved !== true) throw new Error("Confirm the card terminal approved this exact amount before recording the card payment");
     if (!/^[A-Za-z0-9#._:\/-]{4,64}$/.test(externalCardReference)) throw new Error("Enter the terminal approval or reference code (4-64 letters, numbers or #._:/-)");
   } else if (externalCardReference || args.externalCardApproved) throw new Error("A terminal reference applies only to an external card payment");
-  const providerPaymentId = args.method === "cash" ? `cash_${randomUUID()}` : `external_terminal:${externalCardReference}`;
+  const providerPaymentId = args.method === "cash" ? `cash_${randomUUID()}` : args.method === "gift_card" ? giftCardTender.providerPaymentId(giftCode) : `external_terminal:${externalCardReference}`;
   const clientKey = normalizeIdempotencyKey(args.idempotencyKey);
   if (!clientKey) throw new Error("Recorded payment idempotency key is required");
   const scope = context.session?.listKey === "User" ? context.session.itemId : "operator";
@@ -89,7 +94,7 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
     const payments = Array.isArray(order.payments) ? order.payments as Array<Record<string, unknown>> : [];
     const replay = payments.find((payment) => payment.idempotencyKey === scopedKey);
     if (replay) {
-      if (replay.status !== "captured" || replay.method !== args.method || (args.method === "card" && replay.providerPaymentId !== providerPaymentId)) throw new Error("Recorded payment idempotency key conflicts with existing evidence");
+      if (replay.status !== "captured" || replay.method !== args.method || (args.method === "card" && replay.providerPaymentId !== providerPaymentId) || (args.method === "gift_card" && giftCardTender.codeOf(String(replay.providerPaymentId)) !== giftCode)) throw new Error("Recorded payment idempotency key conflicts with existing evidence");
       return String(replay.id);
     }
     if (!["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(String(order.status))) throw new Error(`Cannot record settlement for an order with status ${String(order.status)}`);
@@ -127,6 +132,7 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
       await consumeCafeInventoryRequirements(tx, { storeId, orderId: String(order.id), orderNumber: String(order.orderNumber), requirements, reason: `Pickup settlement ${String(order.orderNumber)}`, createdById: actorId });
     }
     const settledAt = new Date();
+    if (args.method === "gift_card") await redeemCafeGiftCardInTransaction(tx, { storeId, code: giftCode, amount, ref: `order:${String(order.orderNumber)}`, now: settledAt });
     const payment = await tx.payment.create({
       data: {
         orderId: order.id,
@@ -144,15 +150,18 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
         metadata: {
           tender: args.method === "cash"
             ? { method: "cash", evidence: "cash_received_at_register" }
+            : args.method === "gift_card"
+            ? { method: "gift_card", evidence: "gift_card_ledger_debit", giftCardCode: giftCode }
             : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: actorId, attestedAt: settledAt.toISOString(), providerVerified: false },
         },
       },
       select: { id: true },
     });
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: ["open", "accepted"].includes(String(order.status)) ? "paid" : order.status, paidAt: settledAt, ...(admittedPromisedAt ? { promisedAt: admittedPromisedAt } : {}) } });
+    // Gift card tender is prepaid value, not drawer cash or a card sale.
     const isCash = args.method === "cash";
     const cashSalesCents = Number(registerShift.cashSalesCents || 0) + (isCash ? amount : 0);
-    const cardSalesCents = Number(registerShift.cardSalesCents || 0) + (isCash ? 0 : amount);
+    const cardSalesCents = Number(registerShift.cardSalesCents || 0) + (args.method === "card" ? amount : 0);
     await tx.registerShift.update({
       where: { id: registerShift.id },
       data: {

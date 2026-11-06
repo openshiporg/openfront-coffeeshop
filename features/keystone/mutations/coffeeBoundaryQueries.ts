@@ -14,7 +14,7 @@ type ListRow = Record<string, unknown> & { id: string };
 type ListModel = { findMany(args: Record<string, unknown>): Promise<ListRow[]> };
 type CountableListModel = ListModel & { count(args: Record<string, unknown>): Promise<number> };
 type GroupedOrderStatus = { status: string | null; _count: { _all: number } };
-type GroupedOrderModel = ListModel & { groupBy(args: Record<string, unknown>): Promise<GroupedOrderStatus[]> };
+type GroupedOrderModel = CountableListModel & { groupBy(args: Record<string, unknown>): Promise<GroupedOrderStatus[]> };
 type Context = {
   session?: Session;
   prisma: {
@@ -115,6 +115,15 @@ async function primaryStore(context: Context) {
 }
 
 const ORDER_QUEUE_ACTIVE_PAGE_SIZE = 100;
+/** A ticket whose pickup (or creation, when unscheduled) is this far gone is a past pickup, not live work. */
+const STALE_TICKET_HOURS = 12;
+function staleCutoff() { return new Date(Date.now() - STALE_TICKET_HOURS * 3_600_000); }
+function currentTicketWhere(cutoff: Date) {
+  return { OR: [{ promisedAt: { gte: cutoff } }, { promisedAt: null, createdAt: { gte: cutoff } }] };
+}
+function staleTicketWhere(cutoff: Date) {
+  return { OR: [{ promisedAt: { lt: cutoff } }, { promisedAt: null, createdAt: { lt: cutoff } }] };
+}
 type ActiveOrderCursor = { createdAt: Date; id: string; storeId: string };
 
 const ORDER_QUEUE_STATUS_FILTERS = ["all", "open", "accepted", "paid", "in_bar_queue", "preparing", "ready", "completed", "cancelled", "refunded"] as const;
@@ -206,7 +215,9 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
     ...(fulfillmentFilter !== "all" ? { fulfillmentType: fulfillmentFilter } : {}),
     ...(search ? { OR: ["orderNumber", "customerName", "customerEmail", "pickupName"].map((field) => ({ [field]: { contains: search, mode: "insensitive" } })) } : {}),
   };
-  const activeCountWhere = { ...matchingOrders, status: { in: activeStatuses } };
+  const cutoff = staleCutoff();
+  const activeCountWhere = { ...matchingOrders, status: { in: activeStatuses }, AND: [currentTicketWhere(cutoff)] };
+  const staleWhere = { ...matchingOrders, status: { in: activeStatuses }, AND: [staleTicketWhere(cutoff)] };
   const historyWhere = { ...matchingOrders, status: { in: historyStatuses } };
   const historyPageWhere = {
     ...historyWhere,
@@ -219,7 +230,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
   const countedOrdersWhere = { ...matchingOrders, status: { in: [...allActiveStatuses, ...(includeHistory ? allHistoryStatuses : [])] } };
   const activePageWhere = {
     ...activeCountWhere,
-    ...(activeCursor ? { AND: [{ OR: [
+    ...(activeCursor ? { AND: [currentTicketWhere(cutoff), { OR: [
       { createdAt: { gt: activeCursor.createdAt } },
       { createdAt: activeCursor.createdAt, id: { gt: activeCursor.id } },
     ] }] } : {}),
@@ -229,7 +240,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
     orderItems: { select: { id: true, quantity: true, itemNameSnapshot: true, customizationsSummary: true, barStatus: true, station: true } },
     payments: { where: { status: { in: ["captured", "pending", "authorized", "refunded"] } }, select: { id: true, status: true, method: true, provider: true, amount: true, refundedAmount: true, refundIdempotencyKey: true } },
   };
-  const [activeTickets, historyTickets, groupedCounts] = await Promise.all([
+  const [activeTickets, historyTickets, groupedCounts, staleTickets, staleCount, liveCount] = await Promise.all([
     activeStatuses.length
       ? context.prisma.cafeOrder.findMany({ where: activePageWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE + 1, select: orderSelect })
       : Promise.resolve([]),
@@ -237,6 +248,12 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
       ? context.prisma.cafeOrder.findMany({ where: historyPageWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE + 1, select: orderSelect })
       : Promise.resolve([]),
     context.prisma.cafeOrder.groupBy({ by: ["status"], where: countedOrdersWhere, _count: { _all: true } }),
+    // Past pickups never collected or closed: shown apart so staff can close them out, oldest first.
+    activeStatuses.length && !activeCursor
+      ? context.prisma.cafeOrder.findMany({ where: staleWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE, select: orderSelect })
+      : Promise.resolve([]),
+    activeStatuses.length ? context.prisma.cafeOrder.count({ where: staleWhere }) : Promise.resolve(0),
+    activeStatuses.length ? context.prisma.cafeOrder.count({ where: activeCountWhere }) : Promise.resolve(0),
   ]);
   const countByStatus = new Map<string, number>(groupedCounts.map(({ status, _count: count }) => [String(status), count._all] as const));
   const count = (status: string) => countByStatus.get(status) || 0;
@@ -248,7 +265,8 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
   const historyHasMore = historyTickets.length > ORDER_QUEUE_ACTIVE_PAGE_SIZE;
   const historyNextCursor = historyHasMore && historyItems.length ? encodeHistoryOrderCursor(historyItems[historyItems.length - 1]!, search, filterKey, store.id) : null;
   const historyCount = historyStatuses.reduce((total, status) => total + count(status), 0);
-  const tickets = [...activeItems, ...historyItems];
+  const staleIds = new Set((staleTickets as Array<{ id: string }>).map((ticket) => ticket.id));
+  const tickets = [...activeItems, ...(staleTickets as typeof activeItems), ...historyItems];
   const canManageOrders = permissions.canManageOrders({ session: context.session });
   const canManagePayments = permissions.canManagePayments({ session: context.session });
   const canManageLoyalty = permissions.canManageLoyalty({ session: context.session });
@@ -270,7 +288,8 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
     capabilities: { canManageOrders, canManagePayments, canManageLoyalty },
     filters: { status: statusFilter, fulfillment: fulfillmentFilter },
     storeTimezone: store.storeTimezone,
-    activeCount: activeStatuses.reduce((total, status) => total + count(status), 0),
+    activeCount: liveCount,
+    staleCount,
     activeHasMore,
     activeNextCursor,
     historyCount,
@@ -286,6 +305,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
       return {
         ...ticket,
         status,
+        isStale: staleIds.has(String(ticket.id)),
         orderItems: Array.isArray(ticket.orderItems) ? ticket.orderItems : [],
         // Payment state is a workflow fact for order/payment staff; tender details stay with payment managers.
         paymentState: canSeePaymentState ? paymentState : null,
@@ -350,7 +370,8 @@ export async function getCoffeeKdsBoard(_root: unknown, args: { cursor?: string 
   const baseWhere = {
     storeId: store.id,
     barStatus: { in: KDS_ACTIVE_ITEM_STATUSES },
-    order: { status: { in: KDS_ACTIVE_ORDER_STATUSES } },
+    // Past pickups leave the make line; they are closed out from Orders.
+    order: { status: { in: KDS_ACTIVE_ORDER_STATUSES }, ...currentTicketWhere(staleCutoff()) },
   };
   const activeWhere = {
     ...baseWhere,
@@ -573,7 +594,8 @@ export async function getCoffeePosRegister(_root: unknown, args: { search?: stri
 export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[] | null; tipCents?: number | null; requestedPickupMinutes?: number | null }, context: Context) {
   const items = validateCafeOrderLines(args.items || []);
   const isStaff = permissions.canManageOrders({ session: context.session });
-  const tipCents = isStaff ? Number(args.tipCents || 0) : 0;
+  // Online customers may tip when they pay by card (Toast/Square order-ahead), capped at the order subtotal.
+  const tipCents = Number(args.tipCents || 0);
   if (!Number.isSafeInteger(tipCents) || tipCents < 0 || tipCents > 100_000_000) throw new Error("Tip must be a non-negative integer amount in cents");
   const store = await primaryStore(context);
   const ids = [...new Set(items.map((item) => item.menuItemId))];
@@ -598,6 +620,8 @@ export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[]
     return { index, menuItemId: menuItem.id, name: menuItem.name, quantity: item.quantity, unitPrice, modifierIds };
   });
   const taxRateBasisPoints = Number(store.taxRateBasisPoints ?? 875);
+  const lineSubtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  if (!isStaff && tipCents > lineSubtotal) throw cafeCustomerError("The tip can't be more than the order itself");
   const totals = calculateCafeTotals(lines, taxRateBasisPoints, tipCents);
   const currency = await context.prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { currencyCode: true } });
   const currencyCode = String(currency?.currencyCode || "USD");

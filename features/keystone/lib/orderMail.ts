@@ -40,3 +40,51 @@ export async function sendOrderConfirmationEmail(order: OrderConfirmationEmail):
     return { sent: false, error: error instanceof Error ? error.message : "send_failed" };
   }
 }
+
+export type OrderReadyEmail = { to: string; storeName: string; orderNumber: string; name: string; handoffCode: string; address: string; link: string };
+
+/** "Your order is ready" (Toast/Square order-ahead): sent once when the bar marks the whole order ready. */
+export async function sendOrderReadyEmail(order: OrderReadyEmail): Promise<{ sent: boolean; error?: string; messageId?: string; response?: string }> {
+  if (!order.to) return { sent: false, error: "no_recipient" };
+  try {
+    const info = await transport().sendMail({
+      to: order.to,
+      from: process.env.SMTP_FROM,
+      subject: `Ready for pickup: order ${order.orderNumber}`,
+      html: `<body style="font-family:Helvetica,Arial,sans-serif;color:#222;max-width:560px;margin:auto">
+        <h2>${escapeHtml(order.name)}, your order is ready</h2>
+        <p>Order <strong>${escapeHtml(order.orderNumber)}</strong> is waiting at the pickup counter${order.address ? ` at ${escapeHtml(order.address)}` : ` at ${escapeHtml(order.storeName)}`}.</p>
+        ${order.handoffCode ? `<p style="font-size:28px;letter-spacing:4px;margin:16px 0"><strong>${escapeHtml(order.handoffCode)}</strong></p><p>Show this pickup code at the counter.</p>` : ""}
+        <p><a href="${escapeHtml(order.link)}">View your order</a></p>
+      </body>`,
+    });
+    return { sent: true, messageId: typeof (info as any)?.messageId === "string" ? (info as any).messageId : undefined, response: typeof (info as any)?.response === "string" ? (info as any).response : undefined };
+  } catch (error) {
+    return { sent: false, error: error instanceof Error ? error.message : "send_failed" };
+  }
+}
+
+export type GiftCardEmail = { to: string; storeName: string; amount: string; code: string; recipientName: string; purchaserName: string; message: string; link: string };
+
+/** The recipient's gift card: amount, code and the note from the buyer. */
+export async function sendGiftCardEmail(card: GiftCardEmail): Promise<{ sent: boolean; error?: string }> {
+  if (!card.to) return { sent: false, error: "no_recipient" };
+  try {
+    await transport().sendMail({
+      to: card.to,
+      from: process.env.SMTP_FROM,
+      subject: `${card.purchaserName} sent you a ${card.amount} gift card for ${card.storeName}`,
+      html: `<body style="font-family:Helvetica,Arial,sans-serif;color:#222;max-width:560px;margin:auto">
+        <h2>Hi ${escapeHtml(card.recipientName)}, a ${escapeHtml(card.amount)} gift card for ${escapeHtml(card.storeName)}</h2>
+        <p>From ${escapeHtml(card.purchaserName)}.</p>
+        ${card.message ? `<p style="font-style:italic">“${escapeHtml(card.message)}”</p>` : ""}
+        <p style="font-size:26px;letter-spacing:3px;margin:16px 0"><strong>${escapeHtml(card.code)}</strong></p>
+        <p>Show this code at the counter, or read it out when you pick up an order.</p>
+        <p><a href="${escapeHtml(card.link)}">See the menu</a></p>
+      </body>`,
+    });
+    return { sent: true };
+  } catch (error) {
+    return { sent: false, error: error instanceof Error ? error.message : "send_failed" };
+  }
+}

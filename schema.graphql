@@ -448,6 +448,8 @@ type StoreSetting {
   paymentsCount(where: PaymentWhereInput! = {}): Int
   loyaltyAccounts(where: LoyaltyAccountWhereInput! = {}, orderBy: [LoyaltyAccountOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyAccountWhereUniqueInput): [LoyaltyAccount!]
   loyaltyAccountsCount(where: LoyaltyAccountWhereInput! = {}): Int
+  giftCards(where: GiftCardWhereInput! = {}, orderBy: [GiftCardOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: GiftCardWhereUniqueInput): [GiftCard!]
+  giftCardsCount(where: GiftCardWhereInput! = {}): Int
   subscriptions(where: SubscriptionWhereInput! = {}, orderBy: [SubscriptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SubscriptionWhereUniqueInput): [Subscription!]
   subscriptionsCount(where: SubscriptionWhereInput! = {}): Int
   cateringOrders(where: CateringOrderWhereInput! = {}, orderBy: [CateringOrderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CateringOrderWhereUniqueInput): [CateringOrder!]
@@ -523,6 +525,7 @@ input StoreSettingWhereInput {
   cashMovements: CashMovementManyRelationFilter
   payments: PaymentManyRelationFilter
   loyaltyAccounts: LoyaltyAccountManyRelationFilter
+  giftCards: GiftCardManyRelationFilter
   subscriptions: SubscriptionManyRelationFilter
   cateringOrders: CateringOrderManyRelationFilter
   paymentEvents: PaymentEventManyRelationFilter
@@ -611,6 +614,12 @@ input LoyaltyAccountManyRelationFilter {
   every: LoyaltyAccountWhereInput
   some: LoyaltyAccountWhereInput
   none: LoyaltyAccountWhereInput
+}
+
+input GiftCardManyRelationFilter {
+  every: GiftCardWhereInput
+  some: GiftCardWhereInput
+  none: GiftCardWhereInput
 }
 
 input SubscriptionManyRelationFilter {
@@ -761,6 +770,7 @@ input StoreSettingUpdateInput {
   cashMovements: CashMovementRelateToManyForUpdateInput
   payments: PaymentRelateToManyForUpdateInput
   loyaltyAccounts: LoyaltyAccountRelateToManyForUpdateInput
+  giftCards: GiftCardRelateToManyForUpdateInput
   subscriptions: SubscriptionRelateToManyForUpdateInput
   cateringOrders: CateringOrderRelateToManyForUpdateInput
   paymentEvents: PaymentEventRelateToManyForUpdateInput
@@ -835,6 +845,13 @@ input LoyaltyAccountRelateToManyForUpdateInput {
   set: [LoyaltyAccountWhereUniqueInput!]
   create: [LoyaltyAccountCreateInput!]
   connect: [LoyaltyAccountWhereUniqueInput!]
+}
+
+input GiftCardRelateToManyForUpdateInput {
+  disconnect: [GiftCardWhereUniqueInput!]
+  set: [GiftCardWhereUniqueInput!]
+  create: [GiftCardCreateInput!]
+  connect: [GiftCardWhereUniqueInput!]
 }
 
 input SubscriptionRelateToManyForUpdateInput {
@@ -983,6 +1000,7 @@ input StoreSettingCreateInput {
   cashMovements: CashMovementRelateToManyForCreateInput
   payments: PaymentRelateToManyForCreateInput
   loyaltyAccounts: LoyaltyAccountRelateToManyForCreateInput
+  giftCards: GiftCardRelateToManyForCreateInput
   subscriptions: SubscriptionRelateToManyForCreateInput
   cateringOrders: CateringOrderRelateToManyForCreateInput
   paymentEvents: PaymentEventRelateToManyForCreateInput
@@ -1041,6 +1059,11 @@ input CashMovementRelateToManyForCreateInput {
 input LoyaltyAccountRelateToManyForCreateInput {
   create: [LoyaltyAccountCreateInput!]
   connect: [LoyaltyAccountWhereUniqueInput!]
+}
+
+input GiftCardRelateToManyForCreateInput {
+  create: [GiftCardCreateInput!]
+  connect: [GiftCardWhereUniqueInput!]
 }
 
 input SubscriptionRelateToManyForCreateInput {
@@ -2774,6 +2797,129 @@ input LoyaltyEventCreateInput {
   updatedAt: DateTime
 }
 
+type GiftCard {
+  id: ID!
+  store: StoreSetting
+  code: String
+  status: String
+  initialValue: Int
+  balance: Int
+  currencyCode: String
+  purchaserName: String
+  purchaserEmail: String
+  recipientName: String
+  recipientEmail: String
+  message: String
+  providerPaymentId: String
+  refundedAt: DateTime
+  expiresAt: DateTime
+  activatedAt: DateTime
+  emailedAt: DateTime
+  ledger: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input GiftCardWhereUniqueInput {
+  id: ID
+  code: String
+}
+
+input GiftCardWhereInput {
+  AND: [GiftCardWhereInput!]
+  OR: [GiftCardWhereInput!]
+  NOT: [GiftCardWhereInput!]
+  id: IDFilter
+  store: StoreSettingWhereInput
+  code: StringFilter
+  status: StringNullableFilter
+  initialValue: IntFilter
+  balance: IntFilter
+  currencyCode: StringFilter
+  purchaserName: StringFilter
+  purchaserEmail: StringFilter
+  recipientName: StringFilter
+  recipientEmail: StringFilter
+  message: StringFilter
+  providerPaymentId: StringFilter
+  refundedAt: DateTimeNullableFilter
+  expiresAt: DateTimeNullableFilter
+  activatedAt: DateTimeNullableFilter
+  emailedAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input GiftCardOrderByInput {
+  id: OrderDirection
+  code: OrderDirection
+  status: OrderDirection
+  initialValue: OrderDirection
+  balance: OrderDirection
+  currencyCode: OrderDirection
+  purchaserName: OrderDirection
+  purchaserEmail: OrderDirection
+  recipientName: OrderDirection
+  recipientEmail: OrderDirection
+  message: OrderDirection
+  providerPaymentId: OrderDirection
+  refundedAt: OrderDirection
+  expiresAt: OrderDirection
+  activatedAt: OrderDirection
+  emailedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input GiftCardUpdateInput {
+  store: StoreSettingRelateToOneForUpdateInput
+  code: String
+  status: String
+  initialValue: Int
+  balance: Int
+  currencyCode: String
+  purchaserName: String
+  purchaserEmail: String
+  recipientName: String
+  recipientEmail: String
+  message: String
+  providerPaymentId: String
+  refundedAt: DateTime
+  expiresAt: DateTime
+  activatedAt: DateTime
+  emailedAt: DateTime
+  ledger: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input GiftCardUpdateArgs {
+  where: GiftCardWhereUniqueInput!
+  data: GiftCardUpdateInput!
+}
+
+input GiftCardCreateInput {
+  store: StoreSettingRelateToOneForCreateInput
+  code: String
+  status: String
+  initialValue: Int
+  balance: Int
+  currencyCode: String
+  purchaserName: String
+  purchaserEmail: String
+  recipientName: String
+  recipientEmail: String
+  message: String
+  providerPaymentId: String
+  refundedAt: DateTime
+  expiresAt: DateTime
+  activatedAt: DateTime
+  emailedAt: DateTime
+  ledger: JSON
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
 type CoffeeDomainEvent {
   id: ID!
   eventKey: String
@@ -4470,6 +4616,12 @@ type Mutation {
   updateLoyaltyEvents(data: [LoyaltyEventUpdateArgs!]!): [LoyaltyEvent]
   deleteLoyaltyEvent(where: LoyaltyEventWhereUniqueInput!): LoyaltyEvent
   deleteLoyaltyEvents(where: [LoyaltyEventWhereUniqueInput!]!): [LoyaltyEvent]
+  createGiftCard(data: GiftCardCreateInput!): GiftCard
+  createGiftCards(data: [GiftCardCreateInput!]!): [GiftCard]
+  updateGiftCard(where: GiftCardWhereUniqueInput!, data: GiftCardUpdateInput!): GiftCard
+  updateGiftCards(data: [GiftCardUpdateArgs!]!): [GiftCard]
+  deleteGiftCard(where: GiftCardWhereUniqueInput!): GiftCard
+  deleteGiftCards(where: [GiftCardWhereUniqueInput!]!): [GiftCard]
   createCoffeeDomainEvent(data: CoffeeDomainEventCreateInput!): CoffeeDomainEvent
   createCoffeeDomainEvents(data: [CoffeeDomainEventCreateInput!]!): [CoffeeDomainEvent]
   updateCoffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!, data: CoffeeDomainEventUpdateInput!): CoffeeDomainEvent
@@ -4587,7 +4739,9 @@ type Mutation {
   initiateCafePaymentSession(orderId: ID!, secretKey: String, paymentProvider: String!, idempotencyKey: String, returnUrl: String): CafePaymentSessionResult
   refundCafePayment(paymentId: ID!, amount: Int, reason: String, externalRefundReference: String, idempotencyKey: String!): CoffeePaymentReceipt
   acceptCafePickupOrder(orderId: ID!, idempotencyKey: String!): CafeOrder
-  recordCafePayment(orderId: ID!, method: String!, idempotencyKey: String!, externalCardReference: String, externalCardApproved: Boolean): CoffeePaymentReceipt
+  recordCafePayment(orderId: ID!, method: String!, idempotencyKey: String!, externalCardReference: String, externalCardApproved: Boolean, giftCardCode: String): CoffeePaymentReceipt
+  startCafeGiftCardCheckout(amount: Int!, purchaserName: String!, purchaserEmail: String!, recipientName: String, recipientEmail: String, message: String, returnUrl: String!, idempotencyKey: String!): CafeGiftCardCheckout!
+  refundCafeGiftCard(giftCardId: ID!, reason: String): CafeGiftCardView!
   handleCafePaymentWebhook(providerCode: String!, rawBody: String!, headers: JSON!): CafePaymentWebhookResult!
   runCoffeeOnboarding(template: String!, data: JSON): CoffeeOnboardingResult!
   createCoffeePurchaseOrder(supplierId: ID!, inventoryItemId: ID!, orderedQuantity: Float!, unitCostCents: Int!, expectedAt: String, notes: String, idempotencyKey: String!): PurchaseOrder!
@@ -4685,6 +4839,9 @@ type Query {
   loyaltyEvent(where: LoyaltyEventWhereUniqueInput!): LoyaltyEvent
   loyaltyEvents(where: LoyaltyEventWhereInput! = {}, orderBy: [LoyaltyEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyEventWhereUniqueInput): [LoyaltyEvent!]
   loyaltyEventsCount(where: LoyaltyEventWhereInput! = {}): Int
+  giftCard(where: GiftCardWhereUniqueInput!): GiftCard
+  giftCards(where: GiftCardWhereInput! = {}, orderBy: [GiftCardOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: GiftCardWhereUniqueInput): [GiftCard!]
+  giftCardsCount(where: GiftCardWhereInput! = {}): Int
   coffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!): CoffeeDomainEvent
   coffeeDomainEvents(where: CoffeeDomainEventWhereInput! = {}, orderBy: [CoffeeDomainEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeDomainEventWhereUniqueInput): [CoffeeDomainEvent!]
   coffeeDomainEventsCount(where: CoffeeDomainEventWhereInput! = {}): Int
@@ -4737,6 +4894,10 @@ type Query {
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   redirectToInit: Boolean
+  getCafeGiftCardOptions: CafeGiftCardOptions!
+  confirmCafeGiftCardOrder(giftCardId: ID!, token: String!): CafeGiftCardOrder!
+  getCafeGiftCards(search: String): CafeGiftCardList!
+  lookupCafeGiftCard(code: String!): CafeGiftCardView!
   getCafeOrder(orderId: ID!, secretKey: String): CafeOrderProjection
   getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): CafeLoyaltyProjection
   getCoffeeKdsRecoveryScope: CoffeeKdsRecoveryScope
@@ -5025,6 +5186,48 @@ type CafePaymentSessionResult {
   error: String
 }
 
+type CafeGiftCardOptions {
+  online: Boolean!
+  amounts: [Int!]!
+  currencyCode: String!
+}
+
+type CafeGiftCardCheckout {
+  success: Boolean!
+  checkoutUrl: String
+}
+
+type CafeGiftCardOrder {
+  status: String!
+  amount: Int!
+  currencyCode: String!
+  recipientName: String
+  recipientEmail: String
+  code: String
+  expiresAt: String
+}
+
+type CafeGiftCardView {
+  id: ID!
+  code: String!
+  status: String!
+  initialValue: Int!
+  balance: Int!
+  currencyCode: String!
+  purchaserName: String
+  recipientName: String
+  recipientEmail: String
+  activatedAt: String
+  expiresAt: String
+  canRefund: Boolean!
+}
+
+type CafeGiftCardList {
+  outstandingCents: Int!
+  activeCount: Int!
+  cards: [CafeGiftCardView!]!
+}
+
 input CafePickupOrderItemInput {
   menuItemId: ID!
   quantity: Int!
@@ -5289,6 +5492,7 @@ type CoffeeOrderQueueTicket {
   orderItems: [CafeOrderItemProjection!]!
   paymentState: String
   canRecordPayment: Boolean!
+  isStale: Boolean!
   canApplyLoyalty: Boolean!
   loyaltyApplied: Boolean
   refundablePayments: [CoffeeRefundablePaymentProjection!]!
@@ -5303,6 +5507,7 @@ type CoffeeOrderQueueProjection {
   activeCount: Int!
   activeHasMore: Boolean!
   activeNextCursor: String
+  staleCount: Int!
   historyCount: Int!
   historyHasMore: Boolean!
   historyNextCursor: String

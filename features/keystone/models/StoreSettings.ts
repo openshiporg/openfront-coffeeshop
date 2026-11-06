@@ -112,6 +112,7 @@ export const StoreSetting = list({
     cashMovements: relationship({ ref: "CashMovement.store", many: true, access: { create: denyAll, update: denyAll } }),
     payments: relationship({ ref: "Payment.store", many: true, access: { create: denyAll, update: denyAll } }),
     loyaltyAccounts: relationship({ ref: "LoyaltyAccount.store", many: true, access: { create: denyAll, update: denyAll } }),
+    giftCards: relationship({ ref: "GiftCard.store", many: true, access: { create: denyAll, update: denyAll } }),
     subscriptions: relationship({ ref: "Subscription.store", many: true, access: { create: denyAll, update: denyAll } }),
     cateringOrders: relationship({ ref: "CateringOrder.store", many: true, access: { create: denyAll, update: denyAll } }),
     paymentEvents: relationship({ ref: "PaymentEvent.store", many: true, access: { create: denyAll, update: denyAll } }),

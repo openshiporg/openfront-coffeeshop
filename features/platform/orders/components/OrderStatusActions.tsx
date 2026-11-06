@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { acceptPickupLabel } from "../lib/accept-label";
-import { acceptCafePickupOrderAction, applyOrderLoyaltyAction, recordCafePaymentAction, refundCafePaymentAction, updateCafeOrderStatusAction } from "../actions/order-status";
+import { acceptCafePickupOrderAction, applyOrderLoyaltyAction, lookupGiftCardAction, recordCafePaymentAction, refundCafePaymentAction, updateCafeOrderStatusAction } from "../actions/order-status";
 import { clearCommandIntent, newCommandKey, readCommandIntent, writeCommandIntent } from "../lib/commandIntent";
 
 type StatusAction = { label: string; status: string; tone?: string };
@@ -91,13 +91,18 @@ export function AcceptPickupAction({ orderId, paid = false }: { orderId: string;
   );
 }
 
-type PaymentIntent = { method: "cash" | "card"; externalCardReference?: string };
+type PaymentIntent = { method: "cash" | "card" | "gift_card"; externalCardReference?: string; giftCardCode?: string };
 const TERMINAL_REFERENCE_PATTERN = /^[A-Za-z0-9#._:\/-]{4,64}$/;
 
 export function RecordPaymentActions({ orderId, total }: { orderId: string; total: number }) {
   const router = useRouter();
   const storageKey = `coffee-record-payment:${orderId}`;
-  const [pendingMethod, setPendingMethod] = React.useState<"cash" | "card" | null>(null);
+  const [pendingMethod, setPendingMethod] = React.useState<PaymentIntent["method"] | null>(null);
+  const [giftOpen, setGiftOpen] = React.useState(false);
+  const [giftCode, setGiftCode] = React.useState("");
+  const [giftBalance, setGiftBalance] = React.useState<{ code: string; balance: number; status: string } | null>(null);
+  const [giftError, setGiftError] = React.useState<string | null>(null);
+  const [giftChecking, setGiftChecking] = React.useState(false);
   const [confirmCard, setConfirmCard] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [unresolved, setUnresolved] = React.useState<PaymentIntent | null>(null);
@@ -109,14 +114,29 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
 
   React.useEffect(() => {
     const stored = readCommandIntent<PaymentIntent>(storageKey);
-    setUnresolved(stored && (stored.method === "cash" || stored.method === "card") ? { method: stored.method, externalCardReference: stored.externalCardReference } : null);
+    setUnresolved(stored && ["cash", "card", "gift_card"].includes(stored.method) ? { method: stored.method, externalCardReference: stored.externalCardReference, giftCardCode: stored.giftCardCode } : null);
+    if (stored?.method === "gift_card" && typeof stored.giftCardCode === "string") setGiftCode(stored.giftCardCode);
     if (stored?.method === "card" && typeof stored.externalCardReference === "string") setTerminalReference(stored.externalCardReference);
   }, [storageKey]);
 
-  async function record(method: "cash" | "card") {
+  async function checkGiftCard() {
+    setGiftChecking(true);
+    setGiftError(null);
+    setGiftBalance(null);
+    const response = await lookupGiftCardAction(giftCode);
+    setGiftChecking(false);
+    if (!response.success) return setGiftError(response.error);
+    const card = response.data.lookupCafeGiftCard;
+    setGiftBalance({ code: card.code, balance: card.balance, status: card.status });
+  }
+
+  async function record(method: PaymentIntent["method"]) {
     const externalCardReference = terminalReference.trim();
     if (method === "card" && (!terminalApproved || !TERMINAL_REFERENCE_PATTERN.test(externalCardReference))) return;
+    const giftCardCode = method === "gift_card" ? (giftBalance?.code || unresolved?.giftCardCode || "") : "";
+    if (method === "gift_card" && !giftCardCode) return;
     setConfirmCard(false);
+    setGiftOpen(false);
     setPendingMethod(method);
     setError(null);
     // One key per order payment: an unconfirmed attempt is retried with the same key, so a
@@ -127,6 +147,7 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
       idempotencyKey: stored?.idempotencyKey || newCommandKey(),
       method,
       ...(method === "card" ? { externalCardReference } : {}),
+      ...(method === "gift_card" ? { giftCardCode } : {}),
     };
     writeCommandIntent(storageKey, intent);
     const response = await recordCafePaymentAction(
@@ -134,15 +155,18 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
       method,
       intent.idempotencyKey,
       method === "card" ? { externalCardReference, externalCardApproved: true } : undefined,
+      giftCardCode || undefined,
     );
     setPendingMethod(null);
     if (!response.success) {
-      setUnresolved({ method, ...(method === "card" ? { externalCardReference } : {}) });
+      setUnresolved({ method, ...(method === "card" ? { externalCardReference } : {}), ...(giftCardCode ? { giftCardCode } : {}) });
       setError(response.error);
       return;
     }
     setTerminalReference("");
     setTerminalApproved(false);
+    setGiftCode("");
+    setGiftBalance(null);
     clearCommandIntent(storageKey);
     setUnresolved(null);
     router.refresh();
@@ -153,7 +177,7 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
       <p className="text-xs font-medium text-muted-foreground">Take payment · <span className="tabular-nums text-foreground">{money(total)}</span></p>
       {unresolved ? (
         <p role="status" className="text-sm text-muted-foreground">
-          {unresolved.method === "cash" ? "Cash" : "Card"} payment not confirmed. Retry it before choosing another tender.
+          {unresolved.method === "cash" ? "Cash" : unresolved.method === "gift_card" ? "Gift card" : "Card"} payment not confirmed. Retry it before choosing another tender.
         </p>
       ) : null}
       <div className="grid grid-cols-2 gap-2">
@@ -163,7 +187,36 @@ export function RecordPaymentActions({ orderId, total }: { orderId: string; tota
         <Button type="button" variant="outline" className="min-h-10 rounded-[6px] bg-background active:scale-[0.97]" disabled={pendingMethod !== null} onClick={() => { setTerminalApproved(false); setConfirmCard(true); }}>
           {pendingMethod === "card" ? "Recording…" : unresolved?.method === "card" ? "Retry card payment" : "Record card"}
         </Button>
+        <Button type="button" variant="outline" className="col-span-2 min-h-10 rounded-[6px] bg-background active:scale-[0.97]" disabled={pendingMethod !== null} onClick={() => (unresolved?.method === "gift_card" ? record("gift_card") : (setGiftError(null), setGiftBalance(null), setGiftOpen(true)))}>
+          {pendingMethod === "gift_card" ? "Recording…" : unresolved?.method === "gift_card" ? "Retry gift card payment" : "Gift card"}
+        </Button>
       </div>
+      <Dialog open={giftOpen} onOpenChange={setGiftOpen}>
+        <DialogContent className="rounded-[6px]">
+          <DialogHeader>
+            <DialogTitle>Pay with a gift card</DialogTitle>
+            <DialogDescription>Takes {money(total)} off the card’s balance.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void checkGiftCard(); }}>
+            <Label htmlFor={`gift-code-${orderId}`}>Gift card code</Label>
+            <div className="flex gap-2">
+              <Input id={`gift-code-${orderId}`} value={giftCode} onChange={(event) => { setGiftCode(event.target.value); setGiftBalance(null); }} autoComplete="off" placeholder="XXXX-XXXX-XXXX" maxLength={20} className="rounded-[6px] font-mono uppercase" />
+              <Button type="submit" variant="outline" className="rounded-[6px]" disabled={giftChecking || giftCode.replace(/[^0-9a-f]/gi, "").length !== 12}>{giftChecking ? "Checking…" : "Check"}</Button>
+            </div>
+            {giftBalance ? (
+              <p role="status" className="text-sm">
+                Balance <span className="font-semibold tabular-nums">{money(giftBalance.balance)}</span>
+                {giftBalance.status !== "active" ? " · not active" : giftBalance.balance < total ? ` · short ${money(total - giftBalance.balance)}; take this order by cash or card` : null}
+              </p>
+            ) : null}
+            <ActionError message={giftError} />
+          </form>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="rounded-[6px]" onClick={() => setGiftOpen(false)}>Cancel</Button>
+            <Button type="button" className="rounded-[6px]" disabled={!giftBalance || giftBalance.status !== "active" || giftBalance.balance < total} onClick={() => record("gift_card")}>Take {money(total)}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ActionError message={error} />
       <Dialog open={confirmCard} onOpenChange={setConfirmCard}>
         <DialogContent className="rounded-[6px]">
@@ -290,13 +343,14 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
 
   const isOnline = target?.provider === "pp_stripe_stripe";
   const isCard = target?.method === "card" && !isOnline;
+  const isGift = target?.method === "gift_card";
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {payments.map((payment) => (
           <Button key={payment.id} type="button" size="sm" variant="ghost" className="h-auto min-h-8 whitespace-normal rounded-[6px] text-left text-destructive hover:text-destructive" onClick={() => open(payment)}>
-            {`${payment.provider === "pp_stripe_stripe" ? "Refund to card" : payment.method === "card" ? "Record external card refund" : "Refund cash"} · ${money(payment.amount)}`}
+            {`${payment.provider === "pp_stripe_stripe" ? "Refund to card" : payment.method === "gift_card" ? "Refund to gift card" : payment.method === "card" ? "Record external card refund" : "Refund cash"} · ${money(payment.amount)}`}
           </Button>
         ))}
       </div>
@@ -304,9 +358,11 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
         <DialogContent className="rounded-[6px]">
           <form onSubmit={submit} className="space-y-4">
             <DialogHeader>
-              <DialogTitle>{isOnline ? "Refund to card" : isCard ? "Record external card refund" : "Refund cash"}</DialogTitle>
+              <DialogTitle>{isGift ? "Refund to gift card" : isOnline ? "Refund to card" : isCard ? "Record external card refund" : "Refund cash"}</DialogTitle>
               <DialogDescription>
-                {isOnline
+                {isGift
+                  ? `Puts ${target ? money(target.amount) : ""} back on the gift card it was paid with. This cannot be undone.`
+                  : isOnline
                   ? `Full refund of ${target ? money(target.amount) : ""} to the card paid online. This cannot be undone.`
                   : isCard
                   ? `Refund ${target ? money(target.amount) : ""} on the external terminal first. Recording here does not move card funds.`
@@ -338,7 +394,7 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
             <DialogFooter>
               <Button type="button" variant="outline" className="rounded-[6px]" disabled={pending} onClick={() => setTarget(null)}>Cancel</Button>
               <Button type="submit" variant="destructive" className="rounded-[6px]" disabled={pending}>
-                {pending ? "Recording…" : storedIntent ? "Retry refund" : isOnline ? "Refund to card" : isCard ? "Record refund" : "Refund cash"}
+                {pending ? "Recording…" : storedIntent ? "Retry refund" : isGift ? "Refund to gift card" : isOnline ? "Refund to card" : isCard ? "Record refund" : "Refund cash"}
               </Button>
             </DialogFooter>
           </form>

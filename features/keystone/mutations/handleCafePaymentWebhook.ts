@@ -93,6 +93,15 @@ export default async function handleCafePaymentWebhook(_root: unknown, args: Arg
   });
   if (!verified.eventId || verified.eventId.length > 255) throw new Error("Verified webhook event id is invalid");
 
+  // Gift card purchases aren't order payments: activate the card by reading the session back from Stripe.
+  if (verified.giftCardId) {
+    if (verified.status === "succeeded" || verified.status === "failed") {
+      const { settleCafeGiftCardFromWebhook } = await import("./giftCards");
+      await settleCafeGiftCardFromWebhook((context.prisma as unknown) as never, verified.giftCardId);
+    }
+    return { success: true, replayed: false, paymentId: null, orderId: null };
+  }
+
   const key = replayKey(provider.code, verified.eventId);
   const hash = payloadHash(args.rawBody);
 

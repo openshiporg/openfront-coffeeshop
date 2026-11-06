@@ -33,6 +33,7 @@ import recordCafePayment from "./recordCafePayment";
 import acceptCafePickupOrder from "./acceptCafePickupOrder";
 import handleCafePaymentWebhook from "./handleCafePaymentWebhook";
 import runCoffeeOnboarding from "./runCoffeeOnboarding";
+import { confirmCafeGiftCardOrder, getCafeGiftCardOptions, getCafeGiftCards, lookupCafeGiftCard, refundCafeGiftCard, startCafeGiftCardCheckout } from "./giftCards";
 import {
   closeRegisterShift,
   openRegisterShift,
@@ -56,6 +57,10 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
     typeDefs: [graphql`
       type Query {
         redirectToInit: Boolean
+        getCafeGiftCardOptions: CafeGiftCardOptions!
+        confirmCafeGiftCardOrder(giftCardId: ID!, token: String!): CafeGiftCardOrder!
+        getCafeGiftCards(search: String): CafeGiftCardList!
+        lookupCafeGiftCard(code: String!): CafeGiftCardView!
         getCafeOrder(orderId: ID!, secretKey: String): CafeOrderProjection
         getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): CafeLoyaltyProjection
         getCoffeeKdsRecoveryScope: CoffeeKdsRecoveryScope
@@ -179,7 +184,21 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
           idempotencyKey: String!
           externalCardReference: String
           externalCardApproved: Boolean
+          giftCardCode: String
         ): CoffeePaymentReceipt
+
+        startCafeGiftCardCheckout(
+          amount: Int!
+          purchaserName: String!
+          purchaserEmail: String!
+          recipientName: String
+          recipientEmail: String
+          message: String
+          returnUrl: String!
+          idempotencyKey: String!
+        ): CafeGiftCardCheckout!
+
+        refundCafeGiftCard(giftCardId: ID!, reason: String): CafeGiftCardView!
 
         handleCafePaymentWebhook(
           providerCode: String!
@@ -450,6 +469,15 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         error: String
       }
 
+      type CafeGiftCardOptions { online: Boolean! amounts: [Int!]! currencyCode: String! }
+      type CafeGiftCardCheckout { success: Boolean! checkoutUrl: String }
+      type CafeGiftCardOrder { status: String! amount: Int! currencyCode: String! recipientName: String recipientEmail: String code: String expiresAt: String }
+      type CafeGiftCardView {
+        id: ID! code: String! status: String! initialValue: Int! balance: Int! currencyCode: String!
+        purchaserName: String recipientName: String recipientEmail: String activatedAt: String expiresAt: String canRefund: Boolean!
+      }
+      type CafeGiftCardList { outstandingCents: Int! activeCount: Int! cards: [CafeGiftCardView!]! }
+
       input CafePickupOrderItemInput {
         menuItemId: ID!
         quantity: Int!
@@ -460,6 +488,10 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
     resolvers: {
       Query: { 
         redirectToInit,
+        getCafeGiftCardOptions,
+        confirmCafeGiftCardOrder,
+        getCafeGiftCards,
+        lookupCafeGiftCard,
         getCoffeeCustomerOrders,
         getCoffeeCustomerCatering,
         getCafeOrder,
@@ -493,7 +525,9 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         initiateCafePaymentSession,
         refundCafePayment,
         acceptCafePickupOrder,
-      recordCafePayment,
+        recordCafePayment,
+        startCafeGiftCardCheckout,
+        refundCafeGiftCard,
         handleCafePaymentWebhook,
         runCoffeeOnboarding,
         createCoffeePurchaseOrder,
