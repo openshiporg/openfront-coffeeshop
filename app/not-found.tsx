@@ -16,7 +16,7 @@ export default function NotFound() {
       <StorefrontShell>
         <main className="sf-container sf-page">
           <div className="sf-empty">
-            <strong>Page not found</strong>
+            <h1 className="text-base font-semibold">Page not found</h1>
             <Link href="/#menu" className="sf-btn sf-btn-ghost mt-3">Back to menu</Link>
           </div>
         </main>
