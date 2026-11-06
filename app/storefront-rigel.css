@@ -792,7 +792,8 @@ textarea.sf-field { min-height: 5.5rem; resize: vertical; }
   min-height: 1.75rem;
   padding: 0 0.625rem;
   border-radius: 999px;
-  background: var(--sf-wash);
+  border: 1px solid var(--sf-line);
+  background: var(--sf-card);
   color: var(--sf-ink-soft);
   font-size: 0.8125rem;
   white-space: nowrap;

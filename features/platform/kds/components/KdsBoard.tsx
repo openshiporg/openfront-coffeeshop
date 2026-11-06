@@ -172,7 +172,7 @@ export function KdsBoard({
                 const dueIn = now !== null && promised !== null && Number.isFinite(promised) && !late ? Math.max(0, Math.ceil((promised - now) / 60000)) : null;
                 const lateBy = late && now !== null && promised !== null ? Math.floor((now - promised) / 60000) : null;
                 const ageMinutes = lateBy !== null ? Math.max(15, waited ?? 0) : waited;
-                const ageLabel = lateBy !== null ? `Late ${formatAge(lateBy)}` : dueIn !== null ? `Due in ${formatAge(dueIn)}` : undefined;
+                const ageLabel = lateBy !== null ? (lateBy >= 24 * 60 && promised !== null ? `Overdue since ${new Date(promised).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : `Late ${formatAge(lateBy)}`) : dueIn !== null ? `Due in ${formatAge(dueIn)}` : undefined;
                 return (
                   <li key={item.id}>
                     <article className={`rounded-[6px] border bg-card text-card-foreground ${item.order.isRush ? "border-red-500/60" : ""}`}>
