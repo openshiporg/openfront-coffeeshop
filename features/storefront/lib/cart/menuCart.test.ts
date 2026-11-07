@@ -18,7 +18,9 @@ const oatLatte = item([
 ]);
 
 test("a required one-of swaps but can't be cleared; an add-on toggles", () => {
-  const [size, espresso] = modifierGroups(oatLatte);
+  const groups = modifierGroups(oatLatte);
+  const size = groups.find((g) => g.key === "size")!;
+  const espresso = groups.find((g) => g.key === "espresso")!;
   let selected = defaultModifierIds(oatLatte);
   assert.deepEqual(selected, ["12oz"]);
   selected = toggleModifierSelection(selected, "16oz", size);
