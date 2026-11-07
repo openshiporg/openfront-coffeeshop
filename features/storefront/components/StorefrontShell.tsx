@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BookOpen, ClipboardList, Clock3, Coffee, CreditCard, Gift, MapPin, ShoppingBag, Store, UserRound, UtensilsCrossed } from "lucide-react";
-import { StorefrontCartBar, StorefrontCartLink } from "./StorefrontCartLink";
+import { StorefrontCartLink, StorefrontDock } from "./StorefrontCartLink";
 import { OrderPanel } from "./OrderPanel";
 import { PickupNow } from "./PickupNow";
 import { StoreBrand, StoreMark } from "./StoreBrand";
@@ -131,9 +131,7 @@ export async function StorefrontShell({
 
       {rail ? <OrderPanel hours={hours} /> : null}
 
-      {cartBar ? <StorefrontCartBar /> : null}
-
-      {tabbar ? <nav className="sf-tabbar" aria-label="Sections">
+      {cartBar || tabbar ? <StorefrontDock cart={cartBar}>{tabbar ? <nav className="sf-tabbar" aria-label="Sections">
         <Link href="/#menu" aria-current={current("menu")}><BookOpen aria-hidden="true" /><span>Menu</span></Link>
         <Link href="/account#orders" aria-current={current("orders")}><ClipboardList aria-hidden="true" /><span>Orders</span></Link>
         <Link href="/account#rewards" aria-current={current("rewards")}><Gift aria-hidden="true" /><span>Rewards</span></Link>
@@ -143,7 +141,7 @@ export async function StorefrontShell({
           <Link href="/#visit" aria-current={current("visit")}><MapPin aria-hidden="true" /><span>Visit</span></Link>
         )}
         <Link href="/account#profile" aria-current={current("account")}><UserRound aria-hidden="true" /><span>Profile</span></Link>
-      </nav> : null}
+      </nav> : null}</StorefrontDock> : null}
     </div>
   );
 }

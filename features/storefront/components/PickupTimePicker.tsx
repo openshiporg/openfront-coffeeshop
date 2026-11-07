@@ -54,7 +54,7 @@ export function PickupTimePicker({
         open={open}
         onOpenChange={(next) => {
           if (next) {
-            const bar = document.querySelector<HTMLElement>(".sf-tabbar");
+            const bar = document.querySelector<HTMLElement>(".sf-dock");
             const visible = bar && getComputedStyle(bar).display !== "none" ? bar.getBoundingClientRect().height : 0;
             setBottomInset(Math.round(visible) + 12);
           }
