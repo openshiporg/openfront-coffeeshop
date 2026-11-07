@@ -6,7 +6,7 @@ import { Minus, Plus } from "lucide-react";
 import { MarkerTick } from "./MarkerTick";
 import { formatMoney, formatModifierAdjustment } from "@/features/storefront/lib/format";
 import { addCartLine, CART_LIMITS } from "@/features/storefront/lib/cart/storage";
-import { buildQuotedCartLine, defaultModifierIds, modifierGroups, unavailableRequiredModifierGroups } from "@/features/storefront/lib/cart/menuCart";
+import { buildQuotedCartLine, defaultModifierIds, modifierGroups, toggleModifierSelection, unavailableRequiredModifierGroups, type StorefrontModifierGroup } from "@/features/storefront/lib/cart/menuCart";
 import type { StorefrontMenuItem } from "@/features/storefront/lib/data/menu";
 import { quoteCafePickupOrder } from "@/features/storefront/lib/data/orders";
 
@@ -30,14 +30,9 @@ export function AddToCartCustomizer({ item, orderingAvailable = true, notes: all
   const unavailableLabel = item.availability === "sold_out" || unavailableGroups.length > 0 ? "Sold out" : "Unavailable";
   const blocked = !orderingAvailable || pending || unmetGroups.length > 0 || unavailableGroups.length > 0;
 
-  function toggleModifier(id: string, maximum: number, groupMembers: string[]) {
+  function toggleModifier(id: string, group: StorefrontModifierGroup) {
     setAdded(false);
-    setSelectedModifiers((current) => {
-      if (current.includes(id)) return current.filter((modifierId) => modifierId !== id);
-      if (maximum === 1) return [...current.filter((modifierId) => !groupMembers.includes(modifierId)), id];
-      if (current.filter((modifierId) => groupMembers.includes(modifierId)).length >= maximum) return current;
-      return [...current, id];
-    });
+    setSelectedModifiers((current) => toggleModifierSelection(current, id, group));
   }
 
   async function addToCart() {
@@ -107,8 +102,8 @@ export function AddToCartCustomizer({ item, orderingAvailable = true, notes: all
                         value={modifier.id}
                         checked={active}
                         disabled={disabled}
-                        onChange={() => toggleModifier(modifier.id, group.maximum, memberIds)}
-                        onClick={(event) => { if (single && active && group.minimum === 0) { event.preventDefault(); toggleModifier(modifier.id, group.maximum, memberIds); } }}
+                        onChange={() => toggleModifier(modifier.id, group)}
+                        onClick={(event) => { if (single && active && group.minimum === 0) { event.preventDefault(); toggleModifier(modifier.id, group); } }}
                         className="sr-only"
                       />
                       <span className="sf-box-square" aria-hidden="true">{active ? <MarkerTick /> : null}</span>

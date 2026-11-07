@@ -42,6 +42,56 @@ export function defaultModifierIds(item: StorefrontMenuItem) {
   );
 }
 
+/**
+ * One tap on an option, by the product page's rules: a single-choice group swaps its pick (a required one
+ * can't be cleared); a multi-choice group toggles within its maximum.
+ */
+export function toggleModifierSelection(selected: string[], id: string, group: Pick<StorefrontModifierGroup, "minimum" | "maximum" | "modifiers">): string[] {
+  const members = group.modifiers.map((modifier) => modifier.id);
+  if (selected.includes(id)) {
+    if (group.maximum === 1 && group.minimum >= 1) return selected;
+    return selected.filter((modifierId) => modifierId !== id);
+  }
+  if (group.maximum === 1) return [...selected.filter((modifierId) => !members.includes(modifierId)), id];
+  if (selected.filter((modifierId) => members.includes(modifierId)).length >= group.maximum) return selected;
+  return [...selected, id];
+}
+
+/** Groups whose minimum the selection doesn't meet yet. */
+export function unmetModifierGroups(item: StorefrontMenuItem, selected: string[]) {
+  return modifierGroups(item).filter((group) => group.modifiers.filter((modifier) => selected.includes(modifier.id)).length < group.minimum);
+}
+
+/** Display unit price for a selection; the server quote stays the price of record. */
+export function selectionUnitPrice(item: StorefrontMenuItem, selected: string[]) {
+  return item.price + (item.modifiers || []).filter((modifier) => selected.includes(modifier.id)).reduce((sum, modifier) => sum + Number(modifier.priceAdjustment || 0), 0);
+}
+
+export const ROW_GROUP_LIMIT = 2;
+export const ROW_OPTION_LIMIT = 3;
+
+/**
+ * What a menu row can offer inline: up to two groups of up to three in-stock options each.
+ * Anything else (a third group, a long list) stays on the item page behind "More options".
+ */
+export function rowModifierLayout(item: StorefrontMenuItem) {
+  const groups = modifierGroups(item);
+  const inline = groups
+    .map((group) => ({
+      ...group,
+      // The standard choice first, then by price, so a row reads "12 oz · 16 oz +$0.75".
+      modifiers: group.modifiers
+        .filter((modifier) => modifier.inStock)
+        .sort((a, b) => Number(b.defaultSelected) - Number(a.defaultSelected) || Number(a.priceAdjustment || 0) - Number(b.priceAdjustment || 0)),
+    }))
+    // A required group with a single option isn't a choice (the item page still lists it).
+    .filter((group) => !(group.minimum >= 1 && group.modifiers.length === 1));
+  const fits = inline.filter((group) => group.modifiers.length > 0 && group.modifiers.length <= ROW_OPTION_LIMIT).slice(0, ROW_GROUP_LIMIT);
+  const shown = new Set(fits.map((group) => group.key));
+  const more = inline.some((group) => !shown.has(group.key) && group.modifiers.length > 0);
+  return { inline: fits, more };
+}
+
 /** True when the item's standard choices already satisfy every required group, so it can be added in one tap. */
 export function quickAddReady(item: StorefrontMenuItem) {
   const defaults = new Set(defaultModifierIds(item));

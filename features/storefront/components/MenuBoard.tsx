@@ -2,13 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bean, ChevronRight, Coffee, Croissant, CupSoda, LayoutGrid, Leaf, Milk, Plus, Search, Snowflake, Sparkles, type LucideIcon } from "lucide-react";
-import type { StorefrontMenuCategory, StorefrontMenuItem, StorefrontModifier } from "@/features/storefront/lib/data/menu";
+import { Bean, ChevronRight, Coffee, Croissant, CupSoda, LayoutGrid, Leaf, Search, Sparkles, type LucideIcon } from "lucide-react";
+import type { StorefrontMenuCategory, StorefrontMenuItem } from "@/features/storefront/lib/data/menu";
 import { loadMoreStorefrontMenu } from "@/features/storefront/lib/data/menuActions";
-import { formatMoney, formatModifierAdjustment } from "@/features/storefront/lib/format";
-import { modifierGroups } from "@/features/storefront/lib/cart/menuCart";
+import { formatMoney } from "@/features/storefront/lib/format";
 import { StorefrontMedia } from "./StorefrontMedia";
-import { MenuQuickAdd } from "./MenuQuickAdd";
+import { MenuQuickAdd, MenuRowOptions, useMenuRowSelection } from "./MenuQuickAdd";
 
 const UNCATEGORIZED = "uncategorized";
 const UNCATEGORIZED_LABEL = "More";
@@ -23,34 +22,8 @@ function categoryIcon(name: string): LucideIcon {
   return Coffee;
 }
 
-function groupIcon(group: string): LucideIcon {
-  if (group === "milk") return Milk;
-  if (group === "ice") return Snowflake;
-  if (group === "grind") return Bean;
-  return CupSoda;
-}
-
-/** The item's own options as chips: standard choices plainly, up to two paid or alternate extras with a plus. */
-function optionChips(item: StorefrontMenuItem) {
-  const groups = modifierGroups(item);
-  const standard: Array<{ key: string; label: string; group: string }> = [];
-  const extras: Array<{ key: string; label: string; group: string }> = [];
-  for (const group of groups) {
-    for (const modifier of group.modifiers as StorefrontModifier[]) {
-      if (!modifier.inStock) continue;
-      if (modifier.defaultSelected) standard.push({ key: modifier.id, label: modifier.name, group: group.key });
-      else extras.push({
-        key: modifier.id,
-        label: `${modifier.name}${modifier.priceAdjustment ? ` ${formatModifierAdjustment(modifier.priceAdjustment)}` : ""}`,
-        group: group.key,
-      });
-    }
-  }
-  return { standard: standard.slice(0, 2), extras: extras.slice(0, standard.length >= 2 ? 1 : 2) };
-}
-
 function MenuRow({ item, eager }: { item: StorefrontMenuItem; eager: boolean }) {
-  const chips = optionChips(item);
+  const selection = useMenuRowSelection(item);
   return (
     <article className={`sf-row-item ${item.available ? "" : "is-unavailable"}`}>
       <Link href={`/menu/${item.id}`} className="sf-row-photo" tabIndex={-1} aria-hidden="true">
@@ -59,24 +32,14 @@ function MenuRow({ item, eager }: { item: StorefrontMenuItem; eager: boolean }) 
       <div className="sf-row-body">
         <div className="sf-row-top">
           <Link href={`/menu/${item.id}`} className="sf-row-name">{item.name}</Link>
-          <span className="sf-row-price sf-row-price-top">{formatMoney(item.price)}</span>
+          <span className="sf-row-price sf-row-price-top" aria-live="polite">{formatMoney(selection.unitPrice)}</span>
         </div>
         {item.shortDescription ? <p className="sf-row-desc">{item.shortDescription}</p> : null}
         <div className="sf-row-foot">
-          {chips.standard.length || chips.extras.length ? (
-            <ul className="sf-chips" aria-label={`${item.name} options`}>
-              {chips.standard.map((chip) => {
-                const Icon = groupIcon(chip.group);
-                return <li key={chip.key} className="sf-chip"><Icon className="sf-chip-icon" aria-hidden="true" />{chip.label}</li>;
-              })}
-              {chips.extras.map((chip) => (
-                <li key={chip.key} className="sf-chip"><Plus className="sf-chip-plus" aria-hidden="true" />{chip.label}</li>
-              ))}
-            </ul>
-          ) : <span />}
+          <MenuRowOptions item={item} selection={selection} />
           <div className="sf-row-buy">
-            <span className="sf-row-price sf-row-price-buy">{formatMoney(item.price)}</span>
-            <MenuQuickAdd item={item} />
+            <span className="sf-row-price sf-row-price-buy" aria-live="polite">{formatMoney(selection.unitPrice)}</span>
+            <MenuQuickAdd item={item} selection={selection} />
           </div>
         </div>
       </div>
