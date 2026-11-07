@@ -1,4 +1,5 @@
 import { createTransport } from "nodemailer";
+import { emailButton, emailItems, emailLayout, emailMuted, emailPanel, emailParagraph, emailTotals, escapeHtml } from "./email-layout";
 
 export type OrderConfirmationEmail = {
   to: string;
@@ -11,7 +12,6 @@ export type OrderConfirmationEmail = {
   link: string;
 };
 
-const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] as string);
 
 function transport() {
   const port = Number(process.env.SMTP_PORT);
@@ -27,13 +27,16 @@ export async function sendOrderConfirmationEmail(order: OrderConfirmationEmail):
       to: order.to,
       from: process.env.SMTP_FROM,
       subject: `Your order ${order.orderNumber} at ${order.storeName}`,
-      html: `<body style="font-family:Helvetica,Arial,sans-serif;color:#222;max-width:560px;margin:auto">
-        <h2>Thanks ${escapeHtml(order.name)}, we have your order</h2>
-        <p>Order <strong>${escapeHtml(order.orderNumber)}</strong> at ${escapeHtml(order.storeName)}.<br/>${escapeHtml(order.whenLabel)}</p>
-        <table width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid #ddd;border-bottom:1px solid #ddd">${rows}
-          <tr><td style="padding:8px 0"><strong>Total</strong></td><td align="right"><strong>${escapeHtml(order.total)}</strong></td></tr></table>
-        <p><a href="${escapeHtml(order.link)}">View your order</a></p>
-      </body>`,
+      html: emailLayout({
+        storeName: order.storeName,
+        preheader: `Order ${order.orderNumber}`,
+        title: "We have your order",
+        body: `${emailParagraph(`Thanks ${escapeHtml(order.name)}. Order <strong>${escapeHtml(order.orderNumber)}</strong> at ${escapeHtml(order.storeName)}.`)}
+${emailPanel(escapeHtml(order.whenLabel))}
+${emailItems(order.lines.map((line) => ({ title: line.title, quantity: line.quantity, amount: line.total })))}
+${emailTotals([{ label: "Total", value: order.total }])}
+${emailButton("View your order", order.link)}`,
+      }),
     });
     return { sent: true, messageId: typeof (info as any)?.messageId === "string" ? (info as any).messageId : undefined, response: typeof (info as any)?.response === "string" ? (info as any).response : undefined };
   } catch (error) {
@@ -51,12 +54,14 @@ export async function sendOrderReadyEmail(order: OrderReadyEmail): Promise<{ sen
       to: order.to,
       from: process.env.SMTP_FROM,
       subject: `Ready for pickup: order ${order.orderNumber}`,
-      html: `<body style="font-family:Helvetica,Arial,sans-serif;color:#222;max-width:560px;margin:auto">
-        <h2>${escapeHtml(order.name)}, your order is ready</h2>
-        <p>Order <strong>${escapeHtml(order.orderNumber)}</strong> is waiting at the pickup counter${order.address ? ` at ${escapeHtml(order.address)}` : ` at ${escapeHtml(order.storeName)}`}.</p>
-        ${order.handoffCode ? `<p style="font-size:28px;letter-spacing:4px;margin:16px 0"><strong>${escapeHtml(order.handoffCode)}</strong></p><p>Show this pickup code at the counter.</p>` : ""}
-        <p><a href="${escapeHtml(order.link)}">View your order</a></p>
-      </body>`,
+      html: emailLayout({
+        storeName: order.storeName,
+        preheader: `Order ${order.orderNumber} is ready for pickup`,
+        title: `${order.name}, your order is ready`,
+        body: `${emailParagraph(`Order <strong>${escapeHtml(order.orderNumber)}</strong> is waiting at the pickup counter at ${escapeHtml(order.address || order.storeName)}.`)}
+${order.handoffCode ? `${emailPanel(`<span style="font-size:28px;letter-spacing:4px;font-weight:700;">${escapeHtml(order.handoffCode)}</span>`, "center")}${emailMuted("Show this pickup code at the counter.")}` : ""}
+${emailButton("View your order", order.link)}`,
+      }),
     });
     return { sent: true, messageId: typeof (info as any)?.messageId === "string" ? (info as any).messageId : undefined, response: typeof (info as any)?.response === "string" ? (info as any).response : undefined };
   } catch (error) {
@@ -74,14 +79,16 @@ export async function sendGiftCardEmail(card: GiftCardEmail): Promise<{ sent: bo
       to: card.to,
       from: process.env.SMTP_FROM,
       subject: `${card.purchaserName} sent you a ${card.amount} gift card for ${card.storeName}`,
-      html: `<body style="font-family:Helvetica,Arial,sans-serif;color:#222;max-width:560px;margin:auto">
-        <h2>Hi ${escapeHtml(card.recipientName)}, a ${escapeHtml(card.amount)} gift card for ${escapeHtml(card.storeName)}</h2>
-        <p>From ${escapeHtml(card.purchaserName)}.</p>
-        ${card.message ? `<p style="font-style:italic">“${escapeHtml(card.message)}”</p>` : ""}
-        <p style="font-size:26px;letter-spacing:3px;margin:16px 0"><strong>${escapeHtml(card.code)}</strong></p>
-        <p>Show this code at the counter, or read it out when you pick up an order.</p>
-        <p><a href="${escapeHtml(card.link)}">See the menu</a></p>
-      </body>`,
+      html: emailLayout({
+        storeName: card.storeName,
+        preheader: `${card.purchaserName} sent you a ${card.amount} gift card`,
+        title: `A ${card.amount} gift card for ${card.storeName}`,
+        body: `${emailParagraph(`Hi ${escapeHtml(card.recipientName)}, ${escapeHtml(card.purchaserName)} sent you a gift card.`)}
+${card.message ? emailPanel(`&ldquo;${escapeHtml(card.message)}&rdquo;`) : ""}
+${emailPanel(`<span style="font-family:Menlo,Consolas,monospace;font-size:24px;letter-spacing:3px;font-weight:700;">${escapeHtml(card.code)}</span>`, "center")}
+${emailMuted("Show this code at the counter, or read it out when you pick up an order.")}
+${emailButton("See the menu", card.link)}`,
+      }),
     });
     return { sent: true };
   } catch (error) {
