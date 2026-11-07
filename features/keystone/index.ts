@@ -7,6 +7,7 @@ import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
 import { s3ForcePathStyle } from "./lib/s3-storage";
 import { pooledDatabaseUrl } from './database-url';
+import { throwKeystonePrismaErrors } from './lib/keystonePrismaErrors';
 
 // As in E-commerce: no built-in database or session secret in any environment.
 const databaseURL = process.env.DATABASE_URL;
@@ -110,6 +111,8 @@ export default withAuth(
     db: {
       provider: "postgresql",
       url: pooledDatabaseUrl(databaseURL),
+      // Keystone returns failed queries as values; this makes them throw so transactions roll back.
+      extendPrismaClient: throwKeystonePrismaErrors,
       extendPrismaSchema: (schema) => `${schema}\n\nmodel GraphQLRateLimitBucket {\n  bucketKey   String\n  windowStart DateTime @postgresql.Timestamptz\n  requestCount Int @default(0)\n  costUnits    Int @default(0)\n  expiresAt    DateTime @postgresql.Timestamptz\n\n  @@id([bucketKey, windowStart])\n  @@index([expiresAt])\n}\n`,
     },
     lists: models,
