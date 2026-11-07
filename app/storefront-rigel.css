@@ -313,9 +313,10 @@ html:has(.sf-root) body {
 .sf-cartbar-text { display: grid; min-width: 0; flex: 1; line-height: 1.25; }
 .sf-cartbar-text strong { font-weight: 500; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sf-cartbar-text span { color: var(--sf-ink-faint); font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sf-cartbar-sum { display: grid; justify-items: end; flex: none; line-height: 1.25; font-variant-numeric: tabular-nums; }
-.sf-cartbar-count { color: var(--sf-ink-faint); font-size: 0.8125rem; white-space: nowrap; }
-.sf-cartbar-total { color: var(--sf-ink); font-weight: 600; font-size: 0.9375rem; white-space: nowrap; }
+/* "11 items · $92.25" on one line, plain text in the normal ink. */
+.sf-cartbar-sum { flex: none; color: var(--sf-ink-soft); font-size: 0.875rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sf-cartbar-count { color: inherit; }
+.sf-cartbar-total { color: var(--sf-ink); font-weight: 600; }
 .sf-cartbar-cta {
   position: relative;
   display: inline-flex;
@@ -332,9 +333,14 @@ html:has(.sf-root) body {
 }
 .sf-cartbar-cta::after { content: ""; position: absolute; inset: -0.25rem 0; }
 .sf-cartbar-cta:hover { background: var(--sf-accent-hover); }
-@media (max-width: 360px) {
-  .sf-cartbar { gap: 0.625rem; }
-  .sf-cartbar-cta { padding: 0 0.875rem; }
+/* Narrow phones: the name keeps the full middle column and "N items · $total" sits under it. */
+@media (max-width: 380px) {
+  .sf-cartbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "media name cta" "media sum cta"; column-gap: 0.625rem; row-gap: 0.0625rem; align-content: center; }
+  .sf-cartbar-media { grid-area: media; }
+  .sf-cartbar-text { grid-area: name; }
+  .sf-cartbar-text span { display: none; }
+  .sf-cartbar-sum { grid-area: sum; font-size: 0.8125rem; }
+  .sf-cartbar-cta { grid-area: cta; }
 }
 
 @keyframes sf-rise { from { transform: translateY(12px); opacity: 0; } }

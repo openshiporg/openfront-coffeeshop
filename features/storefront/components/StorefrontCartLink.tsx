@@ -72,10 +72,11 @@ export function StorefrontDock({ cart = true, children }: { cart?: boolean; chil
               <StorefrontMedia item={{ name: last.name, imageUrl: last.imageUrl, primaryImageUrl: last.imageUrl }} className="sf-cartbar-media" sizes="48px" />
               <span className="sf-cartbar-text">
                 <strong>{last.name}</strong>
-                <span>{last.modifierNames.length ? last.modifierNames.join(", ") : itemsLabel(displayCount)}</span>
+                {last.modifierNames.length ? <span>{last.modifierNames.join(", ")}</span> : null}
               </span>
               <span className="sf-cartbar-sum">
                 <span className="sf-cartbar-count">{itemsLabel(displayCount)}</span>
+                <span aria-hidden="true"> · </span>
                 <span className="sf-cartbar-total">{formatMoney(cartSubtotal(display))}</span>
               </span>
               <Link href="/checkout" className="sf-cartbar-cta" aria-label={`Review order, ${itemsLabel(displayCount)}, ${formatMoney(cartSubtotal(display))}`}>Review Order</Link>
