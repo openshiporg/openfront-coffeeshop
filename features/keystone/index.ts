@@ -6,6 +6,7 @@ import { revocableStatelessSessions } from "./revocableSession";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
 import { s3ForcePathStyle } from "./lib/s3-storage";
+import { pooledDatabaseUrl } from './database-url';
 
 // As in E-commerce: no built-in database or session secret in any environment.
 const databaseURL = process.env.DATABASE_URL;
@@ -108,7 +109,7 @@ export default withAuth(
   config({
     db: {
       provider: "postgresql",
-      url: databaseURL,
+      url: pooledDatabaseUrl(databaseURL),
       extendPrismaSchema: (schema) => `${schema}\n\nmodel GraphQLRateLimitBucket {\n  bucketKey   String\n  windowStart DateTime @postgresql.Timestamptz\n  requestCount Int @default(0)\n  costUnits    Int @default(0)\n  expiresAt    DateTime @postgresql.Timestamptz\n\n  @@id([bucketKey, windowStart])\n  @@index([expiresAt])\n}\n`,
     },
     lists: models,
