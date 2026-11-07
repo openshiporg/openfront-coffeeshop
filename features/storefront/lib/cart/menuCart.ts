@@ -85,7 +85,9 @@ export function rowModifierLayout(item: StorefrontMenuItem) {
         .sort((a, b) => Number(b.defaultSelected) - Number(a.defaultSelected) || Number(a.priceAdjustment || 0) - Number(b.priceAdjustment || 0)),
     }))
     // A required group with a single option isn't a choice (the item page still lists it).
-    .filter((group) => !(group.minimum >= 1 && group.modifiers.length === 1));
+    .filter((group) => !(group.minimum >= 1 && group.modifiers.length === 1))
+    // Choices the drink needs (size, milk) lead; optional add-ons follow.
+    .sort((a, b) => Number(b.minimum >= 1) - Number(a.minimum >= 1));
   const fits = inline.filter((group) => group.modifiers.length > 0 && group.modifiers.length <= ROW_OPTION_LIMIT).slice(0, ROW_GROUP_LIMIT);
   const shown = new Set(fits.map((group) => group.key));
   const more = inline.some((group) => !shown.has(group.key) && group.modifiers.length > 0);

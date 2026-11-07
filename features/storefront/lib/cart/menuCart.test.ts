@@ -11,6 +11,7 @@ function item(modifiers: StorefrontModifier[], price = 550): StorefrontMenuItem 
 }
 
 const oatLatte = item([
+  mod("shot0", "aaa-addon", { priceAdjustment: 50, inStock: false }),
   mod("16oz", "size", { required: true, minSelections: 1, priceAdjustment: 75 }),
   mod("12oz", "size", { required: true, minSelections: 1, defaultSelected: true }),
   mod("shot", "espresso", { priceAdjustment: 100 }),
@@ -42,6 +43,8 @@ test("a required choice with no default is unmet until picked", () => {
 test("rows show the standard first, skip single-option required groups, and send the rest to More options", () => {
   const layout = rowModifierLayout(oatLatte);
   assert.deepEqual(layout.inline.map((g) => g.modifiers.map((m) => m.id)), [["12oz", "16oz"], ["shot"]]);
+  const addOnFirst = item([mod("shot", "espresso"), mod("whole", "milk", { required: true, minSelections: 1, defaultSelected: true }), mod("oat", "milk", { required: true, minSelections: 1 })]);
+  assert.deepEqual(rowModifierLayout(addOnFirst).inline.map((g) => g.key), ["milk", "espresso"]);
   assert.equal(layout.more, false);
   const busy = item([
     mod("one", "size", { required: true, minSelections: 1, defaultSelected: true }),
