@@ -6,6 +6,7 @@ import { ChevronDown, CircleCheck, Minus, Plus } from "lucide-react";
 import { CART_LIMITS, cartQuantity, clearCartLines, saveCartLines } from "@/features/storefront/lib/cart/storage";
 import { formatMoney } from "@/features/storefront/lib/format";
 import { earliestPickup } from "@/features/storefront/lib/hours";
+import { usePickupChoice } from "@/features/storefront/lib/cart/pickup";
 import { cartSubtotal, useCartLines } from "./StorefrontCartLink";
 import { StorefrontMedia } from "./StorefrontMedia";
 
@@ -25,19 +26,23 @@ export function OrderPanel({ hours }: { hours: Hours }) {
   const { lines, loaded } = useCartLines();
   const [readyAt, setReadyAt] = React.useState<string | null>(null);
   const count = cartQuantity(lines);
+  const [choice] = usePickupChoice();
 
   const prepKey = lines.map((line) => line.prepTimeMinutes ?? "").join(",");
 
   React.useEffect(() => {
     const prepTimes = prepKey ? prepKey.split(",").map((value) => (value ? Number(value) : null)) : [];
     const update = () => {
-      const at = earliestPickup(hours, new Date(), prepTimes);
+      const now = new Date();
+      // The time scheduled ahead on the menu's pickup bar, while it is still later than the earliest pickup.
+      const earliest = earliestPickup(hours, now, prepTimes);
+      const at = choice != null && earliest && choice > earliest.getTime() ? new Date(choice) : earliest;
       setReadyAt(at ? clockIn(at, hours.timezone) : null);
     };
     update();
     const timer = window.setInterval(update, 60_000);
     return () => window.clearInterval(timer);
-  }, [hours, prepKey]);
+  }, [hours, prepKey, choice]);
 
   function setQuantity(cartId: string, quantity: number) {
     const next = lines.map((line) => (line.cartId === cartId ? { ...line, quantity } : line)).filter((line) => line.quantity > 0);

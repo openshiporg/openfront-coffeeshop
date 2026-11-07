@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { earliestPickup, isOpenAt, pickupDayLabel } from "@/features/storefront/lib/hours";
 import { useCartLines } from "./StorefrontCartLink";
+import { usePickupChoice } from "@/features/storefront/lib/cart/pickup";
 
 type Hours = { weeklyHours: unknown; timezone: string; pickupLeadTimeMinutes: number | null };
 
@@ -29,14 +30,25 @@ export function pickupNowLabel(hours: Hours, now = new Date(), compact = false, 
 export function PickupNow({ hours, className = "sf-pill sf-pill-soft sf-side-select", compact = false }: { hours: Hours; className?: string; compact?: boolean }) {
   const [label, setLabel] = React.useState<string | null>(null);
   const { lines } = useCartLines();
+  const [choice] = usePickupChoice();
   const prepKey = lines.map((line) => line.prepTimeMinutes ?? "").join(",");
   React.useEffect(() => {
     const prepTimes = prepKey ? prepKey.split(",").map((value) => (value ? Number(value) : null)) : [];
-    const update = () => setLabel(pickupNowLabel(hours, new Date(), compact, prepTimes));
+    const update = () => {
+      const now = new Date();
+      // A time scheduled ahead on the menu's pickup bar wins while it is still in the future.
+      if (choice != null && choice > now.getTime()) {
+        const at = new Date(choice);
+        const day = pickupDayLabel(at, hours.timezone, now);
+        setLabel(compact ? day : `${day} ${clock(at, hours.timezone)}`);
+        return;
+      }
+      setLabel(pickupNowLabel(hours, now, compact, prepTimes));
+    };
     update();
     const timer = window.setInterval(update, 60_000);
     return () => window.clearInterval(timer);
-  }, [hours, compact, prepKey]);
+  }, [hours, compact, prepKey, choice]);
 
   return (
     <Link href="/checkout" className={className} aria-label={label ? `Pickup: ${label}. Choose a time at checkout` : "Choose a pickup time at checkout"}>

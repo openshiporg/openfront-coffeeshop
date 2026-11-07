@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowUpRight, ChevronRight, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import { getStorefrontMenu } from "@/features/storefront/lib/data/menu";
 import type { CoffeeStorefrontStore } from "@/features/storefront/lib/data/store";
 import { storeZoneAbbreviation } from "@/features/storefront/lib/format";
 import { formatClock, hoursRows, openState, rowIsOpen, storeClock } from "@/features/storefront/lib/hours";
 import { StorefrontShell } from "@/features/storefront/components/StorefrontShell";
 import { MenuBoard } from "@/features/storefront/components/MenuBoard";
-import { PickupNow } from "@/features/storefront/components/PickupNow";
+import { PickupBar } from "@/features/storefront/components/PickupBar";
 import { BrewIllustration } from "@/features/storefront/components/BrewIllustration";
 
 export type HomePageFilters = { q?: string | string[]; category?: string | string[] };
@@ -43,9 +43,6 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
   const categoryId = rawCategory.toLowerCase() === "all" ? "" : rawCategory;
   const menu = await getStorefrontMenu(search, categoryId);
   const items = menu.kind === "ok" ? menu.items : [];
-  // Closed, but the menu still takes orders for the next opening: say so on the pickup line.
-  const ordersAhead = items.some((item) => item.availability === "later");
-
   const status = openState(store.weeklyHours, store.timezone);
   const rows = hoursRows(store.weeklyHours);
   const today = storeClock(new Date(), store.timezone).day.toLowerCase();
@@ -55,13 +52,8 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
   const hours = { weeklyHours: store.weeklyHours, timezone: store.timezone, pickupLeadTimeMinutes: store.pickupLeadTimeMinutes ?? null };
   const beansActive = Boolean(categoryId) && items.length > 0 && items.every((item) => item.barStation === "retail_shelf");
 
-  const readyLine = status.kind === "open" && store.pickupLeadTimeMinutes ? (
-    <>Ready in about <strong>{store.pickupLeadTimeMinutes} min</strong></>
-  ) : status.kind === "closed" && ordersAhead ? (
-    <>{status.label.replace(/^Closed · opens/, "Opens")}</>
-  ) : (
-    <>{status.label}</>
-  );
+  // Closed: name the next opening plainly ("Opens tomorrow 8 AM"); the pickup dropdown beside it already starts there.
+  const statusLine = { kind: status.kind, label: status.label.replace(/^Closed · opens/, "Opens") };
 
   return (
     <StorefrontShell store={store} rail active={beansActive ? "beans" : "menu"}>
@@ -85,25 +77,14 @@ export default async function HomePage({ store, filters = {} }: { store: CoffeeS
         </section>
 
         <section className="sf-menu" id="menu" aria-labelledby="menu-title">
-          <div className="sf-pickup-head">
-            {store.address ? (
-              <a className="sf-pickup-card" href={mapsHref(store.address)} target="_blank" rel="noreferrer">
-                <MapPin className="size-5" aria-hidden="true" />
-                <span className="min-w-0">
-                  <strong>Pickup on {streetName(store.address)}</strong>
-                  <span><span className="sf-pickup-store">{store.name} · </span>{store.address}</span>
-                </span>
-                <ChevronRight className="size-5 sf-pickup-card-chev" aria-hidden="true" />
-              </a>
-            ) : null}
-            <div className="sf-ready-row">
-              <p role="status" className={`sf-ready is-${status.kind}`}>{readyLine}</p>
-              <div className="sf-ready-pick">
-                <PickupNow hours={hours} className="sf-pill sf-pill-outline" compact />
-                <span>Pickup Time</span>
-              </div>
-            </div>
-          </div>
+          <PickupBar
+            hours={hours}
+            address={store.address || null}
+            mapsHref={store.address ? mapsHref(store.address) : null}
+            title={store.address ? `Pickup on ${streetName(store.address)}` : `Pickup at ${store.name}`}
+            storeName={store.name}
+            status={statusLine}
+          />
 
           {menu.kind === "ok" ? (
             <MenuBoard

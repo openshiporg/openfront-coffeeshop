@@ -126,6 +126,37 @@ export function MenuBoard({
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const filterKey = useRef(`${search}\u0000${categoryId}`);
+  const barRef = useRef<HTMLDivElement>(null);
+  const catsRef = useRef<HTMLElement>(null);
+
+  // Tabs: fade only the edge where more tabs are hidden, keep the active one in view, and stick
+  // under the phone header (its height varies with the store name).
+  useEffect(() => {
+    const cats = catsRef.current;
+    const bar = barRef.current;
+    if (!cats || !bar) return;
+    const edges = () => {
+      const max = cats.scrollWidth - cats.clientWidth;
+      cats.toggleAttribute("data-more-start", cats.scrollLeft > 2);
+      cats.toggleAttribute("data-more-end", cats.scrollLeft < max - 2);
+    };
+    const top = () => {
+      const header = document.querySelector<HTMLElement>(".sf-topbar");
+      const visible = header && getComputedStyle(header).display !== "none" ? header.getBoundingClientRect().height : 0;
+      bar.style.setProperty("--sf-sticky-top", `${Math.round(visible)}px`);
+    };
+    const active = cats.querySelector<HTMLElement>('[aria-current="page"]');
+    if (active && active.offsetLeft + active.offsetWidth > cats.clientWidth) cats.scrollLeft = active.offsetLeft - 24;
+    edges();
+    top();
+    const onResize = () => { edges(); top(); };
+    cats.addEventListener("scroll", edges, { passive: true });
+    window.addEventListener("resize", onResize);
+    return () => {
+      cats.removeEventListener("scroll", edges);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [categoryId, categories.length]);
 
   useEffect(() => {
     filterKey.current = `${search}\u0000${categoryId}`;
@@ -171,23 +202,25 @@ export function MenuBoard({
 
   return (
     <>
-      <div className="sf-menu-bar">
-        <nav className="sf-cats" aria-label="Menu categories">
-          <Link href={filterHref(search, "")} className="sf-cat" aria-current={!categoryId ? "page" : undefined}>
-            <LayoutGrid aria-hidden="true" />All
-          </Link>
-          {categories.map((category) => {
-            const Icon = categoryIcon(category.name);
-            return (
-              <Link key={category.id} href={filterHref(search, category.id)} className="sf-cat" aria-current={categoryId === category.id ? "page" : undefined}>
-                <Icon aria-hidden="true" />{category.name}
-              </Link>
-            );
-          })}
-          {hasUncategorized ? (
-            <Link href={filterHref(search, UNCATEGORIZED)} className="sf-cat" aria-current={categoryId === UNCATEGORIZED ? "page" : undefined}>{UNCATEGORIZED_LABEL}</Link>
-          ) : null}
-        </nav>
+      <div className="sf-menu-bar" ref={barRef}>
+        <div className="sf-cats-track">
+          <nav className="sf-cats" aria-label="Menu categories" ref={catsRef}>
+            <Link href={filterHref(search, "")} className="sf-cat" aria-current={!categoryId ? "page" : undefined}>
+              <LayoutGrid aria-hidden="true" />All
+            </Link>
+            {categories.map((category) => {
+              const Icon = categoryIcon(category.name);
+              return (
+                <Link key={category.id} href={filterHref(search, category.id)} className="sf-cat" aria-current={categoryId === category.id ? "page" : undefined}>
+                  <Icon aria-hidden="true" />{category.name}
+                </Link>
+              );
+            })}
+            {hasUncategorized ? (
+              <Link href={filterHref(search, UNCATEGORIZED)} className="sf-cat" aria-current={categoryId === UNCATEGORIZED ? "page" : undefined}>{UNCATEGORIZED_LABEL}</Link>
+            ) : null}
+          </nav>
+        </div>
       </div>
 
       <div className="sf-feature-head">

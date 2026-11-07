@@ -635,83 +635,199 @@ textarea.sf-field { min-height: 5.5rem; resize: vertical; }
 .sf-intro-menu a:hover, .sf-intro-menu a[aria-current="page"] { color: var(--sf-ink); }
 
 .sf-menu { min-width: 0; scroll-margin-top: 5rem; }
-
-/* Pickup header */
-.sf-pickup-head { display: grid; gap: 1rem; margin-bottom: 1.25rem; }
-.sf-pickup-card {
-  display: flex;
+/* Pickup card: where, open status and the pickup-time dropdown in one card.
+   Narrow (phone, the desktop menu column): location on top, status and time below a hairline.
+   Wide (tablet): one bar, location · status · time. */
+.sf-menu { container: sf-menu / inline-size; }
+.sf-pickbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "where where" "status when";
   align-items: center;
-  gap: 0.875rem;
-  padding: 0.875rem 1rem;
+  column-gap: 0.75rem;
+  margin-bottom: 1rem;
   background: var(--sf-card);
   border: 1px solid var(--sf-line);
   border-radius: var(--sf-radius-lg);
-  transition: border-color var(--sf-dur) var(--sf-ease-out);
 }
-.sf-pickup-card:hover { border-color: var(--sf-line-strong); }
-.sf-pickup-card > svg:first-child { color: var(--sf-ink-soft); flex: none; }
-.sf-pickup-card > span { display: grid; flex: 1; line-height: 1.35; }
-.sf-pickup-card strong { font-weight: 500; font-size: 1rem; }
-.sf-pickup-card span span { color: var(--sf-ink-faint); font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sf-pickup-card-chev { color: var(--sf-ink-faint); flex: none; }
-
-.sf-ready-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.sf-ready { padding-top: 0.625rem; font-size: 1rem; color: var(--sf-ink-soft); }
-.sf-ready strong { color: var(--sf-accent-ink); font-weight: 500; }
-.sf-ready.is-closed::before,
-.sf-ready.is-open::before {
-  content: "";
-  display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-right: 0.5rem;
-  border-radius: 999px;
-  vertical-align: 0.15em;
-  background: var(--sf-open);
-}
-.sf-ready.is-closed::before { background: var(--sf-closed); }
-.sf-ready-pick { display: grid; justify-items: center; gap: 0.125rem; flex: none; }
-.sf-ready-pick > span { color: var(--sf-ink-faint); font-size: 0.75rem; }
-.sf-ready-pick .sf-pill { min-height: 2.5rem; font-size: 0.9375rem; }
-
-@media (min-width: 1024px) {
-  .sf-pickup-head { display: none; }
-}
-
-/* Categories */
-.sf-menu-bar { margin: 0 -1rem 1rem; }
-.sf-cats {
+.sf-pickbar-where {
+  grid-area: where;
   display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding: 0.125rem 1rem 0.25rem;
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
-  scroll-padding-inline: 1rem;
+  align-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--sf-line);
+  border-radius: var(--sf-radius-lg) var(--sf-radius-lg) 0 0;
+  transition: background-color var(--sf-dur) var(--sf-ease-out);
 }
-.sf-cats::-webkit-scrollbar { display: none; }
-.sf-cat {
-  display: inline-flex;
+a.sf-pickbar-where:hover { background: oklch(98.6% 0.002 250); }
+.sf-pickbar-pin { width: 1.25rem; height: 1.25rem; flex: none; color: var(--sf-ink-soft); }
+.sf-pickbar-place { display: grid; flex: 1; min-width: 0; line-height: 1.35; }
+.sf-pickbar-place strong { font-weight: 500; font-size: 1rem; }
+.sf-pickbar-address { color: var(--sf-ink-faint); font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-pickbar-chev { width: 1.125rem; height: 1.125rem; flex: none; color: var(--sf-ink-faint); }
+.sf-pickbar-status {
+  grid-area: status;
+  white-space: nowrap;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex: none;
-  min-height: 2.75rem;
-  padding: 0 1rem;
-  border: 1px solid var(--sf-line);
-  border-radius: 999px;
-  background: var(--sf-card);
+  min-width: 0;
+  padding: 0.625rem 0 0.625rem 1rem;
   color: var(--sf-ink-soft);
   font-size: 0.9375rem;
+  line-height: 1.3;
+}
+.sf-pickbar-when { grid-area: when; justify-self: end; padding: 0.5rem 0.625rem 0.5rem 0; min-width: 0; }
+
+/* The pickup time as a dropdown: "Pickup today 9:40 AM ⌄". */
+.sf-pickpick-inline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  max-width: 100%;
+  min-height: 2.25rem;
+  padding: 0 0.625rem 0 0.75rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: var(--sf-paper);
+  color: var(--sf-ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: border-color var(--sf-dur) var(--sf-ease-out), background-color var(--sf-dur) var(--sf-ease-out), box-shadow var(--sf-dur) var(--sf-ease-out);
+}
+.sf-pickpick-inline::after { content: ""; position: absolute; inset: -0.375rem -0.25rem; }
+.sf-pickpick-inline:hover { border-color: var(--sf-line-strong); background: var(--sf-card); }
+.sf-pickpick-inline:focus-visible,
+.sf-pickpick-inline[data-state="open"] { outline: none; border-color: var(--sf-accent); background: var(--sf-card); box-shadow: 0 0 0 3px var(--sf-accent-soft); }
+.sf-pickpick-inline:disabled { cursor: default; opacity: 0.7; }
+.sf-pickpick-inline > svg:first-child { color: var(--sf-accent-ink); width: 1rem; height: 1rem; }
+.sf-pickpick-inline .sf-pickpick-text { font-size: inherit; gap: 0.3125rem; overflow: hidden; }
+.sf-pickpick-inline .sf-pickpick-label { color: var(--sf-ink-muted); font-weight: 400; font-size: inherit; }
+.sf-pickpick-inline .sf-pickpick-value { overflow: hidden; text-overflow: ellipsis; }
+.sf-pickpick-inline[data-state="open"] .sf-pickpick-chev { transform: rotate(180deg); }
+.sf-pickpick-inline.is-loading { cursor: default; color: var(--sf-ink-faint); }
+.sf-pickpick-pop-wide { width: max(var(--radix-popover-trigger-width), min(22rem, calc(100vw - 1.5rem))); }
+
+@container sf-menu (min-width: 46rem) {
+  .sf-pickbar { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "where status when"; }
+  .sf-pickbar-where { border-bottom: 0; border-right: 1px solid var(--sf-line); border-radius: var(--sf-radius-lg) 0 0 var(--sf-radius-lg); }
+  .sf-pickbar-status { padding: 0 0.25rem 0 0.5rem; }
+  .sf-pickbar-when { padding: 0.5rem 0.75rem 0.5rem 0.75rem; }
+}
+
+/* Category tabs: a recessed track with its own border; the active tab is the raised brown pill.
+   The tabs scroll inside it, fading only at an edge where more are hidden. Sticky under the header. */
+.sf-menu-bar {
+  position: sticky;
+  top: var(--sf-sticky-top, 0px);
+  z-index: 20;
+  margin: 0 -1rem 0.75rem;
+  padding: 0.5rem 1rem;
+  background: oklch(97.6% 0.003 250 / 0.94);
+  backdrop-filter: blur(14px);
+}
+.sf-cats-track {
+  border: 1px solid var(--sf-line-strong);
+  border-radius: 999px;
+  background: var(--sf-wash);
+  box-shadow: inset 0 1px 2px oklch(20% 0.01 260 / 0.06);
+  overflow: hidden;
+}
+.sf-cats {
+  --sf-fade-start: 0px;
+  --sf-fade-end: 0px;
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  padding: 0.25rem;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 0.25rem;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--sf-fade-start), #000 calc(100% - var(--sf-fade-end)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--sf-fade-start), #000 calc(100% - var(--sf-fade-end)), transparent 100%);
+}
+.sf-cats[data-more-start] { --sf-fade-start: 2rem; }
+.sf-cats[data-more-end] { --sf-fade-end: 2.5rem; }
+.sf-cats::-webkit-scrollbar { display: none; }
+.sf-cat {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  flex: none;
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  color: var(--sf-ink-soft);
+  font-size: 0.9375rem;
+  white-space: nowrap;
   scroll-snap-align: start;
-  transition: background-color var(--sf-dur) var(--sf-ease-out), border-color var(--sf-dur) var(--sf-ease-out), color var(--sf-dur) var(--sf-ease-out);
+  transition: background-color var(--sf-dur) var(--sf-ease-out), color var(--sf-dur) var(--sf-ease-out), box-shadow var(--sf-dur) var(--sf-ease-out);
 }
-.sf-cat svg { width: 1.125rem; height: 1.125rem; stroke-width: 1.6; }
-.sf-cat:hover { border-color: var(--sf-line-strong); color: var(--sf-ink); }
-.sf-cat[aria-current="page"] { background: var(--sf-accent); border-color: var(--sf-accent); color: var(--sf-on-accent); }
+.sf-cat svg { width: 1.0625rem; height: 1.0625rem; stroke-width: 1.6; flex: none; }
+.sf-cat:hover { background: oklch(100% 0 0 / 0.6); color: var(--sf-ink); }
+.sf-cat[aria-current="page"] {
+  background: var(--sf-accent);
+  color: var(--sf-on-accent);
+  box-shadow: 0 1px 2px oklch(25% 0.05 50 / 0.18), 0 2px 6px -2px oklch(25% 0.06 50 / 0.3);
+}
 @media (min-width: 1024px) {
-  .sf-menu-bar { margin: 0 0 1.25rem; }
-  .sf-cats { padding: 0.125rem 0 0.25rem; flex-wrap: wrap; }
+  .sf-menu-bar { margin: 0 -0.5rem 1rem; padding: 0.5rem; }
+  .sf-cat { min-height: 2.125rem; font-size: 0.875rem; padding: 0 0.8125rem; }
+  .sf-cat svg { width: 1rem; height: 1rem; }
 }
+@media (max-width: 1023px) {
+  .sf-pickbar { margin-bottom: 0.25rem; border-radius: 16px; }
+  .sf-pickbar-where { gap: 0.75rem; padding: 0.625rem 0.875rem; border-radius: 16px 16px 0 0; }
+  .sf-pickbar-pin { width: 1.125rem; height: 1.125rem; }
+  .sf-pickbar-place { line-height: 1.3; }
+  .sf-pickbar-place strong { font-size: 0.9375rem; }
+  .sf-pickbar-address { font-size: 0.75rem; white-space: normal; overflow: visible; }
+  .sf-pickbar-chev { width: 1rem; height: 1rem; }
+  .sf-pickup-store { display: none; }
+  .sf-pickbar-status { padding: 0.5rem 0 0.5rem 0.875rem; font-size: 0.8125rem; }
+  .sf-pickbar-when { padding: 0.375rem 0.5rem 0.375rem 0; }
+  .sf-pickpick-inline { min-height: 2rem; font-size: 0.8125rem; gap: 0.375rem; padding: 0 0.5rem 0 0.625rem; }
+  .sf-pickpick-inline > svg:first-child { width: 0.875rem; height: 0.875rem; }
+  .sf-pickpick-inline .sf-pickpick-chev { width: 0.875rem; height: 0.875rem; }
+
+  .sf-menu-bar { padding-block: 0.375rem; margin-bottom: 0.25rem; }
+  .sf-cats { padding: 0.1875rem; gap: 0.125rem; }
+  .sf-cat { min-height: 2rem; padding: 0 0.75rem; gap: 0.3125rem; font-size: 0.8125rem; }
+  .sf-cat svg { width: 0.875rem; height: 0.875rem; }
+}
+@media (max-width: 767px) {
+  .sf-pickbar-place strong { font-weight: 400; }
+}
+/* Phones (and any narrow menu column): the status sits under the address, and the pickup time
+   is the card's full-width bottom row, so neither has to wrap beside the other. */
+@container sf-menu (max-width: 29.99rem) {
+  .sf-pickbar { grid-template-columns: minmax(0, 1fr); grid-template-areas: "where" "status" "when"; }
+  .sf-pickbar-where { border-bottom: 0; padding-bottom: 0.125rem; }
+  .sf-pickbar-status { padding: 0 0.875rem 0.625rem 2.75rem; }
+  .sf-pickbar-when { justify-self: stretch; padding: 0; border-top: 1px solid var(--sf-line); }
+  .sf-pickbar-when .sf-pickpick { display: flex; }
+  .sf-pickbar .sf-pickpick-inline {
+    flex: 1;
+    min-height: 2.75rem;
+    padding: 0 0.875rem;
+    gap: 0.625rem;
+    border: 0;
+    border-radius: 0 0 16px 16px;
+    background: transparent;
+  }
+  .sf-pickbar .sf-pickpick-inline::after { inset: 0; }
+  .sf-pickbar .sf-pickpick-inline:hover { background: oklch(98.6% 0.002 250); }
+  .sf-pickbar .sf-pickpick-inline:focus-visible,
+  .sf-pickbar .sf-pickpick-inline[data-state="open"] { box-shadow: inset 0 0 0 2px var(--sf-accent); background: var(--sf-card); }
+  .sf-pickbar .sf-pickpick-inline .sf-pickpick-text { flex: 1; }
+  .sf-pickbar .sf-pickpick-inline > svg:first-child { width: 1.125rem; height: 1.125rem; }
+}
+
 
 .sf-feature-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0.5rem 0 0.25rem; }
 .sf-feature-title {
@@ -854,13 +970,6 @@ textarea.sf-field { min-height: 5.5rem; resize: vertical; }
   .sf-chip { min-height: 1.375rem; padding: 0 0.5rem; font-size: 0.75rem; }
   .sf-chip-plus { width: 0.6875rem; height: 0.6875rem; }
 
-  .sf-cat { position: relative; min-height: 1.75rem; padding: 0 0.6875rem; gap: 0.3125rem; font-size: 0.78125rem; }
-  .sf-cat::after { content: ""; position: absolute; inset: -0.5rem 0; }
-  .sf-cat svg { width: 0.875rem; height: 0.875rem; }
-  .sf-cats { padding-block: 0.5rem; gap: 0.375rem; }
-  .sf-menu-bar { margin-bottom: 0.25rem; }
-
-  .sf-pickup-card strong { font-weight: 400; }
 }
 .sf-quick-off { color: var(--sf-ink-faint); font-size: 0.875rem; white-space: nowrap; }
 .sf-quick-error {
@@ -1297,12 +1406,6 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-cartbar-cta::after { content: ""; position: absolute; inset: -0.3125rem 0; }
   .sf-tabbar { background: var(--sf-card); backdrop-filter: none; }
 
-  /* Pickup card: the whole address shows, smaller, wrapping if a long one needs a second line. */
-  .sf-pickup-card { gap: 0.75rem; padding: 0.75rem 0.875rem; border-radius: 16px; }
-  .sf-pickup-card > svg:first-child { width: 1.125rem; height: 1.125rem; }
-  .sf-pickup-card strong { font-size: 0.9375rem; }
-  .sf-pickup-card span span { font-size: 0.75rem; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; }
-  .sf-pickup-card-chev { width: 1rem; height: 1rem; }
 
   /* Item page at the menu's scale. */
   .sf-item-photo { margin-bottom: 1rem; border-radius: 16px; }
@@ -1441,17 +1544,6 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-topbar .sf-icon-btn::after, .sf-topbar .sf-cart-link::after { inset: -0.5rem; }
   .sf-topbar-actions { gap: 0.75rem; }
 
-  .sf-pickup-head { gap: 0.75rem; margin-bottom: 0; }
-  .sf-pickup-card { padding: 0.5rem 0.875rem; }
-  .sf-pickup-card > span { line-height: 1.3; }
-  .sf-pickup-store { display: none; }
-
-  .sf-ready { padding-top: 0.25rem; font-size: 0.875rem; }
-  .sf-ready-pick { gap: 0.1875rem; }
-  .sf-ready-pick > span { line-height: 1.1; }
-  .sf-ready-pick .sf-pill { position: relative; min-height: 1.625rem; padding: 0 0.75rem; gap: 0.375rem; font-size: 0.8125rem; }
-  .sf-ready-pick .sf-pill svg { width: 0.875rem; height: 0.875rem; }
-  .sf-ready-pick .sf-pill::after { content: ""; position: absolute; inset: -0.5625rem 0; }
 
   .sf-cartbar { padding: 0.625rem; gap: 0.625rem; }
   .sf-cartbar-media { width: 2.375rem; height: 2.375rem; border-radius: 9px; }
@@ -1475,9 +1567,6 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-intro-lead { font-size: 1.0625rem; }
   .sf-intro-art { width: 11rem; height: 11rem; margin: 1.5rem 0 0 0.25rem; }
   .sf-intro-menu-title { margin-left: 4.5rem; }
-  .sf-cats { gap: 0.375rem; }
-  .sf-cat { min-height: 2.25rem; padding: 0 0.75rem; gap: 0.375rem; font-size: 0.8125rem; }
-  .sf-cat svg { width: 0.9375rem; height: 0.9375rem; }
 }
 /* Narrow desktops (rails take the width): a smaller photo, and chips stay on one clipped line. */
 @media (min-width: 1024px) and (max-width: 1279px) {
@@ -1492,16 +1581,6 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
   .sf-row-item { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 1.75rem; padding: 1rem 0; }
   .sf-chips { flex: 1; flex-wrap: wrap; max-height: 2rem; overflow: hidden; }
   .sf-row-foot { align-items: center; padding-top: 0.75rem; }
-}
-/* Desktop: one row of category chips (it scrolls sideways when they don't fit), so FEATURED sits where Rigel's mock has it. */
-@media (min-width: 1024px) {
-  .sf-cats {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-right: 2rem;
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-  }
 }
 
 /* Gift card code on the purchase confirmation: big, spaced and selectable. */

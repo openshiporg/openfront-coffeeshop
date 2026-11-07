@@ -21,10 +21,10 @@ import {
 } from "@/features/storefront/lib/checkout/requestIdentity";
 import { StorefrontMedia } from "./StorefrontMedia";
 import { PickupTimePicker } from "./PickupTimePicker";
+import { PICKUP_STEP_MINUTES, loadPickupChoice, savePickupChoice } from "@/features/storefront/lib/cart/pickup";
 
 const UNCONFIRMED_MESSAGE = "We couldn’t confirm this pickup request. Retrying sends the same request, so it can’t create a second order.";
 const QUOTE_FAILED_MESSAGE = "We couldn’t price this cart right now. Some items may be unavailable or sold out. Try again, or remove an item.";
-const PICKUP_STEP_MINUTES = 15;
 
 function sessionStore(): Storage | null {
   try {
@@ -57,7 +57,12 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
   const [quotePending, setQuotePending] = React.useState(false);
   const [quote, setQuote] = React.useState<CafeOrderQuote | null>(null);
   const [quotedAt, setQuotedAt] = React.useState(0);
-  const [pickupChoice, setPickupChoice] = React.useState<number | null>(null);
+  // Starts from the time chosen on the menu's pickup bar, if any; a change here is kept for the tab too.
+  const [pickupChoice, setPickupChoiceState] = React.useState<number | null>(null);
+  const setPickupChoice = React.useCallback((time: number) => {
+    setPickupChoiceState(time);
+    savePickupChoice(time);
+  }, []);
   const [quoteError, setQuoteError] = React.useState<string | null>(null);
   const [quoteRetry, setQuoteRetry] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
@@ -67,6 +72,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
 
   React.useEffect(() => {
     setLines(loadCartLines());
+    setPickupChoiceState(loadPickupChoice());
     const storage = sessionStore();
     const saved = storage ? loadCheckoutAttempt(storage) : null;
     if (saved) {
