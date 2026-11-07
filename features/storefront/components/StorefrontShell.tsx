@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BookOpen, ClipboardList, Clock3, Coffee, CreditCard, Gift, MapPin, ShoppingBag, Store, UserRound, UtensilsCrossed } from "lucide-react";
 import { StorefrontCartLink, StorefrontDock } from "./StorefrontCartLink";
 import { OrderPanel } from "./OrderPanel";
+import { ScrollEdge } from "./ScrollEdge";
 import { PickupNow } from "./PickupNow";
 import { StoreBrand, StoreMark } from "./StoreBrand";
 import { getCoffeeStoreResult, type CoffeeStorefrontStore } from "@/features/storefront/lib/data/store";
@@ -22,6 +23,7 @@ export function UnconfiguredStorefront() {
 function StoreUnavailableShell({ children }: { children?: ReactNode }) {
   return (
     <div className="sf-app">
+      <ScrollEdge />
       <header className="sf-topbar">
         <Link href="/" className="sf-brand sf-brand-bar"><span className="sf-brand-text"><strong>Menu</strong></span></Link>
         <div className="sf-topbar-actions">
@@ -99,6 +101,7 @@ export async function StorefrontShell({
         </div>
       </aside>
 
+      <ScrollEdge />
       <header className="sf-topbar">
         <StoreBrand store={store} size="bar" sub="Order Ahead · Pick Up" />
         <div className="sf-topbar-actions">
