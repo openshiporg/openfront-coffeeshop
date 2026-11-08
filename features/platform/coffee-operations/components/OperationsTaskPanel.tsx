@@ -703,7 +703,7 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                           <span className="inline-flex items-center gap-1.5"><StatusDot tone={item.status === "clocked_in" ? "green" : "blue"} pulse={item.status === "clocked_in"} /><span className="capitalize">{item.status.replaceAll("_", " ")}</span></span>
                         </td>
                         <td className={`${platformTd} capitalize`}>{item.role.replaceAll("_", " ")}</td>
-                        <td className={`${platformTd} whitespace-nowrap tabular-nums text-muted-foreground max-md:text-right max-md:text-xs`}>{formatStoreTimeRange(item.startsAt, item.endsAt, tz)}</td>
+                        <td className={`${platformTd} whitespace-nowrap tabular-nums text-muted-foreground max-md:col-span-2 max-md:text-xs`}>{formatStoreTimeRange(item.startsAt, item.endsAt, tz)}</td>
                         <td className={`${platformTd} text-right max-md:col-span-2 max-md:pt-1`}>
                           <span className="inline-flex flex-wrap justify-end gap-2 max-md:w-full">
                             {item.actions.map((action) => (
