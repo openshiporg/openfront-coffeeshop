@@ -7,7 +7,7 @@
 
 const UNIQUE_REFUSALS: Record<string, string> = {
   "RegisterShift:store": "This single-register cafe already has an open shift; close it before opening another",
-  "StaffShift:staff": "This person is already clocked in on another shift; clock that one out first",
+  "StaffShift:staff": "This person is still clocked in on another shift, so clock that one out first.",
 };
 
 const CHECK_REFUSALS: Array<[RegExp, string]> = [

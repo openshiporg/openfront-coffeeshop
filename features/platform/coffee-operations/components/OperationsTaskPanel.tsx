@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { PillButton, PillTrack, Segmented } from "@/features/platform/components/PillTabs";
 import { PlatformEmpty, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
 import { StatusDot, type StatusTone } from "@/features/platform/components/StatusTitle";
-import { formatStoreDateTime } from "@/lib/date-time";
+import { formatStoreDateTime, formatStoreTimeRange } from "@/lib/date-time";
 import {
   completePrepBatchAction,
   createPurchaseOrderAction,
@@ -63,6 +63,12 @@ const EMPTY_DRAFTS: Drafts = {
 const SAVE_FAILED = "Not saved. Your entry is kept; check it and submit again. Resubmitting won't create a duplicate.";
 const UNREACHABLE = "Server unreachable; result unknown. Your entry is kept; submit again. It won't create a duplicate.";
 const STORAGE_FAILED = "Not sent: this browser can't keep a retry record. Allow site storage and try again.";
+
+/** A staff refusal shown as one sentence: capital first letter, one closing full stop. */
+function oneSentence(reason: string) {
+  const text = reason.trim().replace(/[.;:,\s]+$/, "");
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
+}
 
 function restoreDrafts(raw: string | null): Drafts {
   if (!raw) return EMPTY_DRAFTS;
@@ -308,10 +314,10 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
       }
       setStatus(kind, null);
       if (!result.success) {
-        // A refusal the server wrote for staff ("This person is already clocked in on another shift") says
+        // A refusal the server wrote for staff ("This person is still clocked in on another shift…") says
         // what to fix; only the generic request failure falls back to the retry-safe note.
         const reason = result.error && result.error !== PUBLIC_REQUEST_ERROR ? result.error : null;
-        setError(kind, reason ? `Not saved: ${reason}` : SAVE_FAILED);
+        setError(kind, reason ? oneSentence(reason) : SAVE_FAILED);
         return;
       }
       onSuccess();
@@ -692,17 +698,16 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
                       <tr key={item.id} className={stackRow}>
                         <td className={`${platformTd} font-medium [overflow-wrap:anywhere]`}>
                           {item.staff?.name || item.staff?.email || "Unassigned"}
-                          <span className="block text-xs font-normal tabular-nums text-muted-foreground">{item.shiftNumber}</span>
                         </td>
                         <td className={`${platformTd} whitespace-nowrap max-md:text-right`}>
                           <span className="inline-flex items-center gap-1.5"><StatusDot tone={item.status === "clocked_in" ? "green" : "blue"} pulse={item.status === "clocked_in"} /><span className="capitalize">{item.status.replaceAll("_", " ")}</span></span>
                         </td>
                         <td className={`${platformTd} capitalize`}>{item.role.replaceAll("_", " ")}</td>
-                        <td className={`${platformTd} whitespace-nowrap tabular-nums text-muted-foreground max-md:text-right max-md:text-xs max-md:whitespace-normal`}>{item.startsAt ? formatStoreDateTime(item.startsAt, tz) : "No start time"}{item.endsAt ? ` – ${formatStoreDateTime(item.endsAt, tz)}` : ""}</td>
+                        <td className={`${platformTd} whitespace-nowrap tabular-nums text-muted-foreground max-md:text-right max-md:text-xs`}>{formatStoreTimeRange(item.startsAt, item.endsAt, tz)}</td>
                         <td className={`${platformTd} text-right max-md:col-span-2 max-md:pt-1`}>
                           <span className="inline-flex flex-wrap justify-end gap-2 max-md:w-full">
                             {item.actions.map((action) => (
-                              <Button key={action.status} className={`${primary} max-md:flex-1`} disabled={pending} onClick={() => transition(item.id, action.status as "clocked_in" | "completed", item.status)} aria-label={`${action.label}: ${item.staff?.name || item.shiftNumber}`}>{action.label}</Button>
+                              <Button key={action.status} className={`${primary} max-md:flex-1`} disabled={pending} onClick={() => transition(item.id, action.status as "clocked_in" | "completed", item.status)} aria-label={`${action.label}: ${item.staff?.name || item.staff?.email || "unassigned shift"}`}>{action.label}</Button>
                             ))}
                           </span>
                         </td>

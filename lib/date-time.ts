@@ -52,6 +52,20 @@ function formatPickupInstant(value: string | null | undefined, storeTimeZone: st
   return `${day} · ${time}`;
 }
 
+/** "Sun, Nov 8 · 10:00 AM – 2:00 PM EST": one day, one zone abbreviation; the end gets its own date only when it falls on another store day. */
+export function formatStoreTimeRange(start?: string | null, end?: string | null, storeTimeZone?: string | null) {
+  const from = start ? new Date(start) : null;
+  const to = end ? new Date(end) : null;
+  if (!from || !Number.isFinite(from.getTime())) return "No start time";
+  const zone = validatedStoreTimeZone(storeTimeZone);
+  const day = (instant: Date) => new Intl.DateTimeFormat("en-US", { timeZone: zone.timeZone, weekday: "short", month: "short", day: "numeric" }).format(instant);
+  const time = (instant: Date) => new Intl.DateTimeFormat("en-US", { timeZone: zone.timeZone, hour: "numeric", minute: "2-digit" }).format(instant);
+  const abbreviation = storeZoneAbbreviation(storeTimeZone, to && Number.isFinite(to.getTime()) ? to : from) || "UTC";
+  if (!to || !Number.isFinite(to.getTime())) return `${day(from)} · ${time(from)} ${abbreviation}`;
+  const sameDay = storeDayNumber(from, zone.timeZone) === storeDayNumber(to, zone.timeZone);
+  return `${day(from)} · ${time(from)} – ${sameDay ? "" : `${day(to)} · `}${time(to)} ${abbreviation}`;
+}
+
 export function formatPickupTime(value?: string | null, storeTimeZone?: string | null, now = new Date()) {
   return formatPickupInstant(value, storeTimeZone, now);
 }

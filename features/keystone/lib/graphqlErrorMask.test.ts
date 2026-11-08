@@ -30,7 +30,7 @@ test("provider, driver and runtime text stays masked", () => {
 
 test("database rules that refuse a write are said in words", () => {
   assert.equal(masked(ksUnique("RegisterShift", "store")).message, "This single-register cafe already has an open shift; close it before opening another");
-  assert.equal(masked(ksUnique("StaffShift", "staff")).message, "This person is already clocked in on another shift; clock that one out first");
+  assert.equal(masked(ksUnique("StaffShift", "staff")).message, "This person is still clocked in on another shift, so clock that one out first.");
   assert.equal(masked(ksCheck("GiftCard_balance_within_initial_check")).message, "A gift card balance must stay between zero and the amount loaded");
   assert.equal(masked(ksCheck("StaffShift_window_check")).message, "The end must be after the start");
   assert.equal(masked(ksCheck("Payment_refund_within_amount_check")).message, "Refund exceeds the amount paid");
