@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { startGiftCardCheckout } from "@/features/storefront/lib/data/giftCards";
+import { prepareCardPage } from "@/features/storefront/lib/checkout/cardPage";
 import { formatMoney } from "@/features/storefront/lib/format";
 
 function newKey() {
@@ -28,6 +29,7 @@ export function GiftCardBuy({ amounts, currencyCode, customer }: { amounts: numb
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    const card = prepareCardPage();
     setPending(true);
     setError(null);
     const result = await startGiftCardCheckout({
@@ -38,8 +40,10 @@ export function GiftCardBuy({ amounts, currencyCode, customer }: { amounts: numb
       idempotencyKey: keyRef.current,
     }).catch(() => ({ checkoutUrl: null, error: "Gift cards couldn't start. Try again." }));
     if (result.checkoutUrl) {
-      window.location.assign(result.checkoutUrl);
-      return;
+      card.go(result.checkoutUrl);
+      if (window.top === window.self) return;
+    } else {
+      card.cancel();
     }
     keyRef.current = newKey();
     setPending(false);

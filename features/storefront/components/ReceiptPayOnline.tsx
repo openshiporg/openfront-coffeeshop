@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { startOnlinePayment } from "@/features/storefront/lib/data/payment";
+import { prepareCardPage } from "@/features/storefront/lib/checkout/cardPage";
 
 const FAILED = "Online payment couldn't start. Try again or pay at pickup.";
 
@@ -15,18 +16,24 @@ export function ReceiptPayOnline({ orderId, secretKey, returned }: { orderId: st
 
   async function pay() {
     if (pending) return;
+    const card = prepareCardPage();
     setPending(true);
     setError(null);
     try {
       key.current = key.current || crypto.randomUUID();
       const result = await startOnlinePayment(orderId, secretKey, key.current);
       if (result.checkoutUrl) {
-        window.location.assign(result.checkoutUrl);
+        card.go(result.checkoutUrl);
+        if (window.top === window.self) return;
+        setProcessing(true);
+        setPending(false);
         return;
       }
+      card.cancel();
       if ("processing" in result && result.processing) setProcessing(true);
       else setError(result.error || FAILED);
     } catch {
+      card.cancel();
       setError(FAILED);
     }
     setPending(false);

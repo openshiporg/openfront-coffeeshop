@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { createCafePickupOrder, quoteCafePickupOrder, type CafeOrderQuote, type PickupOrderRequest } from "@/features/storefront/lib/data/orders";
 import { startOnlinePayment } from "@/features/storefront/lib/data/payment";
+import { prepareCardPage, type CardPageTarget } from "@/features/storefront/lib/checkout/cardPage";
 import { formatMoney } from "@/features/storefront/lib/format";
 import { formatPickupTime, openState, pickupSlots } from "@/features/storefront/lib/hours";
 import type { CheckoutCustomer } from "@/features/storefront/lib/data/account";
@@ -169,7 +170,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     if (!saveCartLines(next)) setError("Your browser blocked saving the cart. Allow site storage and try again.");
   }
 
-  function finishSuccess(current: CheckoutAttempt, orderId: string) {
+  function finishSuccess(current: CheckoutAttempt, orderId: string, card: CardPageTarget | null) {
     const storage = sessionStore();
     // Record the receipt before any cleanup, so an interrupted cleanup still leaves a way back to it.
     if (storage) {
@@ -181,26 +182,39 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
       // The order exists either way; if the card page can't open, the receipt offers it again.
       void startOnlinePayment(orderId, current.receiptKey, crypto.randomUUID())
         .then((result) => {
-          if (result.checkoutUrl) window.location.assign(result.checkoutUrl);
-          else router.push(receiptHref(orderId, current.receiptKey));
+          if (result.checkoutUrl && card) {
+            card.go(result.checkoutUrl);
+            // In a framed shop the card page opened in its own window; this page shows the receipt.
+            if (window.top !== window.self) router.push(receiptHref(orderId, current.receiptKey));
+          } else {
+            card?.cancel();
+            router.push(receiptHref(orderId, current.receiptKey));
+          }
         })
-        .catch(() => router.push(receiptHref(orderId, current.receiptKey)));
+        .catch(() => {
+          card?.cancel();
+          router.push(receiptHref(orderId, current.receiptKey));
+        });
       return;
     }
+    card?.cancel();
     router.push(receiptHref(orderId, current.receiptKey));
   }
 
   async function send(current: CheckoutAttempt) {
+    // Runs inside the tap, before any await, so a framed shop may open the card page window.
+    const card = onlinePayment && payOnline ? prepareCardPage() : null;
     setPending(true);
     setError(null);
     try {
       const result = await createCafePickupOrder({ ...current.request, idempotencyKey: current.idempotencyKey, receiptKey: current.receiptKey });
       if (result.success && result.order?.id) {
-        finishSuccess(current, result.order.id);
+        finishSuccess(current, result.order.id, card);
         return;
       }
       if (!result.success && result.customerMessage) {
         // The cafe declined this request (sold out, closed, at capacity), so no order exists.
+        card?.cancel();
         setPending(false);
         setError(result.customerMessage);
         return;
@@ -208,6 +222,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     } catch {
       // Transport failure: the request may or may not have reached the cafe.
     }
+    card?.cancel();
     setPending(false);
     // If the current price/tax/pickup terms moved, retrying the old request cannot succeed.
     try {
