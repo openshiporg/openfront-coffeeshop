@@ -37,6 +37,7 @@ import {
 } from "../lib/operationsTypes";
 import { PlatformSelect } from "@/features/platform/components/PlatformSelect";
 import { PlatformDateInput, PlatformDateTimeInput } from "@/features/platform/components/PlatformDateTime";
+import { PUBLIC_REQUEST_ERROR } from "@/features/dashboard/lib/security";
 
 type ActionResult = { success: boolean; error?: string };
 type Pick = { id: string; name: string; unit: string | null };
@@ -307,7 +308,10 @@ export function OperationsTaskPanel({ data, urlState }: { data: CoffeeOperations
       }
       setStatus(kind, null);
       if (!result.success) {
-        setError(kind, SAVE_FAILED);
+        // A refusal the server wrote for staff ("This person is already clocked in on another shift") says
+        // what to fix; only the generic request failure falls back to the retry-safe note.
+        const reason = result.error && result.error !== PUBLIC_REQUEST_ERROR ? result.error : null;
+        setError(kind, reason ? `Not saved: ${reason}` : SAVE_FAILED);
         return;
       }
       onSuccess();
