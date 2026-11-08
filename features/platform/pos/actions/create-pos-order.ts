@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import { cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
+import { staffCafeRequest as cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
 import type {
   PosCartItem,
   PosCashMovementRequest,

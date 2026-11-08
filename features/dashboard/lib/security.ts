@@ -4,7 +4,7 @@ export const PUBLIC_REQUEST_ERROR = 'Unable to complete the request. Please try 
 const SAFE_CODES = new Set([
   'UNAUTHENTICATED', 'FORBIDDEN', 'BAD_USER_INPUT', 'GRAPHQL_VALIDATION_FAILED',
   'INTERNAL_SERVER_ERROR', 'KS_ACCESS_DENIED', 'KS_VALIDATION_FAILURE',
-  'KS_AUTHENTICATION_FAILURE', 'KS_USER_INPUT_ERROR',
+  'KS_AUTHENTICATION_FAILURE', 'KS_USER_INPUT_ERROR', 'OPERATION_REFUSED', 'CAFE_CUSTOMER_ERROR',
 ]);
 
 export function safeErrorSummary(error: unknown): { message: string; codes: string[] } {
@@ -22,6 +22,9 @@ export function safeErrorSummary(error: unknown): { message: string; codes: stri
 // Keystone codes whose messages are written for the person filling the form.
 const USER_FACING_CODES = new Set([
   'KS_VALIDATION_FAILURE', 'KS_USER_INPUT_ERROR', 'KS_ACCESS_DENIED', 'KS_EXTENSION_ERROR',
+  // A command's own refusal, passed through by the GraphQL route, and refusals written for the customer
+  // that staff commands share (sold out, gift card balance). Never BAD_USER_INPUT: it echoes variables.
+  'OPERATION_REFUSED', 'CAFE_CUSTOMER_ERROR',
 ]);
 // Anything that looks like database, driver or stack output stays server-side.
 const UNSAFE_DETAIL = /prisma|invocation|\bat\s+\S+\s*\(|\bat\s+\/|node_modules|postgres(ql)?:\/\/|\bSQL\b|ECONN|query engine|\.ts:\d+|\.js:\d+/i;
@@ -29,7 +32,10 @@ const MAX_MESSAGE_LENGTH = 400;
 
 function cleanMessage(message: string): string | null {
   // Keystone lists failures as "  - List.field: message"; keep only the message
-  const text = message.replace(/^\s*-\s*\w+(\.\w+)+:\s*/gm, '').replace(/\s+\n/g, '\n').trim();
+  // and drop Keystone's generic lead-in, which says nothing the reason below it doesn't
+  const text = message
+    .replace(/^You provided invalid data for this operation\.\s*/, '')
+    .replace(/^\s*-\s*\w+(\.\w+)+:\s*/gm, '').replace(/\s+\n/g, '\n').trim();
   if (!text || text.length > MAX_MESSAGE_LENGTH || UNSAFE_DETAIL.test(text)) return null;
   return text;
 }

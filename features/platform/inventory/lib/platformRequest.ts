@@ -30,7 +30,7 @@ export async function platformRequest<T>(query: string, variables: Record<string
   } catch (error) {
     if (error instanceof ClientError) {
       const errors = error.response.errors ?? [];
-      const customer = errors.find((entry) => entry.extensions?.code === CAFE_CUSTOMER_ERROR_CODE);
+      const customer = errors.find((entry) => entry.extensions?.code === CAFE_CUSTOMER_ERROR_CODE || entry.extensions?.code === "OPERATION_REFUSED");
       if (customer && typeof customer.message === "string") return { success: false, error: customer.message };
       const validation = errors.find((entry) => entry.extensions?.code === "KS_VALIDATION_FAILURE");
       if (validation && typeof validation.message === "string") {

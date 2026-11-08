@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cafeRequest } from '@/features/storefront/lib/data/cafeRequest';
+import { staffCafeRequest as cafeRequest } from '@/features/storefront/lib/data/cafeRequest';
 
 export async function refundGiftCardAction(giftCardId: string, reason: string) {
   const response = await cafeRequest(`

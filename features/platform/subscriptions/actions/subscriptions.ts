@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import { cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
+import { staffCafeRequest as cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
 import { loadStoreRecord } from "@/features/platform/catering/lib/store-context";
 import { parseDollars, recordNumber, storeDateToInstant } from "@/features/platform/catering/lib/store-time";
 import { BILLING_INTERVALS, SUBSCRIPTION_NEXT, type LoyaltyAccountOption, type SubscriptionActionResult, type SubscriptionInput } from "../lib/subscriptions";

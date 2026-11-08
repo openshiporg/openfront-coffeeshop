@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from "next/cache";
-import { cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
+import { staffCafeRequest as cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
 
 const ADJUST_LOYALTY_ACCOUNT = `
   mutation AdjustCoffeeLoyaltyAccount($accountId: ID!, $pointsDelta: Int, $drinkCreditsDelta: Int, $status: String, $tier: String, $note: String!, $idempotencyKey: String!) {

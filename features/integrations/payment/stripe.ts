@@ -9,6 +9,7 @@ import type {
   RefundPaymentInput,
   VerifiedPaymentWebhook,
 } from "./index";
+import { ProviderError } from "./providerError";
 
 const STRIPE_API = "https://api.stripe.com/v1";
 const SIGNATURE_TOLERANCE_SECONDS = 300;
@@ -51,7 +52,7 @@ async function stripeRequest(path: string, body?: URLSearchParams, idempotencyKe
     signal: AbortSignal.timeout(10_000),
   });
   const payload = await response.json() as StripeObject & { error?: { message?: string } };
-  if (!response.ok) throw new Error(payload.error?.message || "Stripe request failed");
+  if (!response.ok) throw new ProviderError(payload.error?.message || "Stripe request failed");
   return payload;
 }
 

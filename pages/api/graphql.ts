@@ -1,5 +1,6 @@
 import { keystoneContext } from '../../features/keystone/context'
 import { createYoga } from "graphql-yoga";
+import { maskCoffeeError } from "../../features/keystone/lib/graphqlErrorMask";
 // @ts-ignore
 import processRequest from "graphql-upload/processRequest.js";
 import { type NextApiRequest, type NextApiResponse } from 'next'
@@ -48,5 +49,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return keystoneContext.withRequest(req, res);
     },
     multipart: false,
+    maskedErrors: { maskError: maskCoffeeError },
   })(req, res);
 }

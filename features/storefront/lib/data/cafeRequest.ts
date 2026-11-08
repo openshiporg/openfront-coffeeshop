@@ -9,6 +9,16 @@ export type CafeResponse<T> = { success: true; data: T } | { success: false; err
 /** Like keystoneClient, but keeps the message of a rejection written for the customer
  *  (sold out, closed, at capacity). Every other failure stays generic. */
 export async function cafeRequest<T>(query: string, variables: Record<string, unknown>): Promise<CafeResponse<T>> {
+  return request<T>(query, variables, [CAFE_CUSTOMER_ERROR_CODE]);
+}
+
+/** For dashboard actions: also keeps a command's own refusal ("Shift end must be after its start"), which the
+ *  GraphQL route tags OPERATION_REFUSED. Those are written for staff, so customers never get them. */
+export async function staffCafeRequest<T>(query: string, variables: Record<string, unknown>): Promise<CafeResponse<T>> {
+  return request<T>(query, variables, [CAFE_CUSTOMER_ERROR_CODE, "OPERATION_REFUSED"]);
+}
+
+async function request<T>(query: string, variables: Record<string, unknown>, shownCodes: string[]): Promise<CafeResponse<T>> {
   try {
     // Built per request, so the signed identity is the CURRENT visitor's.
     const target = await getServerGraphQLTarget();
@@ -16,7 +26,7 @@ export async function cafeRequest<T>(query: string, variables: Record<string, un
     return { success: true, data: await client.request<T>(query, variables) };
   } catch (error) {
     const customer = error instanceof ClientError
-      ? error.response.errors?.find((entry) => entry.extensions?.code === CAFE_CUSTOMER_ERROR_CODE)
+      ? error.response.errors?.find((entry) => shownCodes.includes(String(entry.extensions?.code)))
       : undefined;
     const customerMessage = typeof customer?.message === "string" ? customer.message : null;
     return { success: false, error: customerMessage || PUBLIC_REQUEST_ERROR, customerMessage };

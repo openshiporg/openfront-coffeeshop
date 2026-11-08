@@ -7,6 +7,7 @@ import type {
   RefundPaymentInput,
   VerifiedPaymentWebhook,
 } from "./index";
+import { ProviderError } from "./providerError";
 
 const PAYPAL_SANDBOX_API = "https://api-m.sandbox.paypal.com";
 const PAYPAL_LIVE_API = "https://api-m.paypal.com";
@@ -55,7 +56,7 @@ async function accessToken() {
     signal: AbortSignal.timeout(10_000),
   });
   const payload = await response.json() as { access_token?: string; error_description?: string };
-  if (!response.ok || !payload.access_token) throw new Error(payload.error_description || "PayPal authentication failed");
+  if (!response.ok || !payload.access_token) throw new ProviderError(payload.error_description || "PayPal authentication failed");
   return payload.access_token;
 }
 
@@ -71,7 +72,7 @@ async function paypalRequest(path: string, method = "GET", body?: unknown, idemp
     signal: AbortSignal.timeout(10_000),
   });
   const payload = await response.json() as PayPalRecord & { message?: string };
-  if (!response.ok) throw new Error(payload.message || "PayPal request failed");
+  if (!response.ok) throw new ProviderError(payload.message || "PayPal request failed");
   return payload;
 }
 

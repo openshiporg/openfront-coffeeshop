@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import { cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
+import { staffCafeRequest as cafeRequest } from "@/features/storefront/lib/data/cafeRequest";
 import { CATERING_NEXT, eventFactsEditable, quoteEditable, type ActionResult, type CateringFactsInput } from "../lib/catering";
 import { loadStoreRecord } from "../lib/store-context";
 import { EMAIL_PATTERN, parseDollars, recordNumber, storeLocalToInstant } from "../lib/store-time";
