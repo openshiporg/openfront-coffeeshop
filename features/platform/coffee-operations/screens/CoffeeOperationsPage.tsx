@@ -7,7 +7,7 @@ import { PageContainer } from '@/features/dashboard/components/PageContainer';
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient';
 import { PlatformEmpty, PlatformHeader, PlatformSection, PlatformTable, platformTd } from '@/features/platform/components/PlatformPage';
 import { StatusDot, type StatusTone } from '@/features/platform/components/StatusTitle';
-import { formatStoreDateTime } from '@/lib/date-time';
+import { formatStoreDateTime, formatStoreTimeRange } from '@/lib/date-time';
 import { loadCoffeeOperations } from '../lib/operationsResponse';
 import { OPERATIONS_PARAMS, operationsHref, readOperationsUrlState, type CoffeeOperationsData } from '../lib/operationsTypes';
 import { OperationsTaskPanel } from '../components/OperationsTaskPanel';
@@ -276,7 +276,7 @@ export async function CoffeeOperationsPage({ searchParams }: { searchParams: Pro
                   id: item.id,
                   title: item.staff?.name || item.staff?.email || 'Unassigned',
                   status: item.status,
-                  detail: <><span className="tabular-nums">{item.shiftNumber}</span> · <span className="capitalize">{label(item.role)}</span> · {item.startsAt ? formatStoreDateTime(item.startsAt, tz) : 'No start time'}</>,
+                  detail: <><span className="capitalize">{label(item.role)}</span> · {formatStoreTimeRange(item.startsAt, item.endsAt, tz)}</>,
                 }))}
               />
             ) : null}
