@@ -21,16 +21,20 @@ export function prepareCardPage(): CardPageTarget {
   }
   let opened: Window | null = null;
   try {
+    // The opener is kept: Safari refuses to navigate the blank window later once it is cut.
     opened = window.open("", "_blank");
-    if (opened) opened.opener = null;
   } catch {
     opened = null;
   }
   return {
     go(url) {
       if (opened && !opened.closed) {
-        opened.location.href = url;
-        return;
+        try {
+          opened.location.href = url;
+          return;
+        } catch {
+          opened.close();
+        }
       }
       try {
         // Popup blocked: leave the frame. Allowed for a frame that isn't sandboxed.
