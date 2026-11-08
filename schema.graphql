@@ -2804,6 +2804,8 @@ type GiftCard {
   status: String
   initialValue: Int
   balance: Int
+  amountLoaded: String
+  balanceLeft: String
   currencyCode: String
   purchaserName: String
   purchaserEmail: String
@@ -5499,6 +5501,16 @@ type CoffeeOrderQueueTicket {
   actions: [CoffeeStatusAction!]!
 }
 
+type CoffeeDayCloseReport {
+  closedAt: String!
+  storeDay: String!
+  completed: Int!
+  cancelled: Int!
+  noShow: Int!
+  skipped: Int!
+  orderNumbers: [String!]!
+}
+
 type CoffeeOrderQueueProjection {
   summary: CoffeeOrderQueueSummary!
   capabilities: CoffeeOrderQueueCapabilities!
@@ -5508,6 +5520,7 @@ type CoffeeOrderQueueProjection {
   activeHasMore: Boolean!
   activeNextCursor: String
   staleCount: Int!
+  lastDayClose: CoffeeDayCloseReport
   historyCount: Int!
   historyHasMore: Boolean!
   historyNextCursor: String

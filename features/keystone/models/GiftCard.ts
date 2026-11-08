@@ -1,6 +1,6 @@
-import { list } from "@keystone-6/core";
+import { graphql, list } from "@keystone-6/core";
 import { denyAll } from "@keystone-6/core/access";
-import { integer, json, select, text, timestamp } from "@keystone-6/core/fields";
+import { integer, json, select, text, timestamp, virtual } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
 import { requiredStoreRelationship } from "./requiredRelationship";
@@ -11,11 +11,15 @@ import { trackingFields } from "./trackingFields";
  * once Stripe confirms the payment; taken as tender at the counter. The balance changes only through
  * commands, each appending a row to `ledger`, so every debit and credit traces to a payment.
  */
+function dollars(cents: unknown) {
+  return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
 export const GiftCard = list({
   access: {
     operation: { query: permissions.canReadPayments, create: denyAll, update: denyAll, delete: denyAll },
   },
-  ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["code", "status", "initialValue", "balance", "recipientName", "expiresAt"] } },
+  ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["code", "status", "amountLoaded", "balanceLeft", "recipientName", "expiresAt"] } },
   fields: {
     store: requiredStoreRelationship("StoreSetting.giftCards"),
     code: text({ isIndexed: "unique", validation: { isRequired: true } }),
@@ -29,8 +33,11 @@ export const GiftCard = list({
       ],
       defaultValue: "pending",
     }),
-    initialValue: integer({ validation: { isRequired: true, min: 0 }, ui: { description: "Cents" } }),
-    balance: integer({ validation: { isRequired: true, min: 0 }, ui: { description: "Cents" } }),
+    // Stored in cents for the ledger; staff read the dollar amounts below.
+    initialValue: integer({ validation: { isRequired: true, min: 0 }, ui: { itemView: { fieldMode: "hidden" }, listView: { fieldMode: "hidden" } } }),
+    balance: integer({ validation: { isRequired: true, min: 0 }, ui: { itemView: { fieldMode: "hidden" }, listView: { fieldMode: "hidden" } } }),
+    amountLoaded: virtual({ label: "Amount loaded", field: graphql.field({ type: graphql.String, resolve: (item) => dollars(item.initialValue) }) }),
+    balanceLeft: virtual({ label: "Balance", field: graphql.field({ type: graphql.String, resolve: (item) => dollars(item.balance) }) }),
     currencyCode: text({ defaultValue: "USD" }),
     purchaserName: text(),
     purchaserEmail: text(),
