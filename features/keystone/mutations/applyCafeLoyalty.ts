@@ -1,5 +1,5 @@
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { hasCafeSettlement, lockCoffeeOrder, type SettlementEvidence } from "./coffeeOrderPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { fingerprintInput } from "./idempotency";
@@ -45,7 +45,7 @@ type TransactionClient = {
     update(args: Record<string, unknown>): Promise<{ id: string }>;
   };
   loyaltyEvent: { create(args: Record<string, unknown>): Promise<unknown> };
-  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
+  coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
 };
 
 type ApplyCafeLoyaltyContext = {
@@ -136,7 +136,7 @@ export default async function applyCafeLoyalty(
     if (payableAmount <= 0 || !hasCafeSettlement(payments, payableAmount)) throw cafeCustomerError("Rewards apply once the order is paid in full");
     if (order.loyaltyAccountId) {
       // Replay returns the original earning only for the same request; changed details conflict.
-      const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+      const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
       const payload = receipt?.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : null;
       let matches: boolean;
       if (payload && typeof payload.requestFingerprint === "string") {
@@ -226,7 +226,7 @@ export default async function applyCafeLoyalty(
         createdById: actorId,
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey,
       eventType: "loyalty.earned",

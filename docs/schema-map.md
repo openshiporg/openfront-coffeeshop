@@ -44,7 +44,7 @@ Lists live in `features/keystone/models/`. Custom operations are in `features/ke
 | CateringOrder | Event catering inquiry or quote | cateringNumber, customer, eventAt, guestCount, deliveryAddress, subtotalCents, status | – | M (C after this pass) | inquiry → quoted → confirmed → completed; any → cancelled. Event facts are editable until confirmed, the quote until quoted | generic create/edit; status only through `updateCateringOrderStatus` |
 | User | Staff and customers | name, email, phone, role, onboardingStatus | role, cafeOrders, loyaltyAccount, payments | C (sign-up) / M | – | generic People, `registerCoffeeCustomer`, `updateCoffeeCustomerProfile` |
 | Role | Permission set | can{Read,Manage}{Orders,Payments,Products,Inventory,Loyalty}, people, roles, settings, onboarding | User[] | O / M | – | generic Roles |
-| CoffeeDomainEvent / CoffeeOutboxDelivery | Transactional outbox | eventType, payload, delivery status | – | S | pending → processing → delivered / retry / dead_letter | system only (hidden, denyAll) |
+| CoffeeCommandReceipt | Command idempotency ledger (no delivery) | eventType, payload | – | S | immutable | system only (hidden, denyAll) |
 
 ## Merchant workflows
 
@@ -93,7 +93,7 @@ Lists live in `features/keystone/models/`. Custom operations are in `features/ke
 | Analytics | `/platform/reports` · `reports` | Covered |
 | Store settings, hours, tax, branding | `/platform/store-settings` · `store-settings` | Covered |
 | Payment providers | generic | Covered by generic. Online payment is blocked on secrets, an owner decision |
-| Join and system lists: OrderItem, StockMovement, PrepBatchConsumption, PaymentEvent, LoyaltyEvent, CoffeeDomainEvent / CoffeeOutboxDelivery | parents: Orders and KDS (OrderItem), Inventory detail (StockMovement), Coffee Operations (PrepBatchConsumption), Register (PaymentEvent), Loyalty detail (LoyaltyEvent) | Outbox is system-only, with no page by design |
+| Join and system lists: OrderItem, StockMovement, PrepBatchConsumption, PaymentEvent, LoyaltyEvent, CoffeeCommandReceipt | parents: Orders and KDS (OrderItem), Inventory detail (StockMovement), Coffee Operations (PrepBatchConsumption), Register (PaymentEvent), Loyalty detail (LoyaltyEvent) | Outbox is system-only, with no page by design |
 
 ### Storefront (customer workflows)
 

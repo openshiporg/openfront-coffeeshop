@@ -1,5 +1,5 @@
 import { type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeSettlement, lockCoffeeOrder, requireCafeTenderOperator, type SettlementEvidence } from "./coffeeOrderPolicy";
@@ -15,7 +15,7 @@ type Tx = {
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
   storeSetting: Model; payment: Model; cafeOrder: Model; registerShift: Model; loyaltyAccount: Model; loyaltyEvent: Model;
   posOrder: { updateMany(args: Record<string, unknown>): Promise<unknown> };
-  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
+  coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
 };
 type Context = {
   session?: Session;
@@ -58,7 +58,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     const requestFingerprint = fingerprintInput({ paymentId: args.paymentId, actorId, amount, currencyCode: String(payment.currencyCode || ""), reason, externalRefundReference: externalReference || null });
     if (payment.status === "refunded") {
       if (payment.refundIdempotencyKey !== key) throw new Error("Payment was already refunded by another request");
-      const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey: `payment:${args.paymentId}:refunded:v1` } });
+      const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey: `payment:${args.paymentId}:refunded:v1` } });
       const payload = receipt?.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : null;
       const matches = payload && typeof payload.requestFingerprint === "string"
         ? payload.requestFingerprint === requestFingerprint
@@ -158,7 +158,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
     await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
-    await enqueueCoffeeDomainEvent(tx as never, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });
+    await recordCoffeeCommandReceipt(tx as never, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });
   }, { maxWait: 5000, timeout: 20000, isolationLevel: "ReadCommitted" });
   return context.sudo().query.Payment.findOne({ where: { id: args.paymentId }, query });
 }

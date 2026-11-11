@@ -1,5 +1,5 @@
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { CATERING_ORDER_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
 
@@ -35,7 +35,7 @@ export default async function updateCateringOrderStatus(_root: unknown, args: { 
       throw new Error("Enter the quoted amount and the event date before marking this inquiry quoted.");
     }
     await tx.cateringOrder.update({ where: { id: existing.id }, data: { status: args.status } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `catering:${String(existing.id)}:status:${args.status}:v1`,
       eventType: "catering.status_changed",

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { isOnlinePaymentProviderCode, type VerifiedPaymentWebhook } from "../../integrations/payment";
 import { executePaymentProviderAdapter } from "../utils/paymentProviderAdapter";
 import { PAYMENT_TRANSITIONS, canTransition } from "./transitionPolicy";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 
 type Args = { providerCode: string; rawBody: string; headers: Record<string, string> };
 type PaymentRow = {
@@ -178,7 +178,7 @@ export default async function handleCafePaymentWebhook(_root: unknown, args: Arg
       },
       select: { id: true },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `payment-webhook:${key}:v1`,
       eventType: `payment.${verified.status}`,

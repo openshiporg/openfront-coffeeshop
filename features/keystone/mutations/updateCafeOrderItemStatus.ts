@@ -3,7 +3,7 @@ import type { CoffeeKdsCommandReceipt } from "./coffeeKdsReceipt";
 import { requireCurrentCoffeeKdsOperator } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { assertCafeSettlement, lockCoffeeOrder, type SettlementEvidence } from "./coffeeOrderPolicy";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import {
   advanceKdsOrderStatus,
   evaluateKdsItemTransition,
@@ -31,7 +31,7 @@ type TransactionClient = {
   storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> };
   user: { findUnique(args: Record<string, unknown>): Promise<{ id: string; roleId: string | null } | null> };
   role: { findUnique(args: Record<string, unknown>): Promise<{ canManageOrders: boolean } | null> };
-  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<{ storeId: string; aggregateType: string; aggregateId: string; eventType: string; payload: unknown } | null> };
+  coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<{ storeId: string; aggregateType: string; aggregateId: string; eventType: string; payload: unknown } | null> };
 };
 
 const TX_OPTIONS = { maxWait: 5000, timeout: 10000, isolationLevel: "ReadCommitted" };
@@ -109,7 +109,7 @@ export default async function updateCafeOrderItemStatus(
     if (["cancelled", "refunded"].includes(order.status)) throw new Error(`Cannot bump an item on a ${order.status} order`);
     if (!["accepted", "paid", "in_bar_queue", "preparing", "ready", "completed"].includes(order.status)) throw new Error("KDS cafe order state is invalid");
 
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
     if (receipt) {
       const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : {};
       if (receipt.storeId !== storeId || receipt.aggregateType !== "order_item" || receipt.aggregateId !== item.id || receipt.eventType !== "kitchen_item.status_changed" || payload.orderId !== order.id || payload.actorId !== actorId || payload.requestFingerprint !== requestFingerprint) {
@@ -143,7 +143,7 @@ export default async function updateCafeOrderItemStatus(
         data: { status: orderStatus, ...(timestampField ? { [timestampField]: now } : {}) },
       });
     }
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey,
       eventType: "kitchen_item.status_changed",
@@ -154,11 +154,5 @@ export default async function updateCafeOrderItemStatus(
     });
     return committedReceipt(tx, { itemId: item.id, orderId: order.id, storeId, actorId, idempotencyKey: clientKey, expectedStatus, requestedStatus: status });
   }, TX_OPTIONS);
-  // The last item turning ready rolls the order to ready; the customer hears about it once.
-  const orderId = receipt?.order?.id;
-  if (status === "ready" && orderId && receipt.order.status === "ready") {
-    const { deliverOrderReady } = await import("../lib/orderConfirmation");
-    await deliverOrderReady(context.prisma, orderId);
-  }
   return receipt;
 }

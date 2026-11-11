@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
@@ -126,6 +127,7 @@ export async function LoyaltyDetailPage({ id, eventsPage, ordersPage, adjust = f
     { type: "page" as const, label: title },
   ];
 
+  if (!account && response.success) notFound();
   if (!account) {
     return (
       <PageContainer title="Rewards account" breadcrumbs={breadcrumbs} header={<PlatformHeader title="Rewards account" />}>

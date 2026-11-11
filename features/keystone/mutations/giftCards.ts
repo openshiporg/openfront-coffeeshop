@@ -2,7 +2,7 @@ import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypt
 
 import { permissions, type Session } from "../access";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
-import { enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { onlinePaymentReady } from "../lib/onlinePayment";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 
@@ -126,38 +126,14 @@ export async function settleCafeGiftCard(prisma: Prisma, giftCardId: string) {
         const ledger: LedgerRow[] = [{ at: now.toISOString(), type: "purchase", amount: card.initialValue, balance: card.initialValue, ref: remote.paymentIntent || card.providerPaymentId }];
         const claimed = await tx.giftCard.updateMany({ where: { id: card.id, status: "pending" }, data: { status: "active", balance: card.initialValue, activatedAt: now, ledger } });
         if (!claimed.count) return;
-        await enqueueCoffeeDomainEvent(tx as never, {
+        await recordCoffeeCommandReceipt(tx as never, {
           storeId: card.storeId, eventKey: `gift-card:${card.id}:sold:v1`, eventType: "gift_card.sold", aggregateType: "gift_card", aggregateId: card.id, occurredAt: now,
           payload: { giftCardId: card.id, amount: card.initialValue, currencyCode: card.currencyCode, providerPaymentId: card.providerPaymentId },
         });
       });
     }
   }
-  const fresh = await prisma.giftCard.findUnique({ where: { id: card.id } });
-  if (fresh?.status === "active") await emailOnce(prisma, fresh);
-  return fresh;
-}
-
-/** The code reaches the recipient exactly once, whichever reader settles the purchase first. */
-async function emailOnce(prisma: Prisma, card: Record<string, any>) {
-  if (!card.recipientEmail || card.emailedAt) return;
-  const { orderConfirmationConfigured } = await import("../lib/orderConfirmation");
-  if (!orderConfirmationConfigured()) return;
-  const claimed = await prisma.giftCard.updateMany({ where: { id: card.id, emailedAt: null }, data: { emailedAt: new Date() } });
-  if (!claimed.count) return;
-  try {
-    const store = await prisma.storeSetting.findUnique({ where: { id: card.storeId }, select: { name: true } });
-    const { sendGiftCardEmail } = await import("../lib/orderMail");
-    const result = await sendGiftCardEmail({
-      to: card.recipientEmail, storeName: store?.name || "the café", amount: usd(card.initialValue), code: card.code,
-      recipientName: card.recipientName || "there", purchaserName: card.purchaserName || "A friend", message: card.message || "",
-      link: `${String(process.env.SMTP_STORE_LINK).replace(/\/$/, "")}/#menu`,
-    });
-    if (!result.sent) throw new Error(result.error || "send_failed");
-  } catch (error) {
-    console.error("Gift card email failed:", error instanceof Error ? error.message : "unknown");
-    await prisma.giftCard.update({ where: { id: card.id }, data: { emailedAt: null } }).catch(() => undefined);
-  }
+  return prisma.giftCard.findUnique({ where: { id: card.id } });
 }
 
 export async function confirmCafeGiftCardOrder(_root: unknown, args: { giftCardId: string; token: string }, context: Context) {
@@ -272,7 +248,7 @@ export async function refundCafeGiftCard(_root: unknown, args: { giftCardId: str
     const now = new Date();
     const ledger = [...ledgerOf(card.ledger), { at: now.toISOString(), type: "cancel" as const, amount: card.balance, balance: 0, ref: String(refund.providerPaymentId || "refund") }];
     const updated = await tx.giftCard.update({ where: { id: card.id }, data: { status: "cancelled", balance: 0, refundedAt: now, ledger } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId, eventKey: `gift-card:${card.id}:refunded:v1`, eventType: "gift_card.refunded", aggregateType: "gift_card", aggregateId: card.id, occurredAt: now,
       payload: { giftCardId: card.id, amount: card.initialValue, refundedBy: actorId, providerRefundId: String(refund.providerPaymentId || "") || null },
     });

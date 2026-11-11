@@ -1,4 +1,4 @@
-import { enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
+import { recordCoffeeCommandReceipt } from "../lib/coffeeCommandReceipt";
 import { loyaltyLinkDecision, normalizeLoyaltyEmail } from "./loyaltyLink";
 
 type Tx = {
@@ -37,7 +37,7 @@ export default async function linkCoffeeCustomerLoyalty(_root: unknown, _args: u
     if (decision === "linked") return true;
     if (decision !== "link" || !account) return false;
     await tx.loyaltyAccount.update({ where: { id: account.id }, data: { customerId: user.id } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId: store.id,
       eventKey: `loyalty:${account.id}:customer-linked:${user.id}`,
       eventType: "loyalty.customer_linked",

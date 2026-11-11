@@ -1,7 +1,7 @@
 import { permissions, type Session } from "../access";
 import { PICKUP_SETTINGS_CHANGED_MESSAGE, lockCoffeeOrder, readLockedPickupSettings, validateCafeModifierSelections } from "./coffeeOrderPolicy";
 import { lockCoffeeMenuItem } from "./manageCoffeeMenu";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
@@ -28,7 +28,7 @@ type Tx = {
   stockMovement: { create(args: Record<string, unknown>): Promise<unknown> };
   prepBatch: { findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>>; findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null>; update(args: Record<string, unknown>): Promise<unknown> };
   prepBatchConsumption: { create(args: Record<string, unknown>): Promise<unknown> };
-  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
+  coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
 };
 
 const ORDER_QUERY = "id orderNumber status fulfillmentType pickupName promisedAt total orderItems { id quantity itemNameSnapshot modifierSnapshot menuItem { id } }";
@@ -185,7 +185,7 @@ export default async function acceptCafePickupOrder(_root: unknown, args: Args, 
     if (!order) throw new Error("Cafe order not found");
     const storeId = await getPrimaryCoffeeStoreId(tx as never);
     assertCoffeeStoreOwnership(String(order.storeId), storeId, "Cafe order");
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
     if (receipt) {
       const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : {};
       if (receipt.storeId !== storeId || receipt.aggregateId !== String(order.id) || payload.acceptedBy !== actorId || payload.requestFingerprint !== requestFingerprint) {
@@ -213,7 +213,7 @@ export default async function acceptCafePickupOrder(_root: unknown, args: Args, 
       if (requirement.kind === "prep") inventoryRequirementEvidence.push({ kind: requirement.kind, prepBatchId: requirement.prepBatchId, quantity: requirement.quantity });
       else inventoryRequirementEvidence.push({ kind: requirement.kind, inventoryItemId: requirement.inventoryItemId, quantity: requirement.quantity });
     }
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey,
       eventType: "order.accepted",

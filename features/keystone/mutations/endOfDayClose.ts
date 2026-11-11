@@ -1,4 +1,4 @@
-import { enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
+import { recordCoffeeCommandReceipt } from "../lib/coffeeCommandReceipt";
 import { hasCafeSettlement, lockCoffeeOrder } from "./coffeeOrderPolicy";
 import { releaseAbandonedOnlinePayments } from "./onlinePaymentRelease";
 import { releaseOrderReservations, type TransactionClient } from "./updateCafeOrderStatus";
@@ -92,7 +92,7 @@ export async function closePastDayOrders(prisma: Prisma, now = new Date()): Prom
             data: status === "completed" ? { barStatus: "handed_off", handedOffAt: now } : { barStatus: "voided" },
           });
         }
-        await enqueueCoffeeDomainEvent(tx as never, {
+        await recordCoffeeCommandReceipt(tx as never, {
           storeId: store.id,
           eventKey: `order:${order.id}:status:${status}:v1`,
           eventType: "order.status_changed",
@@ -113,7 +113,7 @@ export async function closePastDayOrders(prisma: Prisma, now = new Date()): Prom
   }
   if (report.orderNumbers.length) {
     await prisma.$transaction(async (tx) => {
-      await enqueueCoffeeDomainEvent(tx as never, {
+      await recordCoffeeCommandReceipt(tx as never, {
         storeId: store.id,
         eventKey: `store:${store.id}:end_of_day_close:${report.closedAt}:v1`,
         eventType: DAY_CLOSE_EVENT,
@@ -128,8 +128,8 @@ export async function closePastDayOrders(prisma: Prisma, now = new Date()): Prom
 }
 
 /** The latest close report, for the Orders page. */
-export async function latestDayClose(prisma: { coffeeDomainEvent: { findFirst(args: Record<string, unknown>): Promise<{ payload: unknown } | null> } }, storeId: string): Promise<DayCloseReport | null> {
-  const row = await prisma.coffeeDomainEvent.findFirst({ where: { storeId, eventType: DAY_CLOSE_EVENT }, orderBy: [{ occurredAt: "desc" }], select: { payload: true } });
+export async function latestDayClose(prisma: { coffeeCommandReceipt: { findFirst(args: Record<string, unknown>): Promise<{ payload: unknown } | null> } }, storeId: string): Promise<DayCloseReport | null> {
+  const row = await prisma.coffeeCommandReceipt.findFirst({ where: { storeId, eventType: DAY_CLOSE_EVENT }, orderBy: [{ occurredAt: "desc" }], select: { payload: true } });
   const payload = row?.payload as DayCloseReport | undefined;
   return payload && typeof payload.closedAt === "string" ? payload : null;
 }

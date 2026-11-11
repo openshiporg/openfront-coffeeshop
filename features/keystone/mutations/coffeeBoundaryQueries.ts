@@ -1,6 +1,6 @@
 import { latestDayClose, triggerEndOfDayClose } from "./endOfDayClose";
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership } from "../lib/coffeeCommandReceipt";
 import { KDS_ITEM_TRANSITIONS, type KdsItemStatus } from "./kdsPolicy";
 import { CAFE_ORDER_TRANSITIONS } from "./transitionPolicy";
 import { COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
@@ -40,7 +40,7 @@ type Context = {
     cateringOrder: ListModel;
     wasteLog: ListModel;
     payment: ListModel;
-    coffeeDomainEvent: { findFirst(args: Record<string, unknown>): Promise<{ payload: unknown } | null> };
+    coffeeCommandReceipt: { findFirst(args: Record<string, unknown>): Promise<{ payload: unknown } | null> };
   };
 };
 

@@ -1,5 +1,5 @@
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { defaultTemperatureOptions } from "../lib/menu-temperature";
@@ -17,7 +17,7 @@ type Model = {
 type TransactionClient = {
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
   storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> };
-  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<Row | null> };
+  coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<Row | null> };
   menuCategory: Model;
   inventoryItem: { findUnique(args: Record<string, unknown>): Promise<Row | null> };
   menuItem: Model;
@@ -58,12 +58,12 @@ async function beginMenuCommand(tx: TransactionClient, context: Context, key: st
   return { actorId, storeId };
 }
 
-/** The command receipt is the CoffeeDomainEvent written with the original effect.
+/** The command receipt is the CoffeeCommandReceipt written with the original effect.
  * Same key + same request → original target, no second write. Same key + different
  * request → conflict before anything is changed.
  */
 async function findMenuReceipt(tx: TransactionClient, key: string, expected: { storeId: string; actorId: string; eventType: string; aggregateType: string; requestFingerprint: string }) {
-  const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey: `menu-command:${key}` } });
+  const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey: `menu-command:${key}` } });
   if (!receipt) return null;
   const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : {};
   if (
@@ -148,7 +148,7 @@ export async function createCoffeeMenuCategory(
       return replay;
     }
     const category = await tx.menuCategory.create({ data: { storeId, name, description, sortOrder, active: true } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_category.created",
@@ -204,7 +204,7 @@ export async function createCoffeeMenuItem(
         categoryId: intent.categoryId,
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_item.created",
@@ -264,7 +264,7 @@ export async function updateCoffeeMenuItem(
     assertExpectedRevision(item, expectedUpdatedAt);
     if (typeof changes.categoryId === "string") await scopedCategory(tx, storeId, changes.categoryId);
     const updated = await tx.menuItem.update({ where: { id: args.menuItemId }, data: changes });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_item.updated",
@@ -362,7 +362,7 @@ export async function createCoffeeMenuModifier(
     if (await tx.menuItemModifier.findUnique({ where: { idempotencyKey: key } })) throw new Error(REUSED_KEY_MESSAGE);
     await validateInventory(tx, storeId, inventory);
     const modifier = await tx.menuItemModifier.create({ data: { ...rule, ...inventory, inStock, storeId, menuItemId: args.menuItemId, idempotencyKey: key } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_modifier.created",
@@ -417,7 +417,7 @@ export async function updateCoffeeMenuModifier(
     // Moving an option back to unreviewed closes it; consumption refuses unreviewed options.
     if (inventory.inventoryAction === "unreviewed" && modifier.inStock) data.inStock = false;
     const updated = await tx.menuItemModifier.update({ where: { id: args.modifierId }, data });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_modifier.updated",
@@ -453,7 +453,7 @@ export async function updateCoffeeModifierStock(
     assertExpectedRevision(modifier, expectedUpdatedAt);
     if (args.inStock && String(modifier.inventoryAction || "unreviewed") === "unreviewed") throw new Error("Choose how this option affects inventory before offering it");
     const updated = await tx.menuItemModifier.update({ where: { id: args.modifierId }, data: { inStock: args.inStock } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_modifier.stock_changed",

@@ -1,5 +1,5 @@
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { CAFE_ORDER_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeOrderItemsReadyForHandoff, assertCafeSettlement, lockCoffeeOrder, type SettlementEvidence } from "./coffeeOrderPolicy";
@@ -166,7 +166,7 @@ export default async function updateCafeOrderStatus(
       });
       if (updated.count > existing.orderItems.length) throw new Error("Cafe order item status propagation was invalid");
     }
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `order:${existing.id}:status:${status}:v1`,
       eventType: "order.status_changed",
@@ -178,10 +178,5 @@ export default async function updateCafeOrderStatus(
     return existing.id;
   }, TX_OPTIONS);
 
-  if (status === "ready") {
-    // After commit: tell an online customer their order is waiting. Never blocks the bar.
-    const { deliverOrderReady } = await import("../lib/orderConfirmation");
-    await deliverOrderReady(context.prisma, orderId);
-  }
   return context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_QUERY });
 }

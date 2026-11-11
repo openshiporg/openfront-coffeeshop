@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
 import { LOYALTY_ACCOUNT_TRANSITIONS, PURCHASE_ORDER_TRANSITIONS, canTransition, evaluateTransition } from "./transitionPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
@@ -20,7 +20,7 @@ type Tx = {
   loyaltyAccount: Model;
   loyaltyEvent: Model;
   purchaseOrder: Model;
-  coffeeDomainEvent: Model;
+  coffeeCommandReceipt: Model;
   storeSetting: Model;
   user: Model;
   role: Model;
@@ -57,7 +57,7 @@ function requireKey(value: string | null | undefined, label: string) {
 }
 
 async function replayReceipt(tx: Tx, eventKey: string, storeId: string, requestFingerprint: string, message: string) {
-  const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+  const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
   if (!receipt) return null;
   const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload as Row : {};
   if (receipt.storeId !== storeId || payload.requestFingerprint !== requestFingerprint) throw new Error(message);
@@ -161,7 +161,7 @@ export async function requestCafeCatering(_root: unknown, args: Row, context: Co
         metadata: { source: "storefront", customerPhone: request.customerPhone, customerId: context.session?.listKey === "User" ? context.session.itemId : null },
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey,
       eventType: "catering.requested",
@@ -262,7 +262,7 @@ export async function adjustCoffeeLoyaltyAccount(
         createdById: actorId,
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey,
       eventType: "loyalty.adjusted",
@@ -292,7 +292,7 @@ export async function cancelCoffeePurchaseOrder(_root: unknown, args: { purchase
     if (!canTransition(PURCHASE_ORDER_TRANSITIONS, String(order.status), "cancelled")) throw cafeCustomerError(`A ${String(order.status)} purchase order can't be cancelled`);
     const notes = reason ? [String(order.notes || "").trim(), `Cancelled: ${reason}`].filter(Boolean).join("\n") : order.notes;
     const updated = await tx.purchaseOrder.update({ where: { id: order.id }, data: { status: "cancelled", notes } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `purchase-order:${String(order.id)}:cancelled:v1`,
       eventType: "purchase_order.cancelled",

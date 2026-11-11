@@ -1,5 +1,5 @@
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { SUBSCRIPTION_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
 
@@ -12,7 +12,7 @@ type TransactionClient = {
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
   storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> };
   subscription: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null>; update(args: Record<string, unknown>): Promise<unknown> };
-  coffeeDomainEvent: { count(args: Record<string, unknown>): Promise<number> };
+  coffeeCommandReceipt: { count(args: Record<string, unknown>): Promise<number> };
   user: { findUnique(args: Record<string, unknown>): Promise<{ id: string; roleId: string | null } | null> };
   role: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
 };
@@ -33,9 +33,9 @@ export default async function updateSubscriptionStatus(_root: unknown, args: { s
     if (transition.replay) return String(existing.id);
     const now = new Date();
     // Pause/resume can repeat, so each accepted transition gets its own sequence in the event key.
-    const sequence = await tx.coffeeDomainEvent.count({ where: { storeId, aggregateType: "subscription", aggregateId: String(existing.id), eventType: "subscription.status_changed" } }) + 1;
+    const sequence = await tx.coffeeCommandReceipt.count({ where: { storeId, aggregateType: "subscription", aggregateId: String(existing.id), eventType: "subscription.status_changed" } }) + 1;
     await tx.subscription.update({ where: { id: existing.id }, data: { status: args.status, ...(args.status === "cancelled" ? { cancelledAt: now } : {}) } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `subscription:${String(existing.id)}:status:${sequence}:${String(existing.status)}:${args.status}:v2`,
       eventType: "subscription.status_changed",

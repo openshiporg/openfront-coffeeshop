@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { type Session } from "../access";
 import { lockCoffeeOrder, requireCafeTenderOperator } from "./coffeeOrderPolicy";
 import { releaseAbandonedOnlinePayments } from "./onlinePaymentRelease";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { admitOpenCafeOrder, lockAndReadAdmissionLines } from "./acceptCafePickupOrder";
@@ -171,7 +171,7 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
         expectedCashCents: Number(registerShift.openingCashCents || 0) + cashSalesCents - Number(registerShift.cashRefundsCents || 0) + Number(registerShift.payInsCents || 0) - Number(registerShift.payOutsCents || 0),
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `payment:${payment.id}:captured:v1`,
       eventType: "payment.captured",

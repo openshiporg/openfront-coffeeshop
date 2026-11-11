@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 
@@ -22,7 +22,7 @@ type TransactionClient = {
   storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string } | null> };
   user: { findUnique(args: Record<string, unknown>): Promise<{ id: string; roleId: string | null; role?: { canAccessDashboard: boolean } | null } | null> };
   role: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
-  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
+  coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
   staffShift: {
     findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null>;
     create(args: Record<string, unknown>): Promise<Record<string, unknown>>;
@@ -108,7 +108,7 @@ export async function scheduleCoffeeStaffShift(
         metadata: { scheduledBy: actorId, requestFingerprint },
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `staff-shift:${String(shift.id)}:scheduled:v1`,
       eventType: "staff_shift.scheduled",
@@ -145,7 +145,7 @@ export async function updateCoffeeStaffShiftStatus(
     const requestFingerprint = fingerprintInput({ purpose: "staff-shift-transition", storeId, actorId, staffShiftId: args.staffShiftId, status: args.status, expectedStatus });
 
     // The command receipt is the original transition event; a retry returns it without moving state.
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
     if (receipt) {
       const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : {};
       if (receipt.storeId !== storeId || receipt.aggregateType !== "staff_shift" || receipt.aggregateId !== args.staffShiftId || payload.actorId !== actorId || payload.requestFingerprint !== requestFingerprint) {
@@ -167,7 +167,7 @@ export async function updateCoffeeStaffShiftStatus(
         ...(args.status === "completed" ? { clockOutAt: now } : {}),
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey,
       eventType: "staff_shift.status_changed",

@@ -478,10 +478,8 @@ type StoreSetting {
   wasteLogsCount(where: WasteLogWhereInput! = {}): Int
   staffShifts(where: StaffShiftWhereInput! = {}, orderBy: [StaffShiftOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StaffShiftWhereUniqueInput): [StaffShift!]
   staffShiftsCount(where: StaffShiftWhereInput! = {}): Int
-  domainEvents(where: CoffeeDomainEventWhereInput! = {}, orderBy: [CoffeeDomainEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeDomainEventWhereUniqueInput): [CoffeeDomainEvent!]
-  domainEventsCount(where: CoffeeDomainEventWhereInput! = {}): Int
-  outboxDeliveries(where: CoffeeOutboxDeliveryWhereInput! = {}, orderBy: [CoffeeOutboxDeliveryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeOutboxDeliveryWhereUniqueInput): [CoffeeOutboxDelivery!]
-  outboxDeliveriesCount(where: CoffeeOutboxDeliveryWhereInput! = {}): Int
+  commandReceipts(where: CoffeeCommandReceiptWhereInput! = {}, orderBy: [CoffeeCommandReceiptOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeCommandReceiptWhereUniqueInput): [CoffeeCommandReceipt!]
+  commandReceiptsCount(where: CoffeeCommandReceiptWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -540,8 +538,7 @@ input StoreSettingWhereInput {
   prepBatchConsumptions: PrepBatchConsumptionManyRelationFilter
   wasteLogs: WasteLogManyRelationFilter
   staffShifts: StaffShiftManyRelationFilter
-  domainEvents: CoffeeDomainEventManyRelationFilter
-  outboxDeliveries: CoffeeOutboxDeliveryManyRelationFilter
+  commandReceipts: CoffeeCommandReceiptManyRelationFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
@@ -706,16 +703,10 @@ input StaffShiftManyRelationFilter {
   none: StaffShiftWhereInput
 }
 
-input CoffeeDomainEventManyRelationFilter {
-  every: CoffeeDomainEventWhereInput
-  some: CoffeeDomainEventWhereInput
-  none: CoffeeDomainEventWhereInput
-}
-
-input CoffeeOutboxDeliveryManyRelationFilter {
-  every: CoffeeOutboxDeliveryWhereInput
-  some: CoffeeOutboxDeliveryWhereInput
-  none: CoffeeOutboxDeliveryWhereInput
+input CoffeeCommandReceiptManyRelationFilter {
+  every: CoffeeCommandReceiptWhereInput
+  some: CoffeeCommandReceiptWhereInput
+  none: CoffeeCommandReceiptWhereInput
 }
 
 input StoreSettingOrderByInput {
@@ -785,8 +776,7 @@ input StoreSettingUpdateInput {
   prepBatchConsumptions: PrepBatchConsumptionRelateToManyForUpdateInput
   wasteLogs: WasteLogRelateToManyForUpdateInput
   staffShifts: StaffShiftRelateToManyForUpdateInput
-  domainEvents: CoffeeDomainEventRelateToManyForUpdateInput
-  outboxDeliveries: CoffeeOutboxDeliveryRelateToManyForUpdateInput
+  commandReceipts: CoffeeCommandReceiptRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -952,18 +942,11 @@ input StaffShiftRelateToManyForUpdateInput {
   connect: [StaffShiftWhereUniqueInput!]
 }
 
-input CoffeeDomainEventRelateToManyForUpdateInput {
-  disconnect: [CoffeeDomainEventWhereUniqueInput!]
-  set: [CoffeeDomainEventWhereUniqueInput!]
-  create: [CoffeeDomainEventCreateInput!]
-  connect: [CoffeeDomainEventWhereUniqueInput!]
-}
-
-input CoffeeOutboxDeliveryRelateToManyForUpdateInput {
-  disconnect: [CoffeeOutboxDeliveryWhereUniqueInput!]
-  set: [CoffeeOutboxDeliveryWhereUniqueInput!]
-  create: [CoffeeOutboxDeliveryCreateInput!]
-  connect: [CoffeeOutboxDeliveryWhereUniqueInput!]
+input CoffeeCommandReceiptRelateToManyForUpdateInput {
+  disconnect: [CoffeeCommandReceiptWhereUniqueInput!]
+  set: [CoffeeCommandReceiptWhereUniqueInput!]
+  create: [CoffeeCommandReceiptCreateInput!]
+  connect: [CoffeeCommandReceiptWhereUniqueInput!]
 }
 
 input StoreSettingUpdateArgs {
@@ -1015,8 +998,7 @@ input StoreSettingCreateInput {
   prepBatchConsumptions: PrepBatchConsumptionRelateToManyForCreateInput
   wasteLogs: WasteLogRelateToManyForCreateInput
   staffShifts: StaffShiftRelateToManyForCreateInput
-  domainEvents: CoffeeDomainEventRelateToManyForCreateInput
-  outboxDeliveries: CoffeeOutboxDeliveryRelateToManyForCreateInput
+  commandReceipts: CoffeeCommandReceiptRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -1136,14 +1118,9 @@ input StaffShiftRelateToManyForCreateInput {
   connect: [StaffShiftWhereUniqueInput!]
 }
 
-input CoffeeDomainEventRelateToManyForCreateInput {
-  create: [CoffeeDomainEventCreateInput!]
-  connect: [CoffeeDomainEventWhereUniqueInput!]
-}
-
-input CoffeeOutboxDeliveryRelateToManyForCreateInput {
-  create: [CoffeeOutboxDeliveryCreateInput!]
-  connect: [CoffeeOutboxDeliveryWhereUniqueInput!]
+input CoffeeCommandReceiptRelateToManyForCreateInput {
+  create: [CoffeeCommandReceiptCreateInput!]
+  connect: [CoffeeCommandReceiptWhereUniqueInput!]
 }
 
 type MenuCategory {
@@ -2922,7 +2899,7 @@ input GiftCardCreateInput {
   updatedAt: DateTime
 }
 
-type CoffeeDomainEvent {
+type CoffeeCommandReceipt {
   id: ID!
   eventKey: String
   eventType: String
@@ -2933,21 +2910,19 @@ type CoffeeDomainEvent {
   payloadHash: String
   occurredAt: DateTime
   store: StoreSetting
-  deliveries(where: CoffeeOutboxDeliveryWhereInput! = {}, orderBy: [CoffeeOutboxDeliveryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeOutboxDeliveryWhereUniqueInput): [CoffeeOutboxDelivery!]
-  deliveriesCount(where: CoffeeOutboxDeliveryWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
 }
 
-input CoffeeDomainEventWhereUniqueInput {
+input CoffeeCommandReceiptWhereUniqueInput {
   id: ID
   eventKey: String
 }
 
-input CoffeeDomainEventWhereInput {
-  AND: [CoffeeDomainEventWhereInput!]
-  OR: [CoffeeDomainEventWhereInput!]
-  NOT: [CoffeeDomainEventWhereInput!]
+input CoffeeCommandReceiptWhereInput {
+  AND: [CoffeeCommandReceiptWhereInput!]
+  OR: [CoffeeCommandReceiptWhereInput!]
+  NOT: [CoffeeCommandReceiptWhereInput!]
   id: IDFilter
   eventKey: StringFilter
   eventType: StringFilter
@@ -2957,12 +2932,11 @@ input CoffeeDomainEventWhereInput {
   payloadHash: StringFilter
   occurredAt: DateTimeFilter
   store: StoreSettingWhereInput
-  deliveries: CoffeeOutboxDeliveryManyRelationFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
 
-input CoffeeDomainEventOrderByInput {
+input CoffeeCommandReceiptOrderByInput {
   id: OrderDirection
   eventKey: OrderDirection
   eventType: OrderDirection
@@ -2975,7 +2949,7 @@ input CoffeeDomainEventOrderByInput {
   updatedAt: OrderDirection
 }
 
-input CoffeeDomainEventUpdateInput {
+input CoffeeCommandReceiptUpdateInput {
   eventKey: String
   eventType: String
   schemaVersion: String
@@ -2985,17 +2959,16 @@ input CoffeeDomainEventUpdateInput {
   payloadHash: String
   occurredAt: DateTime
   store: StoreSettingRelateToOneForUpdateInput
-  deliveries: CoffeeOutboxDeliveryRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
 
-input CoffeeDomainEventUpdateArgs {
-  where: CoffeeDomainEventWhereUniqueInput!
-  data: CoffeeDomainEventUpdateInput!
+input CoffeeCommandReceiptUpdateArgs {
+  where: CoffeeCommandReceiptWhereUniqueInput!
+  data: CoffeeCommandReceiptUpdateInput!
 }
 
-input CoffeeDomainEventCreateInput {
+input CoffeeCommandReceiptCreateInput {
   eventKey: String
   eventType: String
   schemaVersion: String
@@ -3005,124 +2978,8 @@ input CoffeeDomainEventCreateInput {
   payloadHash: String
   occurredAt: DateTime
   store: StoreSettingRelateToOneForCreateInput
-  deliveries: CoffeeOutboxDeliveryRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
-}
-
-type CoffeeOutboxDelivery {
-  id: ID!
-  deliveryKey: String
-  consumer: String
-  status: String
-  attempts: Int
-  maxAttempts: Int
-  nextAttempt: DateTime
-  lockedAt: DateTime
-  lockOwner: String
-  deliveredAt: DateTime
-  deadLetteredAt: DateTime
-  lastError: String
-  event: CoffeeDomainEvent
-  store: StoreSetting
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-
-input CoffeeOutboxDeliveryWhereUniqueInput {
-  id: ID
-  deliveryKey: String
-}
-
-input CoffeeOutboxDeliveryWhereInput {
-  AND: [CoffeeOutboxDeliveryWhereInput!]
-  OR: [CoffeeOutboxDeliveryWhereInput!]
-  NOT: [CoffeeOutboxDeliveryWhereInput!]
-  id: IDFilter
-  deliveryKey: StringFilter
-  consumer: StringFilter
-  status: StringFilter
-  attempts: IntFilter
-  maxAttempts: IntFilter
-  nextAttempt: DateTimeNullableFilter
-  lockedAt: DateTimeNullableFilter
-  lockOwner: StringFilter
-  deliveredAt: DateTimeNullableFilter
-  deadLetteredAt: DateTimeNullableFilter
-  lastError: StringFilter
-  event: CoffeeDomainEventWhereInput
-  store: StoreSettingWhereInput
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-}
-
-input CoffeeOutboxDeliveryOrderByInput {
-  id: OrderDirection
-  deliveryKey: OrderDirection
-  consumer: OrderDirection
-  status: OrderDirection
-  attempts: OrderDirection
-  maxAttempts: OrderDirection
-  nextAttempt: OrderDirection
-  lockedAt: OrderDirection
-  lockOwner: OrderDirection
-  deliveredAt: OrderDirection
-  deadLetteredAt: OrderDirection
-  lastError: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input CoffeeOutboxDeliveryUpdateInput {
-  deliveryKey: String
-  consumer: String
-  status: String
-  attempts: Int
-  maxAttempts: Int
-  nextAttempt: DateTime
-  lockedAt: DateTime
-  lockOwner: String
-  deliveredAt: DateTime
-  deadLetteredAt: DateTime
-  lastError: String
-  event: CoffeeDomainEventRelateToOneForUpdateInput
-  store: StoreSettingRelateToOneForUpdateInput
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-
-input CoffeeDomainEventRelateToOneForUpdateInput {
-  create: CoffeeDomainEventCreateInput
-  connect: CoffeeDomainEventWhereUniqueInput
-  disconnect: Boolean
-}
-
-input CoffeeOutboxDeliveryUpdateArgs {
-  where: CoffeeOutboxDeliveryWhereUniqueInput!
-  data: CoffeeOutboxDeliveryUpdateInput!
-}
-
-input CoffeeOutboxDeliveryCreateInput {
-  deliveryKey: String
-  consumer: String
-  status: String
-  attempts: Int
-  maxAttempts: Int
-  nextAttempt: DateTime
-  lockedAt: DateTime
-  lockOwner: String
-  deliveredAt: DateTime
-  deadLetteredAt: DateTime
-  lastError: String
-  event: CoffeeDomainEventRelateToOneForCreateInput
-  store: StoreSettingRelateToOneForCreateInput
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-
-input CoffeeDomainEventRelateToOneForCreateInput {
-  create: CoffeeDomainEventCreateInput
-  connect: CoffeeDomainEventWhereUniqueInput
 }
 
 type WasteLog {
@@ -4624,18 +4481,12 @@ type Mutation {
   updateGiftCards(data: [GiftCardUpdateArgs!]!): [GiftCard]
   deleteGiftCard(where: GiftCardWhereUniqueInput!): GiftCard
   deleteGiftCards(where: [GiftCardWhereUniqueInput!]!): [GiftCard]
-  createCoffeeDomainEvent(data: CoffeeDomainEventCreateInput!): CoffeeDomainEvent
-  createCoffeeDomainEvents(data: [CoffeeDomainEventCreateInput!]!): [CoffeeDomainEvent]
-  updateCoffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!, data: CoffeeDomainEventUpdateInput!): CoffeeDomainEvent
-  updateCoffeeDomainEvents(data: [CoffeeDomainEventUpdateArgs!]!): [CoffeeDomainEvent]
-  deleteCoffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!): CoffeeDomainEvent
-  deleteCoffeeDomainEvents(where: [CoffeeDomainEventWhereUniqueInput!]!): [CoffeeDomainEvent]
-  createCoffeeOutboxDelivery(data: CoffeeOutboxDeliveryCreateInput!): CoffeeOutboxDelivery
-  createCoffeeOutboxDeliveries(data: [CoffeeOutboxDeliveryCreateInput!]!): [CoffeeOutboxDelivery]
-  updateCoffeeOutboxDelivery(where: CoffeeOutboxDeliveryWhereUniqueInput!, data: CoffeeOutboxDeliveryUpdateInput!): CoffeeOutboxDelivery
-  updateCoffeeOutboxDeliveries(data: [CoffeeOutboxDeliveryUpdateArgs!]!): [CoffeeOutboxDelivery]
-  deleteCoffeeOutboxDelivery(where: CoffeeOutboxDeliveryWhereUniqueInput!): CoffeeOutboxDelivery
-  deleteCoffeeOutboxDeliveries(where: [CoffeeOutboxDeliveryWhereUniqueInput!]!): [CoffeeOutboxDelivery]
+  createCoffeeCommandReceipt(data: CoffeeCommandReceiptCreateInput!): CoffeeCommandReceipt
+  createCoffeeCommandReceipts(data: [CoffeeCommandReceiptCreateInput!]!): [CoffeeCommandReceipt]
+  updateCoffeeCommandReceipt(where: CoffeeCommandReceiptWhereUniqueInput!, data: CoffeeCommandReceiptUpdateInput!): CoffeeCommandReceipt
+  updateCoffeeCommandReceipts(data: [CoffeeCommandReceiptUpdateArgs!]!): [CoffeeCommandReceipt]
+  deleteCoffeeCommandReceipt(where: CoffeeCommandReceiptWhereUniqueInput!): CoffeeCommandReceipt
+  deleteCoffeeCommandReceipts(where: [CoffeeCommandReceiptWhereUniqueInput!]!): [CoffeeCommandReceipt]
   createWasteLog(data: WasteLogCreateInput!): WasteLog
   createWasteLogs(data: [WasteLogCreateInput!]!): [WasteLog]
   updateWasteLog(where: WasteLogWhereUniqueInput!, data: WasteLogUpdateInput!): WasteLog
@@ -4844,12 +4695,9 @@ type Query {
   giftCard(where: GiftCardWhereUniqueInput!): GiftCard
   giftCards(where: GiftCardWhereInput! = {}, orderBy: [GiftCardOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: GiftCardWhereUniqueInput): [GiftCard!]
   giftCardsCount(where: GiftCardWhereInput! = {}): Int
-  coffeeDomainEvent(where: CoffeeDomainEventWhereUniqueInput!): CoffeeDomainEvent
-  coffeeDomainEvents(where: CoffeeDomainEventWhereInput! = {}, orderBy: [CoffeeDomainEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeDomainEventWhereUniqueInput): [CoffeeDomainEvent!]
-  coffeeDomainEventsCount(where: CoffeeDomainEventWhereInput! = {}): Int
-  coffeeOutboxDelivery(where: CoffeeOutboxDeliveryWhereUniqueInput!): CoffeeOutboxDelivery
-  coffeeOutboxDeliveries(where: CoffeeOutboxDeliveryWhereInput! = {}, orderBy: [CoffeeOutboxDeliveryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeOutboxDeliveryWhereUniqueInput): [CoffeeOutboxDelivery!]
-  coffeeOutboxDeliveriesCount(where: CoffeeOutboxDeliveryWhereInput! = {}): Int
+  coffeeCommandReceipt(where: CoffeeCommandReceiptWhereUniqueInput!): CoffeeCommandReceipt
+  coffeeCommandReceipts(where: CoffeeCommandReceiptWhereInput! = {}, orderBy: [CoffeeCommandReceiptOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CoffeeCommandReceiptWhereUniqueInput): [CoffeeCommandReceipt!]
+  coffeeCommandReceiptsCount(where: CoffeeCommandReceiptWhereInput! = {}): Int
   wasteLog(where: WasteLogWhereUniqueInput!): WasteLog
   wasteLogs(where: WasteLogWhereInput! = {}, orderBy: [WasteLogOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: WasteLogWhereUniqueInput): [WasteLog!]
   wasteLogsCount(where: WasteLogWhereInput! = {}): Int

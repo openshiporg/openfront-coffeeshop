@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt } from "../lib/coffeeCommandReceipt";
 import { validCoffeeTimezone } from "../lib/store-locale-policy";
 import { isBusinessDate, storeDayStart } from "../../platform/reports/lib/businessDate";
 import { PURCHASE_ORDER_TRANSITIONS, canTransition } from "./transitionPolicy";
@@ -45,7 +45,7 @@ type TransactionClient = {
     create(args: Record<string, unknown>): Promise<Record<string, unknown>>;
   };
   storeSetting: { findUnique(args: Record<string, unknown>): Promise<{ id: string; timezone?: unknown } | null> };
-  coffeeDomainEvent: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
+  coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
 };
 
 const TX_OPTIONS = { maxWait: 5000, timeout: 10000, isolationLevel: "Serializable" };
@@ -183,7 +183,7 @@ export async function createCoffeePurchaseOrder(
         metadata: { requestFingerprint, createdById: actorId, unit, expectedDate },
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `purchase-order:${String(order.id)}:submitted:v1`,
       eventType: "purchase_order.submitted",
@@ -256,7 +256,7 @@ export async function receiveCoffeePurchaseOrder(
       data: { storeId, inventoryItemId, purchaseOrderId: String(order.id), inventoryLotId: String(lot.id), type: "received", quantity: stockDecimal(quantityUnits), reason: `Received ${String(order.poNumber)}`, createdById: actorId },
     });
     await tx.purchaseOrder.update({ where: { id: String(order.id) }, data: { status: "received", receivedAt: now } });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `purchase-order:${String(order.id)}:received:v1`,
       eventType: "purchase_order.received",
@@ -375,7 +375,7 @@ export async function completeCoffeePrepBatch(
         data: { storeId, inventoryItemId: item.id, inventoryLotId: allocation.inventoryLotId, prepBatchId: String(batch.id), type: "sale", quantity: stockDecimal(-allocation.units), reason: `Prep batch ${String(batch.batchNumber)}`, createdById: actorId },
       });
     }
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `prep-batch:${String(batch.id)}:completed:v1`,
       eventType: "prep_batch.completed",
@@ -465,7 +465,7 @@ export async function recordCoffeeWaste(
       });
       stockMovementId = String(movement.id);
     }
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `waste:${String(waste.id)}:recorded:v1`,
       eventType: "waste.recorded",
@@ -496,7 +496,7 @@ export async function recordCoffeeStockCount(
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
     const { actorId, storeId } = await currentInventoryScope(tx, context);
     const requestFingerprint = fingerprintInput({ purpose: "stock-count", storeId, actorId, inventoryItemId, countedUnits, notes });
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
     if (receipt) {
       const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload as Record<string, unknown> : {};
       if (receipt.storeId !== storeId || receipt.aggregateId !== inventoryItemId || payload.requestFingerprint !== requestFingerprint) {
@@ -531,7 +531,7 @@ export async function recordCoffeeStockCount(
       }
       await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: stockDecimal(countedUnits) } });
     }
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey,
       eventType: "inventory.counted",

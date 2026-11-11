@@ -9,7 +9,6 @@ import seed from "../../platform/onboarding/lib/seed.json";
 import acceptCafePickupOrder from "./acceptCafePickupOrder";
 import applyCafeLoyalty from "./applyCafeLoyalty";
 import createCafePickupOrder from "./createCafePickupOrder";
-import { claimCoffeeOutboxDeliveries, completeCoffeeOutboxDelivery } from "../lib/coffeeDomainOutbox";
 import {
   completeCoffeePrepBatch,
   createCoffeePurchaseOrder,
@@ -90,8 +89,7 @@ type PrismaFixture = {
   posOrder: { findFirst(args: Record<string, unknown>): Promise<Record<string, unknown> | null>; count(args: Record<string, unknown>): Promise<number> };
   staffShift: { count(args: Record<string, unknown>): Promise<number>; findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
   stockMovement: { count(args: Record<string, unknown>): Promise<number>; findFirst(args: Record<string, unknown>): Promise<Record<string, unknown> | null>; update(args: Record<string, unknown>): Promise<unknown> };
-  coffeeDomainEvent: { count(args: Record<string, unknown>): Promise<number>; findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>> };
-  coffeeOutboxDelivery: { count(args: Record<string, unknown>): Promise<number>; findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>> };
+  coffeeCommandReceipt: { count(args: Record<string, unknown>): Promise<number>; findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>> };
 };
 
 let base: IntegrationContext;
@@ -326,13 +324,13 @@ test("purchase receipt, recipe prep, and waste mutations preserve stock exactly 
 
   const foreignInventory = await prisma.inventoryItem.create({ data: { storeId: secondaryStoreId, name: "Foreign Tenant Beans", category: "coffee", unit: "lb", currentStock: 10 } });
   const poCountBeforeMismatch = await prisma.purchaseOrder.count({ where: { inventoryItemId: foreignInventory.id } });
-  const eventCountBeforeMismatch = await prisma.coffeeDomainEvent.count({ where: { aggregateType: "purchase_order" } });
+  const eventCountBeforeMismatch = await prisma.coffeeCommandReceipt.count({ where: { aggregateType: "purchase_order" } });
   await assert.rejects(
     createCoffeePurchaseOrder(null, { supplierId: String(supplier.id), inventoryItemId: String(foreignInventory.id), orderedQuantity: 1, unitCostCents: 100, idempotencyKey: "cross-tenant-purchase-0001" }, manager as never),
     /does not belong to the active store/,
   );
   assert.equal(await prisma.purchaseOrder.count({ where: { inventoryItemId: foreignInventory.id } }), poCountBeforeMismatch);
-  assert.equal(await prisma.coffeeDomainEvent.count({ where: { aggregateType: "purchase_order" } }), eventCountBeforeMismatch);
+  assert.equal(await prisma.coffeeCommandReceipt.count({ where: { aggregateType: "purchase_order" } }), eventCountBeforeMismatch);
   proof.inventoryOperations = { before, after: Number(afterInventory?.currentStock), onboardingReplayPreservedStock: true, purchaseOrderId: firstPo.id, lotId: firstLot.id, lotRemaining: 15, prepBatchId: firstBatch.id, wasteLogId: firstWaste.id, dependentSupplierDeleteDenied: true, crossTenantRollback: true };
 });
 
@@ -568,7 +566,7 @@ test("concurrent independent full refunds serialize register totals and replay e
   assert.equal(Number(shiftAfter?.cardRefundsCents), expectedRefunds);
   assert.equal(Number(shiftAfter?.expectedCashCents), 10000, "external card refunds must not alter cash-on-hand");
   for (const payment of payments) {
-    assert.equal(await prisma.coffeeDomainEvent.count({ where: { eventKey: `payment:${payment?.id}:refunded:v1` } }), 1);
+    assert.equal(await prisma.coffeeCommandReceipt.count({ where: { eventKey: `payment:${payment?.id}:refunded:v1` } }), 1);
   }
   const closed = await closeRegisterShift(null, { registerShiftId: String(shift.id), countedCashCents: 10000, idempotencyKey: "refund-concurrency-register-close-0001" }, manager as never);
   assert.equal(closed.expectedCashCents, 10000);
@@ -725,11 +723,11 @@ test("pay-at-pickup settlement is operator-controlled and concurrency-safe", asy
   const stockAfterSettlement = await prisma.menuItem.findFirst({ where: { id: menuItem.id }, select: { inventoryItem: { select: { currentStock: true } } } });
   assert.equal(Number((stockAfterSettlement?.inventoryItem as Record<string, unknown>).currentStock), stockBeforeSettlement - 1);
   await assert.rejects(updateCafeOrderStatus(null, { orderId: String(order.id), status: "cancelled" }, manager as never), /Can't change from/);
-  assert.equal(await prisma.coffeeDomainEvent.count({ where: { eventType: "payment.captured", aggregateId: first.id } }), 1);
+  assert.equal(await prisma.coffeeCommandReceipt.count({ where: { eventType: "payment.captured", aggregateId: first.id } }), 1);
   proof.payAtPickupSettlement = { orderId: order.id, paymentId: first.id, registerShiftId: registerShift.id, attempts: 1, paidCancellationDenied: true, registerReconciled: true, inventoryConsumedAtSettlement: true };
 });
 
-test("staff scheduling and clock lifecycle is controlled, idempotent, and propagated to outbox", async () => {
+test("staff scheduling and clock lifecycle is controlled, idempotent, and recorded as command receipts", async () => {
   await assert.rejects(manager.query.StaffShift.createOne({ data: { idempotencyKey: "raw-staff-shift", shiftNumber: "RAW-STAFF", staff: { connect: { id: managerUserId } } }, query: "id" }));
   const args = {
     staffId: managerUserId,
@@ -748,8 +746,8 @@ test("staff scheduling and clock lifecycle is controlled, idempotent, and propag
   assert.equal(completed.id, completedReplay.id);
   assert.equal((await prisma.staffShift.findUnique({ where: { id: first.id } }))?.status, "completed");
   assert.equal(await prisma.staffShift.count({ where: { idempotencyKey: first.idempotencyKey } }), 1);
-  assert.equal(await prisma.coffeeDomainEvent.count({ where: { aggregateType: "staff_shift", aggregateId: first.id } }), 3);
-  proof.staffShift = { shiftId: first.id, scheduleReplay: true, completed: true, transitionReplay: true, outboxEvents: 3, rawCreateDenied: true };
+  assert.equal(await prisma.coffeeCommandReceipt.count({ where: { aggregateType: "staff_shift", aggregateId: first.id } }), 3);
+  proof.staffShift = { shiftId: first.id, scheduleReplay: true, completed: true, transitionReplay: true, receipts: 3, rawCreateDenied: true };
 });
 
 test("controlled operations snapshot returns only the active tenant with meaningful aggregate relations", async () => {
@@ -779,29 +777,4 @@ test("controlled operations snapshot returns only the active tenant with meaning
   const cafeOrders = snapshot.cafeOrders as Array<Record<string, unknown>>;
   assert.ok(cafeOrders.some((order) => Array.isArray(order.payments) && Array.isArray(order.orderItems) && Array.isArray(order.stockMovements)));
   proof.controlledOperationsQuery = { storeId, tenantScoped: true, aggregateRelations: true, foreignTenantExcluded: true, databaseParentGuard: true };
-});
-
-test("outbox claims are tenant-scoped, concurrency-safe, and completion is replay-safe", async () => {
-  const pending = await prisma.coffeeOutboxDelivery.count({ where: { consumer: "coffee-platform", status: "pending" } });
-  assert.ok(pending > 0);
-  const [left, right] = await Promise.all([
-    claimCoffeeOutboxDeliveries(null, { consumer: "coffee-platform", limit: 100 }, manager as never),
-    claimCoffeeOutboxDeliveries(null, { consumer: "coffee-platform", limit: 100 }, manager as never),
-  ]) as Array<{ lockToken: string; deliveries: Array<Record<string, unknown>> }>;
-  const leftIds = new Set(left.deliveries.map((delivery) => String(delivery.id)));
-  const rightIds = new Set(right.deliveries.map((delivery) => String(delivery.id)));
-  assert.equal([...leftIds].some((id) => rightIds.has(id)), false);
-  assert.equal(leftIds.size + rightIds.size, pending);
-
-  for (const claim of [left, right]) {
-    for (const delivery of claim.deliveries) {
-      const first = await completeCoffeeOutboxDelivery(null, { deliveryId: String(delivery.id), lockToken: claim.lockToken, outcome: "delivered" }, manager as never);
-      const replay = await completeCoffeeOutboxDelivery(null, { deliveryId: String(delivery.id), lockToken: claim.lockToken, outcome: "delivered" }, manager as never);
-      assert.equal(first.replayed, false);
-      assert.equal(replay.replayed, true);
-    }
-  }
-  assert.equal(await prisma.coffeeOutboxDelivery.count({ where: { consumer: "coffee-platform", status: "delivered" } }), pending);
-  assert.equal(await prisma.coffeeOutboxDelivery.count({ where: { storeId: secondaryStoreId } }), 0);
-  proof.outbox = { pending, concurrentlyClaimed: leftIds.size + rightIds.size, overlap: 0, delivered: pending, replaySafe: true, crossTenantDeliveries: 0 };
 });

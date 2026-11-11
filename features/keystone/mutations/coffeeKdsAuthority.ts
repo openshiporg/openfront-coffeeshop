@@ -1,5 +1,5 @@
 import { permissions, type Session } from "../access";
-import { getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 
 type AuthorityClient = {
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;

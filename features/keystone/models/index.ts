@@ -1,5 +1,4 @@
-import { CoffeeDomainEvent } from './CoffeeDomainEvent';
-import { CoffeeOutboxDelivery } from './CoffeeOutboxDelivery';
+import { CoffeeCommandReceipt } from './CoffeeCommandReceipt';
 import { WasteLog } from './WasteLog';
 import { CateringOrder } from './CateringOrder';
 import { Subscription } from './Subscription';
@@ -67,8 +66,7 @@ export const models = hiddenWithoutReadAccess({
   LoyaltyAccount,
   LoyaltyEvent,
   GiftCard,
-  CoffeeDomainEvent,
-  CoffeeOutboxDelivery,
+  CoffeeCommandReceipt,
   WasteLog,
   CateringOrder,
   Subscription,

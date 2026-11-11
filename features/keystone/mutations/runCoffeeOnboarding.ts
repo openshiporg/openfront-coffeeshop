@@ -4,7 +4,7 @@ import seedTemplates from "../../platform/onboarding/lib/seed.json";
 import { parseOnboardingData, type OnboardingData } from "../../platform/onboarding/lib/onboardingSchema";
 import { DEFAULT_STORE_LOGO_COLOR, DEFAULT_STORE_LOGO_ICON } from "../../platform/store-settings/lib/store-logo";
 import { permissions, type Session } from "../access";
-import { enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
+import { recordCoffeeCommandReceipt } from "../lib/coffeeCommandReceipt";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { defaultTemperatureOptions } from "../lib/menu-temperature";
 
@@ -272,7 +272,7 @@ async function runInTransaction(rawTx: unknown, data: OnboardingData, userId: st
   }
 
   await tx.user.update({ where: { id: userId }, data: { onboardingStatus: "completed" }, select: { id: true } });
-  await enqueueCoffeeDomainEvent(tx as never, {
+  await recordCoffeeCommandReceipt(tx as never, {
     storeId,
     eventKey: `store:${storeId}:onboarding:${fingerprintInput(data).slice(0, 24)}:completed:v1`,
     eventType: "store.onboarding_completed",

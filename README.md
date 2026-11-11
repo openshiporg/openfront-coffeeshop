@@ -243,3 +243,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE).
 ---
 
 Built with [Next.js](https://nextjs.org) and [KeystoneJS](https://keystonejs.com).
+
+## No background jobs
+
+This app has no outbox, notification sender, cron, worker service, or timer loop. Time-based state is computed on read or advanced by the request or staff button that touches it. External events go only through Openfront Commerce webhooks. See [AGENTS.md](AGENTS.md).

@@ -127,8 +127,7 @@ export const StoreSetting = list({
     prepBatchConsumptions: relationship({ ref: "PrepBatchConsumption.store", many: true, access: { create: denyAll, update: denyAll } }),
     wasteLogs: relationship({ ref: "WasteLog.store", many: true, access: { create: denyAll, update: denyAll } }),
     staffShifts: relationship({ ref: "StaffShift.store", many: true, access: { create: denyAll, update: denyAll } }),
-    domainEvents: relationship({ ref: "CoffeeDomainEvent.store", many: true, access: { create: denyAll, update: denyAll } }),
-    outboxDeliveries: relationship({ ref: "CoffeeOutboxDelivery.store", many: true, access: { create: denyAll, update: denyAll } }),
+    commandReceipts: relationship({ ref: "CoffeeCommandReceipt.store", many: true, access: { create: denyAll, update: denyAll } }),
     ...trackingFields,
   },
 });

@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
@@ -139,6 +140,7 @@ export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages
     { type: "page" as const, label: shift?.shiftNumber || "Shift" },
   ];
 
+  if (!shift && response.success) notFound();
   if (!shift) {
     return (
       <PageContainer title="Shift" breadcrumbs={breadcrumbs} header={<PlatformHeader title="Shift" />}>

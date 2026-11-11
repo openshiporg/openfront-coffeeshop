@@ -1,5 +1,5 @@
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { POS_ORDER_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 
@@ -34,7 +34,7 @@ export default async function updatePosOrderStatus(_root: unknown, args: { posOr
       where: { id: existing.id },
       data: { status: args.status, ...(["paid", "voided", "refunded"].includes(args.status) ? { closedAt: existing.closedAt || now } : {}) },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `pos-order:${String(existing.id)}:status:${args.status}:v1`,
       eventType: "pos_order.status_changed",

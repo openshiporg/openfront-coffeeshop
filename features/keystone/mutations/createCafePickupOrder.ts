@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt } from "../lib/coffeeCommandReceipt";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
@@ -486,7 +486,7 @@ async function createOrderTransaction({
       },
     });
   }
-  await enqueueCoffeeDomainEvent(tx as never, {
+  await recordCoffeeCommandReceipt(tx as never, {
     storeId,
     eventKey: `order:${order.id}:placed:v1`,
     eventType: "order.placed",
@@ -516,19 +516,6 @@ async function createOrderTransaction({
     },
   });
   return order.id;
-}
-
-/** Runs after the order transaction has committed; it never throws and never blocks the order. */
-async function sendConfirmationAfterCommit(context: CreateCafePickupOrderContext, orderId: string) {
-  try {
-    const prisma = context.prisma as any;
-    const full = await prisma.cafeOrder.findUnique({ where: { id: orderId }, include: { store: { select: { name: true, timezone: true } }, orderItems: { select: { itemNameSnapshot: true, quantity: true, price: true } } } });
-    // Loaded lazily so the mail path never joins the keystone import graph at build time.
-    const { deliverOrderConfirmation } = await import("../lib/orderConfirmation");
-    await deliverOrderConfirmation(prisma, full);
-  } catch (error) {
-    console.error("Order confirmation email failed:", error instanceof Error ? error.message : "unknown");
-  }
 }
 
 export default async function createCafePickupOrder(
@@ -628,7 +615,6 @@ export default async function createCafePickupOrder(
       );
       const persisted = await context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_RETURN_QUERY });
       if (persisted) {
-        if (!isStaff) await sendConfirmationAfterCommit(context, orderId);
         return persisted;
       }
       if (attempt === MAX_TRANSACTION_RETRIES) throw new Error("Pickup order transaction did not commit");

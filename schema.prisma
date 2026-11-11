@@ -111,8 +111,7 @@ model StoreSetting {
   prepBatchConsumptions   PrepBatchConsumption[] @relation("PrepBatchConsumption_store")
   wasteLogs               WasteLog[]             @relation("WasteLog_store")
   staffShifts             StaffShift[]           @relation("StaffShift_store")
-  domainEvents            CoffeeDomainEvent[]    @relation("CoffeeDomainEvent_store")
-  outboxDeliveries        CoffeeOutboxDelivery[] @relation("CoffeeOutboxDelivery_store")
+  commandReceipts         CoffeeCommandReceipt[] @relation("CoffeeCommandReceipt_store")
   createdAt               DateTime               @default(now())
   updatedAt               DateTime               @default(now()) @updatedAt
 }
@@ -506,52 +505,24 @@ model GiftCard {
   @@index([providerPaymentId])
 }
 
-model CoffeeDomainEvent {
-  id            String                 @id @default(cuid())
-  eventKey      String                 @unique @default("")
-  eventType     String                 @default("")
-  schemaVersion String                 @default("1")
-  aggregateType String                 @default("")
-  aggregateId   String                 @default("")
+model CoffeeCommandReceipt {
+  id            String       @id @default(cuid())
+  eventKey      String       @unique @default("")
+  eventType     String       @default("")
+  schemaVersion String       @default("1")
+  aggregateType String       @default("")
+  aggregateId   String       @default("")
   payload       Json?
-  payloadHash   String                 @default("")
-  occurredAt    DateTime               @default(now())
-  store         StoreSetting           @relation("CoffeeDomainEvent_store", fields: [storeId], references: [id])
-  storeId       String                 @map("store")
-  deliveries    CoffeeOutboxDelivery[] @relation("CoffeeOutboxDelivery_event")
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @default(now()) @updatedAt
+  payloadHash   String       @default("")
+  occurredAt    DateTime     @default(now())
+  store         StoreSetting @relation("CoffeeCommandReceipt_store", fields: [storeId], references: [id])
+  storeId       String       @map("store")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @default(now()) @updatedAt
 
   @@index([eventType])
   @@index([aggregateType])
   @@index([aggregateId])
-  @@index([storeId])
-}
-
-model CoffeeOutboxDelivery {
-  id             String            @id @default(cuid())
-  deliveryKey    String            @unique @default("")
-  consumer       String            @default("")
-  status         String            @default("pending")
-  attempts       Int               @default(0)
-  maxAttempts    Int               @default(8)
-  nextAttempt    DateTime?         @default(now())
-  lockedAt       DateTime?
-  lockOwner      String            @default("")
-  deliveredAt    DateTime?
-  deadLetteredAt DateTime?
-  lastError      String            @default("")
-  event          CoffeeDomainEvent @relation("CoffeeOutboxDelivery_event", fields: [eventId], references: [id])
-  eventId        String            @map("event")
-  store          StoreSetting      @relation("CoffeeOutboxDelivery_store", fields: [storeId], references: [id])
-  storeId        String            @map("store")
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @default(now()) @updatedAt
-
-  @@index([consumer])
-  @@index([status])
-  @@index([nextAttempt])
-  @@index([eventId])
   @@index([storeId])
 }
 

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { permissions, type Session } from "../access";
-import { assertCoffeeStoreOwnership, enqueueCoffeeDomainEvent, getPrimaryCoffeeStoreId } from "../lib/coffeeDomainOutbox";
+import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { buildScopedIdempotencyKey, normalizeIdempotencyKey } from "./idempotency";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeMoneyCents } from "./coffeePricing";
@@ -100,7 +100,7 @@ export async function openRegisterShift(
         openedAt: new Date(),
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `register-shift:${String(shift.id)}:opened:v1`,
       eventType: "register_shift.opened",
@@ -173,7 +173,7 @@ export async function recordRegisterCashMovement(
         recordedAt: new Date(),
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `cash-movement:${String(movement.id)}:recorded:v1`,
       eventType: "register_cash.recorded",
@@ -220,7 +220,7 @@ export async function closeRegisterShift(
         closedAt: new Date(),
       },
     });
-    await enqueueCoffeeDomainEvent(tx as never, {
+    await recordCoffeeCommandReceipt(tx as never, {
       storeId,
       eventKey: `register-shift:${args.registerShiftId}:closed:v1`,
       eventType: "register_shift.closed",
