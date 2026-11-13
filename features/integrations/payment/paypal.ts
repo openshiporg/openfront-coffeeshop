@@ -9,8 +9,7 @@ import type {
 } from "./index";
 import { ProviderError } from "./providerError";
 
-const PAYPAL_SANDBOX_API = "https://api-m.sandbox.paypal.com";
-const PAYPAL_LIVE_API = "https://api-m.paypal.com";
+const PAYPAL_API = "https://api-m.paypal.com";
 
 type PayPalRecord = Record<string, unknown> & {
   id?: string;
@@ -34,7 +33,7 @@ type PayPalEvent = {
 };
 
 function apiBase() {
-  return process.env.PAYPAL_ENVIRONMENT === "live" ? PAYPAL_LIVE_API : PAYPAL_SANDBOX_API;
+  return PAYPAL_API;
 }
 
 function credentials() {

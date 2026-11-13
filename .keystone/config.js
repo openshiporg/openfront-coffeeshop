@@ -94,17 +94,17 @@ var init_trackingFields = __esm({
   }
 });
 
-// features/keystone/models/CoffeeDomainEvent.ts
-var import_core, import_access, import_fields3, CoffeeDomainEvent;
-var init_CoffeeDomainEvent = __esm({
-  "features/keystone/models/CoffeeDomainEvent.ts"() {
+// features/keystone/models/CoffeeCommandReceipt.ts
+var import_core, import_access, import_fields3, CoffeeCommandReceipt;
+var init_CoffeeCommandReceipt = __esm({
+  "features/keystone/models/CoffeeCommandReceipt.ts"() {
     "use strict";
     import_core = require("@keystone-6/core");
     import_access = require("@keystone-6/core/access");
     import_fields3 = require("@keystone-6/core/fields");
     init_requiredRelationship();
     init_trackingFields();
-    CoffeeDomainEvent = (0, import_core.list)({
+    CoffeeCommandReceipt = (0, import_core.list)({
       access: { operation: { query: import_access.denyAll, create: import_access.denyAll, update: import_access.denyAll, delete: import_access.denyAll } },
       ui: { isHidden: true },
       fields: {
@@ -116,53 +116,7 @@ var init_CoffeeDomainEvent = __esm({
         payload: (0, import_fields3.json)(),
         payloadHash: (0, import_fields3.text)({ validation: { isRequired: true } }),
         occurredAt: (0, import_fields3.timestamp)({ defaultValue: { kind: "now" }, validation: { isRequired: true } }),
-        store: requiredStoreRelationship("StoreSetting.domainEvents"),
-        deliveries: (0, import_fields3.relationship)({ ref: "CoffeeOutboxDelivery.event", many: true }),
-        ...trackingFields
-      }
-    });
-  }
-});
-
-// features/keystone/models/CoffeeOutboxDelivery.ts
-var import_core2, import_access2, import_fields4, CoffeeOutboxDelivery;
-var init_CoffeeOutboxDelivery = __esm({
-  "features/keystone/models/CoffeeOutboxDelivery.ts"() {
-    "use strict";
-    import_core2 = require("@keystone-6/core");
-    import_access2 = require("@keystone-6/core/access");
-    import_fields4 = require("@keystone-6/core/fields");
-    init_requiredRelationship();
-    init_trackingFields();
-    CoffeeOutboxDelivery = (0, import_core2.list)({
-      access: { operation: { query: import_access2.denyAll, create: import_access2.denyAll, update: import_access2.denyAll, delete: import_access2.denyAll } },
-      ui: { isHidden: true },
-      fields: {
-        deliveryKey: (0, import_fields4.text)({ isIndexed: "unique", validation: { isRequired: true } }),
-        consumer: (0, import_fields4.text)({ isIndexed: true, validation: { isRequired: true } }),
-        status: (0, import_fields4.select)({
-          type: "string",
-          isIndexed: true,
-          options: [
-            { label: "Pending", value: "pending" },
-            { label: "Processing", value: "processing" },
-            { label: "Retry", value: "retry" },
-            { label: "Delivered", value: "delivered" },
-            { label: "Dead letter", value: "dead_letter" }
-          ],
-          defaultValue: "pending",
-          validation: { isRequired: true }
-        }),
-        attempts: (0, import_fields4.integer)({ defaultValue: 0, validation: { min: 0, isRequired: true } }),
-        maxAttempts: (0, import_fields4.integer)({ defaultValue: 8, validation: { min: 1, isRequired: true } }),
-        nextAttempt: (0, import_fields4.timestamp)({ defaultValue: { kind: "now" }, isIndexed: true }),
-        lockedAt: (0, import_fields4.timestamp)(),
-        lockOwner: (0, import_fields4.text)({ defaultValue: "" }),
-        deliveredAt: (0, import_fields4.timestamp)(),
-        deadLetteredAt: (0, import_fields4.timestamp)(),
-        lastError: (0, import_fields4.text)({ ui: { displayMode: "textarea" } }),
-        event: requiredRelationship("CoffeeDomainEvent.deliveries", "event", "CoffeeDomainEvent"),
-        store: requiredStoreRelationship("StoreSetting.outboxDeliveries"),
+        store: requiredStoreRelationship("StoreSetting.commandReceipts"),
         ...trackingFields
       }
     });
@@ -211,23 +165,23 @@ var init_access = __esm({
 });
 
 // features/keystone/models/WasteLog.ts
-var import_core3, import_access3, import_fields5, WasteLog;
+var import_core2, import_access2, import_fields4, WasteLog;
 var init_WasteLog = __esm({
   "features/keystone/models/WasteLog.ts"() {
     "use strict";
-    import_core3 = require("@keystone-6/core");
-    import_access3 = require("@keystone-6/core/access");
-    import_fields5 = require("@keystone-6/core/fields");
+    import_core2 = require("@keystone-6/core");
+    import_access2 = require("@keystone-6/core/access");
+    import_fields4 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    WasteLog = (0, import_core3.list)({
+    WasteLog = (0, import_core2.list)({
       access: {
         operation: {
           query: permissions.canReadInventory,
-          create: import_access3.denyAll,
-          update: import_access3.denyAll,
-          delete: import_access3.denyAll
+          create: import_access2.denyAll,
+          update: import_access2.denyAll,
+          delete: import_access2.denyAll
         }
       },
       ui: {
@@ -237,12 +191,12 @@ var init_WasteLog = __esm({
         listView: { initialColumns: ["logNumber", "inventoryItem", "prepBatch", "reason", "costCents"] }
       },
       fields: {
-        idempotencyKey: (0, import_fields5.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory } }),
-        logNumber: (0, import_fields5.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        idempotencyKey: (0, import_fields4.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory } }),
+        logNumber: (0, import_fields4.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.wasteLogs"),
-        inventoryItem: (0, import_fields5.relationship)({ ref: "InventoryItem.wasteLogs" }),
-        prepBatch: (0, import_fields5.relationship)({ ref: "PrepBatch" }),
-        reason: (0, import_fields5.select)({
+        inventoryItem: (0, import_fields4.relationship)({ ref: "InventoryItem.wasteLogs" }),
+        prepBatch: (0, import_fields4.relationship)({ ref: "PrepBatch" }),
+        reason: (0, import_fields4.select)({
           type: "string",
           options: [
             { label: "Expired", value: "expired" },
@@ -252,14 +206,14 @@ var init_WasteLog = __esm({
           ],
           defaultValue: "expired"
         }),
-        quantity: (0, import_fields5.decimal)({ defaultValue: "0" }),
-        unit: (0, import_fields5.text)({ defaultValue: "each" }),
-        costCents: (0, import_fields5.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        loggedBy: (0, import_fields5.relationship)({ ref: "User" }),
-        loggedAt: (0, import_fields5.timestamp)({ defaultValue: { kind: "now" } }),
-        notes: (0, import_fields5.text)({ ui: { displayMode: "textarea" } }),
-        metadata: (0, import_fields5.json)(),
-        stockMovements: (0, import_fields5.relationship)({ ref: "StockMovement.wasteLog", many: true }),
+        quantity: (0, import_fields4.decimal)({ defaultValue: "0" }),
+        unit: (0, import_fields4.text)({ defaultValue: "each" }),
+        costCents: (0, import_fields4.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        loggedBy: (0, import_fields4.relationship)({ ref: "User" }),
+        loggedAt: (0, import_fields4.timestamp)({ defaultValue: { kind: "now" } }),
+        notes: (0, import_fields4.text)({ ui: { displayMode: "textarea" } }),
+        metadata: (0, import_fields4.json)(),
+        stockMovements: (0, import_fields4.relationship)({ ref: "StockMovement.wasteLog", many: true }),
         ...trackingFields
       }
     });
@@ -267,13 +221,13 @@ var init_WasteLog = __esm({
 });
 
 // features/keystone/models/CateringOrder.ts
-var import_core4, import_access5, import_fields6, editableWhile, eventFactsEditable, quoteEditable, fieldModeFor, eventFact, CateringOrder;
+var import_core3, import_access4, import_fields5, editableWhile, eventFactsEditable, quoteEditable, fieldModeFor, eventFact, CateringOrder;
 var init_CateringOrder = __esm({
   "features/keystone/models/CateringOrder.ts"() {
     "use strict";
-    import_core4 = require("@keystone-6/core");
-    import_access5 = require("@keystone-6/core/access");
-    import_fields6 = require("@keystone-6/core/fields");
+    import_core3 = require("@keystone-6/core");
+    import_access4 = require("@keystone-6/core/access");
+    import_fields5 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
@@ -282,21 +236,21 @@ var init_CateringOrder = __esm({
     quoteEditable = editableWhile(["inquiry"]);
     fieldModeFor = (editable) => ({ itemView: { fieldMode: (args) => editable(args) ? "edit" : "read" } });
     eventFact = { access: { update: eventFactsEditable }, ui: fieldModeFor(eventFactsEditable) };
-    CateringOrder = (0, import_core4.list)({
-      access: { operation: { query: permissions.canReadOrders, create: permissions.canManageOrders, update: permissions.canManageOrders, delete: import_access5.denyAll } },
+    CateringOrder = (0, import_core3.list)({
+      access: { operation: { query: permissions.canReadOrders, create: permissions.canManageOrders, update: permissions.canManageOrders, delete: import_access4.denyAll } },
       ui: { listView: { initialColumns: ["cateringNumber", "customerName", "status", "eventAt"] } },
       fields: {
-        cateringNumber: (0, import_fields6.text)({ isIndexed: "unique", validation: { isRequired: true }, access: { update: () => false }, ui: { itemView: { fieldMode: "read" } } }),
+        cateringNumber: (0, import_fields5.text)({ isIndexed: "unique", validation: { isRequired: true }, access: { update: () => false }, ui: { itemView: { fieldMode: "read" } } }),
         store: requiredStoreRelationship("StoreSetting.cateringOrders", { update: () => false }),
-        customerName: (0, import_fields6.text)({ validation: { isRequired: true }, ...eventFact }),
-        customerEmail: (0, import_fields6.text)({ ...eventFact }),
-        status: (0, import_fields6.select)({ type: "string", access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } }, options: [{ label: "Inquiry", value: "inquiry" }, { label: "Quoted", value: "quoted" }, { label: "Confirmed", value: "confirmed" }, { label: "Completed", value: "completed" }, { label: "Cancelled", value: "cancelled" }], defaultValue: "inquiry" }),
-        eventAt: (0, import_fields6.timestamp)({ ...eventFact }),
-        guestCount: (0, import_fields6.integer)({ defaultValue: 0, validation: { min: 0 }, ...eventFact }),
-        deliveryAddress: (0, import_fields6.text)({ ...eventFact }),
-        subtotalCents: (0, import_fields6.integer)({ defaultValue: 0, validation: { min: 0 }, access: { update: quoteEditable }, ui: fieldModeFor(quoteEditable) }),
-        notes: (0, import_fields6.text)({ ui: { displayMode: "textarea" } }),
-        metadata: (0, import_fields6.json)({ ...eventFact }),
+        customerName: (0, import_fields5.text)({ validation: { isRequired: true }, ...eventFact }),
+        customerEmail: (0, import_fields5.text)({ ...eventFact }),
+        status: (0, import_fields5.select)({ type: "string", access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } }, options: [{ label: "Inquiry", value: "inquiry" }, { label: "Quoted", value: "quoted" }, { label: "Confirmed", value: "confirmed" }, { label: "Completed", value: "completed" }, { label: "Cancelled", value: "cancelled" }], defaultValue: "inquiry" }),
+        eventAt: (0, import_fields5.timestamp)({ ...eventFact }),
+        guestCount: (0, import_fields5.integer)({ defaultValue: 0, validation: { min: 0 }, ...eventFact }),
+        deliveryAddress: (0, import_fields5.text)({ ...eventFact }),
+        subtotalCents: (0, import_fields5.integer)({ defaultValue: 0, validation: { min: 0 }, access: { update: quoteEditable }, ui: fieldModeFor(quoteEditable) }),
+        notes: (0, import_fields5.text)({ ui: { displayMode: "textarea" } }),
+        metadata: (0, import_fields5.json)({ ...eventFact }),
         ...trackingFields
       }
     });
@@ -304,13 +258,13 @@ var init_CateringOrder = __esm({
 });
 
 // features/keystone/models/Subscription.ts
-var import_core5, import_access7, import_fields7, fixedAfterCreate, readOnlyInItemView, commandOnly, commandOnlyUi, Subscription;
+var import_core4, import_access6, import_fields6, fixedAfterCreate, readOnlyInItemView, commandOnly, commandOnlyUi, Subscription;
 var init_Subscription = __esm({
   "features/keystone/models/Subscription.ts"() {
     "use strict";
-    import_core5 = require("@keystone-6/core");
-    import_access7 = require("@keystone-6/core/access");
-    import_fields7 = require("@keystone-6/core/fields");
+    import_core4 = require("@keystone-6/core");
+    import_access6 = require("@keystone-6/core/access");
+    import_fields6 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
@@ -318,21 +272,21 @@ var init_Subscription = __esm({
     readOnlyInItemView = { itemView: { fieldMode: "read" } };
     commandOnly = { create: () => false, update: () => false };
     commandOnlyUi = { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } };
-    Subscription = (0, import_core5.list)({
-      access: { operation: { query: permissions.canReadLoyalty, create: permissions.canManageLoyalty, update: permissions.canManageLoyalty, delete: import_access7.denyAll } },
+    Subscription = (0, import_core4.list)({
+      access: { operation: { query: permissions.canReadLoyalty, create: permissions.canManageLoyalty, update: permissions.canManageLoyalty, delete: import_access6.denyAll } },
       ui: { listView: { initialColumns: ["subscriptionNumber", "loyaltyAccount", "status", "planName"] } },
       fields: {
-        subscriptionNumber: (0, import_fields7.text)({ isIndexed: "unique", validation: { isRequired: true }, access: fixedAfterCreate, ui: readOnlyInItemView }),
+        subscriptionNumber: (0, import_fields6.text)({ isIndexed: "unique", validation: { isRequired: true }, access: fixedAfterCreate, ui: readOnlyInItemView }),
         store: requiredStoreRelationship("StoreSetting.subscriptions", fixedAfterCreate),
-        loyaltyAccount: (0, import_fields7.relationship)({ ref: "LoyaltyAccount", access: fixedAfterCreate, ui: readOnlyInItemView }),
-        status: (0, import_fields7.select)({ type: "string", access: commandOnly, ui: commandOnlyUi, options: [{ label: "Trialing", value: "trialing" }, { label: "Active", value: "active" }, { label: "Paused", value: "paused" }, { label: "Cancelled", value: "cancelled" }], defaultValue: "trialing" }),
-        planName: (0, import_fields7.text)({ validation: { isRequired: true }, access: fixedAfterCreate, ui: readOnlyInItemView }),
-        billingInterval: (0, import_fields7.select)({ type: "string", access: fixedAfterCreate, ui: readOnlyInItemView, options: [{ label: "Weekly", value: "weekly" }, { label: "Monthly", value: "monthly" }], defaultValue: "monthly" }),
-        priceCents: (0, import_fields7.integer)({ defaultValue: 0, validation: { min: 0 }, access: fixedAfterCreate, ui: readOnlyInItemView }),
-        startsAt: (0, import_fields7.timestamp)({ access: fixedAfterCreate, ui: readOnlyInItemView }),
-        renewsAt: (0, import_fields7.timestamp)({ access: fixedAfterCreate, ui: readOnlyInItemView }),
-        cancelledAt: (0, import_fields7.timestamp)({ access: commandOnly, ui: commandOnlyUi }),
-        metadata: (0, import_fields7.json)({ access: fixedAfterCreate, ui: readOnlyInItemView }),
+        loyaltyAccount: (0, import_fields6.relationship)({ ref: "LoyaltyAccount", access: fixedAfterCreate, ui: readOnlyInItemView }),
+        status: (0, import_fields6.select)({ type: "string", access: commandOnly, ui: commandOnlyUi, options: [{ label: "Trialing", value: "trialing" }, { label: "Active", value: "active" }, { label: "Paused", value: "paused" }, { label: "Cancelled", value: "cancelled" }], defaultValue: "trialing" }),
+        planName: (0, import_fields6.text)({ validation: { isRequired: true }, access: fixedAfterCreate, ui: readOnlyInItemView }),
+        billingInterval: (0, import_fields6.select)({ type: "string", access: fixedAfterCreate, ui: readOnlyInItemView, options: [{ label: "Weekly", value: "weekly" }, { label: "Monthly", value: "monthly" }], defaultValue: "monthly" }),
+        priceCents: (0, import_fields6.integer)({ defaultValue: 0, validation: { min: 0 }, access: fixedAfterCreate, ui: readOnlyInItemView }),
+        startsAt: (0, import_fields6.timestamp)({ access: fixedAfterCreate, ui: readOnlyInItemView }),
+        renewsAt: (0, import_fields6.timestamp)({ access: fixedAfterCreate, ui: readOnlyInItemView }),
+        cancelledAt: (0, import_fields6.timestamp)({ access: commandOnly, ui: commandOnlyUi }),
+        metadata: (0, import_fields6.json)({ access: fixedAfterCreate, ui: readOnlyInItemView }),
         ...trackingFields
       }
     });
@@ -340,23 +294,23 @@ var init_Subscription = __esm({
 });
 
 // features/keystone/models/PosOrder.ts
-var import_core6, import_access9, import_fields8, PosOrder;
+var import_core5, import_access8, import_fields7, PosOrder;
 var init_PosOrder = __esm({
   "features/keystone/models/PosOrder.ts"() {
     "use strict";
-    import_core6 = require("@keystone-6/core");
-    import_access9 = require("@keystone-6/core/access");
-    import_fields8 = require("@keystone-6/core/fields");
+    import_core5 = require("@keystone-6/core");
+    import_access8 = require("@keystone-6/core/access");
+    import_fields7 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    PosOrder = (0, import_core6.list)({
+    PosOrder = (0, import_core5.list)({
       access: {
         operation: {
           query: permissions.canReadOrders,
-          create: import_access9.denyAll,
-          update: import_access9.denyAll,
-          delete: import_access9.denyAll
+          create: import_access8.denyAll,
+          update: import_access8.denyAll,
+          delete: import_access8.denyAll
         }
       },
       ui: {
@@ -366,13 +320,13 @@ var init_PosOrder = __esm({
         listView: { initialColumns: ["receiptNumber", "status", "registerShift", "cashier", "totalCents"] }
       },
       fields: {
-        receiptNumber: (0, import_fields8.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        receiptNumber: (0, import_fields7.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.posOrders"),
-        cafeOrder: (0, import_fields8.relationship)({ ref: "CafeOrder" }),
-        cashier: (0, import_fields8.relationship)({ ref: "User" }),
-        registerShift: (0, import_fields8.relationship)({ ref: "RegisterShift.posOrders" }),
-        registerName: (0, import_fields8.text)(),
-        status: (0, import_fields8.select)({
+        cafeOrder: (0, import_fields7.relationship)({ ref: "CafeOrder" }),
+        cashier: (0, import_fields7.relationship)({ ref: "User" }),
+        registerShift: (0, import_fields7.relationship)({ ref: "RegisterShift.posOrders" }),
+        registerName: (0, import_fields7.text)(),
+        status: (0, import_fields7.select)({
           type: "string",
           options: [
             { label: "Open", value: "open" },
@@ -382,13 +336,13 @@ var init_PosOrder = __esm({
           ],
           defaultValue: "open"
         }),
-        subtotalCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        taxCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        tipCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        totalCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        closedAt: (0, import_fields8.timestamp)(),
+        subtotalCents: (0, import_fields7.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        taxCents: (0, import_fields7.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        tipCents: (0, import_fields7.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        totalCents: (0, import_fields7.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        closedAt: (0, import_fields7.timestamp)(),
         /** Tender evidence (cash, or operator-attested external terminal reference). Not processor proof. */
-        metadata: (0, import_fields8.json)({ access: { read: permissions.canReadPayments } }),
+        metadata: (0, import_fields7.json)({ access: { read: permissions.canReadPayments } }),
         ...trackingFields
       }
     });
@@ -396,23 +350,23 @@ var init_PosOrder = __esm({
 });
 
 // features/keystone/models/RegisterShift.ts
-var import_core7, import_access11, import_fields9, RegisterShift;
+var import_core6, import_access10, import_fields8, RegisterShift;
 var init_RegisterShift = __esm({
   "features/keystone/models/RegisterShift.ts"() {
     "use strict";
-    import_core7 = require("@keystone-6/core");
-    import_access11 = require("@keystone-6/core/access");
-    import_fields9 = require("@keystone-6/core/fields");
+    import_core6 = require("@keystone-6/core");
+    import_access10 = require("@keystone-6/core/access");
+    import_fields8 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    RegisterShift = (0, import_core7.list)({
+    RegisterShift = (0, import_core6.list)({
       access: {
         operation: {
           query: ({ session }) => permissions.canReadPayments({ session }) || permissions.canReadOrders({ session }),
-          create: import_access11.denyAll,
-          update: import_access11.denyAll,
-          delete: import_access11.denyAll
+          create: import_access10.denyAll,
+          update: import_access10.denyAll,
+          delete: import_access10.denyAll
         }
       },
       ui: {
@@ -422,12 +376,12 @@ var init_RegisterShift = __esm({
         listView: { initialColumns: ["shiftNumber", "registerName", "status", "openedBy", "openedAt"] }
       },
       fields: {
-        idempotencyKey: (0, import_fields9.text)({ isIndexed: "unique", validation: { isRequired: true }, isFilterable: false, isOrderable: false, access: { read: permissions.canManagePayments } }),
-        closeIdempotencyKey: (0, import_fields9.text)({ isIndexed: "unique", db: { isNullable: true }, isFilterable: false, isOrderable: false, access: { read: permissions.canManagePayments } }),
-        shiftNumber: (0, import_fields9.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        idempotencyKey: (0, import_fields8.text)({ isIndexed: "unique", validation: { isRequired: true }, isFilterable: false, isOrderable: false, access: { read: permissions.canManagePayments } }),
+        closeIdempotencyKey: (0, import_fields8.text)({ isIndexed: "unique", db: { isNullable: true }, isFilterable: false, isOrderable: false, access: { read: permissions.canManagePayments } }),
+        shiftNumber: (0, import_fields8.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.registerShifts"),
-        registerName: (0, import_fields9.text)({ validation: { isRequired: true } }),
-        status: (0, import_fields9.select)({
+        registerName: (0, import_fields8.text)({ validation: { isRequired: true } }),
+        status: (0, import_fields8.select)({
           type: "string",
           options: [
             { label: "Open", value: "open" },
@@ -435,24 +389,24 @@ var init_RegisterShift = __esm({
           ],
           defaultValue: "open"
         }),
-        openingCashCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        cashSalesCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        cashRefundsCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        cardSalesCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        cardRefundsCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        tipsCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        payInsCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        payOutsCents: (0, import_fields9.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        expectedCashCents: (0, import_fields9.integer)({ defaultValue: 0 }),
-        countedCashCents: (0, import_fields9.integer)({ db: { isNullable: true } }),
-        cashVarianceCents: (0, import_fields9.integer)({ db: { isNullable: true } }),
-        openedBy: (0, import_fields9.relationship)({ ref: "User" }),
-        closedBy: (0, import_fields9.relationship)({ ref: "User" }),
-        openedAt: (0, import_fields9.timestamp)({ defaultValue: { kind: "now" } }),
-        closedAt: (0, import_fields9.timestamp)(),
-        posOrders: (0, import_fields9.relationship)({ ref: "PosOrder.registerShift", many: true }),
-        payments: (0, import_fields9.relationship)({ ref: "Payment.registerShift", many: true }),
-        cashMovements: (0, import_fields9.relationship)({ ref: "CashMovement.registerShift", many: true }),
+        openingCashCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        cashSalesCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        cashRefundsCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        cardSalesCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        cardRefundsCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        tipsCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        payInsCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        payOutsCents: (0, import_fields8.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        expectedCashCents: (0, import_fields8.integer)({ defaultValue: 0 }),
+        countedCashCents: (0, import_fields8.integer)({ db: { isNullable: true } }),
+        cashVarianceCents: (0, import_fields8.integer)({ db: { isNullable: true } }),
+        openedBy: (0, import_fields8.relationship)({ ref: "User" }),
+        closedBy: (0, import_fields8.relationship)({ ref: "User" }),
+        openedAt: (0, import_fields8.timestamp)({ defaultValue: { kind: "now" } }),
+        closedAt: (0, import_fields8.timestamp)(),
+        posOrders: (0, import_fields8.relationship)({ ref: "PosOrder.registerShift", many: true }),
+        payments: (0, import_fields8.relationship)({ ref: "Payment.registerShift", many: true }),
+        cashMovements: (0, import_fields8.relationship)({ ref: "CashMovement.registerShift", many: true }),
         ...trackingFields
       }
     });
@@ -460,23 +414,23 @@ var init_RegisterShift = __esm({
 });
 
 // features/keystone/models/CashMovement.ts
-var import_core8, import_access13, import_fields10, CashMovement;
+var import_core7, import_access12, import_fields9, CashMovement;
 var init_CashMovement = __esm({
   "features/keystone/models/CashMovement.ts"() {
     "use strict";
-    import_core8 = require("@keystone-6/core");
-    import_access13 = require("@keystone-6/core/access");
-    import_fields10 = require("@keystone-6/core/fields");
+    import_core7 = require("@keystone-6/core");
+    import_access12 = require("@keystone-6/core/access");
+    import_fields9 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    CashMovement = (0, import_core8.list)({
+    CashMovement = (0, import_core7.list)({
       access: {
         operation: {
           query: permissions.canReadPayments,
-          create: import_access13.denyAll,
-          update: import_access13.denyAll,
-          delete: import_access13.denyAll
+          create: import_access12.denyAll,
+          update: import_access12.denyAll,
+          delete: import_access12.denyAll
         }
       },
       ui: {
@@ -486,10 +440,10 @@ var init_CashMovement = __esm({
         listView: { initialColumns: ["movementNumber", "registerShift", "type", "amountCents", "recordedAt"] }
       },
       fields: {
-        idempotencyKey: (0, import_fields10.text)({ isIndexed: "unique", validation: { isRequired: true }, isFilterable: false, isOrderable: false, access: { read: permissions.canManagePayments } }),
-        movementNumber: (0, import_fields10.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        idempotencyKey: (0, import_fields9.text)({ isIndexed: "unique", validation: { isRequired: true }, isFilterable: false, isOrderable: false, access: { read: permissions.canManagePayments } }),
+        movementNumber: (0, import_fields9.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.cashMovements"),
-        type: (0, import_fields10.select)({
+        type: (0, import_fields9.select)({
           type: "string",
           options: [
             { label: "Pay in", value: "pay_in" },
@@ -498,11 +452,11 @@ var init_CashMovement = __esm({
           ],
           validation: { isRequired: true }
         }),
-        amountCents: (0, import_fields10.integer)({ validation: { isRequired: true, min: 1 } }),
-        reason: (0, import_fields10.text)({ validation: { isRequired: true } }),
-        registerShift: (0, import_fields10.relationship)({ ref: "RegisterShift.cashMovements" }),
-        recordedBy: (0, import_fields10.relationship)({ ref: "User" }),
-        recordedAt: (0, import_fields10.timestamp)({ defaultValue: { kind: "now" } }),
+        amountCents: (0, import_fields9.integer)({ validation: { isRequired: true, min: 1 } }),
+        reason: (0, import_fields9.text)({ validation: { isRequired: true } }),
+        registerShift: (0, import_fields9.relationship)({ ref: "RegisterShift.cashMovements" }),
+        recordedBy: (0, import_fields9.relationship)({ ref: "User" }),
+        recordedAt: (0, import_fields9.timestamp)({ defaultValue: { kind: "now" } }),
         ...trackingFields
       }
     });
@@ -510,32 +464,32 @@ var init_CashMovement = __esm({
 });
 
 // features/keystone/models/StaffShift.ts
-var import_core9, import_access15, import_fields11, StaffShift;
+var import_core8, import_access14, import_fields10, StaffShift;
 var init_StaffShift = __esm({
   "features/keystone/models/StaffShift.ts"() {
     "use strict";
-    import_core9 = require("@keystone-6/core");
-    import_access15 = require("@keystone-6/core/access");
-    import_fields11 = require("@keystone-6/core/fields");
+    import_core8 = require("@keystone-6/core");
+    import_access14 = require("@keystone-6/core/access");
+    import_fields10 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    StaffShift = (0, import_core9.list)({
-      access: { operation: { query: permissions.canManageSettings, create: import_access15.denyAll, update: import_access15.denyAll, delete: import_access15.denyAll } },
+    StaffShift = (0, import_core8.list)({
+      access: { operation: { query: permissions.canManageSettings, create: import_access14.denyAll, update: import_access14.denyAll, delete: import_access14.denyAll } },
       ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["shiftNumber", "staff", "role", "status"] } },
       fields: {
-        idempotencyKey: (0, import_fields11.text)({ isIndexed: "unique", validation: { isRequired: true }, access: { read: permissions.canManageSettings } }),
-        shiftNumber: (0, import_fields11.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        idempotencyKey: (0, import_fields10.text)({ isIndexed: "unique", validation: { isRequired: true }, access: { read: permissions.canManageSettings } }),
+        shiftNumber: (0, import_fields10.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.staffShifts"),
-        staff: (0, import_fields11.relationship)({ ref: "User" }),
-        role: (0, import_fields11.select)({ type: "string", options: [{ label: "Barista", value: "barista" }, { label: "Shift Lead", value: "shift_lead" }, { label: "Kitchen", value: "kitchen" }, { label: "Manager", value: "manager" }], defaultValue: "barista" }),
-        status: (0, import_fields11.select)({ type: "string", access: { update: () => false }, options: [{ label: "Scheduled", value: "scheduled" }, { label: "Clocked In", value: "clocked_in" }, { label: "Completed", value: "completed" }, { label: "Missed", value: "missed" }], defaultValue: "scheduled" }),
-        startsAt: (0, import_fields11.timestamp)(),
-        endsAt: (0, import_fields11.timestamp)(),
-        clockInAt: (0, import_fields11.timestamp)(),
-        clockOutAt: (0, import_fields11.timestamp)(),
-        notes: (0, import_fields11.text)({ ui: { displayMode: "textarea" } }),
-        metadata: (0, import_fields11.json)(),
+        staff: (0, import_fields10.relationship)({ ref: "User" }),
+        role: (0, import_fields10.select)({ type: "string", options: [{ label: "Barista", value: "barista" }, { label: "Shift Lead", value: "shift_lead" }, { label: "Kitchen", value: "kitchen" }, { label: "Manager", value: "manager" }], defaultValue: "barista" }),
+        status: (0, import_fields10.select)({ type: "string", access: { update: () => false }, options: [{ label: "Scheduled", value: "scheduled" }, { label: "Clocked In", value: "clocked_in" }, { label: "Completed", value: "completed" }, { label: "Missed", value: "missed" }], defaultValue: "scheduled" }),
+        startsAt: (0, import_fields10.timestamp)(),
+        endsAt: (0, import_fields10.timestamp)(),
+        clockInAt: (0, import_fields10.timestamp)(),
+        clockOutAt: (0, import_fields10.timestamp)(),
+        notes: (0, import_fields10.text)({ ui: { displayMode: "textarea" } }),
+        metadata: (0, import_fields10.json)(),
         ...trackingFields
       }
     });
@@ -543,23 +497,23 @@ var init_StaffShift = __esm({
 });
 
 // features/keystone/models/PrepBatch.ts
-var import_core10, import_access17, import_fields12, PrepBatch;
+var import_core9, import_access16, import_fields11, PrepBatch;
 var init_PrepBatch = __esm({
   "features/keystone/models/PrepBatch.ts"() {
     "use strict";
-    import_core10 = require("@keystone-6/core");
-    import_access17 = require("@keystone-6/core/access");
-    import_fields12 = require("@keystone-6/core/fields");
+    import_core9 = require("@keystone-6/core");
+    import_access16 = require("@keystone-6/core/access");
+    import_fields11 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    PrepBatch = (0, import_core10.list)({
+    PrepBatch = (0, import_core9.list)({
       access: {
         operation: {
           query: permissions.canReadInventory,
-          create: import_access17.denyAll,
-          update: import_access17.denyAll,
-          delete: import_access17.denyAll
+          create: import_access16.denyAll,
+          update: import_access16.denyAll,
+          delete: import_access16.denyAll
         }
       },
       ui: {
@@ -569,11 +523,11 @@ var init_PrepBatch = __esm({
         listView: { initialColumns: ["batchNumber", "recipe", "status", "preparedBy"] }
       },
       fields: {
-        idempotencyKey: (0, import_fields12.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory } }),
-        batchNumber: (0, import_fields12.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        idempotencyKey: (0, import_fields11.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory } }),
+        batchNumber: (0, import_fields11.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.prepBatches"),
-        recipe: (0, import_fields12.relationship)({ ref: "Recipe" }),
-        status: (0, import_fields12.select)({
+        recipe: (0, import_fields11.relationship)({ ref: "Recipe" }),
+        status: (0, import_fields11.select)({
           type: "string",
           options: [
             { label: "Planned", value: "planned" },
@@ -583,16 +537,16 @@ var init_PrepBatch = __esm({
           ],
           defaultValue: "completed"
         }),
-        preparedBy: (0, import_fields12.relationship)({ ref: "User" }),
-        quantityMade: (0, import_fields12.decimal)({ defaultValue: "0" }),
-        quantityRemaining: (0, import_fields12.decimal)({ defaultValue: "0" }),
-        startedAt: (0, import_fields12.timestamp)(),
-        completedAt: (0, import_fields12.timestamp)(),
-        expiresAt: (0, import_fields12.timestamp)(),
-        notes: (0, import_fields12.text)({ ui: { displayMode: "textarea" } }),
-        metadata: (0, import_fields12.json)(),
-        stockMovements: (0, import_fields12.relationship)({ ref: "StockMovement.prepBatch", many: true }),
-        consumptions: (0, import_fields12.relationship)({ ref: "PrepBatchConsumption.prepBatch", many: true }),
+        preparedBy: (0, import_fields11.relationship)({ ref: "User" }),
+        quantityMade: (0, import_fields11.decimal)({ defaultValue: "0" }),
+        quantityRemaining: (0, import_fields11.decimal)({ defaultValue: "0" }),
+        startedAt: (0, import_fields11.timestamp)(),
+        completedAt: (0, import_fields11.timestamp)(),
+        expiresAt: (0, import_fields11.timestamp)(),
+        notes: (0, import_fields11.text)({ ui: { displayMode: "textarea" } }),
+        metadata: (0, import_fields11.json)(),
+        stockMovements: (0, import_fields11.relationship)({ ref: "StockMovement.prepBatch", many: true }),
+        consumptions: (0, import_fields11.relationship)({ ref: "PrepBatchConsumption.prepBatch", many: true }),
         ...trackingFields
       }
     });
@@ -600,27 +554,27 @@ var init_PrepBatch = __esm({
 });
 
 // features/keystone/models/PrepBatchConsumption.ts
-var import_core11, import_access19, import_fields13, PrepBatchConsumption;
+var import_core10, import_access18, import_fields12, PrepBatchConsumption;
 var init_PrepBatchConsumption = __esm({
   "features/keystone/models/PrepBatchConsumption.ts"() {
     "use strict";
-    import_core11 = require("@keystone-6/core");
-    import_access19 = require("@keystone-6/core/access");
-    import_fields13 = require("@keystone-6/core/fields");
+    import_core10 = require("@keystone-6/core");
+    import_access18 = require("@keystone-6/core/access");
+    import_fields12 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    PrepBatchConsumption = (0, import_core11.list)({
+    PrepBatchConsumption = (0, import_core10.list)({
       access: {
-        operation: { query: permissions.canReadInventory, create: import_access19.denyAll, update: import_access19.denyAll, delete: import_access19.denyAll }
+        operation: { query: permissions.canReadInventory, create: import_access18.denyAll, update: import_access18.denyAll, delete: import_access18.denyAll }
       },
       ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["prepBatch", "order", "quantity"] } },
       fields: {
-        idempotencyKey: (0, import_fields13.text)({ isIndexed: "unique", validation: { isRequired: true }, access: { read: permissions.canManageInventory } }),
+        idempotencyKey: (0, import_fields12.text)({ isIndexed: "unique", validation: { isRequired: true }, access: { read: permissions.canManageInventory } }),
         store: requiredStoreRelationship("StoreSetting.prepBatchConsumptions"),
         prepBatch: requiredRelationship("PrepBatch.consumptions", "prepBatch", "PrepBatch"),
         order: requiredRelationship("CafeOrder.prepBatchConsumptions", "order", "CafeOrder"),
-        quantity: (0, import_fields13.decimal)({ validation: { isRequired: true } }),
+        quantity: (0, import_fields12.decimal)({ validation: { isRequired: true } }),
         ...trackingFields
       }
     });
@@ -628,23 +582,23 @@ var init_PrepBatchConsumption = __esm({
 });
 
 // features/keystone/models/PurchaseOrder.ts
-var import_core12, import_access21, import_fields14, PurchaseOrder;
+var import_core11, import_access20, import_fields13, PurchaseOrder;
 var init_PurchaseOrder = __esm({
   "features/keystone/models/PurchaseOrder.ts"() {
     "use strict";
-    import_core12 = require("@keystone-6/core");
-    import_access21 = require("@keystone-6/core/access");
-    import_fields14 = require("@keystone-6/core/fields");
+    import_core11 = require("@keystone-6/core");
+    import_access20 = require("@keystone-6/core/access");
+    import_fields13 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    PurchaseOrder = (0, import_core12.list)({
+    PurchaseOrder = (0, import_core11.list)({
       access: {
         operation: {
           query: permissions.canReadInventory,
-          create: import_access21.denyAll,
-          update: import_access21.denyAll,
-          delete: import_access21.denyAll
+          create: import_access20.denyAll,
+          update: import_access20.denyAll,
+          delete: import_access20.denyAll
         }
       },
       ui: {
@@ -654,14 +608,14 @@ var init_PurchaseOrder = __esm({
         listView: { initialColumns: ["poNumber", "supplier", "inventoryItem", "status", "expectedAt"] }
       },
       fields: {
-        idempotencyKey: (0, import_fields14.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory } }),
-        poNumber: (0, import_fields14.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        idempotencyKey: (0, import_fields13.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory } }),
+        poNumber: (0, import_fields13.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.purchaseOrders"),
-        supplier: (0, import_fields14.relationship)({ ref: "Supplier" }),
-        inventoryItem: (0, import_fields14.relationship)({ ref: "InventoryItem.purchaseOrders" }),
-        orderedQuantity: (0, import_fields14.decimal)({ defaultValue: "0" }),
-        unitCostCents: (0, import_fields14.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        status: (0, import_fields14.select)({
+        supplier: (0, import_fields13.relationship)({ ref: "Supplier" }),
+        inventoryItem: (0, import_fields13.relationship)({ ref: "InventoryItem.purchaseOrders" }),
+        orderedQuantity: (0, import_fields13.decimal)({ defaultValue: "0" }),
+        unitCostCents: (0, import_fields13.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        status: (0, import_fields13.select)({
           type: "string",
           options: [
             { label: "Draft", value: "draft" },
@@ -671,14 +625,14 @@ var init_PurchaseOrder = __esm({
           ],
           defaultValue: "submitted"
         }),
-        orderedAt: (0, import_fields14.timestamp)(),
-        expectedAt: (0, import_fields14.timestamp)(),
-        receivedAt: (0, import_fields14.timestamp)(),
-        subtotalCents: (0, import_fields14.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        notes: (0, import_fields14.text)({ ui: { displayMode: "textarea" } }),
-        metadata: (0, import_fields14.json)(),
-        inventoryLots: (0, import_fields14.relationship)({ ref: "InventoryLot.purchaseOrder", many: true }),
-        stockMovements: (0, import_fields14.relationship)({ ref: "StockMovement.purchaseOrder", many: true }),
+        orderedAt: (0, import_fields13.timestamp)(),
+        expectedAt: (0, import_fields13.timestamp)(),
+        receivedAt: (0, import_fields13.timestamp)(),
+        subtotalCents: (0, import_fields13.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        notes: (0, import_fields13.text)({ ui: { displayMode: "textarea" } }),
+        metadata: (0, import_fields13.json)(),
+        inventoryLots: (0, import_fields13.relationship)({ ref: "InventoryLot.purchaseOrder", many: true }),
+        stockMovements: (0, import_fields13.relationship)({ ref: "StockMovement.purchaseOrder", many: true }),
         ...trackingFields
       }
     });
@@ -686,16 +640,16 @@ var init_PurchaseOrder = __esm({
 });
 
 // features/keystone/models/Supplier.ts
-var import_core13, import_fields15, Supplier;
+var import_core12, import_fields14, Supplier;
 var init_Supplier = __esm({
   "features/keystone/models/Supplier.ts"() {
     "use strict";
-    import_core13 = require("@keystone-6/core");
-    import_fields15 = require("@keystone-6/core/fields");
+    import_core12 = require("@keystone-6/core");
+    import_fields14 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    Supplier = (0, import_core13.list)({
+    Supplier = (0, import_core12.list)({
       access: { operation: { query: permissions.canReadInventory, create: permissions.canManageInventory, update: permissions.canManageInventory, delete: permissions.canManageInventory } },
       hooks: {
         resolveInput: async ({ operation, resolvedData, context }) => {
@@ -724,16 +678,16 @@ var init_Supplier = __esm({
       },
       ui: { listView: { initialColumns: ["name", "status", "contactName"] } },
       fields: {
-        name: (0, import_fields15.text)({ validation: { isRequired: true } }),
+        name: (0, import_fields14.text)({ validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.suppliers"),
-        status: (0, import_fields15.select)({ type: "string", options: [{ label: "Active", value: "active" }, { label: "Paused", value: "paused" }, { label: "Archived", value: "archived" }], defaultValue: "active" }),
-        contactName: (0, import_fields15.text)(),
-        email: (0, import_fields15.text)(),
-        phone: (0, import_fields15.text)(),
-        website: (0, import_fields15.text)(),
-        leadTimeDays: (0, import_fields15.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        notes: (0, import_fields15.text)({ ui: { displayMode: "textarea" } }),
-        metadata: (0, import_fields15.json)(),
+        status: (0, import_fields14.select)({ type: "string", options: [{ label: "Active", value: "active" }, { label: "Paused", value: "paused" }, { label: "Archived", value: "archived" }], defaultValue: "active" }),
+        contactName: (0, import_fields14.text)(),
+        email: (0, import_fields14.text)(),
+        phone: (0, import_fields14.text)(),
+        website: (0, import_fields14.text)(),
+        leadTimeDays: (0, import_fields14.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        notes: (0, import_fields14.text)({ ui: { displayMode: "textarea" } }),
+        metadata: (0, import_fields14.json)(),
         ...trackingFields
       }
     });
@@ -741,23 +695,23 @@ var init_Supplier = __esm({
 });
 
 // features/keystone/models/InventoryLot.ts
-var import_core14, import_access24, import_fields16, InventoryLot;
+var import_core13, import_access23, import_fields15, InventoryLot;
 var init_InventoryLot = __esm({
   "features/keystone/models/InventoryLot.ts"() {
     "use strict";
-    import_core14 = require("@keystone-6/core");
-    import_access24 = require("@keystone-6/core/access");
-    import_fields16 = require("@keystone-6/core/fields");
+    import_core13 = require("@keystone-6/core");
+    import_access23 = require("@keystone-6/core/access");
+    import_fields15 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    InventoryLot = (0, import_core14.list)({
+    InventoryLot = (0, import_core13.list)({
       access: {
         operation: {
           query: permissions.canReadInventory,
-          create: import_access24.denyAll,
-          update: import_access24.denyAll,
-          delete: import_access24.denyAll
+          create: import_access23.denyAll,
+          update: import_access23.denyAll,
+          delete: import_access23.denyAll
         }
       },
       ui: {
@@ -767,17 +721,17 @@ var init_InventoryLot = __esm({
         listView: { initialColumns: ["lotNumber", "inventoryItem", "supplier", "status"] }
       },
       fields: {
-        lotNumber: (0, import_fields16.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        lotNumber: (0, import_fields15.text)({ isIndexed: "unique", validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.inventoryLots"),
-        inventoryItem: (0, import_fields16.relationship)({ ref: "InventoryItem.inventoryLots" }),
-        supplier: (0, import_fields16.relationship)({ ref: "Supplier" }),
-        purchaseOrder: (0, import_fields16.relationship)({ ref: "PurchaseOrder.inventoryLots" }),
-        quantityReceived: (0, import_fields16.decimal)({ defaultValue: "0" }),
-        quantityRemaining: (0, import_fields16.decimal)({ defaultValue: "0" }),
-        unitCostCents: (0, import_fields16.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        receivedAt: (0, import_fields16.timestamp)(),
-        expiresAt: (0, import_fields16.timestamp)(),
-        status: (0, import_fields16.select)({
+        inventoryItem: (0, import_fields15.relationship)({ ref: "InventoryItem.inventoryLots" }),
+        supplier: (0, import_fields15.relationship)({ ref: "Supplier" }),
+        purchaseOrder: (0, import_fields15.relationship)({ ref: "PurchaseOrder.inventoryLots" }),
+        quantityReceived: (0, import_fields15.decimal)({ defaultValue: "0" }),
+        quantityRemaining: (0, import_fields15.decimal)({ defaultValue: "0" }),
+        unitCostCents: (0, import_fields15.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        receivedAt: (0, import_fields15.timestamp)(),
+        expiresAt: (0, import_fields15.timestamp)(),
+        status: (0, import_fields15.select)({
           type: "string",
           options: [
             { label: "Active", value: "active" },
@@ -787,8 +741,8 @@ var init_InventoryLot = __esm({
           ],
           defaultValue: "active"
         }),
-        metadata: (0, import_fields16.json)(),
-        stockMovements: (0, import_fields16.relationship)({ ref: "StockMovement.inventoryLot", many: true }),
+        metadata: (0, import_fields15.json)(),
+        stockMovements: (0, import_fields15.relationship)({ ref: "StockMovement.inventoryLot", many: true }),
         ...trackingFields
       }
     });
@@ -796,16 +750,16 @@ var init_InventoryLot = __esm({
 });
 
 // features/keystone/models/Ingredient.ts
-var import_core15, import_fields17, Ingredient;
+var import_core14, import_fields16, Ingredient;
 var init_Ingredient = __esm({
   "features/keystone/models/Ingredient.ts"() {
     "use strict";
-    import_core15 = require("@keystone-6/core");
-    import_fields17 = require("@keystone-6/core/fields");
+    import_core14 = require("@keystone-6/core");
+    import_fields16 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    Ingredient = (0, import_core15.list)({
+    Ingredient = (0, import_core14.list)({
       access: { operation: { query: permissions.canReadProducts, create: permissions.canManageProducts, update: permissions.canManageProducts, delete: permissions.canManageProducts } },
       hooks: {
         validateInput: async ({ operation, resolvedData, item, context, addValidationError }) => {
@@ -838,15 +792,15 @@ var init_Ingredient = __esm({
       },
       ui: { listView: { initialColumns: ["name", "recipe", "inventoryItem", "quantity"] } },
       fields: {
-        name: (0, import_fields17.text)({ validation: { isRequired: true } }),
+        name: (0, import_fields16.text)({ validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.ingredients"),
-        inventoryItem: (0, import_fields17.relationship)({ ref: "InventoryItem" }),
-        recipe: (0, import_fields17.relationship)({ ref: "Recipe" }),
-        quantity: (0, import_fields17.decimal)({ defaultValue: "0" }),
-        unit: (0, import_fields17.text)({ defaultValue: "g" }),
-        optional: (0, import_fields17.checkbox)({ defaultValue: false }),
-        notes: (0, import_fields17.text)({ ui: { displayMode: "textarea" } }),
-        metadata: (0, import_fields17.json)(),
+        inventoryItem: (0, import_fields16.relationship)({ ref: "InventoryItem" }),
+        recipe: (0, import_fields16.relationship)({ ref: "Recipe" }),
+        quantity: (0, import_fields16.decimal)({ defaultValue: "0" }),
+        unit: (0, import_fields16.text)({ defaultValue: "g" }),
+        optional: (0, import_fields16.checkbox)({ defaultValue: false }),
+        notes: (0, import_fields16.text)({ ui: { displayMode: "textarea" } }),
+        metadata: (0, import_fields16.json)(),
         ...trackingFields
       }
     });
@@ -854,16 +808,16 @@ var init_Ingredient = __esm({
 });
 
 // features/keystone/models/Recipe.ts
-var import_core16, import_fields18, Recipe;
+var import_core15, import_fields17, Recipe;
 var init_Recipe = __esm({
   "features/keystone/models/Recipe.ts"() {
     "use strict";
-    import_core16 = require("@keystone-6/core");
-    import_fields18 = require("@keystone-6/core/fields");
+    import_core15 = require("@keystone-6/core");
+    import_fields17 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    Recipe = (0, import_core16.list)({
+    Recipe = (0, import_core15.list)({
       access: { operation: { query: permissions.canReadProducts, create: permissions.canManageProducts, update: permissions.canManageProducts, delete: permissions.canManageProducts } },
       hooks: {
         validateInput: async ({ operation, resolvedData, item, addValidationError }) => {
@@ -880,16 +834,16 @@ var init_Recipe = __esm({
       },
       ui: { listView: { initialColumns: ["name", "menuItem", "status", "active"] } },
       fields: {
-        name: (0, import_fields18.text)({ validation: { isRequired: true } }),
+        name: (0, import_fields17.text)({ validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.recipes"),
-        menuItem: (0, import_fields18.relationship)({ ref: "MenuItem" }),
-        status: (0, import_fields18.select)({ type: "string", options: [{ label: "Draft", value: "draft" }, { label: "Active", value: "active" }, { label: "Archived", value: "archived" }], defaultValue: "draft" }),
-        yieldQuantity: (0, import_fields18.decimal)({ defaultValue: "1" }),
-        yieldUnit: (0, import_fields18.text)({ defaultValue: "serving", ui: { description: "Use 'serving' or 'each' when a prepared batch is sold one item at a time" } }),
-        prepInstructions: (0, import_fields18.text)({ ui: { displayMode: "textarea" } }),
-        allergenNotes: (0, import_fields18.text)({ ui: { displayMode: "textarea" } }),
-        active: (0, import_fields18.checkbox)({ defaultValue: true }),
-        metadata: (0, import_fields18.json)(),
+        menuItem: (0, import_fields17.relationship)({ ref: "MenuItem" }),
+        status: (0, import_fields17.select)({ type: "string", options: [{ label: "Draft", value: "draft" }, { label: "Active", value: "active" }, { label: "Archived", value: "archived" }], defaultValue: "draft" }),
+        yieldQuantity: (0, import_fields17.decimal)({ defaultValue: "1" }),
+        yieldUnit: (0, import_fields17.text)({ defaultValue: "serving", ui: { description: "Use 'serving' or 'each' when a prepared batch is sold one item at a time" } }),
+        prepInstructions: (0, import_fields17.text)({ ui: { displayMode: "textarea" } }),
+        allergenNotes: (0, import_fields17.text)({ ui: { displayMode: "textarea" } }),
+        active: (0, import_fields17.checkbox)({ defaultValue: true }),
+        metadata: (0, import_fields17.json)(),
         ...trackingFields
       }
     });
@@ -897,19 +851,19 @@ var init_Recipe = __esm({
 });
 
 // features/keystone/models/User.ts
-var import_core17, import_access28, import_fields19, User;
+var import_core16, import_access27, import_fields18, User;
 var init_User = __esm({
   "features/keystone/models/User.ts"() {
     "use strict";
-    import_core17 = require("@keystone-6/core");
-    import_access28 = require("@keystone-6/core/access");
-    import_fields19 = require("@keystone-6/core/fields");
+    import_core16 = require("@keystone-6/core");
+    import_access27 = require("@keystone-6/core/access");
+    import_fields18 = require("@keystone-6/core/fields");
     init_access();
     init_trackingFields();
-    User = (0, import_core17.list)({
+    User = (0, import_core16.list)({
       access: {
         operation: {
-          ...(0, import_access28.allOperations)(isSignedIn),
+          ...(0, import_access27.allOperations)(isSignedIn),
           create: (args) => process.env.PUBLIC_SIGNUPS_ALLOWED === "true" || permissions.canManagePeople(args),
           delete: permissions.canManagePeople
         },
@@ -931,17 +885,17 @@ var init_User = __esm({
         }
       },
       fields: {
-        name: (0, import_fields19.text)({ validation: { isRequired: true } }),
-        email: (0, import_fields19.text)({ isFilterable: false, isOrderable: false, isIndexed: "unique", validation: { isRequired: true } }),
-        phone: (0, import_fields19.text)(),
-        password: (0, import_fields19.password)({
+        name: (0, import_fields18.text)({ validation: { isRequired: true } }),
+        email: (0, import_fields18.text)({ isFilterable: false, isOrderable: false, isIndexed: "unique", validation: { isRequired: true } }),
+        phone: (0, import_fields18.text)(),
+        password: (0, import_fields18.password)({
           access: {
-            read: import_access28.denyAll,
+            read: import_access27.denyAll,
             update: ({ session, item }) => permissions.canManagePeople({ session }) || session?.itemId === item.id
           },
           validation: { isRequired: true }
         }),
-        onboardingStatus: (0, import_fields19.select)({
+        onboardingStatus: (0, import_fields18.select)({
           type: "string",
           options: [
             { label: "Not Started", value: "not_started" },
@@ -951,14 +905,14 @@ var init_User = __esm({
           ],
           defaultValue: "not_started"
         }),
-        role: (0, import_fields19.relationship)({
+        role: (0, import_fields18.relationship)({
           ref: "Role.assignedTo",
           access: { create: permissions.canManageRoles, update: permissions.canManageRoles },
           ui: { itemView: { fieldMode: (args) => permissions.canManageRoles(args) ? "edit" : "read" } }
         }),
-        cafeOrders: (0, import_fields19.relationship)({ ref: "CafeOrder.customer", many: true, access: { create: import_access28.denyAll, update: import_access28.denyAll } }),
-        payments: (0, import_fields19.relationship)({ ref: "Payment.customer", many: true, access: { create: import_access28.denyAll, update: import_access28.denyAll } }),
-        loyaltyAccount: (0, import_fields19.relationship)({ ref: "LoyaltyAccount.customer", access: { create: import_access28.denyAll, update: import_access28.denyAll } }),
+        cafeOrders: (0, import_fields18.relationship)({ ref: "CafeOrder.customer", many: true, access: { create: import_access27.denyAll, update: import_access27.denyAll } }),
+        payments: (0, import_fields18.relationship)({ ref: "Payment.customer", many: true, access: { create: import_access27.denyAll, update: import_access27.denyAll } }),
+        loyaltyAccount: (0, import_fields18.relationship)({ ref: "LoyaltyAccount.customer", access: { create: import_access27.denyAll, update: import_access27.denyAll } }),
         ...trackingFields
       }
     });
@@ -966,19 +920,19 @@ var init_User = __esm({
 });
 
 // features/keystone/models/Role.ts
-var import_core18, import_access30, import_fields20, Role;
+var import_core17, import_access29, import_fields19, Role;
 var init_Role = __esm({
   "features/keystone/models/Role.ts"() {
     "use strict";
-    import_core18 = require("@keystone-6/core");
-    import_access30 = require("@keystone-6/core/access");
-    import_fields20 = require("@keystone-6/core/fields");
+    import_core17 = require("@keystone-6/core");
+    import_access29 = require("@keystone-6/core/access");
+    import_fields19 = require("@keystone-6/core/fields");
     init_access();
     init_trackingFields();
-    Role = (0, import_core18.list)({
+    Role = (0, import_core17.list)({
       access: {
         operation: {
-          ...(0, import_access30.allOperations)(permissions.canManageRoles),
+          ...(0, import_access29.allOperations)(permissions.canManageRoles),
           query: isSignedIn
         },
         filter: {
@@ -998,25 +952,25 @@ var init_Role = __esm({
         itemView: { defaultFieldMode: (args) => permissions.canManageRoles(args) ? "edit" : "read" }
       },
       fields: {
-        name: (0, import_fields20.text)({ validation: { isRequired: true } }),
-        canAccessDashboard: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canReadOrders: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManageOrders: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canReadPayments: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManagePayments: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canReadProducts: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManageProducts: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canReadInventory: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManageInventory: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canReadLoyalty: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManageLoyalty: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canSeeOtherPeople: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canEditOtherPeople: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManagePeople: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManageRoles: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManageSettings: (0, import_fields20.checkbox)({ defaultValue: false }),
-        canManageOnboarding: (0, import_fields20.checkbox)({ defaultValue: false }),
-        assignedTo: (0, import_fields20.relationship)({
+        name: (0, import_fields19.text)({ validation: { isRequired: true } }),
+        canAccessDashboard: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canReadOrders: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManageOrders: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canReadPayments: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManagePayments: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canReadProducts: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManageProducts: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canReadInventory: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManageInventory: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canReadLoyalty: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManageLoyalty: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canSeeOtherPeople: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canEditOtherPeople: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManagePeople: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManageRoles: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManageSettings: (0, import_fields19.checkbox)({ defaultValue: false }),
+        canManageOnboarding: (0, import_fields19.checkbox)({ defaultValue: false }),
+        assignedTo: (0, import_fields19.relationship)({
           ref: "User.role",
           many: true,
           ui: { displayMode: "count", itemView: { fieldMode: "read" } }
@@ -1028,16 +982,16 @@ var init_Role = __esm({
 });
 
 // features/keystone/models/MenuCategory.ts
-var import_core19, import_fields21, MenuCategory;
+var import_core18, import_fields20, MenuCategory;
 var init_MenuCategory = __esm({
   "features/keystone/models/MenuCategory.ts"() {
     "use strict";
-    import_core19 = require("@keystone-6/core");
-    import_fields21 = require("@keystone-6/core/fields");
+    import_core18 = require("@keystone-6/core");
+    import_fields20 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    MenuCategory = (0, import_core19.list)({
+    MenuCategory = (0, import_core18.list)({
       access: {
         operation: {
           query: permissions.canReadProducts,
@@ -1052,15 +1006,29 @@ var init_MenuCategory = __esm({
         }
       },
       fields: {
-        name: (0, import_fields21.text)({ validation: { isRequired: true } }),
+        name: (0, import_fields20.text)({ validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.menuCategories"),
-        description: (0, import_fields21.text)({ ui: { displayMode: "textarea" } }),
-        active: (0, import_fields21.checkbox)({ defaultValue: true }),
-        sortOrder: (0, import_fields21.integer)({ defaultValue: 0 }),
-        menuItems: (0, import_fields21.relationship)({ ref: "MenuItem.category", many: true, ui: { displayMode: "count" } }),
+        description: (0, import_fields20.text)({ ui: { displayMode: "textarea" } }),
+        active: (0, import_fields20.checkbox)({ defaultValue: true }),
+        sortOrder: (0, import_fields20.integer)({ defaultValue: 0 }),
+        menuItems: (0, import_fields20.relationship)({ ref: "MenuItem.category", many: true, ui: { displayMode: "count" } }),
         ...trackingFields
       }
     });
+  }
+});
+
+// features/keystone/lib/store-setting-merge.ts
+function mergeStoreSettingRecord(item, resolvedData) {
+  const merged = { ...item ?? {} };
+  for (const [key, value] of Object.entries(resolvedData ?? {})) {
+    if (value !== void 0) merged[key] = value;
+  }
+  return merged;
+}
+var init_store_setting_merge = __esm({
+  "features/keystone/lib/store-setting-merge.ts"() {
+    "use strict";
   }
 });
 
@@ -1099,11 +1067,15 @@ var init_brand_colors = __esm({
   }
 });
 
-// features/lib/sanitize-store-logo.ts
+// features/keystone/utils/storeLogo.ts
 function sanitizeStoreLogoSvg(svg) {
   const source = svg.trim();
-  if (!source.startsWith("<svg") || !source.endsWith("</svg>") || source.length > 1e5) return "";
-  if (/<!|<\?|\b(?:javascript|data|vbscript):|\bon[a-z]+\s*=|\b(?:href|src|style)\s*=/i.test(source)) return "";
+  if (!source.startsWith("<svg") || !source.endsWith("</svg>") || source.length > 1e5) {
+    return "";
+  }
+  if (/<!|<\?|\b(?:javascript|data|vbscript):|\bon[a-z]+\s*=|\b(?:href|src|style)\s*=/i.test(source)) {
+    return "";
+  }
   let tagCount = 0;
   let match;
   TAG_PATTERN.lastIndex = 0;
@@ -1132,8 +1104,8 @@ function sanitizeStoreLogoSvg(svg) {
   return source;
 }
 var ALLOWED_ELEMENTS, ALLOWED_ATTRIBUTES, ATTRIBUTE_PATTERN, TAG_PATTERN;
-var init_sanitize_store_logo = __esm({
-  "features/lib/sanitize-store-logo.ts"() {
+var init_storeLogo = __esm({
+  "features/keystone/utils/storeLogo.ts"() {
     "use strict";
     ALLOWED_ELEMENTS = /* @__PURE__ */ new Set([
       "svg",
@@ -1197,6 +1169,14 @@ var init_sanitize_store_logo = __esm({
   }
 });
 
+// features/lib/sanitize-store-logo.ts
+var init_sanitize_store_logo = __esm({
+  "features/lib/sanitize-store-logo.ts"() {
+    "use strict";
+    init_storeLogo();
+  }
+});
+
 // features/platform/store-settings/lib/store-logo.ts
 function normalizeStoreLogoColor(value) {
   const numeric = Number.parseFloat(String(value ?? DEFAULT_STORE_LOGO_COLOR));
@@ -1207,8 +1187,8 @@ var DEFAULT_STORE_LOGO_ICON, DEFAULT_STORE_LOGO_COLOR;
 var init_store_logo = __esm({
   "features/platform/store-settings/lib/store-logo.ts"() {
     "use strict";
-    DEFAULT_STORE_LOGO_ICON = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" height="100%" width="100%" viewBox="0 0 42 48"><path fill="#155eef" fill-rule="evenodd" d="m22.102 20.86 9.9-9.9L29.88 8.84l-7.339 7.339V3h-3v13.178l-7.339-7.34-2.121 2.122 9.9 9.9 1.06 1.06zm2.12 2.121 9.9-9.9 2.121 2.122-7.339 7.339H42v3H28.904l7.34 7.339L34.121 35l-9.9-9.899-1.06-1.06zM7.96 35.001l9.9-9.899 1.06-1.06-1.06-1.061-9.9-9.9-2.121 2.122 7.339 7.339H.002v3h13.176l-7.34 7.339zm12.02-7.777-9.9 9.9 2.122 2.12 7.339-7.338V45h3V31.906l7.339 7.338L32 37.124l-9.9-9.9-1.06-1.061z" clip-rule="evenodd"/></svg>';
-    DEFAULT_STORE_LOGO_COLOR = "0";
+    DEFAULT_STORE_LOGO_ICON = '<svg fill="none" height="100%" viewBox="0 0 40 48" width="100%" xmlns="http://www.w3.org/2000/svg"><path d="m29.5411 6.41772c2.6913 5.27688 4.209 11.25228 4.209 17.58218s-1.5177 12.3054-4.2091 17.5823c6.2304-3.3881 10.4593-9.9914 10.4593-17.5823s-4.2289-14.19404-10.4592-17.58218z" fill="#6172f3"/><path d="m20.5481 5.99826c-.9047-1.28153-2.4457-1.9717-3.9913-1.70349-9.40496 1.63214-16.5568 9.83343-16.5568 19.70503 0 9.8717 7.1518 18.0729 16.5567 19.7051 1.5456.2682 3.0867-.4219 3.9913-1.7035 3.5923-5.0889 5.7025-11.2988 5.7025-18.0016 0-6.7027-2.1101-12.9126-5.7024-18.00154z" fill="#444ce7"/></svg>';
+    DEFAULT_STORE_LOGO_COLOR = "160";
   }
 });
 
@@ -1298,27 +1278,28 @@ var init_store_settings_input = __esm({
 });
 
 // features/keystone/models/StoreSettings.ts
-var import_core20, import_access33, import_fields22, StoreSetting;
+var import_core19, import_access32, import_fields21, StoreSetting;
 var init_StoreSettings = __esm({
   "features/keystone/models/StoreSettings.ts"() {
     "use strict";
-    import_core20 = require("@keystone-6/core");
-    import_access33 = require("@keystone-6/core/access");
-    import_fields22 = require("@keystone-6/core/fields");
+    import_core19 = require("@keystone-6/core");
+    import_access32 = require("@keystone-6/core/access");
+    import_fields21 = require("@keystone-6/core/fields");
     init_access();
+    init_store_setting_merge();
     init_store_locale_policy();
     init_brand_colors();
     init_trackingFields();
     init_sanitize_store_logo();
     init_store_logo();
     init_store_settings_input();
-    StoreSetting = (0, import_core20.list)({
+    StoreSetting = (0, import_core19.list)({
       access: {
         operation: {
           query: permissions.canManageSettings,
           create: permissions.canManageSettings,
           update: permissions.canManageSettings,
-          delete: import_access33.denyAll
+          delete: import_access32.denyAll
         }
       },
       hooks: {
@@ -1327,7 +1308,7 @@ var init_StoreSettings = __esm({
         // same effective-record policy as the Store Settings screen.
         validate: ({ operation, resolvedData, item, addValidationError }) => {
           if (operation === "delete") return;
-          const merged = { ...item ?? {}, ...resolvedData ?? {} };
+          const merged = mergeStoreSettingRecord(item, resolvedData);
           for (const message of storeSettingRecordErrors(merged)) addValidationError(message);
         }
       },
@@ -1342,22 +1323,22 @@ var init_StoreSettings = __esm({
         }
       },
       fields: {
-        singletonKey: (0, import_fields22.text)({
+        singletonKey: (0, import_fields21.text)({
           isIndexed: "unique",
           defaultValue: "primary",
           validation: { isRequired: true },
           access: { update: () => false },
           ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } }
         }),
-        name: (0, import_fields22.text)({ validation: { isRequired: true } }),
-        tagline: (0, import_fields22.text)(),
-        description: (0, import_fields22.text)({ ui: { displayMode: "textarea" } }),
-        address: (0, import_fields22.text)({ validation: { isRequired: true } }),
-        phone: (0, import_fields22.text)(),
-        contactEmail: (0, import_fields22.text)({ validation: { isRequired: true } }),
-        currencyCode: (0, import_fields22.text)({ defaultValue: "USD", validation: { isRequired: true, length: { min: 3, max: 3 }, match: { regex: COFFEE_CURRENCY_CODE_PATTERN, explanation: "This cafe pilot supports USD only" } } }),
-        locale: (0, import_fields22.text)({ defaultValue: "en-US", validation: { isRequired: true, match: { regex: /^en-US$/, explanation: "This cafe supports the en-US locale only" } } }),
-        timezone: (0, import_fields22.text)({
+        name: (0, import_fields21.text)({ validation: { isRequired: true } }),
+        tagline: (0, import_fields21.text)(),
+        description: (0, import_fields21.text)({ ui: { displayMode: "textarea" } }),
+        address: (0, import_fields21.text)({ validation: { isRequired: true } }),
+        phone: (0, import_fields21.text)(),
+        contactEmail: (0, import_fields21.text)({ validation: { isRequired: true } }),
+        currencyCode: (0, import_fields21.text)({ defaultValue: "USD", validation: { isRequired: true, length: { min: 3, max: 3 }, match: { regex: COFFEE_CURRENCY_CODE_PATTERN, explanation: "This cafe pilot supports USD only" } } }),
+        locale: (0, import_fields21.text)({ defaultValue: "en-US", validation: { isRequired: true, match: { regex: /^en-US$/, explanation: "This cafe supports the en-US locale only" } } }),
+        timezone: (0, import_fields21.text)({
           defaultValue: "America/New_York",
           validation: { isRequired: true },
           hooks: {
@@ -1369,14 +1350,14 @@ var init_StoreSettings = __esm({
             }
           }
         }),
-        brandColor: (0, import_fields22.select)({
+        brandColor: (0, import_fields21.select)({
           type: "string",
           options: COFFEE_BRAND_COLORS.map(({ label, value }) => ({ label, value })),
           defaultValue: DEFAULT_COFFEE_BRAND_COLOR,
           validation: { isRequired: true },
           ui: { description: "Earlier palette setting kept for existing records; the storefront theme follows the logo colour", itemView: { fieldMode: "read" } }
         }),
-        logoIcon: (0, import_fields22.text)({
+        logoIcon: (0, import_fields21.text)({
           defaultValue: DEFAULT_STORE_LOGO_ICON,
           hooks: {
             resolveInput: ({ resolvedData, fieldKey }) => {
@@ -1390,41 +1371,41 @@ var init_StoreSettings = __esm({
             }
           }
         }),
-        logoColor: (0, import_fields22.text)({
-          defaultValue: "0",
+        logoColor: (0, import_fields21.text)({
+          defaultValue: DEFAULT_STORE_LOGO_COLOR,
           hooks: { resolveInput: ({ resolvedData, fieldKey }) => resolvedData[fieldKey] === void 0 ? void 0 : normalizeStoreLogoColor(resolvedData[fieldKey]) }
         }),
-        weeklyHours: (0, import_fields22.json)({ defaultValue: [] }),
-        pickupLeadTimeMinutes: (0, import_fields22.integer)({ defaultValue: 12, validation: { ...PICKUP_LIMITS.pickupLeadTimeMinutes } }),
-        pickupWindowMinutes: (0, import_fields22.integer)({ defaultValue: 15, validation: { ...PICKUP_LIMITS.pickupWindowMinutes } }),
-        pickupCapacityPerWindow: (0, import_fields22.integer)({ defaultValue: 20, validation: { ...PICKUP_LIMITS.pickupCapacityPerWindow } }),
-        taxRateBasisPoints: (0, import_fields22.decimal)({ precision: 7, scale: 2, defaultValue: "875", validation: { isRequired: true, min: "0", max: "10000" }, ui: { description: "Store pickup sales-tax rate in basis points (887.5 = 8.875%)" } }),
-        menuCategories: (0, import_fields22.relationship)({ ref: "MenuCategory.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        menuItems: (0, import_fields22.relationship)({ ref: "MenuItem.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        menuItemModifiers: (0, import_fields22.relationship)({ ref: "MenuItemModifier.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        cafeOrders: (0, import_fields22.relationship)({ ref: "CafeOrder.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        orderItems: (0, import_fields22.relationship)({ ref: "OrderItem.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        posOrders: (0, import_fields22.relationship)({ ref: "PosOrder.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        registerShifts: (0, import_fields22.relationship)({ ref: "RegisterShift.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        cashMovements: (0, import_fields22.relationship)({ ref: "CashMovement.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        payments: (0, import_fields22.relationship)({ ref: "Payment.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        loyaltyAccounts: (0, import_fields22.relationship)({ ref: "LoyaltyAccount.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        subscriptions: (0, import_fields22.relationship)({ ref: "Subscription.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        cateringOrders: (0, import_fields22.relationship)({ ref: "CateringOrder.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        paymentEvents: (0, import_fields22.relationship)({ ref: "PaymentEvent.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        inventoryItems: (0, import_fields22.relationship)({ ref: "InventoryItem.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        stockMovements: (0, import_fields22.relationship)({ ref: "StockMovement.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        suppliers: (0, import_fields22.relationship)({ ref: "Supplier.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        purchaseOrders: (0, import_fields22.relationship)({ ref: "PurchaseOrder.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        inventoryLots: (0, import_fields22.relationship)({ ref: "InventoryLot.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        recipes: (0, import_fields22.relationship)({ ref: "Recipe.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        ingredients: (0, import_fields22.relationship)({ ref: "Ingredient.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        prepBatches: (0, import_fields22.relationship)({ ref: "PrepBatch.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        prepBatchConsumptions: (0, import_fields22.relationship)({ ref: "PrepBatchConsumption.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        wasteLogs: (0, import_fields22.relationship)({ ref: "WasteLog.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        staffShifts: (0, import_fields22.relationship)({ ref: "StaffShift.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        domainEvents: (0, import_fields22.relationship)({ ref: "CoffeeDomainEvent.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
-        outboxDeliveries: (0, import_fields22.relationship)({ ref: "CoffeeOutboxDelivery.store", many: true, access: { create: import_access33.denyAll, update: import_access33.denyAll } }),
+        weeklyHours: (0, import_fields21.json)({ defaultValue: [] }),
+        pickupLeadTimeMinutes: (0, import_fields21.integer)({ defaultValue: 12, validation: { ...PICKUP_LIMITS.pickupLeadTimeMinutes } }),
+        pickupWindowMinutes: (0, import_fields21.integer)({ defaultValue: 15, validation: { ...PICKUP_LIMITS.pickupWindowMinutes } }),
+        pickupCapacityPerWindow: (0, import_fields21.integer)({ defaultValue: 20, validation: { ...PICKUP_LIMITS.pickupCapacityPerWindow } }),
+        taxRateBasisPoints: (0, import_fields21.decimal)({ precision: 7, scale: 2, defaultValue: "875", validation: { isRequired: true, min: "0", max: "10000" }, ui: { description: "Store pickup sales-tax rate in basis points (887.5 = 8.875%)" } }),
+        menuCategories: (0, import_fields21.relationship)({ ref: "MenuCategory.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        menuItems: (0, import_fields21.relationship)({ ref: "MenuItem.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        menuItemModifiers: (0, import_fields21.relationship)({ ref: "MenuItemModifier.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        cafeOrders: (0, import_fields21.relationship)({ ref: "CafeOrder.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        orderItems: (0, import_fields21.relationship)({ ref: "OrderItem.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        posOrders: (0, import_fields21.relationship)({ ref: "PosOrder.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        registerShifts: (0, import_fields21.relationship)({ ref: "RegisterShift.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        cashMovements: (0, import_fields21.relationship)({ ref: "CashMovement.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        payments: (0, import_fields21.relationship)({ ref: "Payment.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        loyaltyAccounts: (0, import_fields21.relationship)({ ref: "LoyaltyAccount.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        giftCards: (0, import_fields21.relationship)({ ref: "GiftCard.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        subscriptions: (0, import_fields21.relationship)({ ref: "Subscription.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        cateringOrders: (0, import_fields21.relationship)({ ref: "CateringOrder.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        paymentEvents: (0, import_fields21.relationship)({ ref: "PaymentEvent.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        inventoryItems: (0, import_fields21.relationship)({ ref: "InventoryItem.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        stockMovements: (0, import_fields21.relationship)({ ref: "StockMovement.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        suppliers: (0, import_fields21.relationship)({ ref: "Supplier.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        purchaseOrders: (0, import_fields21.relationship)({ ref: "PurchaseOrder.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        inventoryLots: (0, import_fields21.relationship)({ ref: "InventoryLot.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        recipes: (0, import_fields21.relationship)({ ref: "Recipe.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        ingredients: (0, import_fields21.relationship)({ ref: "Ingredient.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        prepBatches: (0, import_fields21.relationship)({ ref: "PrepBatch.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        prepBatchConsumptions: (0, import_fields21.relationship)({ ref: "PrepBatchConsumption.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        wasteLogs: (0, import_fields21.relationship)({ ref: "WasteLog.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        staffShifts: (0, import_fields21.relationship)({ ref: "StaffShift.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
+        commandReceipts: (0, import_fields21.relationship)({ ref: "CoffeeCommandReceipt.store", many: true, access: { create: import_access32.denyAll, update: import_access32.denyAll } }),
         ...trackingFields
       }
     });
@@ -1432,17 +1413,17 @@ var init_StoreSettings = __esm({
 });
 
 // features/keystone/models/MenuItem.ts
-var import_core21, import_fields23, import_fields_document, MenuItem;
+var import_core20, import_fields22, import_fields_document, MenuItem;
 var init_MenuItem = __esm({
   "features/keystone/models/MenuItem.ts"() {
     "use strict";
-    import_core21 = require("@keystone-6/core");
-    import_fields23 = require("@keystone-6/core/fields");
+    import_core20 = require("@keystone-6/core");
+    import_fields22 = require("@keystone-6/core/fields");
     import_fields_document = require("@keystone-6/fields-document");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    MenuItem = (0, import_core21.list)({
+    MenuItem = (0, import_core20.list)({
       access: {
         operation: {
           query: permissions.canReadProducts,
@@ -1453,23 +1434,23 @@ var init_MenuItem = __esm({
       },
       ui: {
         listView: {
-          initialColumns: ["name", "category", "price", "available", "barStation", "prepTimeMinutes"]
+          initialColumns: ["name", "category", "displayPrice", "available", "barStation", "prepTimeMinutes"]
         }
       },
       fields: {
-        idempotencyKey: (0, import_fields23.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageProducts, create: () => false, update: () => false }, ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } } }),
-        name: (0, import_fields23.text)({ validation: { isRequired: true } }),
+        idempotencyKey: (0, import_fields22.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageProducts, create: () => false, update: () => false }, ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } } }),
+        name: (0, import_fields22.text)({ validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.menuItems"),
         description: (0, import_fields_document.document)({ formatting: true, links: true }),
-        shortDescription: (0, import_fields23.text)({ ui: { displayMode: "textarea" } }),
-        price: (0, import_fields23.integer)({ validation: { isRequired: true, min: 0 }, access: { update: () => false }, label: "Price (cents)", ui: { description: "In cents: 495 = $4.95. Platform Menu takes dollars." } }),
-        available: (0, import_fields23.checkbox)({ defaultValue: true, access: { update: () => false } }),
-        featured: (0, import_fields23.checkbox)({ defaultValue: false, access: { update: () => false } }),
-        popular: (0, import_fields23.checkbox)({ defaultValue: false, access: { update: () => false } }),
-        imageUrl: (0, import_fields23.text)({ ui: { description: "Legacy storefront image URL or local asset path" }, db: { isNullable: true } }),
-        primaryImageUrl: (0, import_fields23.virtual)({
-          field: import_core21.graphql.field({
-            type: import_core21.graphql.String,
+        shortDescription: (0, import_fields22.text)({ ui: { displayMode: "textarea" } }),
+        price: (0, import_fields22.integer)({ validation: { isRequired: true, min: 0 }, access: { update: () => false }, label: "Price (cents)", ui: { description: "In cents: 495 = $4.95. Platform Menu takes dollars." } }),
+        available: (0, import_fields22.checkbox)({ defaultValue: true, access: { update: () => false } }),
+        featured: (0, import_fields22.checkbox)({ defaultValue: false, access: { update: () => false } }),
+        popular: (0, import_fields22.checkbox)({ defaultValue: false, access: { update: () => false } }),
+        imageUrl: (0, import_fields22.text)({ ui: { description: "Legacy storefront image URL or local asset path" }, db: { isNullable: true } }),
+        primaryImageUrl: (0, import_fields22.virtual)({
+          field: import_core20.graphql.field({
+            type: import_core20.graphql.String,
             resolve: async (item, _args, context) => {
               const menuItem = await context.query.MenuItem.findOne({
                 where: { id: String(item.id) },
@@ -1486,7 +1467,7 @@ var init_MenuItem = __esm({
             }
           })
         }),
-        menuItemImages: (0, import_fields23.relationship)({
+        menuItemImages: (0, import_fields22.relationship)({
           ref: "MenuItemImage.menuItems",
           many: true,
           ui: {
@@ -1499,10 +1480,10 @@ var init_MenuItem = __esm({
             linkToItem: false
           }
         }),
-        prepTimeMinutes: (0, import_fields23.integer)({ defaultValue: 5, validation: { min: 0 } }),
-        caffeineMg: (0, import_fields23.integer)({ ui: { description: "Approximate caffeine content for drinks" } }),
-        calories: (0, import_fields23.integer)(),
-        barStation: (0, import_fields23.select)({
+        prepTimeMinutes: (0, import_fields22.integer)({ defaultValue: 5, validation: { min: 0 } }),
+        caffeineMg: (0, import_fields22.integer)({ ui: { description: "Approximate caffeine content for drinks" } }),
+        calories: (0, import_fields22.integer)(),
+        barStation: (0, import_fields22.select)({
           type: "string",
           options: [
             { label: "Espresso Bar", value: "espresso_bar" },
@@ -1513,7 +1494,7 @@ var init_MenuItem = __esm({
           ],
           defaultValue: "espresso_bar"
         }),
-        temperatureOptions: (0, import_fields23.multiselect)({
+        temperatureOptions: (0, import_fields22.multiselect)({
           type: "string",
           options: [
             { label: "Hot", value: "hot" },
@@ -1522,7 +1503,7 @@ var init_MenuItem = __esm({
           ],
           defaultValue: ["hot"]
         }),
-        dietaryFlags: (0, import_fields23.multiselect)({
+        dietaryFlags: (0, import_fields22.multiselect)({
           type: "string",
           options: [
             { label: "Vegan", value: "vegan" },
@@ -1533,7 +1514,7 @@ var init_MenuItem = __esm({
           ],
           defaultValue: []
         }),
-        serviceWindows: (0, import_fields23.multiselect)({
+        serviceWindows: (0, import_fields22.multiselect)({
           type: "string",
           options: [
             { label: "Morning", value: "morning" },
@@ -1543,19 +1524,20 @@ var init_MenuItem = __esm({
           ],
           defaultValue: ["all_day"]
         }),
-        displayPrice: (0, import_fields23.virtual)({
-          field: import_core21.graphql.field({
-            type: import_core21.graphql.String,
+        displayPrice: (0, import_fields22.virtual)({
+          label: "Price",
+          field: import_core20.graphql.field({
+            type: import_core20.graphql.String,
             resolve(item) {
               const price2 = typeof item.price === "number" ? item.price : 0;
               return `$${((price2 || 0) / 100).toFixed(2)}`;
             }
           })
         }),
-        category: (0, import_fields23.relationship)({ ref: "MenuCategory.menuItems" }),
+        category: (0, import_fields22.relationship)({ ref: "MenuCategory.menuItems" }),
         // Modifier parent and order-line history are lifecycle links: only the menu
         // commands (manageCoffeeMenu) and checkout write them, never a raw connect/disconnect.
-        modifiers: (0, import_fields23.relationship)({
+        modifiers: (0, import_fields22.relationship)({
           ref: "MenuItemModifier.menuItem",
           many: true,
           access: { create: () => false, update: () => false },
@@ -1566,13 +1548,13 @@ var init_MenuItem = __esm({
             createView: { fieldMode: "hidden" }
           }
         }),
-        orderItems: (0, import_fields23.relationship)({
+        orderItems: (0, import_fields22.relationship)({
           ref: "OrderItem.menuItem",
           many: true,
           access: { create: () => false, update: () => false },
           ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } }
         }),
-        inventoryItem: (0, import_fields23.relationship)({ ref: "InventoryItem.menuItems" }),
+        inventoryItem: (0, import_fields22.relationship)({ ref: "InventoryItem.menuItems" }),
         ...trackingFields
       }
     });
@@ -1580,15 +1562,15 @@ var init_MenuItem = __esm({
 });
 
 // features/keystone/models/MenuItemImage.ts
-var import_core22, import_fields24, MenuItemImage;
+var import_core21, import_fields23, MenuItemImage;
 var init_MenuItemImage = __esm({
   "features/keystone/models/MenuItemImage.ts"() {
     "use strict";
-    import_core22 = require("@keystone-6/core");
-    import_fields24 = require("@keystone-6/core/fields");
+    import_core21 = require("@keystone-6/core");
+    import_fields23 = require("@keystone-6/core/fields");
     init_access();
     init_trackingFields();
-    MenuItemImage = (0, import_core22.list)({
+    MenuItemImage = (0, import_core21.list)({
       access: {
         operation: {
           query: permissions.canReadProducts,
@@ -1603,12 +1585,12 @@ var init_MenuItemImage = __esm({
         }
       },
       fields: {
-        image: (0, import_fields24.image)({ storage: "my_images" }),
-        imagePath: (0, import_fields24.text)({ validation: { isRequired: true } }),
-        altText: (0, import_fields24.text)(),
-        order: (0, import_fields24.integer)({ defaultValue: 0 }),
-        menuItems: (0, import_fields24.relationship)({ ref: "MenuItem.menuItemImages", many: true, ui: { displayMode: "count" } }),
-        metadata: (0, import_fields24.json)(),
+        image: (0, import_fields23.image)({ storage: "my_images" }),
+        imagePath: (0, import_fields23.text)({ validation: { isRequired: true } }),
+        altText: (0, import_fields23.text)(),
+        order: (0, import_fields23.integer)({ defaultValue: 0 }),
+        menuItems: (0, import_fields23.relationship)({ ref: "MenuItem.menuItemImages", many: true, ui: { displayMode: "count" } }),
+        metadata: (0, import_fields23.json)(),
         ...trackingFields
       }
     });
@@ -1616,23 +1598,23 @@ var init_MenuItemImage = __esm({
 });
 
 // features/keystone/models/MenuItemModifier.ts
-var import_core23, import_access37, import_fields25, MenuItemModifier;
+var import_core22, import_access36, import_fields24, MenuItemModifier;
 var init_MenuItemModifier = __esm({
   "features/keystone/models/MenuItemModifier.ts"() {
     "use strict";
-    import_core23 = require("@keystone-6/core");
-    import_access37 = require("@keystone-6/core/access");
+    import_core22 = require("@keystone-6/core");
+    import_access36 = require("@keystone-6/core/access");
     init_access();
-    import_fields25 = require("@keystone-6/core/fields");
+    import_fields24 = require("@keystone-6/core/fields");
     init_requiredRelationship();
     init_trackingFields();
-    MenuItemModifier = (0, import_core23.list)({
+    MenuItemModifier = (0, import_core22.list)({
       access: {
         operation: {
           query: permissions.canReadProducts,
-          create: import_access37.denyAll,
-          update: import_access37.denyAll,
-          delete: import_access37.denyAll
+          create: import_access36.denyAll,
+          update: import_access36.denyAll,
+          delete: import_access36.denyAll
         }
       },
       ui: {
@@ -1644,10 +1626,10 @@ var init_MenuItemModifier = __esm({
         }
       },
       fields: {
-        idempotencyKey: (0, import_fields25.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageProducts, create: () => false, update: () => false } }),
+        idempotencyKey: (0, import_fields24.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageProducts, create: () => false, update: () => false } }),
         store: requiredStoreRelationship("StoreSetting.menuItemModifiers"),
-        name: (0, import_fields25.text)({ validation: { isRequired: true } }),
-        modifierGroup: (0, import_fields25.select)({
+        name: (0, import_fields24.text)({ validation: { isRequired: true } }),
+        modifierGroup: (0, import_fields24.select)({
           type: "string",
           options: [
             { label: "Size", value: "size" },
@@ -1663,18 +1645,18 @@ var init_MenuItemModifier = __esm({
           ],
           defaultValue: "milk"
         }),
-        modifierGroupLabel: (0, import_fields25.text)({ ui: { description: "Customer-facing group label, e.g. Milk choice" } }),
-        required: (0, import_fields25.checkbox)({ defaultValue: false }),
-        minSelections: (0, import_fields25.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        maxSelections: (0, import_fields25.integer)({ defaultValue: 1, validation: { min: 1 } }),
-        priceAdjustment: (0, import_fields25.integer)({ defaultValue: 0, ui: { description: "Cents added or removed" } }),
-        defaultSelected: (0, import_fields25.checkbox)({ defaultValue: false }),
-        inStock: (0, import_fields25.checkbox)({ defaultValue: true, access: { update: () => false } }),
-        menuItem: (0, import_fields25.relationship)({ ref: "MenuItem.modifiers", access: { create: () => false, update: () => false } }),
-        inventoryAction: (0, import_fields25.select)({ type: "string", options: ["unreviewed", "none", "add", "substitute"], defaultValue: "unreviewed" }),
-        inventoryItem: (0, import_fields25.relationship)({ ref: "InventoryItem", ui: { description: "Stable inventory consumed by this option, never matched by name." } }),
-        replacesInventoryItem: (0, import_fields25.relationship)({ ref: "InventoryItem", ui: { description: "For substitution: exact base recipe inventory to replace, in the same unit." } }),
-        inventoryQuantity: (0, import_fields25.decimal)({ precision: 18, scale: 4, defaultValue: "0", validation: { min: "0" }, ui: { description: "Add-on quantity per serving in the linked inventory item's unit." } }),
+        modifierGroupLabel: (0, import_fields24.text)({ ui: { description: "Customer-facing group label, e.g. Milk choice" } }),
+        required: (0, import_fields24.checkbox)({ defaultValue: false }),
+        minSelections: (0, import_fields24.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        maxSelections: (0, import_fields24.integer)({ defaultValue: 1, validation: { min: 1 } }),
+        priceAdjustment: (0, import_fields24.integer)({ defaultValue: 0, ui: { description: "Cents added or removed" } }),
+        defaultSelected: (0, import_fields24.checkbox)({ defaultValue: false }),
+        inStock: (0, import_fields24.checkbox)({ defaultValue: true, access: { update: () => false } }),
+        menuItem: (0, import_fields24.relationship)({ ref: "MenuItem.modifiers", access: { create: () => false, update: () => false } }),
+        inventoryAction: (0, import_fields24.select)({ type: "string", options: ["unreviewed", "none", "add", "substitute"], defaultValue: "unreviewed" }),
+        inventoryItem: (0, import_fields24.relationship)({ ref: "InventoryItem", ui: { description: "Stable inventory consumed by this option, never matched by name." } }),
+        replacesInventoryItem: (0, import_fields24.relationship)({ ref: "InventoryItem", ui: { description: "For substitution: exact base recipe inventory to replace, in the same unit." } }),
+        inventoryQuantity: (0, import_fields24.decimal)({ precision: 18, scale: 4, defaultValue: "0", validation: { min: "0" }, ui: { description: "Add-on quantity per serving in the linked inventory item's unit." } }),
         ...trackingFields
       }
     });
@@ -1682,37 +1664,39 @@ var init_MenuItemModifier = __esm({
 });
 
 // features/keystone/models/CafeOrder.ts
-var import_core24, import_access39, import_fields26, import_crypto, CafeOrder;
+var import_core23, import_access38, import_fields25, import_crypto, CafeOrder;
 var init_CafeOrder = __esm({
   "features/keystone/models/CafeOrder.ts"() {
     "use strict";
-    import_core24 = require("@keystone-6/core");
-    import_access39 = require("@keystone-6/core/access");
-    import_fields26 = require("@keystone-6/core/fields");
+    import_core23 = require("@keystone-6/core");
+    import_access38 = require("@keystone-6/core/access");
+    import_fields25 = require("@keystone-6/core/fields");
     import_crypto = __toESM(require("crypto"));
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    CafeOrder = (0, import_core24.list)({
+    CafeOrder = (0, import_core23.list)({
       access: {
         operation: {
           query: ({ session }) => permissions.canReadOrders({ session }) || permissions.canManageOrders({ session }),
-          create: import_access39.denyAll,
-          update: import_access39.denyAll,
-          delete: import_access39.denyAll
+          create: import_access38.denyAll,
+          update: import_access38.denyAll,
+          delete: import_access38.denyAll
         }
       },
       ui: {
+        // Orders are known by their number everywhere staff see them (relationship columns, pickers).
+        labelField: "orderNumber",
         hideCreate: true,
         hideDelete: true,
         itemView: { defaultFieldMode: "read" },
         listView: {
-          initialColumns: ["orderNumber", "status", "fulfillmentType", "customerName", "promisedAt", "total"]
+          initialColumns: ["orderNumber", "status", "fulfillmentType", "customerName", "promisedAt", "displayTotal"]
         }
       },
       fields: {
-        orderNumber: (0, import_fields26.text)({ validation: { isRequired: true }, isIndexed: "unique" }),
-        idempotencyKey: (0, import_fields26.text)({
+        orderNumber: (0, import_fields25.text)({ validation: { isRequired: true }, isIndexed: "unique" }),
+        idempotencyKey: (0, import_fields25.text)({
           isIndexed: "unique",
           isFilterable: false,
           isOrderable: false,
@@ -1720,14 +1704,14 @@ var init_CafeOrder = __esm({
           ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } },
           access: { read: permissions.canManageOrders, update: () => false }
         }),
-        requestFingerprint: (0, import_fields26.text)({
+        requestFingerprint: (0, import_fields25.text)({
           db: { isNullable: true },
           isFilterable: false,
           isOrderable: false,
           ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } },
           access: { read: permissions.canManageOrders, update: () => false }
         }),
-        fulfillmentType: (0, import_fields26.select)({
+        fulfillmentType: (0, import_fields25.select)({
           type: "string",
           options: [
             { label: "Pickup", value: "pickup" },
@@ -1736,7 +1720,7 @@ var init_CafeOrder = __esm({
           ],
           defaultValue: "pickup"
         }),
-        orderSource: (0, import_fields26.select)({
+        orderSource: (0, import_fields25.select)({
           type: "string",
           options: [
             { label: "Online", value: "online" },
@@ -1746,7 +1730,7 @@ var init_CafeOrder = __esm({
           ],
           defaultValue: "online"
         }),
-        status: (0, import_fields26.select)({
+        status: (0, import_fields25.select)({
           type: "string",
           access: { update: () => false },
           options: [
@@ -1762,25 +1746,37 @@ var init_CafeOrder = __esm({
           ],
           defaultValue: "open"
         }),
-        customerName: (0, import_fields26.text)(),
-        customerEmail: (0, import_fields26.text)(),
-        customerPhone: (0, import_fields26.text)(),
-        pickupName: (0, import_fields26.text)({ ui: { description: "Name called at handoff counter" } }),
-        specialInstructions: (0, import_fields26.text)({ ui: { displayMode: "textarea" } }),
-        subtotal: (0, import_fields26.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        tax: (0, import_fields26.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        tip: (0, import_fields26.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        discount: (0, import_fields26.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        total: (0, import_fields26.integer)({ defaultValue: 0, validation: { min: 0 } }),
-        currencyCode: (0, import_fields26.text)({ defaultValue: "USD" }),
-        paidAt: (0, import_fields26.timestamp)(),
-        promisedAt: (0, import_fields26.timestamp)({ ui: { description: "Quoted pickup time" } }),
-        startedAt: (0, import_fields26.timestamp)(),
-        readyAt: (0, import_fields26.timestamp)(),
-        completedAt: (0, import_fields26.timestamp)(),
-        cancelledAt: (0, import_fields26.timestamp)(),
-        isRush: (0, import_fields26.checkbox)({ defaultValue: false }),
-        handoffCode: (0, import_fields26.text)({
+        customerName: (0, import_fields25.text)(),
+        customerEmail: (0, import_fields25.text)(),
+        customerPhone: (0, import_fields25.text)(),
+        pickupName: (0, import_fields25.text)({ ui: { description: "Name called at handoff counter" } }),
+        specialInstructions: (0, import_fields25.text)({ ui: { displayMode: "textarea" } }),
+        subtotal: (0, import_fields25.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        tax: (0, import_fields25.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        tip: (0, import_fields25.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        discount: (0, import_fields25.integer)({ defaultValue: 0, validation: { min: 0 } }),
+        total: (0, import_fields25.integer)({ defaultValue: 0, validation: { min: 0 }, ui: { description: "Total in cents" } }),
+        // The total as staff read it ($4.63), for the list column next to the stored cents.
+        displayTotal: (0, import_fields25.virtual)({
+          label: "Total",
+          field: import_core23.graphql.field({
+            type: import_core23.graphql.String,
+            resolve(item) {
+              const cents2 = typeof item.total === "number" ? item.total : 0;
+              const currency = typeof item.currencyCode === "string" && /^[A-Z]{3}$/.test(item.currencyCode) ? item.currencyCode : "USD";
+              return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents2 / 100);
+            }
+          })
+        }),
+        currencyCode: (0, import_fields25.text)({ defaultValue: "USD" }),
+        paidAt: (0, import_fields25.timestamp)(),
+        promisedAt: (0, import_fields25.timestamp)({ ui: { description: "Quoted pickup time" } }),
+        startedAt: (0, import_fields25.timestamp)(),
+        readyAt: (0, import_fields25.timestamp)(),
+        completedAt: (0, import_fields25.timestamp)(),
+        cancelledAt: (0, import_fields25.timestamp)(),
+        isRush: (0, import_fields25.checkbox)({ defaultValue: false }),
+        handoffCode: (0, import_fields25.text)({
           hooks: {
             resolveInput: ({ operation, resolvedData }) => {
               if (operation === "create" && !resolvedData.handoffCode) {
@@ -1790,7 +1786,7 @@ var init_CafeOrder = __esm({
             }
           }
         }),
-        secretKey: (0, import_fields26.text)({
+        secretKey: (0, import_fields25.text)({
           isFilterable: false,
           isOrderable: false,
           access: { read: () => false, update: () => false },
@@ -1799,9 +1795,9 @@ var init_CafeOrder = __esm({
           }
         }),
         store: requiredStoreRelationship("StoreSetting.cafeOrders"),
-        orderAgeMinutes: (0, import_fields26.virtual)({
-          field: import_core24.graphql.field({
-            type: import_core24.graphql.Int,
+        orderAgeMinutes: (0, import_fields25.virtual)({
+          field: import_core23.graphql.field({
+            type: import_core23.graphql.Int,
             resolve(item) {
               const createdAt = item.createdAt;
               if (typeof createdAt !== "string" && !(createdAt instanceof Date)) return 0;
@@ -1809,14 +1805,14 @@ var init_CafeOrder = __esm({
             }
           })
         }),
-        customer: (0, import_fields26.relationship)({ ref: "User.cafeOrders" }),
-        orderItems: (0, import_fields26.relationship)({ ref: "OrderItem.order", many: true }),
-        payments: (0, import_fields26.relationship)({ ref: "Payment.order", many: true }),
-        paymentEvents: (0, import_fields26.relationship)({ ref: "PaymentEvent.order", many: true }),
-        stockMovements: (0, import_fields26.relationship)({ ref: "StockMovement.order", many: true }),
-        prepBatchConsumptions: (0, import_fields26.relationship)({ ref: "PrepBatchConsumption.order", many: true }),
-        loyaltyAccount: (0, import_fields26.relationship)({ ref: "LoyaltyAccount.orders" }),
-        loyaltyEvents: (0, import_fields26.relationship)({ ref: "LoyaltyEvent.order", many: true }),
+        customer: (0, import_fields25.relationship)({ ref: "User.cafeOrders" }),
+        orderItems: (0, import_fields25.relationship)({ ref: "OrderItem.order", many: true }),
+        payments: (0, import_fields25.relationship)({ ref: "Payment.order", many: true }),
+        paymentEvents: (0, import_fields25.relationship)({ ref: "PaymentEvent.order", many: true }),
+        stockMovements: (0, import_fields25.relationship)({ ref: "StockMovement.order", many: true }),
+        prepBatchConsumptions: (0, import_fields25.relationship)({ ref: "PrepBatchConsumption.order", many: true }),
+        loyaltyAccount: (0, import_fields25.relationship)({ ref: "LoyaltyAccount.orders" }),
+        loyaltyEvents: (0, import_fields25.relationship)({ ref: "LoyaltyEvent.order", many: true }),
         ...trackingFields
       }
     });
@@ -1824,23 +1820,23 @@ var init_CafeOrder = __esm({
 });
 
 // features/keystone/models/OrderItem.ts
-var import_core25, import_access41, import_fields27, OrderItem;
+var import_core24, import_access40, import_fields26, OrderItem;
 var init_OrderItem = __esm({
   "features/keystone/models/OrderItem.ts"() {
     "use strict";
-    import_core25 = require("@keystone-6/core");
-    import_access41 = require("@keystone-6/core/access");
-    import_fields27 = require("@keystone-6/core/fields");
+    import_core24 = require("@keystone-6/core");
+    import_access40 = require("@keystone-6/core/access");
+    import_fields26 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    OrderItem = (0, import_core25.list)({
+    OrderItem = (0, import_core24.list)({
       access: {
         operation: {
           query: permissions.canReadOrders,
-          create: import_access41.denyAll,
-          update: import_access41.denyAll,
-          delete: import_access41.denyAll
+          create: import_access40.denyAll,
+          update: import_access40.denyAll,
+          delete: import_access40.denyAll
         }
       },
       ui: {
@@ -1853,34 +1849,34 @@ var init_OrderItem = __esm({
       },
       fields: {
         store: requiredStoreRelationship("StoreSetting.orderItems"),
-        quantity: (0, import_fields27.integer)({ defaultValue: 1, validation: { min: 1, isRequired: true } }),
-        price: (0, import_fields27.integer)({
+        quantity: (0, import_fields26.integer)({ defaultValue: 1, validation: { min: 1, isRequired: true } }),
+        price: (0, import_fields26.integer)({
           validation: { isRequired: true, min: 0 },
           ui: { description: "Unit price snapshot in cents", itemView: { fieldMode: "read" } },
           access: { update: () => false }
         }),
-        itemNameSnapshot: (0, import_fields27.text)({
+        itemNameSnapshot: (0, import_fields26.text)({
           ui: { description: "Menu item name at time of order", itemView: { fieldMode: "read" } },
           access: { update: () => false }
         }),
-        imagePathSnapshot: (0, import_fields27.text)({
+        imagePathSnapshot: (0, import_fields26.text)({
           ui: { description: "Primary menu image path at time of order", itemView: { fieldMode: "read" } },
           access: { update: () => false }
         }),
-        customizationsSummary: (0, import_fields27.text)({
+        customizationsSummary: (0, import_fields26.text)({
           ui: { displayMode: "textarea", itemView: { fieldMode: "read" } },
           access: { update: () => false }
         }),
-        modifierSnapshot: (0, import_fields27.json)({
+        modifierSnapshot: (0, import_fields26.json)({
           defaultValue: [],
           ui: { description: "Selected modifier names, groups, and price adjustments at time of order", itemView: { fieldMode: "read" } },
           access: { update: () => false }
         }),
-        specialInstructions: (0, import_fields27.text)({
+        specialInstructions: (0, import_fields26.text)({
           ui: { displayMode: "textarea", itemView: { fieldMode: "read" } },
           access: { update: () => false }
         }),
-        barStatus: (0, import_fields27.select)({
+        barStatus: (0, import_fields26.select)({
           type: "string",
           access: { update: () => false },
           options: [
@@ -1893,7 +1889,7 @@ var init_OrderItem = __esm({
           ],
           defaultValue: "new"
         }),
-        station: (0, import_fields27.select)({
+        station: (0, import_fields26.select)({
           type: "string",
           access: { update: () => false },
           options: [
@@ -1905,13 +1901,13 @@ var init_OrderItem = __esm({
           ],
           defaultValue: "espresso_bar"
         }),
-        queuedAt: (0, import_fields27.timestamp)({ access: { update: () => false } }),
-        startedAt: (0, import_fields27.timestamp)({ access: { update: () => false } }),
-        readyAt: (0, import_fields27.timestamp)({ access: { update: () => false } }),
-        handedOffAt: (0, import_fields27.timestamp)({ access: { update: () => false } }),
-        totalPrice: (0, import_fields27.virtual)({
-          field: import_core25.graphql.field({
-            type: import_core25.graphql.Int,
+        queuedAt: (0, import_fields26.timestamp)({ access: { update: () => false } }),
+        startedAt: (0, import_fields26.timestamp)({ access: { update: () => false } }),
+        readyAt: (0, import_fields26.timestamp)({ access: { update: () => false } }),
+        handedOffAt: (0, import_fields26.timestamp)({ access: { update: () => false } }),
+        totalPrice: (0, import_fields26.virtual)({
+          field: import_core24.graphql.field({
+            type: import_core24.graphql.Int,
             resolve(item) {
               const price2 = typeof item.price === "number" ? item.price : 0;
               const quantity = typeof item.quantity === "number" ? item.quantity : 1;
@@ -1919,9 +1915,9 @@ var init_OrderItem = __esm({
             }
           })
         }),
-        order: (0, import_fields27.relationship)({ ref: "CafeOrder.orderItems" }),
-        menuItem: (0, import_fields27.relationship)({ ref: "MenuItem.orderItems" }),
-        appliedModifiers: (0, import_fields27.relationship)({ ref: "MenuItemModifier", many: true }),
+        order: (0, import_fields26.relationship)({ ref: "CafeOrder.orderItems" }),
+        menuItem: (0, import_fields26.relationship)({ ref: "MenuItem.orderItems" }),
+        appliedModifiers: (0, import_fields26.relationship)({ ref: "MenuItemModifier", many: true }),
         ...trackingFields
       }
     });
@@ -1929,43 +1925,44 @@ var init_OrderItem = __esm({
 });
 
 // features/keystone/models/Payment.ts
-var import_core26, import_access43, import_fields28, Payment;
+var import_core25, import_access42, import_core26, import_fields27, Payment;
 var init_Payment = __esm({
   "features/keystone/models/Payment.ts"() {
     "use strict";
+    import_core25 = require("@keystone-6/core");
+    import_access42 = require("@keystone-6/core/access");
     import_core26 = require("@keystone-6/core");
-    import_access43 = require("@keystone-6/core/access");
-    import_fields28 = require("@keystone-6/core/fields");
+    import_fields27 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
-    Payment = (0, import_core26.list)({
+    Payment = (0, import_core25.list)({
       access: {
         operation: {
           query: permissions.canReadPayments,
-          create: import_access43.denyAll,
-          update: import_access43.denyAll,
-          delete: import_access43.denyAll
+          create: import_access42.denyAll,
+          update: import_access42.denyAll,
+          delete: import_access42.denyAll
         }
       },
-      ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["order", "status", "method", "amount", "processedAt"] } },
+      ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["order", "status", "method", "displayAmount", "processedAt"] } },
       fields: {
-        idempotencyKey: (0, import_fields28.text)({
+        idempotencyKey: (0, import_fields27.text)({
           isIndexed: "unique",
           db: { isNullable: true },
           ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } },
           access: { read: permissions.canManagePayments, update: () => false }
         }),
-        refundIdempotencyKey: (0, import_fields28.text)({
+        refundIdempotencyKey: (0, import_fields27.text)({
           isIndexed: "unique",
           db: { isNullable: true },
           access: { read: permissions.canManagePayments, update: () => false },
           ui: { itemView: { fieldMode: "read" }, createView: { fieldMode: "hidden" } }
         }),
-        refundedAmount: (0, import_fields28.integer)({ defaultValue: 0, validation: { min: 0 }, access: { update: () => false } }),
-        refundReason: (0, import_fields28.text)({ access: { update: () => false } }),
-        refundedAt: (0, import_fields28.timestamp)({ access: { update: () => false } }),
-        status: (0, import_fields28.select)({
+        refundedAmount: (0, import_fields27.integer)({ defaultValue: 0, validation: { min: 0 }, access: { update: () => false } }),
+        refundReason: (0, import_fields27.text)({ access: { update: () => false } }),
+        refundedAt: (0, import_fields27.timestamp)({ access: { update: () => false } }),
+        status: (0, import_fields27.select)({
           type: "string",
           access: { update: () => false },
           options: [
@@ -1978,7 +1975,7 @@ var init_Payment = __esm({
           ],
           defaultValue: "pending"
         }),
-        method: (0, import_fields28.select)({
+        method: (0, import_fields27.select)({
           type: "string",
           options: [
             { label: "Card", value: "card" },
@@ -1988,19 +1985,31 @@ var init_Payment = __esm({
           ],
           defaultValue: "card"
         }),
-        amount: (0, import_fields28.integer)({ validation: { isRequired: true, min: 0 }, ui: { description: "Amount in cents" } }),
-        currencyCode: (0, import_fields28.text)({ defaultValue: "USD" }),
-        provider: (0, import_fields28.text)({ defaultValue: "manual" }),
-        providerPaymentId: (0, import_fields28.text)(),
-        failureMessage: (0, import_fields28.text)(),
-        processedAt: (0, import_fields28.timestamp)(),
+        amount: (0, import_fields27.integer)({ validation: { isRequired: true, min: 0 }, ui: { description: "Amount in cents" } }),
+        currencyCode: (0, import_fields27.text)({ defaultValue: "USD" }),
+        // The amount as staff read it ($5.39), next to the stored cents.
+        displayAmount: (0, import_fields27.virtual)({
+          label: "Amount",
+          field: import_core26.graphql.field({
+            type: import_core26.graphql.String,
+            resolve(item) {
+              const cents2 = typeof item.amount === "number" ? item.amount : 0;
+              const currency = typeof item.currencyCode === "string" && /^[A-Z]{3}$/.test(item.currencyCode) ? item.currencyCode : "USD";
+              return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents2 / 100);
+            }
+          })
+        }),
+        provider: (0, import_fields27.text)({ defaultValue: "manual" }),
+        providerPaymentId: (0, import_fields27.text)(),
+        failureMessage: (0, import_fields27.text)(),
+        processedAt: (0, import_fields27.timestamp)(),
         store: requiredStoreRelationship("StoreSetting.payments"),
-        order: (0, import_fields28.relationship)({ ref: "CafeOrder.payments" }),
-        customer: (0, import_fields28.relationship)({ ref: "User.payments" }),
-        paymentProvider: (0, import_fields28.relationship)({ ref: "PaymentProvider.paymentRecords" }),
-        events: (0, import_fields28.relationship)({ ref: "PaymentEvent.payment", many: true }),
-        registerShift: (0, import_fields28.relationship)({ ref: "RegisterShift.payments" }),
-        refundRegisterShift: (0, import_fields28.relationship)({ ref: "RegisterShift", access: { create: import_access43.denyAll, update: import_access43.denyAll }, ui: { description: "Actual payout shift; original sale shift and its close remain unchanged." } }),
+        order: (0, import_fields27.relationship)({ ref: "CafeOrder.payments" }),
+        customer: (0, import_fields27.relationship)({ ref: "User.payments" }),
+        paymentProvider: (0, import_fields27.relationship)({ ref: "PaymentProvider.paymentRecords" }),
+        events: (0, import_fields27.relationship)({ ref: "PaymentEvent.payment", many: true }),
+        registerShift: (0, import_fields27.relationship)({ ref: "RegisterShift.payments" }),
+        refundRegisterShift: (0, import_fields27.relationship)({ ref: "RegisterShift", access: { create: import_access42.denyAll, update: import_access42.denyAll }, ui: { description: "Actual payout shift; original sale shift and its close remain unchanged." } }),
         ...trackingFields
       }
     });
@@ -2008,13 +2017,13 @@ var init_Payment = __esm({
 });
 
 // features/keystone/models/PaymentEvent.ts
-var import_core27, import_access45, import_fields29, PaymentEvent;
+var import_core27, import_access44, import_fields28, PaymentEvent;
 var init_PaymentEvent = __esm({
   "features/keystone/models/PaymentEvent.ts"() {
     "use strict";
     import_core27 = require("@keystone-6/core");
-    import_access45 = require("@keystone-6/core/access");
-    import_fields29 = require("@keystone-6/core/fields");
+    import_access44 = require("@keystone-6/core/access");
+    import_fields28 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
@@ -2022,9 +2031,9 @@ var init_PaymentEvent = __esm({
       access: {
         operation: {
           query: permissions.canReadPayments,
-          create: import_access45.denyAll,
-          update: import_access45.denyAll,
-          delete: import_access45.denyAll
+          create: import_access44.denyAll,
+          update: import_access44.denyAll,
+          delete: import_access44.denyAll
         }
       },
       ui: {
@@ -2034,12 +2043,12 @@ var init_PaymentEvent = __esm({
         listView: { initialColumns: ["providerCode", "eventType", "status", "processedAt"] }
       },
       fields: {
-        replayKey: (0, import_fields29.text)({ isIndexed: "unique", validation: { isRequired: true } }),
-        providerCode: (0, import_fields29.text)({ validation: { isRequired: true } }),
-        providerEventId: (0, import_fields29.text)({ validation: { isRequired: true } }),
-        eventType: (0, import_fields29.text)({ validation: { isRequired: true } }),
-        payloadHash: (0, import_fields29.text)({ validation: { isRequired: true } }),
-        status: (0, import_fields29.select)({
+        replayKey: (0, import_fields28.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        providerCode: (0, import_fields28.text)({ validation: { isRequired: true } }),
+        providerEventId: (0, import_fields28.text)({ validation: { isRequired: true } }),
+        eventType: (0, import_fields28.text)({ validation: { isRequired: true } }),
+        payloadHash: (0, import_fields28.text)({ validation: { isRequired: true } }),
+        status: (0, import_fields28.select)({
           type: "string",
           options: [
             { label: "Processed", value: "processed" },
@@ -2047,10 +2056,10 @@ var init_PaymentEvent = __esm({
           ],
           validation: { isRequired: true }
         }),
-        processedAt: (0, import_fields29.timestamp)({ defaultValue: { kind: "now" } }),
+        processedAt: (0, import_fields28.timestamp)({ defaultValue: { kind: "now" } }),
         store: requiredStoreRelationship("StoreSetting.paymentEvents"),
-        order: (0, import_fields29.relationship)({ ref: "CafeOrder.paymentEvents" }),
-        payment: (0, import_fields29.relationship)({ ref: "Payment.events" }),
+        order: (0, import_fields28.relationship)({ ref: "CafeOrder.paymentEvents" }),
+        payment: (0, import_fields28.relationship)({ ref: "Payment.events" }),
         ...trackingFields
       }
     });
@@ -2058,13 +2067,13 @@ var init_PaymentEvent = __esm({
 });
 
 // features/keystone/models/PaymentProvider.ts
-var import_core28, import_access47, import_fields30, PaymentProvider;
+var import_core28, import_access46, import_fields29, PaymentProvider;
 var init_PaymentProvider = __esm({
   "features/keystone/models/PaymentProvider.ts"() {
     "use strict";
     import_core28 = require("@keystone-6/core");
-    import_access47 = require("@keystone-6/core/access");
-    import_fields30 = require("@keystone-6/core/fields");
+    import_access46 = require("@keystone-6/core/access");
+    import_fields29 = require("@keystone-6/core/fields");
     init_access();
     init_trackingFields();
     PaymentProvider = (0, import_core28.list)({
@@ -2078,8 +2087,8 @@ var init_PaymentProvider = __esm({
       },
       ui: { listView: { initialColumns: ["name", "code", "isInstalled"] } },
       fields: {
-        name: (0, import_fields30.text)({ validation: { isRequired: true } }),
-        code: (0, import_fields30.text)({
+        name: (0, import_fields29.text)({ validation: { isRequired: true } }),
+        code: (0, import_fields29.text)({
           isIndexed: "unique",
           validation: {
             isRequired: true,
@@ -2090,13 +2099,13 @@ var init_PaymentProvider = __esm({
           },
           ui: { description: "Must match a server-owned static payment adapter code" }
         }),
-        isInstalled: (0, import_fields30.checkbox)({ defaultValue: false }),
-        metadata: (0, import_fields30.json)({
+        isInstalled: (0, import_fields29.checkbox)({ defaultValue: false }),
+        metadata: (0, import_fields29.json)({
           defaultValue: {},
           ui: { description: "Non-secret display/configuration metadata only. Credentials are read from environment variables." }
         }),
         // Payments are linked from the payment side; the inverse is not a second writer of payment evidence.
-        paymentRecords: (0, import_fields30.relationship)({ ref: "Payment.paymentProvider", many: true, access: { create: import_access47.denyAll, update: import_access47.denyAll }, ui: { itemView: { fieldMode: "read" } } }),
+        paymentRecords: (0, import_fields29.relationship)({ ref: "Payment.paymentProvider", many: true, access: { create: import_access46.denyAll, update: import_access46.denyAll }, ui: { itemView: { fieldMode: "read" } } }),
         ...trackingFields
       }
     });
@@ -2104,12 +2113,12 @@ var init_PaymentProvider = __esm({
 });
 
 // features/keystone/models/InventoryItem.ts
-var import_core29, import_fields31, InventoryItem;
+var import_core29, import_fields30, InventoryItem;
 var init_InventoryItem = __esm({
   "features/keystone/models/InventoryItem.ts"() {
     "use strict";
     import_core29 = require("@keystone-6/core");
-    import_fields31 = require("@keystone-6/core/fields");
+    import_fields30 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
@@ -2142,9 +2151,9 @@ var init_InventoryItem = __esm({
       },
       ui: { listView: { initialColumns: ["name", "category", "currentStock", "unit", "reorderPoint"] } },
       fields: {
-        name: (0, import_fields31.text)({ validation: { isRequired: true } }),
+        name: (0, import_fields30.text)({ validation: { isRequired: true } }),
         store: requiredStoreRelationship("StoreSetting.inventoryItems"),
-        category: (0, import_fields31.select)({
+        category: (0, import_fields30.select)({
           type: "string",
           options: [
             { label: "Coffee", value: "coffee" },
@@ -2157,7 +2166,7 @@ var init_InventoryItem = __esm({
           ],
           defaultValue: "coffee"
         }),
-        unit: (0, import_fields31.select)({
+        unit: (0, import_fields30.select)({
           type: "string",
           options: [
             { label: "Each", value: "each" },
@@ -2170,17 +2179,17 @@ var init_InventoryItem = __esm({
           defaultValue: "each"
         }),
         // Stock changes only through receiving, prep, sales and waste, each with a stock movement.
-        currentStock: (0, import_fields31.decimal)({ defaultValue: "0", access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
-        reorderPoint: (0, import_fields31.decimal)({ defaultValue: "0" }),
-        parLevel: (0, import_fields31.decimal)({ defaultValue: "0" }),
-        costPerUnit: (0, import_fields31.integer)({ defaultValue: 0, validation: { min: 0 }, ui: { description: "Cost in cents" } }),
-        supplierName: (0, import_fields31.text)(),
-        sku: (0, import_fields31.text)(),
-        menuItems: (0, import_fields31.relationship)({ ref: "MenuItem.inventoryItem", many: true }),
-        stockMovements: (0, import_fields31.relationship)({ ref: "StockMovement.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
-        inventoryLots: (0, import_fields31.relationship)({ ref: "InventoryLot.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
-        purchaseOrders: (0, import_fields31.relationship)({ ref: "PurchaseOrder.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
-        wasteLogs: (0, import_fields31.relationship)({ ref: "WasteLog.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
+        currentStock: (0, import_fields30.decimal)({ defaultValue: "0", access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
+        reorderPoint: (0, import_fields30.decimal)({ defaultValue: "0" }),
+        parLevel: (0, import_fields30.decimal)({ defaultValue: "0" }),
+        costPerUnit: (0, import_fields30.integer)({ defaultValue: 0, validation: { min: 0 }, ui: { description: "Cost in cents" } }),
+        supplierName: (0, import_fields30.text)(),
+        sku: (0, import_fields30.text)(),
+        menuItems: (0, import_fields30.relationship)({ ref: "MenuItem.inventoryItem", many: true }),
+        stockMovements: (0, import_fields30.relationship)({ ref: "StockMovement.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
+        inventoryLots: (0, import_fields30.relationship)({ ref: "InventoryLot.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
+        purchaseOrders: (0, import_fields30.relationship)({ ref: "PurchaseOrder.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
+        wasteLogs: (0, import_fields30.relationship)({ ref: "WasteLog.inventoryItem", many: true, access: { create: () => false, update: () => false }, ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } } }),
         ...trackingFields
       }
     });
@@ -2188,13 +2197,13 @@ var init_InventoryItem = __esm({
 });
 
 // features/keystone/models/StockMovement.ts
-var import_core30, import_access50, import_fields32, StockMovement;
+var import_core30, import_access49, import_fields31, StockMovement;
 var init_StockMovement = __esm({
   "features/keystone/models/StockMovement.ts"() {
     "use strict";
     import_core30 = require("@keystone-6/core");
-    import_access50 = require("@keystone-6/core/access");
-    import_fields32 = require("@keystone-6/core/fields");
+    import_access49 = require("@keystone-6/core/access");
+    import_fields31 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
@@ -2202,9 +2211,9 @@ var init_StockMovement = __esm({
       access: {
         operation: {
           query: permissions.canReadInventory,
-          create: import_access50.denyAll,
-          update: import_access50.denyAll,
-          delete: import_access50.denyAll
+          create: import_access49.denyAll,
+          update: import_access49.denyAll,
+          delete: import_access49.denyAll
         }
       },
       ui: {
@@ -2214,8 +2223,8 @@ var init_StockMovement = __esm({
         listView: { initialColumns: ["inventoryItem", "type", "quantity", "reason"] }
       },
       fields: {
-        idempotencyKey: (0, import_fields32.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory, create: () => false, update: () => false } }),
-        type: (0, import_fields32.select)({
+        idempotencyKey: (0, import_fields31.text)({ isIndexed: "unique", db: { isNullable: true }, access: { read: permissions.canManageInventory, create: () => false, update: () => false } }),
+        type: (0, import_fields31.select)({
           type: "string",
           options: [
             { label: "Received", value: "received" },
@@ -2227,17 +2236,17 @@ var init_StockMovement = __esm({
           ],
           defaultValue: "adjustment"
         }),
-        quantity: (0, import_fields32.decimal)({ validation: { isRequired: true } }),
-        reason: (0, import_fields32.text)(),
-        notes: (0, import_fields32.text)({ ui: { displayMode: "textarea" } }),
+        quantity: (0, import_fields31.decimal)({ validation: { isRequired: true } }),
+        reason: (0, import_fields31.text)(),
+        notes: (0, import_fields31.text)({ ui: { displayMode: "textarea" } }),
         store: requiredStoreRelationship("StoreSetting.stockMovements"),
         inventoryItem: requiredRelationship("InventoryItem.stockMovements", "inventoryItem", "InventoryItem"),
-        order: (0, import_fields32.relationship)({ ref: "CafeOrder.stockMovements" }),
-        purchaseOrder: (0, import_fields32.relationship)({ ref: "PurchaseOrder.stockMovements" }),
-        inventoryLot: (0, import_fields32.relationship)({ ref: "InventoryLot.stockMovements" }),
-        prepBatch: (0, import_fields32.relationship)({ ref: "PrepBatch.stockMovements" }),
-        wasteLog: (0, import_fields32.relationship)({ ref: "WasteLog.stockMovements" }),
-        createdBy: (0, import_fields32.relationship)({ ref: "User" }),
+        order: (0, import_fields31.relationship)({ ref: "CafeOrder.stockMovements" }),
+        purchaseOrder: (0, import_fields31.relationship)({ ref: "PurchaseOrder.stockMovements" }),
+        inventoryLot: (0, import_fields31.relationship)({ ref: "InventoryLot.stockMovements" }),
+        prepBatch: (0, import_fields31.relationship)({ ref: "PrepBatch.stockMovements" }),
+        wasteLog: (0, import_fields31.relationship)({ ref: "WasteLog.stockMovements" }),
+        createdBy: (0, import_fields31.relationship)({ ref: "User" }),
         ...trackingFields
       }
     });
@@ -2245,13 +2254,13 @@ var init_StockMovement = __esm({
 });
 
 // features/keystone/models/LoyaltyAccount.ts
-var import_core31, import_access52, import_fields33, LoyaltyAccount;
+var import_core31, import_access51, import_fields32, LoyaltyAccount;
 var init_LoyaltyAccount = __esm({
   "features/keystone/models/LoyaltyAccount.ts"() {
     "use strict";
     import_core31 = require("@keystone-6/core");
-    import_access52 = require("@keystone-6/core/access");
-    import_fields33 = require("@keystone-6/core/fields");
+    import_access51 = require("@keystone-6/core/access");
+    import_fields32 = require("@keystone-6/core/fields");
     init_access();
     init_requiredRelationship();
     init_trackingFields();
@@ -2259,19 +2268,19 @@ var init_LoyaltyAccount = __esm({
       access: {
         operation: {
           query: permissions.canReadLoyalty,
-          create: import_access52.denyAll,
-          update: import_access52.denyAll,
-          delete: import_access52.denyAll
+          create: import_access51.denyAll,
+          update: import_access51.denyAll,
+          delete: import_access51.denyAll
         }
       },
       ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["customerName", "customerEmail", "status", "pointsBalance", "drinkCredits", "tier"] } },
       fields: {
         store: requiredStoreRelationship("StoreSetting.loyaltyAccounts"),
-        customerName: (0, import_fields33.text)({ ui: { description: "Guest-facing name for loyalty lookup when no user account is attached" } }),
-        customerEmail: (0, import_fields33.text)({ isIndexed: "unique", ui: { description: "Email used for pickup loyalty lookup" } }),
-        customerPhone: (0, import_fields33.text)(),
-        marketingOptIn: (0, import_fields33.checkbox)({ defaultValue: false }),
-        status: (0, import_fields33.select)({
+        customerName: (0, import_fields32.text)({ ui: { description: "Guest-facing name for loyalty lookup when no user account is attached" } }),
+        customerEmail: (0, import_fields32.text)({ isIndexed: "unique", ui: { description: "Email used for pickup loyalty lookup" } }),
+        customerPhone: (0, import_fields32.text)(),
+        marketingOptIn: (0, import_fields32.checkbox)({ defaultValue: false }),
+        status: (0, import_fields32.select)({
           type: "string",
           options: [
             { label: "Active", value: "active" },
@@ -2280,7 +2289,7 @@ var init_LoyaltyAccount = __esm({
           ],
           defaultValue: "active"
         }),
-        tier: (0, import_fields33.select)({
+        tier: (0, import_fields32.select)({
           type: "string",
           options: [
             { label: "Regular", value: "regular" },
@@ -2289,17 +2298,17 @@ var init_LoyaltyAccount = __esm({
           ],
           defaultValue: "regular"
         }),
-        pointsBalance: (0, import_fields33.integer)({ defaultValue: 0 }),
-        lifetimePoints: (0, import_fields33.integer)({ defaultValue: 0 }),
-        drinkCredits: (0, import_fields33.integer)({ defaultValue: 0 }),
-        visits: (0, import_fields33.integer)({ defaultValue: 0 }),
-        lastVisitAt: (0, import_fields33.timestamp)(),
-        firstVisitAt: (0, import_fields33.timestamp)(),
-        notes: (0, import_fields33.text)({ ui: { displayMode: "textarea" } }),
-        customer: (0, import_fields33.relationship)({ ref: "User.loyaltyAccount" }),
-        orders: (0, import_fields33.relationship)({ ref: "CafeOrder.loyaltyAccount", many: true }),
-        events: (0, import_fields33.relationship)({ ref: "LoyaltyEvent.account", many: true }),
-        displayName: (0, import_fields33.virtual)({
+        pointsBalance: (0, import_fields32.integer)({ defaultValue: 0 }),
+        lifetimePoints: (0, import_fields32.integer)({ defaultValue: 0 }),
+        drinkCredits: (0, import_fields32.integer)({ defaultValue: 0 }),
+        visits: (0, import_fields32.integer)({ defaultValue: 0 }),
+        lastVisitAt: (0, import_fields32.timestamp)(),
+        firstVisitAt: (0, import_fields32.timestamp)(),
+        notes: (0, import_fields32.text)({ ui: { displayMode: "textarea" } }),
+        customer: (0, import_fields32.relationship)({ ref: "User.loyaltyAccount" }),
+        orders: (0, import_fields32.relationship)({ ref: "CafeOrder.loyaltyAccount", many: true }),
+        events: (0, import_fields32.relationship)({ ref: "LoyaltyEvent.account", many: true }),
+        displayName: (0, import_fields32.virtual)({
           field: import_core31.graphql.field({
             type: import_core31.graphql.String,
             resolve(item) {
@@ -2307,7 +2316,7 @@ var init_LoyaltyAccount = __esm({
             }
           })
         }),
-        nextRewardProgress: (0, import_fields33.virtual)({
+        nextRewardProgress: (0, import_fields32.virtual)({
           field: import_core31.graphql.field({
             type: import_core31.graphql.Int,
             resolve(item) {
@@ -2323,27 +2332,27 @@ var init_LoyaltyAccount = __esm({
 });
 
 // features/keystone/models/LoyaltyEvent.ts
-var import_core32, import_access54, import_fields34, LoyaltyEvent;
+var import_core32, import_access53, import_fields33, LoyaltyEvent;
 var init_LoyaltyEvent = __esm({
   "features/keystone/models/LoyaltyEvent.ts"() {
     "use strict";
     import_core32 = require("@keystone-6/core");
-    import_access54 = require("@keystone-6/core/access");
-    import_fields34 = require("@keystone-6/core/fields");
+    import_access53 = require("@keystone-6/core/access");
+    import_fields33 = require("@keystone-6/core/fields");
     init_access();
     init_trackingFields();
     LoyaltyEvent = (0, import_core32.list)({
       access: {
         operation: {
           query: permissions.canReadLoyalty,
-          create: import_access54.denyAll,
-          update: import_access54.denyAll,
-          delete: import_access54.denyAll
+          create: import_access53.denyAll,
+          update: import_access53.denyAll,
+          delete: import_access53.denyAll
         }
       },
       ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["account", "type", "pointsDelta", "drinkCreditsDelta", "order"] } },
       fields: {
-        type: (0, import_fields34.select)({
+        type: (0, import_fields33.select)({
           type: "string",
           options: [
             { label: "Earned", value: "earned" },
@@ -2354,12 +2363,67 @@ var init_LoyaltyEvent = __esm({
           ],
           defaultValue: "earned"
         }),
-        pointsDelta: (0, import_fields34.integer)({ defaultValue: 0 }),
-        drinkCreditsDelta: (0, import_fields34.integer)({ defaultValue: 0 }),
-        note: (0, import_fields34.text)({ ui: { displayMode: "textarea" } }),
-        account: (0, import_fields34.relationship)({ ref: "LoyaltyAccount.events" }),
-        order: (0, import_fields34.relationship)({ ref: "CafeOrder.loyaltyEvents" }),
-        createdBy: (0, import_fields34.relationship)({ ref: "User" }),
+        pointsDelta: (0, import_fields33.integer)({ defaultValue: 0 }),
+        drinkCreditsDelta: (0, import_fields33.integer)({ defaultValue: 0 }),
+        note: (0, import_fields33.text)({ ui: { displayMode: "textarea" } }),
+        account: (0, import_fields33.relationship)({ ref: "LoyaltyAccount.events" }),
+        order: (0, import_fields33.relationship)({ ref: "CafeOrder.loyaltyEvents" }),
+        createdBy: (0, import_fields33.relationship)({ ref: "User" }),
+        ...trackingFields
+      }
+    });
+  }
+});
+
+// features/keystone/models/GiftCard.ts
+function dollars(cents2) {
+  return `$${(Number(cents2 || 0) / 100).toFixed(2)}`;
+}
+var import_core33, import_access55, import_fields34, GiftCard;
+var init_GiftCard = __esm({
+  "features/keystone/models/GiftCard.ts"() {
+    "use strict";
+    import_core33 = require("@keystone-6/core");
+    import_access55 = require("@keystone-6/core/access");
+    import_fields34 = require("@keystone-6/core/fields");
+    init_access();
+    init_requiredRelationship();
+    init_trackingFields();
+    GiftCard = (0, import_core33.list)({
+      access: {
+        operation: { query: permissions.canReadPayments, create: import_access55.denyAll, update: import_access55.denyAll, delete: import_access55.denyAll }
+      },
+      ui: { hideCreate: true, hideDelete: true, itemView: { defaultFieldMode: "read" }, listView: { initialColumns: ["code", "status", "amountLoaded", "balanceLeft", "recipientName", "expiresAt"] } },
+      fields: {
+        store: requiredStoreRelationship("StoreSetting.giftCards"),
+        code: (0, import_fields34.text)({ isIndexed: "unique", validation: { isRequired: true } }),
+        status: (0, import_fields34.select)({
+          type: "string",
+          options: [
+            { label: "Awaiting payment", value: "pending" },
+            { label: "Active", value: "active" },
+            { label: "Used up", value: "redeemed" },
+            { label: "Cancelled", value: "cancelled" }
+          ],
+          defaultValue: "pending"
+        }),
+        // Stored in cents for the ledger; staff read the dollar amounts below.
+        initialValue: (0, import_fields34.integer)({ validation: { isRequired: true, min: 0 }, ui: { itemView: { fieldMode: "hidden" }, listView: { fieldMode: "hidden" } } }),
+        balance: (0, import_fields34.integer)({ validation: { isRequired: true, min: 0 }, ui: { itemView: { fieldMode: "hidden" }, listView: { fieldMode: "hidden" } } }),
+        amountLoaded: (0, import_fields34.virtual)({ label: "Amount loaded", field: import_core33.graphql.field({ type: import_core33.graphql.String, resolve: (item) => dollars(item.initialValue) }) }),
+        balanceLeft: (0, import_fields34.virtual)({ label: "Balance", field: import_core33.graphql.field({ type: import_core33.graphql.String, resolve: (item) => dollars(item.balance) }) }),
+        currencyCode: (0, import_fields34.text)({ defaultValue: "USD" }),
+        purchaserName: (0, import_fields34.text)(),
+        purchaserEmail: (0, import_fields34.text)(),
+        recipientName: (0, import_fields34.text)(),
+        recipientEmail: (0, import_fields34.text)(),
+        message: (0, import_fields34.text)({ ui: { displayMode: "textarea" } }),
+        providerPaymentId: (0, import_fields34.text)({ isIndexed: true, access: { read: permissions.canManagePayments } }),
+        refundedAt: (0, import_fields34.timestamp)(),
+        expiresAt: (0, import_fields34.timestamp)(),
+        activatedAt: (0, import_fields34.timestamp)(),
+        emailedAt: (0, import_fields34.timestamp)(),
+        ledger: (0, import_fields34.json)({ defaultValue: [] }),
         ...trackingFields
       }
     });
@@ -2381,8 +2445,7 @@ var models;
 var init_models = __esm({
   "features/keystone/models/index.ts"() {
     "use strict";
-    init_CoffeeDomainEvent();
-    init_CoffeeOutboxDelivery();
+    init_CoffeeCommandReceipt();
     init_WasteLog();
     init_CateringOrder();
     init_Subscription();
@@ -2413,6 +2476,7 @@ var init_models = __esm({
     init_StockMovement();
     init_LoyaltyAccount();
     init_LoyaltyEvent();
+    init_GiftCard();
     models = hiddenWithoutReadAccess({
       User,
       Role,
@@ -2430,8 +2494,8 @@ var init_models = __esm({
       StockMovement,
       LoyaltyAccount,
       LoyaltyEvent,
-      CoffeeDomainEvent,
-      CoffeeOutboxDelivery,
+      GiftCard,
+      CoffeeCommandReceipt,
       WasteLog,
       CateringOrder,
       Subscription,
@@ -2761,10 +2825,20 @@ var init_coffeeBoundarySchema = __esm({
     orderItems: [CafeOrderItemProjection!]!
     paymentState: String
     canRecordPayment: Boolean!
+    isStale: Boolean!
     canApplyLoyalty: Boolean!
     loyaltyApplied: Boolean
     refundablePayments: [CoffeeRefundablePaymentProjection!]!
     actions: [CoffeeStatusAction!]!
+  }
+  type CoffeeDayCloseReport {
+    closedAt: String!
+    storeDay: String!
+    completed: Int!
+    cancelled: Int!
+    noShow: Int!
+    skipped: Int!
+    orderNumbers: [String!]!
   }
   type CoffeeOrderQueueProjection {
     summary: CoffeeOrderQueueSummary!
@@ -2774,6 +2848,8 @@ var init_coffeeBoundarySchema = __esm({
     activeCount: Int!
     activeHasMore: Boolean!
     activeNextCursor: String
+    staleCount: Int!
+    lastDayClose: CoffeeDayCloseReport
     historyCount: Int!
     historyHasMore: Boolean!
     historyNextCursor: String
@@ -2977,38 +3053,7 @@ var init_coffeeBoundarySchema = __esm({
   }
 });
 
-// features/keystone/mutations/coffeeKdsAuthority.ts
-async function requireCurrentCoffeeCapability(tx, session, flags, message = "Not authorized") {
-  if (session?.listKey !== "User" || !session.itemId) throw new Error(message);
-  await tx.$executeRawUnsafe('SELECT "id" FROM "User" WHERE "id" = $1 FOR SHARE', session.itemId);
-  const user = await tx.user.findUnique({ where: { id: session.itemId }, select: { id: true, roleId: true } });
-  if (!user?.roleId || user.id !== session.itemId) throw new Error(message);
-  await tx.$executeRawUnsafe('SELECT "id" FROM "Role" WHERE "id" = $1 FOR SHARE', user.roleId);
-  const role = await tx.role.findUnique({ where: { id: user.roleId }, select: Object.fromEntries(flags.map((flag) => [flag, true])) });
-  if (!role || !flags.some((flag) => role[flag] === true)) throw new Error(message);
-  return user.id;
-}
-async function requireCurrentCoffeeKdsOperator(tx, session) {
-  return requireCurrentCoffeeCapability(tx, session, ["canManageOrders"], "Not authorized to operate the KDS");
-}
-async function getCoffeeKdsRecoveryScope(_root, _args, context) {
-  if (!permissions.canManageOrders({ session: context.session })) return null;
-  return context.prisma.$transaction(async (rawTx) => {
-    const tx = rawTx;
-    const actorId = await requireCurrentCoffeeKdsOperator(tx, context.session);
-    const storeId = await getPrimaryCoffeeStoreId(tx);
-    return { actorId, storeId };
-  }, { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" });
-}
-var init_coffeeKdsAuthority = __esm({
-  "features/keystone/mutations/coffeeKdsAuthority.ts"() {
-    "use strict";
-    init_access();
-    init_coffeeDomainOutbox();
-  }
-});
-
-// features/keystone/lib/coffeeDomainOutbox.ts
+// features/keystone/lib/coffeeCommandReceipt.ts
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value && typeof value === "object") {
@@ -3030,28 +3075,23 @@ async function getPrimaryCoffeeStoreId(tx) {
 function assertCoffeeStoreOwnership(storeId, expectedStoreId, label) {
   if (String(storeId || "") !== expectedStoreId) throw new Error(`${label} does not belong to the active store`);
 }
-async function enqueueCoffeeDomainEvent(tx, input) {
+async function recordCoffeeCommandReceipt(tx, input) {
   const canonicalPayload = canonicalCoffeeEventJson(input.payload);
-  if (Buffer.byteLength(canonicalPayload) > MAX_PAYLOAD_BYTES) throw new Error("Coffee domain event payload is too large");
+  if (Buffer.byteLength(canonicalPayload) > MAX_PAYLOAD_BYTES) throw new Error("Coffee command receipt payload is too large");
   const payloadHash2 = coffeeEventPayloadHash(input.payload);
   await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-event:${input.eventKey}`);
-  const consumer = input.consumer || DEFAULT_CONSUMER;
-  const deliveryKey = `${consumer}:${input.eventKey}`;
-  const existing = await tx.coffeeDomainEvent.findUnique({ where: { eventKey: input.eventKey } });
+  const existing = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey: input.eventKey } });
   if (existing) {
-    if (existing.payloadHash !== payloadHash2 || existing.eventType !== input.eventType || existing.storeId !== input.storeId || existing.aggregateType !== input.aggregateType || existing.aggregateId !== input.aggregateId || existing.schemaVersion !== OUTBOX_SCHEMA_VERSION) {
+    if (existing.payloadHash !== payloadHash2 || existing.eventType !== input.eventType || existing.storeId !== input.storeId || existing.aggregateType !== input.aggregateType || existing.aggregateId !== input.aggregateId || existing.schemaVersion !== RECEIPT_SCHEMA_VERSION) {
       throw new Error("Coffee event idempotency key was reused with a different snapshot");
     }
-    const delivery = await tx.coffeeOutboxDelivery.findUnique({ where: { deliveryKey } });
-    if (!delivery) await createDelivery(tx, { deliveryKey, consumer, eventId: String(existing.id), storeId: input.storeId });
-    else if (delivery.eventId !== existing.id || delivery.storeId !== input.storeId) throw new Error("Coffee outbox delivery is bound to a different event");
     return { eventId: String(existing.id), created: false };
   }
-  const event = await tx.coffeeDomainEvent.create({
+  const receipt = await tx.coffeeCommandReceipt.create({
     data: {
       eventKey: input.eventKey,
       eventType: input.eventType,
-      schemaVersion: OUTBOX_SCHEMA_VERSION,
+      schemaVersion: RECEIPT_SCHEMA_VERSION,
       aggregateType: input.aggregateType,
       aggregateId: input.aggregateId,
       payload: canonicalize(input.payload),
@@ -3060,311 +3100,15 @@ async function enqueueCoffeeDomainEvent(tx, input) {
       storeId: input.storeId
     }
   });
-  await createDelivery(tx, { deliveryKey, consumer, eventId: String(event.id), storeId: input.storeId });
-  return { eventId: String(event.id), created: true };
+  return { eventId: String(receipt.id), created: true };
 }
-async function createDelivery(tx, input) {
-  await tx.coffeeOutboxDelivery.create({
-    data: {
-      deliveryKey: input.deliveryKey,
-      consumer: input.consumer,
-      status: "pending",
-      attempts: 0,
-      maxAttempts: 8,
-      nextAttempt: /* @__PURE__ */ new Date(),
-      eventId: input.eventId,
-      storeId: input.storeId
-    }
-  });
-}
-var import_node_crypto, OUTBOX_SCHEMA_VERSION, DEFAULT_CONSUMER, MAX_PAYLOAD_BYTES, OUTBOX_LEASE_MS;
-var init_coffeeDomainOutbox = __esm({
-  "features/keystone/lib/coffeeDomainOutbox.ts"() {
+var import_node_crypto, RECEIPT_SCHEMA_VERSION, MAX_PAYLOAD_BYTES;
+var init_coffeeCommandReceipt = __esm({
+  "features/keystone/lib/coffeeCommandReceipt.ts"() {
     "use strict";
     import_node_crypto = require("node:crypto");
-    init_access();
-    init_coffeeKdsAuthority();
-    OUTBOX_SCHEMA_VERSION = "1";
-    DEFAULT_CONSUMER = "coffee-platform";
+    RECEIPT_SCHEMA_VERSION = "1";
     MAX_PAYLOAD_BYTES = 256e3;
-    OUTBOX_LEASE_MS = 2 * 6e4;
-  }
-});
-
-// features/keystone/mutations/kdsPolicy.ts
-function isKdsItemStatus(value) {
-  return KDS_ITEM_STATUSES.includes(value);
-}
-function evaluateKdsItemTransition(current, next) {
-  if (current === next) return { replay: true };
-  if (!KDS_ITEM_TRANSITIONS[current].includes(next)) throw new Error(`Cannot transition KDS item from ${current} to ${next}`);
-  return { replay: false };
-}
-function rollupCafeOrderStatus(statuses) {
-  const active = statuses.filter((status) => status !== "voided");
-  if (active.length === 0) return "in_bar_queue";
-  if (active.every((status) => status === "handed_off")) return "completed";
-  if (active.every((status) => status === "ready" || status === "handed_off")) return "ready";
-  if (active.some((status) => status === "preparing")) return "preparing";
-  return "in_bar_queue";
-}
-function advanceKdsOrderStatus(current, derived) {
-  const rank = { open: 0, accepted: 0, paid: 0, in_bar_queue: 1, preparing: 2, ready: 3, completed: 4 };
-  return (rank[current] || 0) > rank[derived] ? current : derived;
-}
-var KDS_ITEM_STATUSES, KDS_ITEM_TRANSITIONS;
-var init_kdsPolicy = __esm({
-  "features/keystone/mutations/kdsPolicy.ts"() {
-    "use strict";
-    KDS_ITEM_STATUSES = ["new", "queued", "preparing", "ready", "handed_off", "voided"];
-    KDS_ITEM_TRANSITIONS = {
-      new: ["queued", "voided"],
-      queued: ["preparing", "voided"],
-      preparing: ["ready", "voided"],
-      ready: ["handed_off", "voided"],
-      handed_off: [],
-      voided: []
-    };
-  }
-});
-
-// features/keystone/lib/cafeCustomerError.ts
-function cafeCustomerError(message) {
-  return new import_graphql.GraphQLError(message, { extensions: { code: CAFE_CUSTOMER_ERROR_CODE } });
-}
-var import_graphql, CAFE_CUSTOMER_ERROR_CODE;
-var init_cafeCustomerError = __esm({
-  "features/keystone/lib/cafeCustomerError.ts"() {
-    "use strict";
-    import_graphql = require("graphql");
-    CAFE_CUSTOMER_ERROR_CODE = "CAFE_CUSTOMER_ERROR";
-  }
-});
-
-// features/keystone/mutations/transitionPolicy.ts
-function evaluateTransition(transitions, currentStatus, nextStatus) {
-  if (currentStatus === nextStatus) return { replay: true };
-  const allowed = transitions[currentStatus];
-  if (!allowed?.includes(nextStatus)) {
-    throw cafeCustomerError(`Can't change from ${currentStatus.replaceAll("_", " ")} to ${nextStatus.replaceAll("_", " ")}. Refresh to see the current status.`);
-  }
-  return { replay: false };
-}
-var CAFE_ORDER_TRANSITIONS, CATERING_ORDER_TRANSITIONS, SUBSCRIPTION_TRANSITIONS, POS_ORDER_TRANSITIONS;
-var init_transitionPolicy = __esm({
-  "features/keystone/mutations/transitionPolicy.ts"() {
-    "use strict";
-    init_cafeCustomerError();
-    CAFE_ORDER_TRANSITIONS = {
-      open: ["cancelled"],
-      accepted: ["in_bar_queue", "cancelled"],
-      paid: ["in_bar_queue"],
-      in_bar_queue: ["preparing"],
-      preparing: ["ready"],
-      ready: ["completed"],
-      completed: [],
-      cancelled: [],
-      refunded: []
-    };
-    CATERING_ORDER_TRANSITIONS = {
-      inquiry: ["quoted", "cancelled"],
-      quoted: ["confirmed", "cancelled"],
-      confirmed: ["completed", "cancelled"],
-      completed: [],
-      cancelled: []
-    };
-    SUBSCRIPTION_TRANSITIONS = {
-      trialing: ["active", "cancelled"],
-      active: ["paused", "cancelled"],
-      paused: ["active", "cancelled"],
-      cancelled: []
-    };
-    POS_ORDER_TRANSITIONS = {
-      open: ["paid", "voided"],
-      paid: ["refunded"],
-      voided: [],
-      refunded: []
-    };
-  }
-});
-
-// features/keystone/mutations/coffeeAvailability.ts
-function minutes(value) {
-  const match = /^(\d{2}):(\d{2})$/.exec(value || "");
-  if (!match) return null;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  return hour <= 23 && minute <= 59 ? hour * 60 + minute : null;
-}
-function zonedParts(at, timezone) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23"
-  }).formatToParts(at);
-  const value = (type) => parts.find((part) => part.type === type)?.value || "";
-  return { day: value("weekday"), minuteOfDay: Number(value("hour")) * 60 + Number(value("minute")) };
-}
-function normalizeWeeklyHours(value) {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((entry) => {
-    if (!entry || typeof entry !== "object") return [];
-    const row = entry;
-    const day = String(row.day || "");
-    if (!DAY_NAMES.includes(day)) return [];
-    return [{ day, open: typeof row.open === "string" ? row.open : null, close: typeof row.close === "string" ? row.close : null, closed: row.closed === true }];
-  });
-}
-function getCoffeeOrderingAvailability(settings, at = /* @__PURE__ */ new Date(), serviceWindows = ["all_day"]) {
-  const timezone = settings.timezone || "America/New_York";
-  const { day, minuteOfDay } = zonedParts(at, timezone);
-  const hours = normalizeWeeklyHours(settings.weeklyHours);
-  const today = hours.find((entry) => entry.day === day);
-  const openMinute = minutes(today?.open);
-  const closeMinute = minutes(today?.close);
-  const storeOpen = Boolean(today && !today.closed && openMinute != null && closeMinute != null && minuteOfDay >= openMinute && minuteOfDay < closeMinute);
-  const itemOpen = !serviceWindows.length || serviceWindows.includes("all_day") || serviceWindows.some((window) => {
-    const range = SERVICE_WINDOWS[window];
-    return Boolean(range && minuteOfDay >= range[0] && minuteOfDay < range[1]);
-  });
-  return {
-    orderingOpen: storeOpen && itemOpen,
-    storeOpen,
-    itemOpen,
-    timezone,
-    day,
-    minuteOfDay,
-    today: today || null,
-    pickupLeadTimeMinutes: Math.max(5, Number(settings.pickupLeadTimeMinutes || 12))
-  };
-}
-function openAtMinute(hours, day, minuteOfDay, serviceWindows) {
-  const entry = hours.find((candidate) => candidate.day === day);
-  const openMinute = minutes(entry?.open);
-  const closeMinute = minutes(entry?.close);
-  if (!entry || entry.closed || openMinute == null || closeMinute == null || minuteOfDay < openMinute || minuteOfDay >= closeMinute) return false;
-  return !serviceWindows.length || serviceWindows.includes("all_day") || serviceWindows.some((window) => {
-    const range = SERVICE_WINDOWS[window];
-    return Boolean(range && minuteOfDay >= range[0] && minuteOfDay < range[1]);
-  });
-}
-function coffeeFirstPickupMinutes(settings, earliestMinutes, serviceWindowSets = [["all_day"]], at = /* @__PURE__ */ new Date()) {
-  const { day, minuteOfDay } = zonedParts(at, settings.timezone || "America/New_York");
-  const hours = normalizeWeeklyHours(settings.weeklyHours);
-  const dayIndex = DAY_NAMES.indexOf(day);
-  if (dayIndex === -1) return null;
-  for (let offset = Math.max(0, Math.ceil(earliestMinutes)); offset <= COFFEE_PICKUP_SCHEDULE_MAX_MINUTES; offset++) {
-    const total = minuteOfDay + offset;
-    const candidateDay = DAY_NAMES[(dayIndex + Math.floor(total / 1440)) % 7];
-    if (serviceWindowSets.every((windows) => openAtMinute(hours, candidateDay, total % 1440, windows))) return offset;
-  }
-  return null;
-}
-function assertCoffeeOrderingAvailable(settings, at = /* @__PURE__ */ new Date(), serviceWindows = ["all_day"]) {
-  const availability = getCoffeeOrderingAvailability(settings, at, serviceWindows);
-  if (!availability.storeOpen) throw cafeCustomerError("The cafe is closed for pickup at that time");
-  if (!availability.itemOpen) throw cafeCustomerError("A selected item isn't served at that time");
-  return availability;
-}
-var DAY_NAMES, SERVICE_WINDOWS, COFFEE_PICKUP_SCHEDULE_MAX_MINUTES;
-var init_coffeeAvailability = __esm({
-  "features/keystone/mutations/coffeeAvailability.ts"() {
-    "use strict";
-    init_cafeCustomerError();
-    DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    SERVICE_WINDOWS = {
-      morning: [5 * 60, 11 * 60],
-      midday: [11 * 60, 14 * 60],
-      afternoon: [14 * 60, 18 * 60],
-      all_day: [0, 24 * 60]
-    };
-    COFFEE_PICKUP_SCHEDULE_MAX_MINUTES = 48 * 60;
-  }
-});
-
-// features/keystone/mutations/idempotency.ts
-function stableSerialize(value) {
-  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
-  if (value && typeof value === "object") {
-    return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
-function normalizeIdempotencyKey(value) {
-  const key = value?.trim();
-  if (!key) return null;
-  if (key.length < 16) throw new Error("Idempotency key must be at least 16 characters");
-  if (key.length > 128) throw new Error("Idempotency key must be at most 128 characters");
-  if (!/^[A-Za-z0-9._:-]+$/.test(key)) {
-    throw new Error("Idempotency key contains unsupported characters");
-  }
-  return key;
-}
-function buildScopedIdempotencyKey(scope, key) {
-  return (0, import_node_crypto2.createHash)("sha256").update(`${scope}:${key}`).digest("hex");
-}
-function fingerprintInput(input) {
-  return (0, import_node_crypto2.createHash)("sha256").update(stableSerialize(input)).digest("hex");
-}
-var import_node_crypto2;
-var init_idempotency = __esm({
-  "features/keystone/mutations/idempotency.ts"() {
-    "use strict";
-    import_node_crypto2 = require("node:crypto");
-  }
-});
-
-// features/keystone/mutations/coffeePricing.ts
-function normalizeCafeTaxBasisPoints(value) {
-  const basisPoints = Number(value);
-  if (!Number.isFinite(basisPoints) || basisPoints < 0 || basisPoints > 1e4 || Math.abs(Math.round(basisPoints * 100) - basisPoints * 100) > 1e-6) {
-    throw new Error("Store tax rate must be between 0 and 10000 basis points, with at most two decimals");
-  }
-  return basisPoints;
-}
-function assertCafeMoneyCents(value, label) {
-  if (!Number.isSafeInteger(value) || value < 0 || value > MAX_CAFE_MONEY_CENTS) {
-    throw new Error(`${label} is outside the supported order amount range`);
-  }
-  return value;
-}
-function calculateCafeTax(subtotalCents, basisPoints = DEFAULT_CAFE_TAX_BASIS_POINTS) {
-  if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) throw new Error("Subtotal must be a non-negative integer amount in cents");
-  return Math.round(subtotalCents * normalizeCafeTaxBasisPoints(basisPoints) / 1e4);
-}
-function calculateCafeTotals(lines, taxRateBasisPoints, tipCents) {
-  const lineTotals = lines.map((line) => {
-    assertCafeMoneyCents(line.unitPrice, "Item price");
-    return assertCafeMoneyCents(line.unitPrice * line.quantity, "Line total");
-  });
-  const subtotal = assertCafeMoneyCents(lineTotals.reduce((sum, value) => sum + value, 0), "Order subtotal");
-  const tax = assertCafeMoneyCents(calculateCafeTax(subtotal, taxRateBasisPoints), "Order tax");
-  const tip = assertCafeMoneyCents(tipCents, "Tip");
-  const total = assertCafeMoneyCents(subtotal + tax + tip, "Order total");
-  return { lineTotals, subtotal, tax, tip, total };
-}
-function cafeQuoteFingerprint(input) {
-  return fingerprintInput({
-    kind: "cafe-quote:v1",
-    storeId: input.storeId,
-    currencyCode: input.currencyCode,
-    taxRateBasisPoints: input.taxRateBasisPoints,
-    lines: input.lines.map((line) => ({ menuItemId: line.menuItemId, quantity: line.quantity, modifierIds: [...line.modifierIds].sort(), unitPrice: line.unitPrice })),
-    subtotal: input.subtotal,
-    tax: input.tax,
-    tip: input.tip,
-    total: input.total
-  });
-}
-var DEFAULT_CAFE_TAX_BASIS_POINTS, MAX_CAFE_MONEY_CENTS;
-var init_coffeePricing = __esm({
-  "features/keystone/mutations/coffeePricing.ts"() {
-    "use strict";
-    init_idempotency();
-    DEFAULT_CAFE_TAX_BASIS_POINTS = 875;
-    MAX_CAFE_MONEY_CENTS = 2147483647;
   }
 });
 
@@ -3377,6 +3121,9 @@ function requireCafeTenderOperator(session) {
   if (!permissions.canManageOrders({ session }) || !permissions.canManagePayments({ session })) {
     throw new Error("Not authorized to record cafe payments");
   }
+}
+function requireCafeRegisterOperator(session) {
+  if (!permissions.canManageOrders({ session })) throw new Error("Not authorized to operate the register");
 }
 function hasCafeSettlement(payments, payableAmount) {
   const captured = payments.filter((payment) => payment.status === "captured");
@@ -3437,6 +3184,847 @@ var init_coffeeOrderPolicy = __esm({
     "use strict";
     init_access();
     PICKUP_SETTINGS_CHANGED_MESSAGE = "Pickup settings changed while this order was being placed. Review the pickup time and submit again.";
+  }
+});
+
+// features/keystone/lib/cafeCustomerError.ts
+function cafeCustomerError(message) {
+  return new import_graphql.GraphQLError(message, { extensions: { code: CAFE_CUSTOMER_ERROR_CODE } });
+}
+var import_graphql, CAFE_CUSTOMER_ERROR_CODE;
+var init_cafeCustomerError = __esm({
+  "features/keystone/lib/cafeCustomerError.ts"() {
+    "use strict";
+    import_graphql = require("graphql");
+    CAFE_CUSTOMER_ERROR_CODE = "CAFE_CUSTOMER_ERROR";
+  }
+});
+
+// features/integrations/payment/providerError.ts
+var ProviderError;
+var init_providerError = __esm({
+  "features/integrations/payment/providerError.ts"() {
+    "use strict";
+    ProviderError = class extends Error {
+      constructor(message) {
+        super(message);
+        this.name = "ProviderError";
+      }
+    };
+  }
+});
+
+// features/integrations/payment/stripe.ts
+var stripe_exports = {};
+__export(stripe_exports, {
+  capturePaymentFunction: () => capturePaymentFunction,
+  classifyStripeEvent: () => classifyStripeEvent,
+  createHostedCheckout: () => createHostedCheckout,
+  createPaymentFunction: () => createPaymentFunction,
+  expireCheckoutSessionFunction: () => expireCheckoutSessionFunction,
+  generatePaymentLinkFunction: () => generatePaymentLinkFunction,
+  getPaymentStatusFunction: () => getPaymentStatusFunction,
+  handleWebhookFunction: () => handleWebhookFunction,
+  readHostedCheckout: () => readHostedCheckout,
+  refundPaymentFunction: () => refundPaymentFunction
+});
+function secretKey() {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) throw new Error("Stripe is not configured");
+  return secret;
+}
+async function stripeRequest(path, body, idempotencyKey) {
+  const response = await fetch(`${STRIPE_API}${path}`, {
+    method: body ? "POST" : "GET",
+    headers: {
+      Authorization: `Bearer ${secretKey()}`,
+      ...body ? { "Content-Type": "application/x-www-form-urlencoded" } : {},
+      ...idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}
+    },
+    body,
+    signal: AbortSignal.timeout(1e4)
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new ProviderError(payload.error?.message || "Stripe request failed");
+  return payload;
+}
+function adapterResult(payload, fallbackAmount) {
+  return {
+    success: true,
+    provider: "pp_stripe_stripe",
+    providerPaymentId: payload.id,
+    status: payload.status,
+    amount: payload.amount_received ?? payload.amount ?? fallbackAmount,
+    currencyCode: payload.currency,
+    data: payload
+  };
+}
+async function createPaymentFunction(input) {
+  const body = new URLSearchParams({
+    amount: String(input.amount),
+    currency: input.currencyCode.toLowerCase(),
+    "automatic_payment_methods[enabled]": "true",
+    "metadata[orderId]": input.orderId,
+    ...input.paymentId ? { "metadata[paymentId]": input.paymentId } : {},
+    ...input.customerEmail ? { receipt_email: input.customerEmail } : {}
+  });
+  const payload = await stripeRequest("/payment_intents", body, input.idempotencyKey);
+  return adapterResult(payload, input.amount);
+}
+async function capturePaymentFunction(input) {
+  const payload = await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}/capture`, new URLSearchParams());
+  return adapterResult(payload, input.amount);
+}
+async function refundPaymentFunction(input) {
+  const payload = await stripeRequest("/refunds", new URLSearchParams({
+    payment_intent: input.providerPaymentId,
+    ...input.amount == null ? {} : { amount: String(input.amount) },
+    ...input.reason ? { "metadata[reason]": input.reason } : {}
+  }), input.idempotencyKey);
+  return {
+    ...adapterResult(payload, input.amount),
+    status: payload.status === "succeeded" ? "refunded" : payload.status
+  };
+}
+async function getPaymentStatusFunction(input) {
+  if (input.providerPaymentId.startsWith("cs_")) {
+    const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}`);
+    return { ...adapterResult(session), amount: session.amount_total, data: { ...session, checkoutUrl: typeof session.url === "string" ? session.url : null } };
+  }
+  return adapterResult(await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}`));
+}
+function withParam(url, key, value) {
+  const next = new URL(url);
+  next.searchParams.set(key, value);
+  return next.toString();
+}
+async function expireCheckoutSessionFunction(input) {
+  const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}/expire`, new URLSearchParams());
+  return adapterResult(session);
+}
+async function generatePaymentLinkFunction(input) {
+  if (!input.returnUrl) throw new Error("A return URL is required for hosted payment");
+  const body = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][quantity]": "1",
+    "line_items[0][price_data][currency]": input.currencyCode.toLowerCase(),
+    "line_items[0][price_data][unit_amount]": String(input.amount),
+    "line_items[0][price_data][product_data][name]": input.description || "Order",
+    success_url: withParam(input.returnUrl, "payment", "done"),
+    cancel_url: withParam(input.returnUrl, "payment", "cancelled"),
+    client_reference_id: input.orderId,
+    "metadata[orderId]": input.orderId,
+    "payment_intent_data[metadata][orderId]": input.orderId,
+    // Sessions expire after 30 minutes (Stripe's minimum), so an abandoned page can't be paid hours later.
+    expires_at: String(Math.floor(Date.now() / 1e3) + 30 * 60),
+    ...input.paymentId ? { "metadata[paymentId]": input.paymentId, "payment_intent_data[metadata][paymentId]": input.paymentId } : {},
+    ...input.customerEmail ? { customer_email: input.customerEmail } : {}
+  });
+  const session = await stripeRequest("/checkout/sessions", body, input.idempotencyKey);
+  return {
+    success: true,
+    provider: "pp_stripe_stripe",
+    providerPaymentId: session.id,
+    status: "pending",
+    amount: session.amount_total ?? input.amount,
+    currencyCode: session.currency,
+    data: { checkoutUrl: typeof session.url === "string" ? session.url : null, expiresAt: session.expires_at ?? null }
+  };
+}
+async function createHostedCheckout(input) {
+  const body = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][quantity]": "1",
+    "line_items[0][price_data][currency]": input.currencyCode.toLowerCase(),
+    "line_items[0][price_data][unit_amount]": String(input.amount),
+    "line_items[0][price_data][product_data][name]": input.name,
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+    expires_at: String(Math.floor(Date.now() / 1e3) + 30 * 60),
+    ...input.customerEmail ? { customer_email: input.customerEmail } : {}
+  });
+  for (const [key, value] of Object.entries(input.metadata)) {
+    body.set(`metadata[${key}]`, value);
+    body.set(`payment_intent_data[metadata][${key}]`, value);
+  }
+  const session = await stripeRequest("/checkout/sessions", body, input.idempotencyKey);
+  return { id: String(session.id || ""), url: typeof session.url === "string" ? session.url : null };
+}
+async function readHostedCheckout(sessionId) {
+  const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+  const state = session.payment_status === "paid" ? "paid" : session.status === "expired" ? "expired" : "open";
+  return { state, amount: Number(session.amount_total ?? 0), currency: String(session.currency || ""), paymentIntent: typeof session.payment_intent === "string" ? session.payment_intent : null };
+}
+function verifyStripeSignature(rawBody, signatureHeader) {
+  const parts = signatureHeader.split(",").map((part) => part.trim().split("=", 2));
+  const timestamp19 = parts.find(([key]) => key === "t")?.[1];
+  const signatures = parts.filter(([key]) => key === "v1").map(([, value]) => value);
+  if (!timestamp19 || signatures.length === 0 || !/^\d+$/.test(timestamp19)) {
+    throw new Error("Invalid Stripe signature header");
+  }
+  if (Math.abs(Date.now() / 1e3 - Number(timestamp19)) > SIGNATURE_TOLERANCE_SECONDS) {
+    throw new Error("Stale Stripe webhook signature");
+  }
+  const expected = (0, import_node_crypto2.createHmac)("sha256", process.env.STRIPE_WEBHOOK_SECRET || "").update(`${timestamp19}.${rawBody}`).digest();
+  if (!process.env.STRIPE_WEBHOOK_SECRET) throw new Error("Stripe webhook is not configured");
+  const valid = signatures.some((signature) => {
+    if (!/^[a-f0-9]{64}$/i.test(signature)) return false;
+    const provided = Buffer.from(signature, "hex");
+    return provided.length === expected.length && (0, import_node_crypto2.timingSafeEqual)(provided, expected);
+  });
+  if (!valid) throw new Error("Invalid Stripe webhook signature");
+}
+function classifyStripeEvent(type, object = {}) {
+  if (type === "checkout.session.completed") return object.payment_status === "paid" ? "succeeded" : "ignored";
+  if (type === "payment_intent.succeeded" || type === "checkout.session.async_payment_succeeded") return "succeeded";
+  if (type === "payment_intent.payment_failed" || type === "payment_intent.canceled" || type === "checkout.session.async_payment_failed" || type === "checkout.session.expired") return "failed";
+  return "ignored";
+}
+async function handleWebhookFunction(input) {
+  verifyStripeSignature(input.rawBody, input.headers["stripe-signature"] || "");
+  const event = JSON.parse(input.rawBody);
+  const object = event.data?.object || {};
+  const eventId = String(event.id || "").trim();
+  const eventType = String(event.type || "").trim();
+  const providerPaymentId = String(object.payment_intent || object.id || "").trim();
+  if (!eventId || !eventType || !providerPaymentId) throw new Error("Stripe webhook identity is incomplete");
+  return {
+    eventId,
+    eventType,
+    providerPaymentId,
+    paymentId: object.metadata?.paymentId || null,
+    giftCardId: object.metadata?.purpose === "gift_card" ? object.metadata?.giftCardId || null : null,
+    orderId: object.metadata?.orderId || null,
+    status: classifyStripeEvent(eventType, object),
+    amount: object.amount_received ?? object.amount_total ?? object.amount ?? null,
+    currencyCode: object.currency || null
+  };
+}
+var import_node_crypto2, STRIPE_API, SIGNATURE_TOLERANCE_SECONDS;
+var init_stripe = __esm({
+  "features/integrations/payment/stripe.ts"() {
+    "use strict";
+    import_node_crypto2 = require("node:crypto");
+    init_providerError();
+    STRIPE_API = "https://api.stripe.com/v1";
+    SIGNATURE_TOLERANCE_SECONDS = 300;
+  }
+});
+
+// features/keystone/mutations/onlinePaymentRelease.ts
+async function releaseAbandonedOnlinePayments(prisma, orderId) {
+  const pending = await prisma.payment.findMany({
+    where: { orderId, provider: "pp_stripe_stripe", status: { in: ["pending", "authorized"] } },
+    select: { id: true, status: true, provider: true, providerPaymentId: true }
+  });
+  if (!pending.length) return;
+  const stripe = await Promise.resolve().then(() => (init_stripe(), stripe_exports));
+  for (const payment of pending) {
+    const sessionId = String(payment.providerPaymentId || "");
+    if (sessionId.startsWith("cs_")) {
+      const state = await stripe.getPaymentStatusFunction({ providerPaymentId: sessionId });
+      if (state.status === "complete") throw cafeCustomerError("The customer just paid online. Refresh in a moment.");
+      if (state.status === "open") await stripe.expireCheckoutSessionFunction({ providerPaymentId: sessionId });
+    }
+    await prisma.payment.update({ where: { id: payment.id }, data: { status: "failed", failureMessage: "Online payment page closed; paid another way" } });
+  }
+}
+var init_onlinePaymentRelease = __esm({
+  "features/keystone/mutations/onlinePaymentRelease.ts"() {
+    "use strict";
+    init_cafeCustomerError();
+  }
+});
+
+// features/keystone/mutations/transitionPolicy.ts
+function evaluateTransition(transitions, currentStatus, nextStatus) {
+  if (currentStatus === nextStatus) return { replay: true };
+  const allowed = transitions[currentStatus];
+  if (!allowed?.includes(nextStatus)) {
+    throw cafeCustomerError(`Can't change from ${currentStatus.replaceAll("_", " ")} to ${nextStatus.replaceAll("_", " ")}. Refresh to see the current status.`);
+  }
+  return { replay: false };
+}
+function canTransition(transitions, currentStatus, nextStatus) {
+  return currentStatus === nextStatus || Boolean(transitions[currentStatus]?.includes(nextStatus));
+}
+var CAFE_ORDER_TRANSITIONS, PAYMENT_TRANSITIONS, PURCHASE_ORDER_TRANSITIONS, LOYALTY_ACCOUNT_TRANSITIONS, CATERING_ORDER_TRANSITIONS, SUBSCRIPTION_TRANSITIONS, POS_ORDER_TRANSITIONS;
+var init_transitionPolicy = __esm({
+  "features/keystone/mutations/transitionPolicy.ts"() {
+    "use strict";
+    init_cafeCustomerError();
+    CAFE_ORDER_TRANSITIONS = {
+      open: ["cancelled", "refunded"],
+      accepted: ["in_bar_queue", "cancelled"],
+      paid: ["in_bar_queue", "refunded"],
+      in_bar_queue: ["preparing", "refunded"],
+      preparing: ["ready", "refunded"],
+      ready: ["completed", "refunded"],
+      completed: ["refunded"],
+      cancelled: ["refunded"],
+      refunded: []
+    };
+    PAYMENT_TRANSITIONS = {
+      pending: ["authorized", "captured", "failed", "cancelled"],
+      authorized: ["captured", "failed", "cancelled"],
+      // A hosted page that expired (failed) can still be paid a moment later: the money is recorded.
+      failed: ["captured"],
+      captured: ["refunded"],
+      refunded: [],
+      cancelled: []
+    };
+    PURCHASE_ORDER_TRANSITIONS = {
+      draft: ["submitted", "cancelled"],
+      submitted: ["received", "cancelled"],
+      received: [],
+      cancelled: []
+    };
+    LOYALTY_ACCOUNT_TRANSITIONS = {
+      active: ["paused", "closed"],
+      paused: ["active", "closed"],
+      closed: ["active"]
+    };
+    CATERING_ORDER_TRANSITIONS = {
+      inquiry: ["quoted", "cancelled"],
+      quoted: ["confirmed", "cancelled"],
+      confirmed: ["completed", "cancelled"],
+      completed: [],
+      cancelled: []
+    };
+    SUBSCRIPTION_TRANSITIONS = {
+      trialing: ["active", "cancelled"],
+      active: ["paused", "cancelled"],
+      paused: ["active", "cancelled"],
+      cancelled: []
+    };
+    POS_ORDER_TRANSITIONS = {
+      open: ["paid", "voided"],
+      paid: ["refunded"],
+      voided: [],
+      refunded: []
+    };
+  }
+});
+
+// features/keystone/mutations/coffeeKdsAuthority.ts
+async function requireCurrentCoffeeCapability(tx, session, flags, message = "Not authorized") {
+  if (session?.listKey !== "User" || !session.itemId) throw new Error(message);
+  await tx.$executeRawUnsafe('SELECT "id" FROM "User" WHERE "id" = $1 FOR SHARE', session.itemId);
+  const user = await tx.user.findUnique({ where: { id: session.itemId }, select: { id: true, roleId: true } });
+  if (!user?.roleId || user.id !== session.itemId) throw new Error(message);
+  await tx.$executeRawUnsafe('SELECT "id" FROM "Role" WHERE "id" = $1 FOR SHARE', user.roleId);
+  const role = await tx.role.findUnique({ where: { id: user.roleId }, select: Object.fromEntries(flags.map((flag) => [flag, true])) });
+  if (!role || !flags.some((flag) => role[flag] === true)) throw new Error(message);
+  return user.id;
+}
+async function requireCurrentCoffeeKdsOperator(tx, session) {
+  return requireCurrentCoffeeCapability(tx, session, ["canManageOrders"], "Not authorized to operate the KDS");
+}
+async function getCoffeeKdsRecoveryScope(_root, _args, context) {
+  if (!permissions.canManageOrders({ session: context.session })) return null;
+  return context.prisma.$transaction(async (rawTx) => {
+    const tx = rawTx;
+    const actorId = await requireCurrentCoffeeKdsOperator(tx, context.session);
+    const storeId = await getPrimaryCoffeeStoreId(tx);
+    return { actorId, storeId };
+  }, { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" });
+}
+var init_coffeeKdsAuthority = __esm({
+  "features/keystone/mutations/coffeeKdsAuthority.ts"() {
+    "use strict";
+    init_access();
+    init_coffeeCommandReceipt();
+  }
+});
+
+// features/keystone/mutations/updateCafeOrderStatus.ts
+async function releaseOrderReservations(tx, order, storeId, actorId, now) {
+  const reservations = await tx.stockMovement.findMany({
+    where: { orderId: order.id, type: "sale" },
+    orderBy: { id: "asc" },
+    select: { inventoryItemId: true, inventoryLotId: true, quantity: true }
+  });
+  const inventoryTotals = /* @__PURE__ */ new Map();
+  for (const inventoryItemId of [...new Set(reservations.map((reservation) => reservation.inventoryItemId))].sort()) {
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
+  }
+  for (const reservation of reservations) {
+    const quantity = Math.abs(Number(reservation.quantity));
+    if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Order inventory reservation evidence is invalid");
+    inventoryTotals.set(reservation.inventoryItemId, (inventoryTotals.get(reservation.inventoryItemId) || 0) + quantity);
+    let lotDisposition = "unlotted stock";
+    if (reservation.inventoryLotId) {
+      const lot = await tx.inventoryLot.findUnique({ where: { id: reservation.inventoryLotId }, select: { quantityRemaining: true, status: true, expiresAt: true } });
+      if (!lot) throw new Error("Reserved inventory lot was not found");
+      const currentStatus = lot.status || "active";
+      const expired = Boolean(lot.expiresAt) && new Date(String(lot.expiresAt)).getTime() <= now.getTime();
+      const nextStatus = currentStatus === "consumed" ? expired ? "expired" : "active" : currentStatus === "active" && expired ? "expired" : currentStatus;
+      await tx.inventoryLot.update({
+        where: { id: reservation.inventoryLotId },
+        data: { quantityRemaining: Number(lot.quantityRemaining || 0) + quantity, ...nextStatus !== currentStatus ? { status: nextStatus } : {} }
+      });
+      lotDisposition = `lot status ${nextStatus}`;
+    }
+    await tx.stockMovement.create({
+      data: {
+        inventoryItemId: reservation.inventoryItemId,
+        inventoryLotId: reservation.inventoryLotId || null,
+        storeId,
+        orderId: order.id,
+        type: "return",
+        quantity,
+        reason: `Cancelled pickup order ${order.orderNumber}`,
+        notes: `Released unprepared order reservation; ${lotDisposition}`,
+        createdById: actorId
+      }
+    });
+  }
+  for (const [inventoryItemId, quantity] of [...inventoryTotals].sort(([left], [right]) => left.localeCompare(right))) {
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
+    await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: { increment: quantity } } });
+  }
+  const prepConsumptions = await tx.prepBatchConsumption.findMany({ where: { orderId: order.id, quantity: { gt: 0 } }, orderBy: { id: "asc" }, select: { id: true, prepBatchId: true, quantity: true } });
+  for (const consumption of prepConsumptions) {
+    const quantity = Number(consumption.quantity);
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-prep-batch:${consumption.prepBatchId}`);
+    const batch = await tx.prepBatch.findUnique({ where: { id: consumption.prepBatchId }, select: { id: true, storeId: true, quantityRemaining: true } });
+    if (!batch || String(batch.storeId) !== storeId || !Number.isFinite(quantity) || quantity <= 0) throw new Error("Prepared batch reservation evidence is invalid");
+    await tx.prepBatch.update({ where: { id: consumption.prepBatchId }, data: { quantityRemaining: { increment: quantity } } });
+    await tx.prepBatchConsumption.create({ data: { idempotencyKey: `cancel:${order.id}:${consumption.id}`, storeId, orderId: order.id, prepBatchId: consumption.prepBatchId, quantity: -quantity } });
+  }
+}
+function isCafeOrderStatus(status) {
+  return allowedStatuses.includes(status);
+}
+async function updateCafeOrderStatus(_root, args, context) {
+  if (!permissions.canManageOrders({ session: context.session })) throw new Error("Not authorized to update cafe order status");
+  if (!isCafeOrderStatus(args.status)) throw new Error(`Unsupported cafe order status: ${args.status}`);
+  if (args.status === "paid" || args.status === "refunded") {
+    throw new Error(`Cafe order ${args.status} status is controlled by payment settlement`);
+  }
+  const status = args.status;
+  if (status === "cancelled") await releaseAbandonedOnlinePayments(context.prisma, args.orderId);
+  const orderId = await context.prisma.$transaction(async (rawTx) => {
+    const tx = rawTx;
+    await lockCoffeeOrder(tx, args.orderId);
+    const actorId = await requireCurrentCoffeeCapability(rawTx, context.session, ["canManageOrders"], "Not authorized to update cafe order status");
+    const existing = await tx.cafeOrder.findUnique({ where: { id: args.orderId }, include: { orderItems: { select: { id: true, barStatus: true } }, payments: { select: { status: true, amount: true, refundIdempotencyKey: true } } } });
+    if (!existing) throw new Error("Cafe order not found");
+    const storeId = await getPrimaryCoffeeStoreId(tx);
+    assertCoffeeStoreOwnership(existing.storeId, storeId, "Cafe order");
+    const transition = evaluateTransition(CAFE_ORDER_TRANSITIONS, existing.status, status);
+    if (transition.replay) return existing.id;
+    if (status === "ready" || status === "completed") assertCafeOrderItemsReadyForHandoff(existing.orderItems);
+    if (status === "completed") assertCafeSettlement(existing.payments, Number(existing.total) - Number(existing.discount || 0));
+    if (status === "cancelled" && existing.payments.some((payment) => ["pending", "authorized", "captured"].includes(String(payment.status)))) throw new Error("Resolve the payment attempt or refund before cancelling this order");
+    const now = /* @__PURE__ */ new Date();
+    if (status === "cancelled") await releaseOrderReservations(tx, existing, storeId, actorId, now);
+    const timestampField = statusTimestampMap[status];
+    await tx.cafeOrder.update({
+      where: { id: existing.id },
+      data: { status, ...timestampField ? { [timestampField]: now } : {} }
+    });
+    const itemStatus = itemStatusMap[status];
+    if (itemStatus && existing.orderItems.length) {
+      const itemTimestamp2 = itemTimestampMap[itemStatus];
+      const updated = await tx.orderItem.updateMany({
+        where: { orderId: existing.id, barStatus: { in: itemStatus === "preparing" ? ["new", "queued"] : itemStatus === "ready" ? ["new", "queued", "preparing"] : itemStatus === "queued" ? ["new"] : ["new", "queued", "preparing", "ready"] } },
+        data: { barStatus: itemStatus, ...itemTimestamp2 ? { [itemTimestamp2]: now } : {} }
+      });
+      if (updated.count > existing.orderItems.length) throw new Error("Cafe order item status propagation was invalid");
+    }
+    await recordCoffeeCommandReceipt(tx, {
+      storeId,
+      eventKey: `order:${existing.id}:status:${status}:v1`,
+      eventType: "order.status_changed",
+      aggregateType: "order",
+      aggregateId: existing.id,
+      occurredAt: now,
+      payload: { orderId: existing.id, orderNumber: existing.orderNumber, previousStatus: existing.status, status, itemStatus: itemStatus || null, inventoryReleased: status === "cancelled" }
+    });
+    return existing.id;
+  }, TX_OPTIONS);
+  return context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_QUERY });
+}
+var allowedStatuses, TX_OPTIONS, ORDER_QUERY, statusTimestampMap, itemStatusMap, itemTimestampMap;
+var init_updateCafeOrderStatus = __esm({
+  "features/keystone/mutations/updateCafeOrderStatus.ts"() {
+    "use strict";
+    init_access();
+    init_coffeeCommandReceipt();
+    init_transitionPolicy();
+    init_coffeeKdsAuthority();
+    init_coffeeOrderPolicy();
+    init_onlinePaymentRelease();
+    allowedStatuses = ["open", "accepted", "paid", "in_bar_queue", "preparing", "ready", "completed", "cancelled", "refunded"];
+    TX_OPTIONS = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
+    ORDER_QUERY = "id orderNumber status startedAt readyAt completedAt cancelledAt orderItems { id barStatus }";
+    statusTimestampMap = {
+      preparing: "startedAt",
+      ready: "readyAt",
+      completed: "completedAt",
+      cancelled: "cancelledAt",
+      paid: "paidAt"
+    };
+    itemStatusMap = {
+      in_bar_queue: "queued",
+      preparing: "preparing",
+      ready: "ready",
+      completed: "handed_off",
+      cancelled: "voided"
+    };
+    itemTimestampMap = {
+      queued: "queuedAt",
+      preparing: "startedAt",
+      ready: "readyAt",
+      handed_off: "handedOffAt"
+    };
+  }
+});
+
+// features/keystone/mutations/endOfDayClose.ts
+function storeDayKey(at, timezone) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(at);
+  const part = (type) => parts.find((entry) => entry.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+function isPastDayTicket(ticket, now, timezone) {
+  const due = ticket.promisedAt || ticket.createdAt;
+  if (now.getTime() - due.getTime() < MIN_AGE_MS) return false;
+  return storeDayKey(due, timezone) < storeDayKey(now, timezone);
+}
+function dayCloseOutcome(order, payments, itemStatuses) {
+  if (payments.some((payment) => payment.status === "pending" || payment.status === "authorized")) return null;
+  if (hasCafeSettlement(payments, Number(order.total) - Number(order.discount || 0)) && payments.some((payment) => payment.status === "captured")) return "completed";
+  if (payments.some((payment) => payment.status === "captured")) return null;
+  const started = itemStatuses.some((status) => ["preparing", "ready", "handed_off"].includes(status));
+  return started ? "no_show" : "cancelled";
+}
+function triggerEndOfDayClose(prisma) {
+  const now = Date.now();
+  if (now - lastRun < MIN_INTERVAL_MS || process.env.NODE_ENV === "test") return;
+  lastRun = now;
+  void closePastDayOrders(prisma, new Date(now)).catch((error) => console.error("End-of-day close failed:", error));
+}
+async function closePastDayOrders(prisma, now = /* @__PURE__ */ new Date()) {
+  const store = await prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true, timezone: true } });
+  if (!store) return null;
+  const timezone = store.timezone || "America/New_York";
+  const before = new Date(now.getTime() - MIN_AGE_MS);
+  const candidates = (await prisma.cafeOrder.findMany({
+    where: { storeId: store.id, status: { in: ACTIVE }, OR: [{ promisedAt: { lt: before } }, { promisedAt: null, createdAt: { lt: before } }] },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: 200,
+    select: { id: true, orderNumber: true, status: true, total: true, discount: true, promisedAt: true, createdAt: true }
+  })).filter((ticket) => isPastDayTicket(ticket, now, timezone));
+  if (!candidates.length) return null;
+  const report = { closedAt: now.toISOString(), storeDay: storeDayKey(now, timezone), completed: 0, cancelled: 0, noShow: 0, skipped: 0, orderNumbers: [] };
+  for (const ticket of candidates) {
+    try {
+      await releaseAbandonedOnlinePayments(prisma, ticket.id);
+      const outcome = await prisma.$transaction(async (rawTx) => {
+        const tx = rawTx;
+        await lockCoffeeOrder(tx, ticket.id);
+        const order = await tx.cafeOrder.findUnique({ where: { id: ticket.id }, include: { orderItems: { select: { id: true, barStatus: true } }, payments: { select: { id: true, status: true, amount: true, refundIdempotencyKey: true } } } });
+        if (!order || order.storeId !== store.id || !ACTIVE.includes(String(order.status))) return null;
+        const result = dayCloseOutcome(order, order.payments, order.orderItems.map((item) => String(item.barStatus)));
+        if (!result) return null;
+        const status = result === "completed" ? "completed" : "cancelled";
+        if (result === "cancelled") await releaseOrderReservations(tx, order, store.id, null, now);
+        await tx.cafeOrder.update({ where: { id: order.id }, data: { status, ...status === "completed" ? { completedAt: now } : { cancelledAt: now } } });
+        if (order.orderItems.length) {
+          await tx.orderItem.updateMany({
+            where: { orderId: order.id, barStatus: { in: ["new", "queued", "preparing", "ready"] } },
+            data: status === "completed" ? { barStatus: "handed_off", handedOffAt: now } : { barStatus: "voided" }
+          });
+        }
+        await recordCoffeeCommandReceipt(tx, {
+          storeId: store.id,
+          eventKey: `order:${order.id}:status:${status}:v1`,
+          eventType: "order.status_changed",
+          aggregateType: "order",
+          aggregateId: order.id,
+          occurredAt: now,
+          payload: { orderId: order.id, orderNumber: order.orderNumber, previousStatus: order.status, status, itemStatus: status === "completed" ? "handed_off" : "voided", inventoryReleased: result === "cancelled", closedBy: "end_of_day", outcome: result }
+        });
+        return result;
+      }, TX_OPTIONS2);
+      if (!outcome) {
+        report.skipped += 1;
+        continue;
+      }
+      if (outcome === "completed") report.completed += 1;
+      else if (outcome === "cancelled") report.cancelled += 1;
+      else report.noShow += 1;
+      report.orderNumbers.push(ticket.orderNumber);
+    } catch (error) {
+      report.skipped += 1;
+      console.error(`End-of-day close skipped ${ticket.orderNumber}:`, error?.message || error);
+    }
+  }
+  if (report.orderNumbers.length) {
+    await prisma.$transaction(async (tx) => {
+      await recordCoffeeCommandReceipt(tx, {
+        storeId: store.id,
+        eventKey: `store:${store.id}:end_of_day_close:${report.closedAt}:v1`,
+        eventType: DAY_CLOSE_EVENT,
+        aggregateType: "store",
+        aggregateId: store.id,
+        occurredAt: now,
+        payload: report
+      });
+    }, TX_OPTIONS2);
+  }
+  return report;
+}
+async function latestDayClose(prisma, storeId) {
+  const row = await prisma.coffeeCommandReceipt.findFirst({ where: { storeId, eventType: DAY_CLOSE_EVENT }, orderBy: [{ occurredAt: "desc" }], select: { payload: true } });
+  const payload = row?.payload;
+  return payload && typeof payload.closedAt === "string" ? payload : null;
+}
+var DAY_CLOSE_EVENT, ACTIVE, MIN_AGE_MS, MIN_INTERVAL_MS, TX_OPTIONS2, lastRun;
+var init_endOfDayClose = __esm({
+  "features/keystone/mutations/endOfDayClose.ts"() {
+    "use strict";
+    init_coffeeCommandReceipt();
+    init_coffeeOrderPolicy();
+    init_onlinePaymentRelease();
+    init_updateCafeOrderStatus();
+    DAY_CLOSE_EVENT = "orders.end_of_day_closed";
+    ACTIVE = ["open", "accepted", "paid", "in_bar_queue", "preparing", "ready"];
+    MIN_AGE_MS = 3 * 36e5;
+    MIN_INTERVAL_MS = 5 * 6e4;
+    TX_OPTIONS2 = { maxWait: 5e3, timeout: 2e4, isolationLevel: "ReadCommitted" };
+    lastRun = 0;
+  }
+});
+
+// features/keystone/mutations/kdsPolicy.ts
+function isKdsItemStatus(value) {
+  return KDS_ITEM_STATUSES.includes(value);
+}
+function evaluateKdsItemTransition(current, next) {
+  if (current === next) return { replay: true };
+  if (!KDS_ITEM_TRANSITIONS[current].includes(next)) throw new Error(`Cannot transition KDS item from ${current} to ${next}`);
+  return { replay: false };
+}
+function rollupCafeOrderStatus(statuses) {
+  const active = statuses.filter((status) => status !== "voided");
+  if (active.length === 0) return "in_bar_queue";
+  if (active.every((status) => status === "handed_off")) return "completed";
+  if (active.every((status) => status === "ready" || status === "handed_off")) return "ready";
+  if (active.some((status) => status === "preparing")) return "preparing";
+  return "in_bar_queue";
+}
+function advanceKdsOrderStatus(current, derived) {
+  const rank = { open: 0, accepted: 0, paid: 0, in_bar_queue: 1, preparing: 2, ready: 3, completed: 4 };
+  return (rank[current] || 0) > rank[derived] ? current : derived;
+}
+var KDS_ITEM_STATUSES, KDS_ITEM_TRANSITIONS;
+var init_kdsPolicy = __esm({
+  "features/keystone/mutations/kdsPolicy.ts"() {
+    "use strict";
+    KDS_ITEM_STATUSES = ["new", "queued", "preparing", "ready", "handed_off", "voided"];
+    KDS_ITEM_TRANSITIONS = {
+      new: ["queued", "voided"],
+      queued: ["preparing", "voided"],
+      preparing: ["ready", "voided"],
+      ready: ["handed_off", "voided"],
+      handed_off: [],
+      voided: []
+    };
+  }
+});
+
+// features/lib/pickup-quote.ts
+function cafeEarliestPickupMinutes(storeLeadMinutes, prepTimes) {
+  const prep = prepTimes.map((minutes) => (Number.isFinite(Number(minutes)) ? Number(minutes) : 0) + CAFE_PICKUP_PREP_BUFFER_MINUTES);
+  return Math.max(5, Number(storeLeadMinutes) || 0, ...prep);
+}
+function clockMinutes(value) {
+  const match = /^(\d{2}):(\d{2})$/.exec(value || "");
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  return hour <= 23 && minute <= 59 ? hour * 60 + minute : null;
+}
+function zonedParts(at, timezone) {
+  let format = zoneFormats.get(timezone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "long", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    zoneFormats.set(timezone, format);
+  }
+  const parts = format.formatToParts(at);
+  const value = (type) => parts.find((part) => part.type === type)?.value || "";
+  return { day: value("weekday"), minuteOfDay: Number(value("hour")) * 60 + Number(value("minute")) };
+}
+function normalizeWeeklyHours(value) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") return [];
+    const row = entry;
+    const day = String(row.day || "");
+    if (!DAY_NAMES.includes(day)) return [];
+    return [{ day, open: typeof row.open === "string" ? row.open : null, close: typeof row.close === "string" ? row.close : null, closed: row.closed === true }];
+  });
+}
+function inServiceWindows(minuteOfDay, serviceWindows) {
+  return !serviceWindows.length || serviceWindows.includes("all_day") || serviceWindows.some((window) => {
+    const range = SERVICE_WINDOWS[window];
+    return Boolean(range && minuteOfDay >= range[0] && minuteOfDay < range[1]);
+  });
+}
+function openAtMinute(hours, day, minuteOfDay, serviceWindows) {
+  const entry = hours.find((candidate) => candidate.day === day);
+  const openMinute = clockMinutes(entry?.open);
+  const closeMinute = clockMinutes(entry?.close);
+  if (!entry || entry.closed || openMinute == null || closeMinute == null || minuteOfDay < openMinute || minuteOfDay >= closeMinute) return false;
+  return inServiceWindows(minuteOfDay, serviceWindows);
+}
+function coffeeFirstPickupMinutes(settings, earliestMinutes, serviceWindowSets = [["all_day"]], at = /* @__PURE__ */ new Date()) {
+  const timezone = settings.timezone || DEFAULT_STORE_TIMEZONE;
+  const hours = normalizeWeeklyHours(settings.weeklyHours);
+  for (let offset = Math.max(0, Math.ceil(earliestMinutes)); offset <= COFFEE_PICKUP_SCHEDULE_MAX_MINUTES; offset++) {
+    const { day, minuteOfDay } = zonedParts(new Date(at.getTime() + offset * 6e4), timezone);
+    if (serviceWindowSets.every((windows) => openAtMinute(hours, day, minuteOfDay, windows))) return offset;
+  }
+  return null;
+}
+var DAY_NAMES, SERVICE_WINDOWS, COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, CAFE_PICKUP_PREP_BUFFER_MINUTES, DEFAULT_STORE_TIMEZONE, zoneFormats;
+var init_pickup_quote = __esm({
+  "features/lib/pickup-quote.ts"() {
+    "use strict";
+    DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    SERVICE_WINDOWS = {
+      morning: [5 * 60, 11 * 60],
+      midday: [11 * 60, 14 * 60],
+      afternoon: [14 * 60, 18 * 60],
+      all_day: [0, 24 * 60]
+    };
+    COFFEE_PICKUP_SCHEDULE_MAX_MINUTES = 48 * 60;
+    CAFE_PICKUP_PREP_BUFFER_MINUTES = 5;
+    DEFAULT_STORE_TIMEZONE = "America/New_York";
+    zoneFormats = /* @__PURE__ */ new Map();
+  }
+});
+
+// features/keystone/mutations/coffeeAvailability.ts
+function getCoffeeOrderingAvailability(settings, at = /* @__PURE__ */ new Date(), serviceWindows = ["all_day"]) {
+  const timezone = settings.timezone || DEFAULT_STORE_TIMEZONE;
+  const { day, minuteOfDay } = zonedParts(at, timezone);
+  const hours = normalizeWeeklyHours(settings.weeklyHours);
+  const today = hours.find((entry) => entry.day === day);
+  const openMinute = clockMinutes(today?.open);
+  const closeMinute = clockMinutes(today?.close);
+  const storeOpen = Boolean(today && !today.closed && openMinute != null && closeMinute != null && minuteOfDay >= openMinute && minuteOfDay < closeMinute);
+  const itemOpen = inServiceWindows(minuteOfDay, serviceWindows);
+  return {
+    orderingOpen: storeOpen && itemOpen,
+    storeOpen,
+    itemOpen,
+    timezone,
+    day,
+    minuteOfDay,
+    today: today || null,
+    pickupLeadTimeMinutes: Math.max(5, Number(settings.pickupLeadTimeMinutes || 12))
+  };
+}
+function assertCoffeeOrderingAvailable(settings, at = /* @__PURE__ */ new Date(), serviceWindows = ["all_day"]) {
+  const availability = getCoffeeOrderingAvailability(settings, at, serviceWindows);
+  if (!availability.storeOpen) throw cafeCustomerError("The cafe is closed for pickup at that time");
+  if (!availability.itemOpen) throw cafeCustomerError("A selected item isn't served at that time");
+  return availability;
+}
+var init_coffeeAvailability = __esm({
+  "features/keystone/mutations/coffeeAvailability.ts"() {
+    "use strict";
+    init_cafeCustomerError();
+    init_pickup_quote();
+    init_pickup_quote();
+  }
+});
+
+// features/keystone/mutations/idempotency.ts
+function stableSerialize(value) {
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, entry]) => `${JSON.stringify(key)}:${stableSerialize(entry)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+function normalizeIdempotencyKey(value) {
+  const key = value?.trim();
+  if (!key) return null;
+  if (key.length < 16) throw new Error("Idempotency key must be at least 16 characters");
+  if (key.length > 128) throw new Error("Idempotency key must be at most 128 characters");
+  if (!/^[A-Za-z0-9._:-]+$/.test(key)) {
+    throw new Error("Idempotency key contains unsupported characters");
+  }
+  return key;
+}
+function buildScopedIdempotencyKey(scope, key) {
+  return (0, import_node_crypto3.createHash)("sha256").update(`${scope}:${key}`).digest("hex");
+}
+function fingerprintInput(input) {
+  return (0, import_node_crypto3.createHash)("sha256").update(stableSerialize(input)).digest("hex");
+}
+var import_node_crypto3;
+var init_idempotency = __esm({
+  "features/keystone/mutations/idempotency.ts"() {
+    "use strict";
+    import_node_crypto3 = require("node:crypto");
+  }
+});
+
+// features/keystone/mutations/coffeePricing.ts
+function normalizeCafeTaxBasisPoints(value) {
+  const basisPoints = Number(value);
+  if (!Number.isFinite(basisPoints) || basisPoints < 0 || basisPoints > 1e4 || Math.abs(Math.round(basisPoints * 100) - basisPoints * 100) > 1e-6) {
+    throw new Error("Store tax rate must be between 0 and 10000 basis points, with at most two decimals");
+  }
+  return basisPoints;
+}
+function assertCafeMoneyCents(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0 || value > MAX_CAFE_MONEY_CENTS) {
+    throw new Error(`${label} is outside the supported order amount range`);
+  }
+  return value;
+}
+function calculateCafeTax(subtotalCents, basisPoints = DEFAULT_CAFE_TAX_BASIS_POINTS) {
+  if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) throw new Error("Subtotal must be a non-negative integer amount in cents");
+  return Math.round(subtotalCents * normalizeCafeTaxBasisPoints(basisPoints) / 1e4);
+}
+function calculateCafeTotals(lines, taxRateBasisPoints, tipCents) {
+  const lineTotals = lines.map((line) => {
+    assertCafeMoneyCents(line.unitPrice, "Item price");
+    return assertCafeMoneyCents(line.unitPrice * line.quantity, "Line total");
+  });
+  const subtotal = assertCafeMoneyCents(lineTotals.reduce((sum, value) => sum + value, 0), "Order subtotal");
+  const tax = assertCafeMoneyCents(calculateCafeTax(subtotal, taxRateBasisPoints), "Order tax");
+  const tip = assertCafeMoneyCents(tipCents, "Tip");
+  const total = assertCafeMoneyCents(subtotal + tax + tip, "Order total");
+  return { lineTotals, subtotal, tax, tip, total };
+}
+function cafeQuoteFingerprint(input) {
+  return fingerprintInput({
+    kind: "cafe-quote:v1",
+    storeId: input.storeId,
+    currencyCode: input.currencyCode,
+    taxRateBasisPoints: input.taxRateBasisPoints,
+    lines: input.lines.map((line) => ({ menuItemId: line.menuItemId, quantity: line.quantity, modifierIds: [...line.modifierIds].sort(), unitPrice: line.unitPrice })),
+    subtotal: input.subtotal,
+    tax: input.tax,
+    tip: input.tip,
+    total: input.total
+  });
+}
+var DEFAULT_CAFE_TAX_BASIS_POINTS, MAX_CAFE_MONEY_CENTS;
+var init_coffeePricing = __esm({
+  "features/keystone/mutations/coffeePricing.ts"() {
+    "use strict";
+    init_idempotency();
+    DEFAULT_CAFE_TAX_BASIS_POINTS = 875;
+    MAX_CAFE_MONEY_CENTS = 2147483647;
   }
 });
 
@@ -3663,10 +4251,6 @@ var init_coffeeInventoryConsumption = __esm({
 });
 
 // features/keystone/mutations/cafeStorefrontPolicy.ts
-function cafeEarliestPickupMinutes(storeLeadMinutes, prepTimes) {
-  const prep = prepTimes.map((minutes2) => (Number.isFinite(Number(minutes2)) ? Number(minutes2) : 0) + CAFE_PICKUP_PREP_BUFFER_MINUTES);
-  return Math.max(5, Number(storeLeadMinutes) || 0, ...prep);
-}
 function isPublishedMenuItem(item) {
   return Boolean(item.available) && (!item.category || item.category.active !== false);
 }
@@ -3687,7 +4271,7 @@ function normalizeCafeReceiptKey(value) {
 }
 function cafeReceiptKeyMatches(presented, stored) {
   if (!presented || !stored || presented.length !== stored.length) return false;
-  return (0, import_node_crypto3.timingSafeEqual)(Buffer.from(presented), Buffer.from(stored));
+  return (0, import_node_crypto4.timingSafeEqual)(Buffer.from(presented), Buffer.from(stored));
 }
 function cafeUploadedImageReference(image2) {
   if (!image2?.image_id || !IMAGE_EXTENSIONS.includes(image2.image_extension)) return null;
@@ -3714,14 +4298,14 @@ function cafeMenuItemImageReference(item) {
   const primary = item.menuItemImages?.[0];
   return cafeUploadedImageReference(primary) || primary?.imagePath || item.imageUrl || null;
 }
-var import_node_crypto3, CAFE_PICKUP_PREP_BUFFER_MINUTES, PUBLISHED_MENU_ITEM_WHERE, RECEIPT_KEY_PATTERN, IMAGE_REFERENCE_PREFIX, IMAGE_EXTENSIONS;
+var import_node_crypto4, PUBLISHED_MENU_ITEM_WHERE, RECEIPT_KEY_PATTERN, IMAGE_REFERENCE_PREFIX, IMAGE_EXTENSIONS;
 var init_cafeStorefrontPolicy = __esm({
   "features/keystone/mutations/cafeStorefrontPolicy.ts"() {
     "use strict";
-    import_node_crypto3 = require("node:crypto");
+    import_node_crypto4 = require("node:crypto");
     init_idempotency();
     init_cafeCustomerError();
-    CAFE_PICKUP_PREP_BUFFER_MINUTES = 5;
+    init_pickup_quote();
     PUBLISHED_MENU_ITEM_WHERE = {
       available: true,
       OR: [{ categoryId: null }, { category: { active: true } }]
@@ -4323,7 +4907,7 @@ async function getCoffeeOperations(_root, rawArgs, context) {
     sections,
     storeTimezone: typeof store.timezone === "string" ? store.timezone : null,
     // Partitions this browser's unsaved drafts by account and store; not an authorization token.
-    draftScope: (0, import_node_crypto4.createHash)("sha256").update(`coffee-operations:${context.session?.itemId ?? ""}:${storeId}`).digest("hex").slice(0, 24),
+    draftScope: (0, import_node_crypto5.createHash)("sha256").update(`coffee-operations:${context.session?.itemId ?? ""}:${storeId}`).digest("hex").slice(0, 24),
     recipes,
     ingredients,
     inventoryLots,
@@ -4345,11 +4929,11 @@ async function getCoffeeOperations(_root, rawArgs, context) {
     activeStaffShifts: { ...activeStaffShifts, totalCount: activeStaffShiftCount }
   };
 }
-var import_node_crypto4, OPTION_PAGE_SIZE, RECEIPT_PAGE_SIZE, SHIFT_PAGE_SIZE, RECENT, CURSOR_MAX_LENGTH, emptyPage, contains, shiftSelect;
+var import_node_crypto5, OPTION_PAGE_SIZE, RECEIPT_PAGE_SIZE, SHIFT_PAGE_SIZE, RECENT, CURSOR_MAX_LENGTH, emptyPage, contains, shiftSelect;
 var init_getCoffeeOperationsSnapshot = __esm({
   "features/keystone/mutations/getCoffeeOperationsSnapshot.ts"() {
     "use strict";
-    import_node_crypto4 = require("node:crypto");
+    import_node_crypto5 = require("node:crypto");
     init_access();
     OPTION_PAGE_SIZE = 100;
     RECEIPT_PAGE_SIZE = 50;
@@ -4401,6 +4985,15 @@ async function primaryStore(context) {
     storeTimezone: typeof store.timezone === "string" ? store.timezone : null,
     weeklyHours: store.weeklyHours
   };
+}
+function staleCutoff() {
+  return new Date(Date.now() - STALE_TICKET_HOURS * 36e5);
+}
+function currentTicketWhere(cutoff) {
+  return { OR: [{ promisedAt: { gte: cutoff } }, { promisedAt: null, createdAt: { gte: cutoff } }] };
+}
+function staleTicketWhere(cutoff) {
+  return { OR: [{ promisedAt: { lt: cutoff } }, { promisedAt: null, createdAt: { lt: cutoff } }] };
 }
 function allowlisted(value, allowed, label) {
   if (value == null || value === "") return allowed[0];
@@ -4470,6 +5063,7 @@ async function getCoffeeOrderQueue(_root, args, context) {
   const activeCursor = decodeActiveOrderCursor(args.activeCursor, search, filterKey);
   const historyCursor = decodeHistoryOrderCursor(args.historyCursor, search, filterKey);
   const includeHistory = args.includeCompleted !== false;
+  triggerEndOfDayClose(context.prisma);
   const store = await primaryStore(context);
   if (activeCursor && activeCursor.storeId !== store.id) throw new Error("Invalid active order cursor");
   if (historyCursor && historyCursor.storeId !== store.id) throw new Error("Invalid history order cursor");
@@ -4482,7 +5076,9 @@ async function getCoffeeOrderQueue(_root, args, context) {
     ...fulfillmentFilter !== "all" ? { fulfillmentType: fulfillmentFilter } : {},
     ...search ? { OR: ["orderNumber", "customerName", "customerEmail", "pickupName"].map((field) => ({ [field]: { contains: search, mode: "insensitive" } })) } : {}
   };
-  const activeCountWhere = { ...matchingOrders, status: { in: activeStatuses } };
+  const cutoff = staleCutoff();
+  const activeCountWhere = { ...matchingOrders, status: { in: activeStatuses }, AND: [currentTicketWhere(cutoff)] };
+  const staleWhere = { ...matchingOrders, status: { in: activeStatuses }, AND: [staleTicketWhere(cutoff)] };
   const historyWhere = { ...matchingOrders, status: { in: historyStatuses } };
   const historyPageWhere = {
     ...historyWhere,
@@ -4494,7 +5090,7 @@ async function getCoffeeOrderQueue(_root, args, context) {
   const countedOrdersWhere = { ...matchingOrders, status: { in: [...allActiveStatuses, ...includeHistory ? allHistoryStatuses : []] } };
   const activePageWhere = {
     ...activeCountWhere,
-    ...activeCursor ? { AND: [{ OR: [
+    ...activeCursor ? { AND: [currentTicketWhere(cutoff), { OR: [
       { createdAt: { gt: activeCursor.createdAt } },
       { createdAt: activeCursor.createdAt, id: { gt: activeCursor.id } }
     ] }] } : {}
@@ -4517,10 +5113,14 @@ async function getCoffeeOrderQueue(_root, args, context) {
     orderItems: { select: { id: true, quantity: true, itemNameSnapshot: true, customizationsSummary: true, barStatus: true, station: true } },
     payments: { where: { status: { in: ["captured", "pending", "authorized", "refunded"] } }, select: { id: true, status: true, method: true, provider: true, amount: true, refundedAmount: true, refundIdempotencyKey: true } }
   };
-  const [activeTickets, historyTickets, groupedCounts] = await Promise.all([
+  const [activeTickets, historyTickets, groupedCounts, staleTickets, staleCount, liveCount] = await Promise.all([
     activeStatuses.length ? context.prisma.cafeOrder.findMany({ where: activePageWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE + 1, select: orderSelect }) : Promise.resolve([]),
     historyStatuses.length ? context.prisma.cafeOrder.findMany({ where: historyPageWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE + 1, select: orderSelect }) : Promise.resolve([]),
-    context.prisma.cafeOrder.groupBy({ by: ["status"], where: countedOrdersWhere, _count: { _all: true } })
+    context.prisma.cafeOrder.groupBy({ by: ["status"], where: countedOrdersWhere, _count: { _all: true } }),
+    // Past pickups never collected or closed: shown apart so staff can close them out, oldest first.
+    activeStatuses.length && !activeCursor ? context.prisma.cafeOrder.findMany({ where: staleWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE, select: orderSelect }) : Promise.resolve([]),
+    activeStatuses.length ? context.prisma.cafeOrder.count({ where: staleWhere }) : Promise.resolve(0),
+    activeStatuses.length ? context.prisma.cafeOrder.count({ where: activeCountWhere }) : Promise.resolve(0)
   ]);
   const countByStatus = new Map(groupedCounts.map(({ status, _count: count2 }) => [String(status), count2._all]));
   const count = (status) => countByStatus.get(status) || 0;
@@ -4532,7 +5132,8 @@ async function getCoffeeOrderQueue(_root, args, context) {
   const historyHasMore = historyTickets.length > ORDER_QUEUE_ACTIVE_PAGE_SIZE;
   const historyNextCursor = historyHasMore && historyItems.length ? encodeHistoryOrderCursor(historyItems[historyItems.length - 1], search, filterKey, store.id) : null;
   const historyCount = historyStatuses.reduce((total, status) => total + count(status), 0);
-  const tickets = [...activeItems, ...historyItems];
+  const staleIds = new Set(staleTickets.map((ticket) => ticket.id));
+  const tickets = [...activeItems, ...staleTickets, ...historyItems];
   const canManageOrders = permissions.canManageOrders({ session: context.session });
   const canManagePayments = permissions.canManagePayments({ session: context.session });
   const canManageLoyalty = permissions.canManageLoyalty({ session: context.session });
@@ -4554,7 +5155,9 @@ async function getCoffeeOrderQueue(_root, args, context) {
     capabilities: { canManageOrders, canManagePayments, canManageLoyalty },
     filters: { status: statusFilter, fulfillment: fulfillmentFilter },
     storeTimezone: store.storeTimezone,
-    activeCount: activeStatuses.reduce((total, status) => total + count(status), 0),
+    activeCount: liveCount,
+    staleCount,
+    lastDayClose: activeCursor ? null : await latestDayClose(context.prisma, store.id).catch(() => null),
     activeHasMore,
     activeNextCursor,
     historyCount,
@@ -4570,6 +5173,7 @@ async function getCoffeeOrderQueue(_root, args, context) {
       return {
         ...ticket,
         status,
+        isStale: staleIds.has(String(ticket.id)),
         orderItems: Array.isArray(ticket.orderItems) ? ticket.orderItems : [],
         // Payment state is a workflow fact for order/payment staff; tender details stay with payment managers.
         paymentState: canSeePaymentState ? paymentState : null,
@@ -4617,12 +5221,14 @@ async function getCoffeeKdsBoard(_root, args, context) {
   const limit = args.limit ?? KDS_PAGE_SIZE;
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > KDS_PAGE_SIZE) throw new Error(`KDS page size must be between 1 and ${KDS_PAGE_SIZE}`);
   const cursor = args.cursor == null ? null : decodeKdsCursor(args.cursor);
+  triggerEndOfDayClose(context.prisma);
   const store = await primaryStore(context);
   const releaseBy = new Date(Date.now() + KDS_RELEASE_MINUTES * 6e4);
   const baseWhere = {
     storeId: store.id,
     barStatus: { in: KDS_ACTIVE_ITEM_STATUSES },
-    order: { status: { in: KDS_ACTIVE_ORDER_STATUSES } }
+    // Past pickups leave the make line; they are closed out from Orders.
+    order: { status: { in: KDS_ACTIVE_ORDER_STATUSES }, ...currentTicketWhere(staleCutoff()) }
   };
   const activeWhere = {
     ...baseWhere,
@@ -4760,7 +5366,7 @@ function decodePosCatalogCursor(value, storeId, search, categoryId) {
   }
 }
 async function getCoffeePosRegister(_root, args, context) {
-  requirePermission(permissions.canManageOrders({ session: context.session }) && permissions.canManagePayments({ session: context.session }), "Not authorized to operate POS");
+  requirePermission(permissions.canManageOrders({ session: context.session }), "Not authorized to operate POS");
   const store = await primaryStore(context);
   const search = (args?.search || "").trim().slice(0, 200);
   const categoryId = (args?.categoryId || "").trim().slice(0, 255);
@@ -4800,7 +5406,7 @@ async function getCoffeePosRegister(_root, args, context) {
 async function quoteCafeOrder(_root, args, context) {
   const items = validateCafeOrderLines(args.items || []);
   const isStaff = permissions.canManageOrders({ session: context.session });
-  const tipCents = isStaff ? Number(args.tipCents || 0) : 0;
+  const tipCents = Number(args.tipCents || 0);
   if (!Number.isSafeInteger(tipCents) || tipCents < 0 || tipCents > 1e8) throw new Error("Tip must be a non-negative integer amount in cents");
   const store = await primaryStore(context);
   const ids = [...new Set(items.map((item) => item.menuItemId))];
@@ -4825,6 +5431,8 @@ async function quoteCafeOrder(_root, args, context) {
     return { index, menuItemId: menuItem.id, name: menuItem.name, quantity: item.quantity, unitPrice, modifierIds };
   });
   const taxRateBasisPoints = Number(store.taxRateBasisPoints ?? 875);
+  const lineSubtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  if (!isStaff && tipCents > lineSubtotal) throw cafeCustomerError("The tip can't be more than the order itself");
   const totals = calculateCafeTotals(lines, taxRateBasisPoints, tipCents);
   const currency = await context.prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { currencyCode: true } });
   const currencyCode = String(currency?.currencyCode || "USD");
@@ -4860,12 +5468,13 @@ async function quoteCafeOrder(_root, args, context) {
     lines: lines.map((line, index) => ({ index: line.index, menuItemId: line.menuItemId, name: line.name, quantity: line.quantity, unitPrice: line.unitPrice, lineTotal: totals.lineTotals[index] }))
   };
 }
-var statusLabels, ORDER_QUEUE_ACTIVE_PAGE_SIZE, ORDER_QUEUE_STATUS_FILTERS, ORDER_QUEUE_FULFILLMENT_FILTERS, KDS_PAGE_SIZE, KDS_ACTIVE_ITEM_STATUSES, KDS_ACTIVE_ORDER_STATUSES, KDS_RELEASE_MINUTES, MENU_MANAGER_PAGE_LIMIT, MENU_MANAGER_MODIFIER_LIMIT, MENU_MANAGER_CATEGORY_LIMIT, menuInventoryRefSelect, managedMenuItemSelect, POS_CATALOG_PAGE_SIZE, POS_CATALOG_CURSOR_MAX_LENGTH, posMenuItemSelect;
+var statusLabels, ORDER_QUEUE_ACTIVE_PAGE_SIZE, STALE_TICKET_HOURS, ORDER_QUEUE_STATUS_FILTERS, ORDER_QUEUE_FULFILLMENT_FILTERS, KDS_PAGE_SIZE, KDS_ACTIVE_ITEM_STATUSES, KDS_ACTIVE_ORDER_STATUSES, KDS_RELEASE_MINUTES, MENU_MANAGER_PAGE_LIMIT, MENU_MANAGER_MODIFIER_LIMIT, MENU_MANAGER_CATEGORY_LIMIT, menuInventoryRefSelect, managedMenuItemSelect, POS_CATALOG_PAGE_SIZE, POS_CATALOG_CURSOR_MAX_LENGTH, posMenuItemSelect;
 var init_coffeeBoundaryQueries = __esm({
   "features/keystone/mutations/coffeeBoundaryQueries.ts"() {
     "use strict";
+    init_endOfDayClose();
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_kdsPolicy();
     init_transitionPolicy();
     init_coffeeAvailability();
@@ -4894,6 +5503,7 @@ var init_coffeeBoundaryQueries = __esm({
       clocked_in: "Clock in"
     };
     ORDER_QUEUE_ACTIVE_PAGE_SIZE = 100;
+    STALE_TICKET_HOURS = 12;
     ORDER_QUEUE_STATUS_FILTERS = ["all", "open", "accepted", "paid", "in_bar_queue", "preparing", "ready", "completed", "cancelled", "refunded"];
     ORDER_QUEUE_FULFILLMENT_FILTERS = ["all", "pickup", "counter", "dine_in"];
     KDS_PAGE_SIZE = 100;
@@ -4966,7 +5576,7 @@ function generateOrderNumber(timezone, at = /* @__PURE__ */ new Date()) {
   } catch {
     date = at.toISOString().slice(2, 10).replace(/-/g, "");
   }
-  return `CF-${date}-${(0, import_node_crypto5.randomBytes)(4).toString("hex").toUpperCase()}`;
+  return `CF-${date}-${(0, import_node_crypto6.randomBytes)(4).toString("hex").toUpperCase()}`;
 }
 function transactionConflict(error) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
@@ -5002,11 +5612,10 @@ async function createOrderTransaction({
   const isImmediateTender = isStaff && ["cash", "manual_card"].includes(paymentMethod);
   let registerShift = null;
   if (isImmediateTender) {
-    requireCafeTenderOperator(session);
+    requireCafeRegisterOperator(session);
     if (!args.registerShiftId) throw new Error("Immediate tender requires an open register shift");
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-register-shift:${args.registerShiftId}`);
-    await requireCurrentCoffeeCapability(tx, session, ["canManageOrders"], "Not authorized to record cafe payments");
-    await requireCurrentCoffeeCapability(tx, session, ["canManagePayments"], "Not authorized to record cafe payments");
+    await requireCurrentCoffeeCapability(tx, session, ["canManageOrders"], "Not authorized to operate the register");
     registerShift = await tx.registerShift.findUnique({ where: { id: args.registerShiftId } });
     if (!registerShift || registerShift.status !== "open") throw new Error("POS orders require an open register shift");
   }
@@ -5038,9 +5647,10 @@ async function createOrderTransaction({
   if (!isStaff) {
     const customerEmail = normalizeEmail(args.customerEmail);
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-public-intake:${storeId}`);
+    const stillLive = { OR: [{ payments: { none: {} } }, { payments: { some: { status: { notIn: ["failed", "cancelled"] } } } }] };
     const [recentForContact, totalOpenRequests] = await Promise.all([
-      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", customerEmail, createdAt: { gte: new Date(Date.now() - 60 * 6e4) } } }),
-      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open" } })
+      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", ...stillLive, customerEmail, createdAt: { gte: new Date(Date.now() - 60 * 6e4) } } }),
+      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", ...stillLive } })
     ]);
     if (recentForContact >= 3) throw cafeCustomerError("This email already has the maximum number of open pickup requests");
     if (totalOpenRequests >= Math.max(50, Number(settings.pickupCapacityPerWindow || 20) * 3)) throw cafeCustomerError("Online pickup requests are temporarily paused while the cafe catches up");
@@ -5087,7 +5697,8 @@ async function createOrderTransaction({
     leadMinutes = args.requestedPickupMinutes ?? firstOpen;
     if (leadMinutes < earliest) throw cafeCustomerError("The requested pickup time is earlier than the cafe can prepare this order. Review the pickup estimate and submit again.");
   }
-  const promisedAt = new Date(Date.now() + leadMinutes * 6e4);
+  const rawPromisedAt = Date.now() + leadMinutes * 6e4;
+  const promisedAt = new Date(!isStaff && args.requestedPickupMinutes != null ? Math.floor(rawPromisedAt / 6e4) * 6e4 : rawPromisedAt);
   if (!isStaff) {
     for (const item of normalizedItems) assertCoffeeOrderingAvailable(settings, promisedAt, item.menuItem.serviceWindows);
   }
@@ -5126,7 +5737,8 @@ async function createOrderTransaction({
   if (!isStaff) await assertCafeRequirementsInStock(tx, storeId, inventoryRequirements);
   const taxRateBasisPoints = Number(settings.taxRateBasisPoints ?? 875);
   const pricedLines = normalizedItems.map((item) => ({ menuItemId: item.menuItem.id, quantity: item.quantity, modifierIds: item.modifierSnapshot.map((modifier) => modifier.id), unitPrice: item.unitPrice }));
-  const { subtotal, tax, tip, total } = calculateCafeTotals(pricedLines, taxRateBasisPoints, isStaff ? Number(args.tipCents || 0) : 0);
+  const { subtotal, tax, tip, total } = calculateCafeTotals(pricedLines, taxRateBasisPoints, Number(args.tipCents || 0));
+  if (!isStaff && tip > subtotal) throw cafeCustomerError("The tip can't be more than the order itself");
   if (args.quoteFingerprint) {
     const current = cafeQuoteFingerprint({ storeId, currencyCode: settings.currencyCode, taxRateBasisPoints, lines: pricedLines, subtotal, tax, tip, total });
     if (current !== args.quoteFingerprint) throw cafeCustomerError("Prices or tax changed since this ticket was reviewed. Review the updated total and submit again.");
@@ -5157,8 +5769,8 @@ async function createOrderTransaction({
       requestFingerprint,
       customerId: !isStaff && session?.listKey === "User" ? session.itemId : null,
       storeId,
-      handoffCode: (0, import_node_crypto5.randomBytes)(3).toString("hex").toUpperCase(),
-      secretKey: !isStaff && args.receiptKey ? args.receiptKey : (0, import_node_crypto5.randomBytes)(32).toString("hex")
+      handoffCode: (0, import_node_crypto6.randomBytes)(3).toString("hex").toUpperCase(),
+      secretKey: !isStaff && args.receiptKey ? args.receiptKey : (0, import_node_crypto6.randomBytes)(32).toString("hex")
     },
     select: { id: true }
   });
@@ -5195,7 +5807,7 @@ async function createOrderTransaction({
   if (tenderRequired) {
     const manualProvider = await tx.paymentProvider.findUnique({ where: { code: "pp_system_default" }, select: { id: true } });
     if (!manualProvider) throw new Error("System payment provider is not configured");
-    const providerPaymentId = paymentMethod === "cash" ? `cash_${(0, import_node_crypto5.randomUUID)()}` : `external_terminal:${externalCardReference}`;
+    const providerPaymentId = paymentMethod === "cash" ? `cash_${(0, import_node_crypto6.randomUUID)()}` : `external_terminal:${externalCardReference}`;
     if (paymentMethod === "manual_card") {
       const duplicate = await tx.payment.findFirst({ where: { storeId, method: "card", providerPaymentId }, select: { id: true } });
       if (duplicate) throw new Error("This terminal approval reference is already recorded on another sale");
@@ -5252,7 +5864,7 @@ async function createOrderTransaction({
       }
     });
   }
-  await enqueueCoffeeDomainEvent(tx, {
+  await recordCoffeeCommandReceipt(tx, {
     storeId,
     eventKey: `order:${order.id}:placed:v1`,
     eventType: "order.placed",
@@ -5294,7 +5906,7 @@ async function createCafePickupOrder(_root, args, context) {
   if (!["pickup", "counter", "dine_in"].includes(fulfillmentType)) throw new Error("Unsupported fulfillment type");
   if (orderSource === "online" && fulfillmentType !== "pickup") throw new Error("Online orders require pickup fulfillment");
   if (["cash", "manual_card"].includes(paymentMethod)) {
-    requireCafeTenderOperator(context.session);
+    requireCafeRegisterOperator(context.session);
     if (!args.registerShiftId) throw new Error("Immediate tender requires an open register shift");
   } else if (args.registerShiftId) throw new Error("A register may only be attached when recording immediate tender");
   const tipCents = Number(args.tipCents || 0);
@@ -5311,7 +5923,6 @@ async function createCafePickupOrder(_root, args, context) {
   if (args.cashTenderedCents != null && (paymentMethod !== "cash" || !Number.isSafeInteger(args.cashTenderedCents) || args.cashTenderedCents < 0 || args.cashTenderedCents > 1e8)) {
     throw cafeCustomerError("Cash received applies only to a cash sale, as a whole number of cents");
   }
-  if (!isStaff && tipCents > 0) throw new Error("Only staff may add a counter tip");
   if (!isStaff && (paymentMethod === "cash" || paymentMethod === "manual_card")) throw new Error("Immediate-tender payment methods are only available to staff");
   if (!isStaff && orderSource !== "online") throw new Error("Only staff may create non-online orders");
   if (!isStaff && fulfillmentType !== "pickup") throw new Error("Only staff may create non-pickup orders");
@@ -5370,7 +5981,9 @@ async function createCafePickupOrder(_root, args, context) {
         { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" }
       );
       const persisted = await context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_RETURN_QUERY });
-      if (persisted) return persisted;
+      if (persisted) {
+        return persisted;
+      }
       if (attempt === MAX_TRANSACTION_RETRIES) throw new Error("Pickup order transaction did not commit");
     } catch (error) {
       if (!transactionConflict(error) || attempt === MAX_TRANSACTION_RETRIES) throw error;
@@ -5378,13 +5991,13 @@ async function createCafePickupOrder(_root, args, context) {
   }
   throw new Error("Pickup order transaction retry limit exceeded");
 }
-var import_node_crypto5, ORDER_RETURN_QUERY, MAX_TRANSACTION_RETRIES;
+var import_node_crypto6, ORDER_RETURN_QUERY, MAX_TRANSACTION_RETRIES;
 var init_createCafePickupOrder = __esm({
   "features/keystone/mutations/createCafePickupOrder.ts"() {
     "use strict";
-    import_node_crypto5 = require("node:crypto");
+    import_node_crypto6 = require("node:crypto");
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_idempotency();
     init_coffeeAvailability();
     init_coffeeInventoryConsumption();
@@ -5398,344 +6011,6 @@ var init_createCafePickupOrder = __esm({
   orderItems { id quantity itemNameSnapshot imagePathSnapshot customizationsSummary modifierSnapshot specialInstructions price }
 `;
     MAX_TRANSACTION_RETRIES = 3;
-  }
-});
-
-// features/integrations/payment/stripe.ts
-var stripe_exports = {};
-__export(stripe_exports, {
-  capturePaymentFunction: () => capturePaymentFunction,
-  classifyStripeEvent: () => classifyStripeEvent,
-  createPaymentFunction: () => createPaymentFunction,
-  expireCheckoutSessionFunction: () => expireCheckoutSessionFunction,
-  generatePaymentLinkFunction: () => generatePaymentLinkFunction,
-  getPaymentStatusFunction: () => getPaymentStatusFunction,
-  handleWebhookFunction: () => handleWebhookFunction,
-  refundPaymentFunction: () => refundPaymentFunction
-});
-function secretKey() {
-  const secret = process.env.STRIPE_SECRET_KEY;
-  if (!secret) throw new Error("Stripe is not configured");
-  return secret;
-}
-async function stripeRequest(path, body, idempotencyKey) {
-  const response = await fetch(`${STRIPE_API}${path}`, {
-    method: body ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${secretKey()}`,
-      ...body ? { "Content-Type": "application/x-www-form-urlencoded" } : {},
-      ...idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}
-    },
-    body,
-    signal: AbortSignal.timeout(1e4)
-  });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error?.message || "Stripe request failed");
-  return payload;
-}
-function adapterResult(payload, fallbackAmount) {
-  return {
-    success: true,
-    provider: "pp_stripe_stripe",
-    providerPaymentId: payload.id,
-    status: payload.status,
-    amount: payload.amount_received ?? payload.amount ?? fallbackAmount,
-    currencyCode: payload.currency,
-    data: payload
-  };
-}
-async function createPaymentFunction(input) {
-  const body = new URLSearchParams({
-    amount: String(input.amount),
-    currency: input.currencyCode.toLowerCase(),
-    "automatic_payment_methods[enabled]": "true",
-    "metadata[orderId]": input.orderId,
-    ...input.paymentId ? { "metadata[paymentId]": input.paymentId } : {},
-    ...input.customerEmail ? { receipt_email: input.customerEmail } : {}
-  });
-  const payload = await stripeRequest("/payment_intents", body, input.idempotencyKey);
-  return adapterResult(payload, input.amount);
-}
-async function capturePaymentFunction(input) {
-  const payload = await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}/capture`, new URLSearchParams());
-  return adapterResult(payload, input.amount);
-}
-async function refundPaymentFunction(input) {
-  const payload = await stripeRequest("/refunds", new URLSearchParams({
-    payment_intent: input.providerPaymentId,
-    ...input.amount == null ? {} : { amount: String(input.amount) },
-    ...input.reason ? { "metadata[reason]": input.reason } : {}
-  }), input.idempotencyKey);
-  return {
-    ...adapterResult(payload, input.amount),
-    status: payload.status === "succeeded" ? "refunded" : payload.status
-  };
-}
-async function getPaymentStatusFunction(input) {
-  if (input.providerPaymentId.startsWith("cs_")) {
-    const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}`);
-    return { ...adapterResult(session), amount: session.amount_total, data: { ...session, checkoutUrl: typeof session.url === "string" ? session.url : null } };
-  }
-  return adapterResult(await stripeRequest(`/payment_intents/${encodeURIComponent(input.providerPaymentId)}`));
-}
-function withParam(url, key, value) {
-  const next = new URL(url);
-  next.searchParams.set(key, value);
-  return next.toString();
-}
-async function expireCheckoutSessionFunction(input) {
-  const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(input.providerPaymentId)}/expire`, new URLSearchParams());
-  return adapterResult(session);
-}
-async function generatePaymentLinkFunction(input) {
-  if (!input.returnUrl) throw new Error("A return URL is required for hosted payment");
-  const body = new URLSearchParams({
-    mode: "payment",
-    "line_items[0][quantity]": "1",
-    "line_items[0][price_data][currency]": input.currencyCode.toLowerCase(),
-    "line_items[0][price_data][unit_amount]": String(input.amount),
-    "line_items[0][price_data][product_data][name]": input.description || "Order",
-    success_url: withParam(input.returnUrl, "payment", "done"),
-    cancel_url: withParam(input.returnUrl, "payment", "cancelled"),
-    client_reference_id: input.orderId,
-    "metadata[orderId]": input.orderId,
-    "payment_intent_data[metadata][orderId]": input.orderId,
-    // Sessions expire after 30 minutes (Stripe's minimum), so an abandoned page can't be paid hours later.
-    expires_at: String(Math.floor(Date.now() / 1e3) + 30 * 60),
-    ...input.paymentId ? { "metadata[paymentId]": input.paymentId, "payment_intent_data[metadata][paymentId]": input.paymentId } : {},
-    ...input.customerEmail ? { customer_email: input.customerEmail } : {}
-  });
-  const session = await stripeRequest("/checkout/sessions", body, input.idempotencyKey);
-  return {
-    success: true,
-    provider: "pp_stripe_stripe",
-    providerPaymentId: session.id,
-    status: "pending",
-    amount: session.amount_total ?? input.amount,
-    currencyCode: session.currency,
-    data: { checkoutUrl: typeof session.url === "string" ? session.url : null, expiresAt: session.expires_at ?? null }
-  };
-}
-function verifyStripeSignature(rawBody, signatureHeader) {
-  const parts = signatureHeader.split(",").map((part) => part.trim().split("=", 2));
-  const timestamp19 = parts.find(([key]) => key === "t")?.[1];
-  const signatures = parts.filter(([key]) => key === "v1").map(([, value]) => value);
-  if (!timestamp19 || signatures.length === 0 || !/^\d+$/.test(timestamp19)) {
-    throw new Error("Invalid Stripe signature header");
-  }
-  if (Math.abs(Date.now() / 1e3 - Number(timestamp19)) > SIGNATURE_TOLERANCE_SECONDS) {
-    throw new Error("Stale Stripe webhook signature");
-  }
-  const expected = (0, import_node_crypto6.createHmac)("sha256", process.env.STRIPE_WEBHOOK_SECRET || "").update(`${timestamp19}.${rawBody}`).digest();
-  if (!process.env.STRIPE_WEBHOOK_SECRET) throw new Error("Stripe webhook is not configured");
-  const valid = signatures.some((signature) => {
-    if (!/^[a-f0-9]{64}$/i.test(signature)) return false;
-    const provided = Buffer.from(signature, "hex");
-    return provided.length === expected.length && (0, import_node_crypto6.timingSafeEqual)(provided, expected);
-  });
-  if (!valid) throw new Error("Invalid Stripe webhook signature");
-}
-function classifyStripeEvent(type, object = {}) {
-  if (type === "checkout.session.completed") return object.payment_status === "paid" ? "succeeded" : "ignored";
-  if (type === "payment_intent.succeeded" || type === "checkout.session.async_payment_succeeded") return "succeeded";
-  if (type === "payment_intent.payment_failed" || type === "payment_intent.canceled" || type === "checkout.session.async_payment_failed" || type === "checkout.session.expired") return "failed";
-  return "ignored";
-}
-async function handleWebhookFunction(input) {
-  verifyStripeSignature(input.rawBody, input.headers["stripe-signature"] || "");
-  const event = JSON.parse(input.rawBody);
-  const object = event.data?.object || {};
-  const eventId = String(event.id || "").trim();
-  const eventType = String(event.type || "").trim();
-  const providerPaymentId = String(object.payment_intent || object.id || "").trim();
-  if (!eventId || !eventType || !providerPaymentId) throw new Error("Stripe webhook identity is incomplete");
-  return {
-    eventId,
-    eventType,
-    providerPaymentId,
-    paymentId: object.metadata?.paymentId || null,
-    orderId: object.metadata?.orderId || null,
-    status: classifyStripeEvent(eventType, object),
-    amount: object.amount_received ?? object.amount_total ?? object.amount ?? null,
-    currencyCode: object.currency || null
-  };
-}
-var import_node_crypto6, STRIPE_API, SIGNATURE_TOLERANCE_SECONDS;
-var init_stripe = __esm({
-  "features/integrations/payment/stripe.ts"() {
-    "use strict";
-    import_node_crypto6 = require("node:crypto");
-    STRIPE_API = "https://api.stripe.com/v1";
-    SIGNATURE_TOLERANCE_SECONDS = 300;
-  }
-});
-
-// features/keystone/mutations/onlinePaymentRelease.ts
-async function releaseAbandonedOnlinePayments(prisma, orderId) {
-  const pending = await prisma.payment.findMany({
-    where: { orderId, provider: "pp_stripe_stripe", status: { in: ["pending", "authorized"] } },
-    select: { id: true, status: true, provider: true, providerPaymentId: true }
-  });
-  if (!pending.length) return;
-  const stripe = await Promise.resolve().then(() => (init_stripe(), stripe_exports));
-  for (const payment of pending) {
-    const sessionId = String(payment.providerPaymentId || "");
-    if (sessionId.startsWith("cs_")) {
-      const state = await stripe.getPaymentStatusFunction({ providerPaymentId: sessionId });
-      if (state.status === "complete") throw cafeCustomerError("The customer just paid online. Refresh in a moment.");
-      if (state.status === "open") await stripe.expireCheckoutSessionFunction({ providerPaymentId: sessionId });
-    }
-    await prisma.payment.update({ where: { id: payment.id }, data: { status: "failed", failureMessage: "Online payment page closed; paid another way" } });
-  }
-}
-var init_onlinePaymentRelease = __esm({
-  "features/keystone/mutations/onlinePaymentRelease.ts"() {
-    "use strict";
-    init_cafeCustomerError();
-  }
-});
-
-// features/keystone/mutations/updateCafeOrderStatus.ts
-function isCafeOrderStatus(status) {
-  return allowedStatuses.includes(status);
-}
-async function updateCafeOrderStatus(_root, args, context) {
-  if (!permissions.canManageOrders({ session: context.session })) throw new Error("Not authorized to update cafe order status");
-  if (!isCafeOrderStatus(args.status)) throw new Error(`Unsupported cafe order status: ${args.status}`);
-  if (args.status === "paid" || args.status === "refunded") {
-    throw new Error(`Cafe order ${args.status} status is controlled by payment settlement`);
-  }
-  const status = args.status;
-  if (status === "cancelled") await releaseAbandonedOnlinePayments(context.prisma, args.orderId);
-  const orderId = await context.prisma.$transaction(async (rawTx) => {
-    const tx = rawTx;
-    await lockCoffeeOrder(tx, args.orderId);
-    const actorId = await requireCurrentCoffeeCapability(rawTx, context.session, ["canManageOrders"], "Not authorized to update cafe order status");
-    const existing = await tx.cafeOrder.findUnique({ where: { id: args.orderId }, include: { orderItems: { select: { id: true, barStatus: true } }, payments: { select: { status: true, amount: true, refundIdempotencyKey: true } } } });
-    if (!existing) throw new Error("Cafe order not found");
-    const storeId = await getPrimaryCoffeeStoreId(tx);
-    assertCoffeeStoreOwnership(existing.storeId, storeId, "Cafe order");
-    const transition = evaluateTransition(CAFE_ORDER_TRANSITIONS, existing.status, status);
-    if (transition.replay) return existing.id;
-    if (status === "ready" || status === "completed") assertCafeOrderItemsReadyForHandoff(existing.orderItems);
-    if (status === "completed") assertCafeSettlement(existing.payments, Number(existing.total) - Number(existing.discount || 0));
-    if (status === "cancelled" && existing.payments.some((payment) => ["pending", "authorized", "captured"].includes(String(payment.status)))) throw new Error("Resolve the payment attempt or refund before cancelling this order");
-    const now = /* @__PURE__ */ new Date();
-    if (status === "cancelled") {
-      const reservations = await tx.stockMovement.findMany({
-        where: { orderId: existing.id, type: "sale" },
-        orderBy: { id: "asc" },
-        select: { inventoryItemId: true, inventoryLotId: true, quantity: true }
-      });
-      const inventoryTotals = /* @__PURE__ */ new Map();
-      for (const inventoryItemId of [...new Set(reservations.map((reservation) => reservation.inventoryItemId))].sort()) {
-        await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
-      }
-      for (const reservation of reservations) {
-        const quantity = Math.abs(Number(reservation.quantity));
-        if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Order inventory reservation evidence is invalid");
-        inventoryTotals.set(reservation.inventoryItemId, (inventoryTotals.get(reservation.inventoryItemId) || 0) + quantity);
-        let lotDisposition = "unlotted stock";
-        if (reservation.inventoryLotId) {
-          const lot = await tx.inventoryLot.findUnique({ where: { id: reservation.inventoryLotId }, select: { quantityRemaining: true, status: true, expiresAt: true } });
-          if (!lot) throw new Error("Reserved inventory lot was not found");
-          const currentStatus = lot.status || "active";
-          const expired = Boolean(lot.expiresAt) && new Date(String(lot.expiresAt)).getTime() <= now.getTime();
-          const nextStatus = currentStatus === "consumed" ? expired ? "expired" : "active" : currentStatus === "active" && expired ? "expired" : currentStatus;
-          await tx.inventoryLot.update({
-            where: { id: reservation.inventoryLotId },
-            data: { quantityRemaining: Number(lot.quantityRemaining || 0) + quantity, ...nextStatus !== currentStatus ? { status: nextStatus } : {} }
-          });
-          lotDisposition = `lot status ${nextStatus}`;
-        }
-        await tx.stockMovement.create({
-          data: {
-            inventoryItemId: reservation.inventoryItemId,
-            inventoryLotId: reservation.inventoryLotId || null,
-            storeId,
-            orderId: existing.id,
-            type: "return",
-            quantity,
-            reason: `Cancelled pickup order ${existing.orderNumber}`,
-            notes: `Released unprepared order reservation; ${lotDisposition}`,
-            createdById: actorId
-          }
-        });
-      }
-      for (const [inventoryItemId, quantity] of [...inventoryTotals].sort(([left], [right]) => left.localeCompare(right))) {
-        await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-inventory:${inventoryItemId}`);
-        await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: { increment: quantity } } });
-      }
-      const prepConsumptions = await tx.prepBatchConsumption.findMany({ where: { orderId: existing.id, quantity: { gt: 0 } }, orderBy: { id: "asc" }, select: { id: true, prepBatchId: true, quantity: true } });
-      for (const consumption of prepConsumptions) {
-        const quantity = Number(consumption.quantity);
-        await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-prep-batch:${consumption.prepBatchId}`);
-        const batch = await tx.prepBatch.findUnique({ where: { id: consumption.prepBatchId }, select: { id: true, storeId: true, quantityRemaining: true } });
-        if (!batch || String(batch.storeId) !== storeId || !Number.isFinite(quantity) || quantity <= 0) throw new Error("Prepared batch reservation evidence is invalid");
-        await tx.prepBatch.update({ where: { id: consumption.prepBatchId }, data: { quantityRemaining: { increment: quantity } } });
-        await tx.prepBatchConsumption.create({ data: { idempotencyKey: `cancel:${existing.id}:${consumption.id}`, storeId, orderId: existing.id, prepBatchId: consumption.prepBatchId, quantity: -quantity } });
-      }
-    }
-    const timestampField = statusTimestampMap[status];
-    await tx.cafeOrder.update({
-      where: { id: existing.id },
-      data: { status, ...timestampField ? { [timestampField]: now } : {} }
-    });
-    const itemStatus = itemStatusMap[status];
-    if (itemStatus && existing.orderItems.length) {
-      const itemTimestamp2 = itemTimestampMap[itemStatus];
-      const updated = await tx.orderItem.updateMany({
-        where: { orderId: existing.id, barStatus: { in: itemStatus === "preparing" ? ["new", "queued"] : itemStatus === "ready" ? ["new", "queued", "preparing"] : itemStatus === "queued" ? ["new"] : ["new", "queued", "preparing", "ready"] } },
-        data: { barStatus: itemStatus, ...itemTimestamp2 ? { [itemTimestamp2]: now } : {} }
-      });
-      if (updated.count > existing.orderItems.length) throw new Error("Cafe order item status propagation was invalid");
-    }
-    await enqueueCoffeeDomainEvent(tx, {
-      storeId,
-      eventKey: `order:${existing.id}:status:${status}:v1`,
-      eventType: "order.status_changed",
-      aggregateType: "order",
-      aggregateId: existing.id,
-      occurredAt: now,
-      payload: { orderId: existing.id, orderNumber: existing.orderNumber, previousStatus: existing.status, status, itemStatus: itemStatus || null, inventoryReleased: status === "cancelled" }
-    });
-    return existing.id;
-  }, TX_OPTIONS);
-  return context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_QUERY });
-}
-var allowedStatuses, TX_OPTIONS, ORDER_QUERY, statusTimestampMap, itemStatusMap, itemTimestampMap;
-var init_updateCafeOrderStatus = __esm({
-  "features/keystone/mutations/updateCafeOrderStatus.ts"() {
-    "use strict";
-    init_access();
-    init_coffeeDomainOutbox();
-    init_transitionPolicy();
-    init_coffeeKdsAuthority();
-    init_coffeeOrderPolicy();
-    init_onlinePaymentRelease();
-    allowedStatuses = ["open", "accepted", "paid", "in_bar_queue", "preparing", "ready", "completed", "cancelled", "refunded"];
-    TX_OPTIONS = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
-    ORDER_QUERY = "id orderNumber status startedAt readyAt completedAt cancelledAt orderItems { id barStatus }";
-    statusTimestampMap = {
-      preparing: "startedAt",
-      ready: "readyAt",
-      completed: "completedAt",
-      cancelled: "cancelledAt",
-      paid: "paidAt"
-    };
-    itemStatusMap = {
-      in_bar_queue: "queued",
-      preparing: "preparing",
-      ready: "ready",
-      completed: "handed_off",
-      cancelled: "voided"
-    };
-    itemTimestampMap = {
-      queued: "queuedAt",
-      preparing: "startedAt",
-      ready: "readyAt",
-      handed_off: "handedOffAt"
-    };
   }
 });
 
@@ -5790,7 +6065,7 @@ async function updateCafeOrderItemStatus(_root, args, context) {
   const eventKey = `kds-command:${commandKey}`;
   const expectedStatus = args.expectedStatus;
   const requestFingerprint = fingerprintInput({ orderItemId: args.orderItemId, expectedStatus, status });
-  return context.prisma.$transaction(async (rawTx) => {
+  const receipt = await context.prisma.$transaction(async (rawTx) => {
     const tx = rawTx;
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-kds-command:${commandKey}`);
     const admittedActorId = await requireCurrentCoffeeKdsOperator(tx, context.session);
@@ -5811,10 +6086,10 @@ async function updateCafeOrderItemStatus(_root, args, context) {
     if (status === "handed_off") assertCafeSettlement(order.payments || [], Number(order.total) - Number(order.discount || 0));
     if (["cancelled", "refunded"].includes(order.status)) throw new Error(`Cannot bump an item on a ${order.status} order`);
     if (!["accepted", "paid", "in_bar_queue", "preparing", "ready", "completed"].includes(order.status)) throw new Error("KDS cafe order state is invalid");
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
-    if (receipt) {
-      const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
-      if (receipt.storeId !== storeId || receipt.aggregateType !== "order_item" || receipt.aggregateId !== item.id || receipt.eventType !== "kitchen_item.status_changed" || payload.orderId !== order.id || payload.actorId !== actorId || payload.requestFingerprint !== requestFingerprint) {
+    const receipt2 = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
+    if (receipt2) {
+      const payload = receipt2.payload && typeof receipt2.payload === "object" ? receipt2.payload : {};
+      if (receipt2.storeId !== storeId || receipt2.aggregateType !== "order_item" || receipt2.aggregateId !== item.id || receipt2.eventType !== "kitchen_item.status_changed" || payload.orderId !== order.id || payload.actorId !== actorId || payload.requestFingerprint !== requestFingerprint) {
         throw new Error("KDS command key was reused with a different request");
       }
       return committedReceipt(tx, { itemId: item.id, orderId: order.id, storeId, actorId, idempotencyKey: clientKey, expectedStatus, requestedStatus: status });
@@ -5843,7 +6118,7 @@ async function updateCafeOrderItemStatus(_root, args, context) {
         data: { status: orderStatus, ...timestampField ? { [timestampField]: now } : {} }
       });
     }
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey,
       eventType: "kitchen_item.status_changed",
@@ -5853,9 +6128,10 @@ async function updateCafeOrderItemStatus(_root, args, context) {
       payload: { actorId, requestFingerprint, orderItemId: item.id, orderId: order.id, station: item.station || "unassigned", previousStatus: item.barStatus, status, orderStatus }
     });
     return committedReceipt(tx, { itemId: item.id, orderId: order.id, storeId, actorId, idempotencyKey: clientKey, expectedStatus, requestedStatus: status });
-  }, TX_OPTIONS2);
+  }, TX_OPTIONS3);
+  return receipt;
 }
-var TX_OPTIONS2, TERMINAL_ORDER_STATUSES;
+var TX_OPTIONS3, TERMINAL_ORDER_STATUSES;
 var init_updateCafeOrderItemStatus = __esm({
   "features/keystone/mutations/updateCafeOrderItemStatus.ts"() {
     "use strict";
@@ -5863,9 +6139,9 @@ var init_updateCafeOrderItemStatus = __esm({
     init_coffeeKdsAuthority();
     init_idempotency();
     init_coffeeOrderPolicy();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_kdsPolicy();
-    TX_OPTIONS2 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
+    TX_OPTIONS3 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     TERMINAL_ORDER_STATUSES = /* @__PURE__ */ new Set(["cancelled", "refunded", "completed"]);
   }
 });
@@ -6000,6 +6276,25 @@ var init_getCafeLoyaltyAccount = __esm({
   }
 });
 
+// features/keystone/mutations/loyaltyLink.ts
+function normalizeLoyaltyEmail(email) {
+  return email?.trim().toLowerCase() || null;
+}
+function loyaltyLinkDecision(input) {
+  const { account, user } = input;
+  if (!account || !user?.id) return "skip";
+  if (account.customerId) return account.customerId === user.id ? "linked" : "skip";
+  const email = normalizeLoyaltyEmail(user.email);
+  if (!email || email !== normalizeLoyaltyEmail(account.customerEmail)) return "skip";
+  if (user.loyaltyAccountId && user.loyaltyAccountId !== account.id) return "skip";
+  return "link";
+}
+var init_loyaltyLink = __esm({
+  "features/keystone/mutations/loyaltyLink.ts"() {
+    "use strict";
+  }
+});
+
 // features/keystone/mutations/applyCafeLoyalty.ts
 function normalizeEmail3(email) {
   return email?.trim().toLowerCase() || null;
@@ -6060,7 +6355,7 @@ async function applyCafeLoyalty(_root, args, context) {
     const payableAmount = Number(order.total || 0) - Number(order.discount || 0);
     if (payableAmount <= 0 || !hasCafeSettlement(payments, payableAmount)) throw cafeCustomerError("Rewards apply once the order is paid in full");
     if (order.loyaltyAccountId) {
-      const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+      const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
       const payload = receipt?.payload && typeof receipt.payload === "object" ? receipt.payload : null;
       let matches;
       if (payload && typeof payload.requestFingerprint === "string") {
@@ -6075,13 +6370,16 @@ async function applyCafeLoyalty(_root, args, context) {
     const now = /* @__PURE__ */ new Date();
     const earnedPoints = pointsForSubtotal(Number(order.subtotal || 0));
     const existing = await tx.loyaltyAccount.findFirst({ where: { customerEmail: email } });
+    const signedInUser = isOrderCustomer ? await tx.user.findUnique({ where: { id: String(order.customerId) }, select: { id: true, email: true, loyaltyAccount: { select: { id: true } } } }) : null;
+    const signedIn = signedInUser ? { id: signedInUser.id, email: signedInUser.email, loyaltyAccountId: signedInUser.loyaltyAccount?.id || null } : null;
     let id;
     let newlyEarnedCredits;
     if (existing) {
       assertCoffeeStoreOwnership(existing.storeId, storeId, "Loyalty account");
       const ownerId = existing.customerId ? String(existing.customerId) : null;
       const isSignedInOwner = Boolean(ownerId) && context.session?.listKey === "User" && context.session.itemId === ownerId && String(order.customerId || "") === ownerId;
-      if (!isOperator && !isSignedInOwner) {
+      const link = loyaltyLinkDecision({ account: { id: String(existing.id), customerId: ownerId, customerEmail: String(existing.customerEmail || "") }, user: signedIn }) === "link";
+      if (!isOperator && !isSignedInOwner && !link) {
         throw cafeCustomerError("This email already has a rewards account. Sign in to that account, or ask the cafe to apply this purchase.");
       }
       if ((existing.status || "active") !== "active") throw cafeCustomerError("This rewards account is paused or closed, so the purchase was not applied");
@@ -6095,7 +6393,8 @@ async function applyCafeLoyalty(_root, args, context) {
           drinkCredits: Number(existing.drinkCredits || 0) + newlyEarnedCredits,
           visits: Number(existing.visits || 0) + 1,
           firstVisitAt: existing.firstVisitAt || now,
-          lastVisitAt: now
+          lastVisitAt: now,
+          ...link && signedIn ? { customerId: signedIn.id } : {}
         },
         select: { id: true }
       });
@@ -6115,7 +6414,9 @@ async function applyCafeLoyalty(_root, args, context) {
           drinkCredits: newlyEarnedCredits,
           visits: 1,
           firstVisitAt: now,
-          lastVisitAt: now
+          lastVisitAt: now,
+          // New accounts opened by the signed-in customer belong to them; guests stay email-only.
+          ...signedIn && signedIn.email?.trim().toLowerCase() === email && !signedIn.loyaltyAccountId ? { customerId: signedIn.id } : {}
         },
         select: { id: true }
       });
@@ -6133,7 +6434,7 @@ async function applyCafeLoyalty(_root, args, context) {
         createdById: actorId
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey,
       eventType: "loyalty.earned",
@@ -6143,22 +6444,59 @@ async function applyCafeLoyalty(_root, args, context) {
       payload: { accountId: id, orderId: args.orderId, earnedPoints, drinkCreditsEarned: newlyEarnedCredits, appliedBy: actorId, requestFingerprint }
     });
     return id;
-  }, TX_OPTIONS3);
+  }, TX_OPTIONS4);
   return context.sudo().query.LoyaltyAccount.findOne({ where: { id: accountId }, query: isOperator ? ACCOUNT_QUERY : GUEST_ACCOUNT_QUERY });
 }
-var TX_OPTIONS3, ACCOUNT_QUERY, GUEST_ACCOUNT_QUERY;
+var TX_OPTIONS4, ACCOUNT_QUERY, GUEST_ACCOUNT_QUERY;
 var init_applyCafeLoyalty = __esm({
   "features/keystone/mutations/applyCafeLoyalty.ts"() {
     "use strict";
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_coffeeOrderPolicy();
     init_coffeeKdsAuthority();
     init_idempotency();
     init_cafeCustomerError();
-    TX_OPTIONS3 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
+    init_loyaltyLink();
+    TX_OPTIONS4 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     ACCOUNT_QUERY = "id customerName customerEmail status tier pointsBalance lifetimePoints drinkCredits visits lastVisitAt nextRewardProgress";
     GUEST_ACCOUNT_QUERY = "id customerEmail pointsBalance drinkCredits nextRewardProgress";
+  }
+});
+
+// features/keystone/mutations/linkCoffeeCustomerLoyalty.ts
+async function linkCoffeeCustomerLoyalty(_root, _args, context) {
+  const userId = context.session?.listKey === "User" && context.session.itemId ? String(context.session.itemId) : null;
+  if (!userId) return false;
+  return context.prisma.$transaction(async (rawTx) => {
+    const tx = rawTx;
+    const user = await tx.user.findUnique({ where: { id: userId }, select: { id: true, email: true, loyaltyAccount: { select: { id: true } } } });
+    const email = normalizeLoyaltyEmail(user?.email);
+    if (!user || !email) return false;
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `loyalty-account:${email}`);
+    const store = await tx.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true } });
+    if (!store) return false;
+    const account = await tx.loyaltyAccount.findFirst({ where: { customerEmail: email, storeId: store.id }, select: { id: true, customerId: true, customerEmail: true } });
+    const decision = loyaltyLinkDecision({ account, user: { id: user.id, email: user.email, loyaltyAccountId: user.loyaltyAccount?.id || null } });
+    if (decision === "linked") return true;
+    if (decision !== "link" || !account) return false;
+    await tx.loyaltyAccount.update({ where: { id: account.id }, data: { customerId: user.id } });
+    await recordCoffeeCommandReceipt(tx, {
+      storeId: store.id,
+      eventKey: `loyalty:${account.id}:customer-linked:${user.id}`,
+      eventType: "loyalty.customer_linked",
+      aggregateType: "loyalty_account",
+      aggregateId: account.id,
+      payload: { accountId: account.id, customerId: user.id, via: "sign_in" }
+    });
+    return true;
+  }, { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" });
+}
+var init_linkCoffeeCustomerLoyalty = __esm({
+  "features/keystone/mutations/linkCoffeeCustomerLoyalty.ts"() {
+    "use strict";
+    init_coffeeCommandReceipt();
+    init_loyaltyLink();
   }
 });
 
@@ -6225,7 +6563,7 @@ __export(paypal_exports, {
   refundPaymentFunction: () => refundPaymentFunction3
 });
 function apiBase() {
-  return process.env.PAYPAL_ENVIRONMENT === "live" ? PAYPAL_LIVE_API : PAYPAL_SANDBOX_API;
+  return PAYPAL_API;
 }
 function credentials() {
   const clientId = process.env.PAYPAL_CLIENT_ID;
@@ -6245,7 +6583,7 @@ async function accessToken() {
     signal: AbortSignal.timeout(1e4)
   });
   const payload = await response.json();
-  if (!response.ok || !payload.access_token) throw new Error(payload.error_description || "PayPal authentication failed");
+  if (!response.ok || !payload.access_token) throw new ProviderError(payload.error_description || "PayPal authentication failed");
   return payload.access_token;
 }
 async function paypalRequest(path, method = "GET", body, idempotencyKey) {
@@ -6260,7 +6598,7 @@ async function paypalRequest(path, method = "GET", body, idempotencyKey) {
     signal: AbortSignal.timeout(1e4)
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.message || "PayPal request failed");
+  if (!response.ok) throw new ProviderError(payload.message || "PayPal request failed");
   return payload;
 }
 function formatAmount(amount) {
@@ -6363,12 +6701,12 @@ async function handleWebhookFunction3(input) {
     currencyCode: resource.amount?.currency_code || unit?.amount?.currency_code || null
   };
 }
-var PAYPAL_SANDBOX_API, PAYPAL_LIVE_API;
+var PAYPAL_API;
 var init_paypal = __esm({
   "features/integrations/payment/paypal.ts"() {
     "use strict";
-    PAYPAL_SANDBOX_API = "https://api-m.sandbox.paypal.com";
-    PAYPAL_LIVE_API = "https://api-m.paypal.com";
+    init_providerError();
+    PAYPAL_API = "https://api-m.paypal.com";
   }
 });
 
@@ -6811,8 +7149,11 @@ async function updateCateringOrderStatus(_root, args, context) {
     assertCoffeeStoreOwnership(existing.storeId, storeId, "Catering order");
     const transition = evaluateTransition(CATERING_ORDER_TRANSITIONS, String(existing.status), args.status);
     if (transition.replay) return String(existing.id);
+    if (args.status === "quoted" && (Number(existing.subtotalCents || 0) <= 0 || !(existing.eventAt instanceof Date))) {
+      throw new Error("Enter the quoted amount and the event date before marking this inquiry quoted.");
+    }
     await tx.cateringOrder.update({ where: { id: existing.id }, data: { status: args.status } });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `catering:${String(existing.id)}:status:${args.status}:v1`,
       eventType: "catering.status_changed",
@@ -6828,18 +7169,18 @@ async function updateCateringOrderStatus(_root, args, context) {
       }
     });
     return String(existing.id);
-  }, TX_OPTIONS4);
+  }, TX_OPTIONS5);
   return context.sudo().query.CateringOrder.findOne({ where: { id }, query });
 }
-var TX_OPTIONS4, query;
+var TX_OPTIONS5, query;
 var init_updateCateringOrderStatus = __esm({
   "features/keystone/mutations/updateCateringOrderStatus.ts"() {
     "use strict";
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_coffeeKdsAuthority();
     init_transitionPolicy();
-    TX_OPTIONS4 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS5 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     query = "id cateringNumber status store { id }";
   }
 });
@@ -6851,7 +7192,7 @@ function conflict(error) {
 async function serializable(context, operation) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      return await context.prisma.$transaction((rawTx) => operation(rawTx), TX_OPTIONS5);
+      return await context.prisma.$transaction((rawTx) => operation(rawTx), TX_OPTIONS6);
     } catch (error) {
       if (!conflict(error) || attempt === 3) throw error;
     }
@@ -6864,7 +7205,7 @@ function requireKey(value, label) {
   return key;
 }
 async function replayReceipt(tx, eventKey, storeId, requestFingerprint, message) {
-  const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+  const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
   if (!receipt) return null;
   const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
   if (receipt.storeId !== storeId || payload.requestFingerprint !== requestFingerprint) throw new Error(message);
@@ -6944,7 +7285,7 @@ async function requestCafeCatering(_root, args, context) {
         metadata: { source: "storefront", customerPhone: request.customerPhone, customerId: context.session?.listKey === "User" ? context.session.itemId : null }
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey,
       eventType: "catering.requested",
@@ -7005,6 +7346,7 @@ async function adjustCoffeeLoyaltyAccount(_root, args, context) {
     const account = await tx.loyaltyAccount.findUnique({ where: { id: args.accountId } });
     if (!account) throw new Error("Rewards account not found");
     assertCoffeeStoreOwnership(account.storeId, storeId, "Rewards account");
+    if (status) evaluateTransition(LOYALTY_ACCOUNT_TRANSITIONS, String(account.status || "active"), status);
     const plan = planLoyaltyAdjustment(account, pointsDelta, drinkCreditsDelta);
     if (!plan.ok) throw cafeCustomerError(plan.message);
     await tx.loyaltyAccount.update({
@@ -7028,7 +7370,7 @@ async function adjustCoffeeLoyaltyAccount(_root, args, context) {
         createdById: actorId
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey,
       eventType: "loyalty.adjusted",
@@ -7051,10 +7393,10 @@ async function cancelCoffeePurchaseOrder(_root, args, context) {
     if (!order) throw new Error("Purchase order not found");
     assertCoffeeStoreOwnership(order.storeId, storeId, "Purchase order");
     if (order.status === "cancelled") return order;
-    if (order.status !== "submitted" && order.status !== "draft") throw cafeCustomerError(`A ${String(order.status)} purchase order can't be cancelled`);
+    if (!canTransition(PURCHASE_ORDER_TRANSITIONS, String(order.status), "cancelled")) throw cafeCustomerError(`A ${String(order.status)} purchase order can't be cancelled`);
     const notes = reason ? [String(order.notes || "").trim(), `Cancelled: ${reason}`].filter(Boolean).join("\n") : order.notes;
     const updated = await tx.purchaseOrder.update({ where: { id: order.id }, data: { status: "cancelled", notes } });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `purchase-order:${String(order.id)}:cancelled:v1`,
       eventType: "purchase_order.cancelled",
@@ -7065,18 +7407,19 @@ async function cancelCoffeePurchaseOrder(_root, args, context) {
     return updated;
   });
 }
-var import_node_crypto8, import_zod3, TX_OPTIONS5, CATERING_LEAD_HOURS, CATERING_HORIZON_DAYS, cateringInput, LOYALTY_STATUSES, LOYALTY_TIERS;
+var import_node_crypto8, import_zod3, TX_OPTIONS6, CATERING_LEAD_HOURS, CATERING_HORIZON_DAYS, cateringInput, LOYALTY_STATUSES, LOYALTY_TIERS;
 var init_coffeeCoverageCommands = __esm({
   "features/keystone/mutations/coffeeCoverageCommands.ts"() {
     "use strict";
     import_node_crypto8 = require("node:crypto");
     import_zod3 = require("zod");
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_cafeCustomerError();
+    init_transitionPolicy();
     init_coffeeKdsAuthority();
     init_idempotency();
-    TX_OPTIONS5 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS6 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     CATERING_LEAD_HOURS = 24;
     CATERING_HORIZON_DAYS = 365;
     cateringInput = import_zod3.z.object({
@@ -7108,9 +7451,9 @@ async function updateSubscriptionStatus(_root, args, context) {
     const transition = evaluateTransition(SUBSCRIPTION_TRANSITIONS, String(existing.status), args.status);
     if (transition.replay) return String(existing.id);
     const now = /* @__PURE__ */ new Date();
-    const sequence = await tx.coffeeDomainEvent.count({ where: { storeId, aggregateType: "subscription", aggregateId: String(existing.id), eventType: "subscription.status_changed" } }) + 1;
+    const sequence = await tx.coffeeCommandReceipt.count({ where: { storeId, aggregateType: "subscription", aggregateId: String(existing.id), eventType: "subscription.status_changed" } }) + 1;
     await tx.subscription.update({ where: { id: existing.id }, data: { status: args.status, ...args.status === "cancelled" ? { cancelledAt: now } : {} } });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `subscription:${String(existing.id)}:status:${sequence}:${String(existing.status)}:${args.status}:v2`,
       eventType: "subscription.status_changed",
@@ -7120,18 +7463,18 @@ async function updateSubscriptionStatus(_root, args, context) {
       payload: { subscriptionId: String(existing.id), subscriptionNumber: String(existing.subscriptionNumber), sequence, previousStatus: String(existing.status), status: args.status }
     });
     return String(existing.id);
-  }, TX_OPTIONS6);
+  }, TX_OPTIONS7);
   return context.sudo().query.Subscription.findOne({ where: { id }, query: query2 });
 }
-var TX_OPTIONS6, query2;
+var TX_OPTIONS7, query2;
 var init_updateSubscriptionStatus = __esm({
   "features/keystone/mutations/updateSubscriptionStatus.ts"() {
     "use strict";
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_coffeeKdsAuthority();
     init_transitionPolicy();
-    TX_OPTIONS6 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS7 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     query2 = "id subscriptionNumber status cancelledAt store { id }";
   }
 });
@@ -7155,7 +7498,7 @@ async function updatePosOrderStatus(_root, args, context) {
       where: { id: existing.id },
       data: { status: args.status, ...["paid", "voided", "refunded"].includes(args.status) ? { closedAt: existing.closedAt || now } : {} }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `pos-order:${String(existing.id)}:status:${args.status}:v1`,
       eventType: "pos_order.status_changed",
@@ -7165,19 +7508,330 @@ async function updatePosOrderStatus(_root, args, context) {
       payload: { posOrderId: String(existing.id), receiptNumber: String(existing.receiptNumber), previousStatus: String(existing.status), status: args.status }
     });
     return String(existing.id);
-  }, TX_OPTIONS7);
+  }, TX_OPTIONS8);
   return context.sudo().query.PosOrder.findOne({ where: { id }, query: query3 });
 }
-var TX_OPTIONS7, query3;
+var TX_OPTIONS8, query3;
 var init_updatePosOrderStatus = __esm({
   "features/keystone/mutations/updatePosOrderStatus.ts"() {
     "use strict";
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_transitionPolicy();
     init_coffeeKdsAuthority();
-    TX_OPTIONS7 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS8 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     query3 = "id receiptNumber status closedAt store { id }";
+  }
+});
+
+// features/keystone/mutations/giftCards.ts
+var giftCards_exports = {};
+__export(giftCards_exports, {
+  GIFT_CARD_AMOUNTS: () => GIFT_CARD_AMOUNTS,
+  confirmCafeGiftCardOrder: () => confirmCafeGiftCardOrder,
+  creditCafeGiftCardInTransaction: () => creditCafeGiftCardInTransaction,
+  getCafeGiftCardOptions: () => getCafeGiftCardOptions,
+  getCafeGiftCards: () => getCafeGiftCards,
+  giftCardTender: () => giftCardTender,
+  lookupCafeGiftCard: () => lookupCafeGiftCard,
+  normalizeGiftCode: () => normalizeGiftCode,
+  redeemCafeGiftCardInTransaction: () => redeemCafeGiftCardInTransaction,
+  refundCafeGiftCard: () => refundCafeGiftCard,
+  settleCafeGiftCard: () => settleCafeGiftCard,
+  settleCafeGiftCardFromWebhook: () => settleCafeGiftCardFromWebhook,
+  startCafeGiftCardCheckout: () => startCafeGiftCardCheckout
+});
+function newCode() {
+  return (0, import_node_crypto9.randomBytes)(6).toString("hex").toUpperCase().match(/.{4}/g).join("-");
+}
+function normalizeGiftCode(code) {
+  const raw = String(code || "").toUpperCase().replace(/[^0-9A-F]/g, "");
+  return raw.length === 12 ? raw.match(/.{4}/g).join("-") : "";
+}
+function orderToken(giftCardId) {
+  const secret = process.env.SESSION_SECRET || "";
+  if (secret.length < 32) throw new Error("SESSION_SECRET must be at least 32 characters long");
+  return (0, import_node_crypto9.createHmac)("sha256", secret).update(`coffee-gift:${giftCardId}`).digest("hex");
+}
+function tokenOk(giftCardId, token) {
+  if (!giftCardId || !token || token.length !== 64) return false;
+  const a = Buffer.from(orderToken(giftCardId));
+  const b = Buffer.from(token);
+  return a.length === b.length && (0, import_node_crypto9.timingSafeEqual)(a, b);
+}
+function giftReturnBase(value) {
+  if (typeof value !== "string" || value.length > 2e3) return null;
+  try {
+    const url = new URL(value);
+    if (!["https:", "http:"].includes(url.protocol) || url.pathname !== "/gift-cards" || url.username || url.password) return null;
+    url.search = "";
+    url.hash = "";
+    return url;
+  } catch {
+    return null;
+  }
+}
+async function getCafeGiftCardOptions(_root, _args, context) {
+  const prisma = context.sudo().prisma;
+  const store = await prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { currencyCode: true } });
+  return { online: await onlinePaymentReady(prisma), amounts: GIFT_CARD_AMOUNTS, currencyCode: String(store?.currencyCode || "USD") };
+}
+async function startCafeGiftCardCheckout(_root, args, context) {
+  if (!GIFT_CARD_AMOUNTS.includes(args.amount)) throw cafeCustomerError("Choose one of the gift card amounts.");
+  const purchaserName = String(args.purchaserName || "").trim();
+  const purchaserEmail = String(args.purchaserEmail || "").trim().toLowerCase();
+  const recipientEmail = String(args.recipientEmail || "").trim().toLowerCase() || purchaserEmail;
+  const recipientName = String(args.recipientName || "").trim() || purchaserName;
+  const message = String(args.message || "").trim();
+  if (!purchaserName || purchaserName.length > 120 || recipientName.length > 120) throw cafeCustomerError("Enter your name.");
+  if (!EMAIL.test(purchaserEmail) || !EMAIL.test(recipientEmail) || recipientEmail.length > 320) throw cafeCustomerError("Enter a valid email address.");
+  if (message.length > 300) throw cafeCustomerError("Keep the message under 300 characters.");
+  const key = String(args.idempotencyKey || "");
+  if (!/^[A-Za-z0-9-]{16,100}$/.test(key)) throw new Error("Gift card idempotency key is required");
+  const base = giftReturnBase(args.returnUrl);
+  if (!base) throw new Error("Gift card return URL is invalid");
+  const prisma = context.sudo().prisma;
+  if (!await onlinePaymentReady(prisma)) throw cafeCustomerError("Online gift cards aren't available right now. Ask at the counter.");
+  const store = await prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { id: true, name: true, currencyCode: true } });
+  if (!store) throw cafeCustomerError("Gift cards aren't available right now.");
+  const expiresAt = /* @__PURE__ */ new Date();
+  expiresAt.setFullYear(expiresAt.getFullYear() + 5);
+  const card = await prisma.giftCard.create({ data: {
+    storeId: store.id,
+    code: newCode(),
+    status: "pending",
+    initialValue: args.amount,
+    balance: 0,
+    currencyCode: String(store.currencyCode || "USD"),
+    purchaserName,
+    purchaserEmail,
+    recipientName,
+    recipientEmail,
+    message,
+    expiresAt,
+    ledger: []
+  } });
+  const back = new URL(base);
+  back.searchParams.set("card", card.id);
+  back.searchParams.set("token", orderToken(card.id));
+  const cancel = new URL(back);
+  cancel.searchParams.set("result", "cancelled");
+  try {
+    const stripe = await Promise.resolve().then(() => (init_stripe(), stripe_exports));
+    const session = await stripe.createHostedCheckout({
+      amount: args.amount,
+      currencyCode: card.currencyCode,
+      name: `${store.name || "Cafe"} gift card \xB7 ${usd(args.amount)}`,
+      successUrl: back.toString(),
+      cancelUrl: cancel.toString(),
+      idempotencyKey: `gift-card:${key}`,
+      customerEmail: purchaserEmail,
+      metadata: { purpose: "gift_card", giftCardId: card.id }
+    });
+    if (!session.id || !session.url) throw new Error("Stripe did not open a checkout");
+    await prisma.giftCard.update({ where: { id: card.id }, data: { providerPaymentId: session.id } });
+    return { success: true, checkoutUrl: session.url };
+  } catch (error) {
+    console.error("Gift card checkout could not be opened:", error instanceof Error ? error.message : "unknown");
+    await prisma.giftCard.update({ where: { id: card.id }, data: { status: "cancelled" } });
+    throw cafeCustomerError("Online gift cards aren't available right now. Ask at the counter.");
+  }
+}
+async function settleCafeGiftCard(prisma, giftCardId) {
+  const card = await prisma.giftCard.findUnique({ where: { id: giftCardId } });
+  if (!card) throw cafeCustomerError("Gift card order not found.");
+  if (card.status === "pending" && String(card.providerPaymentId || "").startsWith("cs_")) {
+    const stripe = await Promise.resolve().then(() => (init_stripe(), stripe_exports));
+    const remote = await stripe.readHostedCheckout(card.providerPaymentId);
+    if (remote.state === "expired") {
+      await prisma.giftCard.updateMany({ where: { id: card.id, status: "pending" }, data: { status: "cancelled" } });
+    } else if (remote.state === "paid") {
+      if (remote.amount !== card.initialValue || remote.currency.toUpperCase() !== String(card.currencyCode).toUpperCase()) throw cafeCustomerError("The amount paid doesn't match the gift card. Contact the caf\xE9.");
+      const now = /* @__PURE__ */ new Date();
+      await prisma.$transaction(async (tx) => {
+        const ledger = [{ at: now.toISOString(), type: "purchase", amount: card.initialValue, balance: card.initialValue, ref: remote.paymentIntent || card.providerPaymentId }];
+        const claimed = await tx.giftCard.updateMany({ where: { id: card.id, status: "pending" }, data: { status: "active", balance: card.initialValue, activatedAt: now, ledger } });
+        if (!claimed.count) return;
+        await recordCoffeeCommandReceipt(tx, {
+          storeId: card.storeId,
+          eventKey: `gift-card:${card.id}:sold:v1`,
+          eventType: "gift_card.sold",
+          aggregateType: "gift_card",
+          aggregateId: card.id,
+          occurredAt: now,
+          payload: { giftCardId: card.id, amount: card.initialValue, currencyCode: card.currencyCode, providerPaymentId: card.providerPaymentId }
+        });
+      });
+    }
+  }
+  return prisma.giftCard.findUnique({ where: { id: card.id } });
+}
+async function confirmCafeGiftCardOrder(_root, args, context) {
+  if (!tokenOk(args.giftCardId, args.token)) throw cafeCustomerError("We couldn't find that gift card order.");
+  const card = await settleCafeGiftCard(context.sudo().prisma, args.giftCardId);
+  const live = card.status === "active" || card.status === "redeemed";
+  return {
+    status: card.status,
+    amount: card.initialValue,
+    currencyCode: card.currencyCode,
+    recipientName: card.recipientName,
+    recipientEmail: card.recipientEmail,
+    code: live ? card.code : null,
+    expiresAt: card.expiresAt ? new Date(card.expiresAt).toISOString() : null
+  };
+}
+async function settleCafeGiftCardFromWebhook(prisma, giftCardId) {
+  try {
+    await settleCafeGiftCard(prisma, giftCardId);
+  } catch (error) {
+    console.error("Gift card webhook settlement failed:", error instanceof Error ? error.message : "unknown");
+  }
+}
+async function settleWaiting(prisma) {
+  const waiting = await prisma.giftCard.findMany({ where: { status: "pending", providerPaymentId: { startsWith: "cs_" }, createdAt: { gte: new Date(Date.now() - 2 * 864e5) } }, select: { id: true }, take: 20 });
+  for (const card of waiting) await settleCafeGiftCard(prisma, card.id).catch(() => void 0);
+}
+function cardView(card, canManage) {
+  const ledger = ledgerOf(card.ledger);
+  return {
+    id: card.id,
+    code: card.code,
+    status: card.status,
+    initialValue: card.initialValue,
+    balance: card.balance,
+    currencyCode: card.currencyCode,
+    purchaserName: card.purchaserName || null,
+    recipientName: card.recipientName || null,
+    recipientEmail: canManage ? card.recipientEmail || null : null,
+    activatedAt: card.activatedAt ? new Date(card.activatedAt).toISOString() : null,
+    expiresAt: card.expiresAt ? new Date(card.expiresAt).toISOString() : null,
+    // A purchase is refundable to the buyer's card only while none of it has been spent.
+    canRefund: canManage && card.status === "active" && card.balance === card.initialValue && !ledger.some((row) => row.type === "redeem")
+  };
+}
+async function getCafeGiftCards(_root, args, context) {
+  if (!permissions.canReadPayments({ session: context.session })) throw new Error("Not authorized to read gift cards");
+  await settleWaiting(context.sudo().prisma);
+  const search = String(args.search || "").trim().slice(0, 120);
+  const code = normalizeGiftCode(search);
+  const where = {
+    status: { in: ["active", "redeemed", "cancelled"] },
+    ...search ? { OR: [...code ? [{ code }] : [], { recipientName: { contains: search, mode: "insensitive" } }, { purchaserName: { contains: search, mode: "insensitive" } }, { recipientEmail: { contains: search, mode: "insensitive" } }] } : {}
+  };
+  const [cards, outstanding] = await Promise.all([
+    context.prisma.giftCard.findMany({ where, orderBy: [{ activatedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }], take: 100 }),
+    context.prisma.giftCard.aggregate({ where: { status: "active" }, _sum: { balance: true }, _count: { _all: true } })
+  ]);
+  const canManage = permissions.canManagePayments({ session: context.session });
+  return { outstandingCents: Number(outstanding._sum.balance || 0), activeCount: outstanding._count._all, cards: cards.map((card) => cardView(card, canManage)) };
+}
+async function lookupCafeGiftCard(_root, args, context) {
+  if (!permissions.canManagePayments({ session: context.session })) throw new Error("Not authorized to look up gift cards");
+  const code = normalizeGiftCode(args.code);
+  if (!code) throw cafeCustomerError("Enter the 12-character gift card code.");
+  let card = await context.prisma.giftCard.findUnique({ where: { code } });
+  if (card?.status === "pending") card = await settleCafeGiftCard(context.sudo().prisma, card.id);
+  if (!card || card.status === "pending") throw cafeCustomerError("No gift card with that code.");
+  return cardView(card, true);
+}
+async function redeemCafeGiftCardInTransaction(tx, input) {
+  const code = normalizeGiftCode(input.code);
+  if (!code) throw cafeCustomerError("Enter the 12-character gift card code.");
+  await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))", "coffee-gift-card", code);
+  const card = await tx.giftCard.findUnique({ where: { code } });
+  if (!card || card.storeId !== input.storeId || card.status !== "active") throw cafeCustomerError("That gift card isn't active.");
+  if (card.expiresAt && new Date(card.expiresAt) < input.now) throw cafeCustomerError("That gift card has expired.");
+  if (card.balance < input.amount) throw cafeCustomerError(`That gift card has ${usd(card.balance)} left. Take this order by cash or card instead.`);
+  const balance = card.balance - input.amount;
+  const ledger = [...ledgerOf(card.ledger), { at: input.now.toISOString(), type: "redeem", amount: input.amount, balance, ref: input.ref }];
+  await tx.giftCard.update({ where: { id: card.id }, data: { balance, status: balance === 0 ? "redeemed" : "active", ledger } });
+  return { id: card.id, code: card.code, balance };
+}
+async function creditCafeGiftCardInTransaction(tx, input) {
+  const code = normalizeGiftCode(input.code);
+  await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))", "coffee-gift-card", code);
+  const card = await tx.giftCard.findUnique({ where: { code } });
+  if (!card) throw new Error("The gift card for this payment was not found");
+  const balance = card.balance + input.amount;
+  const ledger = [...ledgerOf(card.ledger), { at: input.now.toISOString(), type: "refund", amount: input.amount, balance, ref: input.ref }];
+  await tx.giftCard.update({ where: { id: card.id }, data: { balance, status: card.status === "redeemed" ? "active" : card.status, ledger } });
+}
+async function refundCafeGiftCard(_root, args, context) {
+  if (!permissions.canManagePayments({ session: context.session })) throw new Error("Not authorized to refund gift cards");
+  const prisma = context.prisma;
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))", "coffee-gift-card-id", args.giftCardId);
+    const actorId = await requireCurrentCoffeeCapability(tx, context.session, ["canManagePayments"], "Not authorized to refund gift cards");
+    const card = await tx.giftCard.findUnique({ where: { id: args.giftCardId } });
+    if (!card) throw new Error("Gift card not found");
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))", "coffee-gift-card", card.code);
+    const storeId = await getPrimaryCoffeeStoreId(tx);
+    if (card.storeId !== storeId) throw new Error("Gift card not found");
+    if (card.status === "cancelled" && card.refundedAt) return { card, replay: true };
+    if (!cardView(card, true).canRefund) throw cafeCustomerError("Only an unused gift card can be refunded to the buyer's card.");
+    const stripe = await Promise.resolve().then(() => (init_stripe(), stripe_exports));
+    const remote = await stripe.readHostedCheckout(String(card.providerPaymentId || ""));
+    if (!remote.paymentIntent) throw cafeCustomerError("This purchase hasn't finished settling. Try again shortly.");
+    const refund = await stripe.refundPaymentFunction({ providerPaymentId: remote.paymentIntent, amount: card.initialValue, reason: String(args.reason || "Gift card refund").slice(0, 200), idempotencyKey: `gift-card-refund:${card.id}`, currencyCode: card.currencyCode });
+    if (!refund?.success || !["refunded", "pending"].includes(String(refund.status))) throw cafeCustomerError("The card refund didn't go through. Nothing was changed.");
+    const now = /* @__PURE__ */ new Date();
+    const ledger = [...ledgerOf(card.ledger), { at: now.toISOString(), type: "cancel", amount: card.balance, balance: 0, ref: String(refund.providerPaymentId || "refund") }];
+    const updated = await tx.giftCard.update({ where: { id: card.id }, data: { status: "cancelled", balance: 0, refundedAt: now, ledger } });
+    await recordCoffeeCommandReceipt(tx, {
+      storeId,
+      eventKey: `gift-card:${card.id}:refunded:v1`,
+      eventType: "gift_card.refunded",
+      aggregateType: "gift_card",
+      aggregateId: card.id,
+      occurredAt: now,
+      payload: { giftCardId: card.id, amount: card.initialValue, refundedBy: actorId, providerRefundId: String(refund.providerPaymentId || "") || null }
+    });
+    return { card: updated, replay: false };
+  }, { maxWait: 5e3, timeout: 2e4, isolationLevel: "ReadCommitted" });
+  return cardView(result.card, true);
+}
+var import_node_crypto9, GIFT_CARD_AMOUNTS, EMAIL, usd, ledgerOf, giftCardTender;
+var init_giftCards = __esm({
+  "features/keystone/mutations/giftCards.ts"() {
+    "use strict";
+    import_node_crypto9 = require("node:crypto");
+    init_access();
+    init_cafeCustomerError();
+    init_coffeeCommandReceipt();
+    init_onlinePayment();
+    init_coffeeKdsAuthority();
+    GIFT_CARD_AMOUNTS = [1500, 2500, 5e3, 7500, 1e4];
+    EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    usd = (cents2) => `$${(cents2 / 100).toFixed(cents2 % 100 ? 2 : 0)}`;
+    ledgerOf = (value) => Array.isArray(value) ? value : [];
+    giftCardTender = {
+      providerPaymentId: (code) => `gift_card:${normalizeGiftCode(code)}:${(0, import_node_crypto9.randomUUID)()}`,
+      codeOf: (providerPaymentId) => String(providerPaymentId || "").split(":")[1] || ""
+    };
+  }
+});
+
+// features/keystone/mutations/loyaltyReversal.ts
+function reverseLoyaltyEarning(current, earnedPoints) {
+  const points = Number(earnedPoints);
+  const lifetimePoints = Number(current.lifetimePoints || 0);
+  const visits = Number(current.visits || 0);
+  if (!Number.isSafeInteger(points) || points < 0 || lifetimePoints < points || visits < 1) {
+    return { ok: false, error: "Loyalty history requires reconciliation before refund" };
+  }
+  const drinkCredits = Number(current.drinkCredits || 0);
+  const remaining = Number(current.pointsBalance || 0) + drinkCredits * 100 - points;
+  if (remaining < 0) return { ok: false, error: "Spent loyalty rewards require a manual refund reconciliation" };
+  const credits = Math.floor(remaining / 100);
+  return {
+    ok: true,
+    next: { pointsBalance: remaining % 100, drinkCredits: credits, lifetimePoints: lifetimePoints - points, visits: visits - 1 },
+    drinkCreditsDelta: credits - drinkCredits
+  };
+}
+var init_loyaltyReversal = __esm({
+  "features/keystone/mutations/loyaltyReversal.ts"() {
+    "use strict";
   }
 });
 
@@ -7207,17 +7861,25 @@ async function refundCafePayment(_root, args, context) {
     const requestFingerprint = fingerprintInput({ paymentId: args.paymentId, actorId, amount, currencyCode: String(payment.currencyCode || ""), reason, externalRefundReference: externalReference || null });
     if (payment.status === "refunded") {
       if (payment.refundIdempotencyKey !== key) throw new Error("Payment was already refunded by another request");
-      const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey: `payment:${args.paymentId}:refunded:v1` } });
+      const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey: `payment:${args.paymentId}:refunded:v1` } });
       const payload = receipt?.payload && typeof receipt.payload === "object" ? receipt.payload : null;
       const matches = payload && typeof payload.requestFingerprint === "string" ? payload.requestFingerprint === requestFingerprint : Boolean(payload) && payload.reason === reason && (payload.externalRefundReference ?? null) === (externalReference || null) && Number(payload.amount) === amount;
       if (!matches) throw new Error("This refund was already recorded with a different reason or terminal reference");
       return;
     }
     if (payment.status !== "captured") throw new Error(`Cannot refund payment with status ${String(payment.status)}`);
+    evaluateTransition(PAYMENT_TRANSITIONS, "captured", "refunded");
     const isOnline = payment.provider === "pp_stripe_stripe";
     if (!isOnline && payment.provider !== "pp_system_default") throw new Error("Refunds for this payment provider aren't supported");
-    if (!["cash", "card"].includes(String(payment.method))) throw new Error("Unsupported refund tender");
-    if (isOnline && !String(payment.providerPaymentId || "").startsWith("pi_")) throw cafeCustomerError("This online payment hasn't finished settling. Try the refund again shortly.");
+    if (!["cash", "card", "gift_card"].includes(String(payment.method))) throw new Error("Unsupported refund tender");
+    const isGiftCard = payment.method === "gift_card";
+    let refundTarget = String(payment.providerPaymentId || "");
+    if (isOnline && refundTarget.startsWith("cs_")) {
+      const page = await executePaymentProviderAdapter({ provider: { code: "pp_stripe_stripe" }, functionName: "getPaymentStatusFunction", args: { providerPaymentId: refundTarget } }).catch(() => null);
+      const intent = page?.data?.payment_intent;
+      refundTarget = typeof intent === "string" ? intent : "";
+    }
+    if (isOnline && !refundTarget.startsWith("pi_")) throw cafeCustomerError("This online payment hasn't finished settling. Try the refund again shortly.");
     if (!isOnline && payment.method === "card" && externalReference.length < 4) throw new Error("Record the external terminal refund reference before updating the cafe ledger");
     if (payment.refundIdempotencyKey && payment.refundIdempotencyKey !== key) throw new Error("A different refund request already owns this payment");
     const order = await tx.cafeOrder.findUnique({
@@ -7226,12 +7888,13 @@ async function refundCafePayment(_root, args, context) {
     });
     if (!order) throw new Error("Payment order not found");
     assertCoffeeStoreOwnership(order.storeId, storeId, "Payment order");
+    evaluateTransition(CAFE_ORDER_TRANSITIONS, String(order.status), "refunded");
     const orderPayments = Array.isArray(order.payments) ? order.payments : [];
     assertCafeSettlement(orderPayments, Number(order.total || 0) - Number(order.discount || 0));
     if (!orderPayments.some((candidate) => candidate.id === payment.id && candidate.status === "captured")) throw new Error("Refund payment does not match the order's full settlement");
     let shiftId = null;
     let shift = null;
-    if (!isOnline) {
+    if (!isOnline && !isGiftCard) {
       const shifts = await tx.registerShift.findMany({ where: { storeId, status: "open" }, take: 2, orderBy: { openedAt: "asc" }, select: { id: true } });
       if (shifts.length !== 1) throw new Error("Refunds require exactly one open payout register shift");
       shiftId = String(shifts[0].id);
@@ -7254,14 +7917,15 @@ async function refundCafePayment(_root, args, context) {
       const earned = await tx.loyaltyEvent.findMany({ where: { orderId: order.id, accountId: current.id, type: "earned" }, take: 2 });
       if (earned.length !== 1) throw new Error("Loyalty earning evidence requires reconciliation before refund");
       const points = Number(earned[0].pointsDelta || 0);
-      const lifetimePoints = Number(current.lifetimePoints || 0);
-      const visits = Number(current.visits || 0);
-      if (!Number.isSafeInteger(points) || points < 0 || lifetimePoints < points || visits < 1) throw new Error("Loyalty history requires reconciliation before refund");
-      const remaining = Number(current.pointsBalance || 0) + Number(current.drinkCredits || 0) * 100 - points;
-      if (remaining < 0) throw new Error("Spent loyalty rewards require a manual refund reconciliation");
-      const credits = Math.floor(remaining / 100);
-      await tx.loyaltyAccount.update({ where: { id: current.id }, data: { pointsBalance: remaining % 100, drinkCredits: credits, lifetimePoints: lifetimePoints - points, visits: visits - 1 } });
-      await tx.loyaltyEvent.create({ data: { accountId: current.id, orderId: order.id, type: "refund_reversal", pointsDelta: -points, drinkCreditsDelta: credits - Number(current.drinkCredits || 0), note: `Reversed ${points} points earned on this order after full refund of payment ${args.paymentId}`, createdById: actorId } });
+      const reversal = reverseLoyaltyEarning({
+        pointsBalance: Number(current.pointsBalance || 0),
+        drinkCredits: Number(current.drinkCredits || 0),
+        lifetimePoints: Number(current.lifetimePoints || 0),
+        visits: Number(current.visits || 0)
+      }, points);
+      if (!reversal.ok) throw new Error(reversal.error);
+      await tx.loyaltyAccount.update({ where: { id: current.id }, data: reversal.next });
+      await tx.loyaltyEvent.create({ data: { accountId: current.id, orderId: order.id, type: "refund_reversal", pointsDelta: -points, drinkCreditsDelta: reversal.drinkCreditsDelta, note: `Reversed ${points} points earned on this order after full refund of payment ${args.paymentId}`, createdById: actorId } });
     }
     const now = /* @__PURE__ */ new Date();
     let providerRefundId = null;
@@ -7269,35 +7933,56 @@ async function refundCafePayment(_root, args, context) {
       const result = await executePaymentProviderAdapter({
         provider: { code: "pp_stripe_stripe" },
         functionName: "refundPaymentFunction",
-        args: { providerPaymentId: String(payment.providerPaymentId), amount, reason, idempotencyKey: `refund:${key}`, currencyCode: String(payment.currencyCode || "USD") }
+        args: { providerPaymentId: refundTarget, amount, reason, idempotencyKey: `refund:${key}`, currencyCode: String(payment.currencyCode || "USD") }
       }).catch(() => null);
       if (!result?.success || !["refunded", "pending"].includes(String(result.status))) throw cafeCustomerError("The card refund didn't go through. Nothing was recorded; try again.");
       providerRefundId = result.providerPaymentId ? String(result.providerPaymentId) : null;
+    } else if (isGiftCard) {
+      await creditCafeGiftCardInTransaction(tx, { code: giftCardTender.codeOf(String(payment.providerPaymentId)), amount, ref: `refund:${String(payment.id)}`, now });
     } else if (shift && shiftId) {
       const isCash = payment.method === "cash";
       const cashRefundsCents = Number(shift.cashRefundsCents || 0) + (isCash ? amount : 0);
       const cardRefundsCents = Number(shift.cardRefundsCents || 0) + (isCash ? 0 : amount);
       await tx.registerShift.update({ where: { id: shiftId }, data: { cashRefundsCents, cardRefundsCents, expectedCashCents: Math.max(0, Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - cashRefundsCents + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0)) } });
     }
-    const refundNote = isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
+    const refundNote = isGiftCard ? `${reason}; returned to gift card` : isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
-    await tx.posOrder.updateMany({ where: { cafeOrderId: order.id }, data: { status: "refunded" } });
-    await enqueueCoffeeDomainEvent(tx, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });
+    await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
+    await tx.paymentEvent.create({ data: { replayKey: `refund:${args.paymentId}`, storeId, providerCode: String(payment.provider || "manual"), providerEventId: providerRefundId || `refund:${args.paymentId}`, eventType: "payment.refunded", payloadHash: (0, import_node_crypto10.createHash)("sha256").update(requestFingerprint).digest("hex"), status: "processed", paymentId: payment.id, orderId: order.id, processedAt: now }, select: { id: true } });
+    await recordCoffeeCommandReceipt(tx, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });
   }, { maxWait: 5e3, timeout: 2e4, isolationLevel: "ReadCommitted" });
   return context.sudo().query.Payment.findOne({ where: { id: args.paymentId }, query: query4 });
 }
-var query4;
+var import_node_crypto10, query4;
 var init_refundCafePayment = __esm({
   "features/keystone/mutations/refundCafePayment.ts"() {
     "use strict";
-    init_coffeeDomainOutbox();
+    import_node_crypto10 = require("node:crypto");
+    init_coffeeCommandReceipt();
     init_idempotency();
     init_coffeeKdsAuthority();
     init_coffeeOrderPolicy();
     init_paymentProviderAdapter();
+    init_giftCards();
     init_cafeCustomerError();
+    init_loyaltyReversal();
+    init_transitionPolicy();
     query4 = "id status method amount currencyCode providerPaymentId refundIdempotencyKey refundedAmount refundReason refundedAt order { id status } registerShift { id status } refundRegisterShift { id shiftNumber }";
+  }
+});
+
+// features/keystone/lib/menu-temperature.ts
+function defaultTemperatureOptions(barStation) {
+  if (barStation === "cold_bar") return ["iced"];
+  if (barStation === "pastry_case" || barStation === "retail_shelf") return [];
+  return ["hot"];
+}
+var MENU_TEMPERATURES;
+var init_menu_temperature = __esm({
+  "features/keystone/lib/menu-temperature.ts"() {
+    "use strict";
+    MENU_TEMPERATURES = ["hot", "iced", "blended"];
   }
 });
 
@@ -7320,7 +8005,7 @@ async function beginMenuCommand(tx, context, key) {
   return { actorId, storeId };
 }
 async function findMenuReceipt(tx, key, expected) {
-  const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey: `menu-command:${key}` } });
+  const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey: `menu-command:${key}` } });
   if (!receipt) return null;
   const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
   if (receipt.storeId !== expected.storeId || receipt.eventType !== expected.eventType || receipt.aggregateType !== expected.aggregateType || payload.actorId !== expected.actorId || payload.requestFingerprint !== expected.requestFingerprint) throw new Error(REUSED_KEY_MESSAGE);
@@ -7350,9 +8035,9 @@ function shortDescription(value) {
   return text35;
 }
 function prepTime(value) {
-  const minutes2 = Number(value);
-  if (!Number.isSafeInteger(minutes2) || minutes2 < 0 || minutes2 > 240) throw new Error("Prep time must be a whole number of minutes between 0 and 240");
-  return minutes2;
+  const minutes = Number(value);
+  if (!Number.isSafeInteger(minutes) || minutes < 0 || minutes > 240) throw new Error("Prep time must be a whole number of minutes between 0 and 240");
+  return minutes;
 }
 function station(value) {
   if (!STATIONS.has(value)) throw new Error("Menu item station is invalid");
@@ -7385,7 +8070,7 @@ async function createCoffeeMenuCategory(_root, args, context) {
       return replay;
     }
     const category = await tx.menuCategory.create({ data: { storeId, name: name2, description, sortOrder, active: true } });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_category.created",
@@ -7394,7 +8079,7 @@ async function createCoffeeMenuCategory(_root, args, context) {
       payload: { actorId, requestFingerprint, menuCategoryId: String(category.id), name: name2, description, sortOrder }
     });
     return category;
-  }, TX_OPTIONS8);
+  }, TX_OPTIONS9);
 }
 async function createCoffeeMenuItem(_root, args, context) {
   requireMenuManager(context);
@@ -7430,12 +8115,12 @@ async function createCoffeeMenuItem(_root, args, context) {
         available: true,
         prepTimeMinutes: intent.prepTimeMinutes,
         barStation: intent.station,
-        temperatureOptions: ["hot"],
+        temperatureOptions: defaultTemperatureOptions(intent.station),
         serviceWindows: ["all_day"],
         categoryId: intent.categoryId
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_item.created",
@@ -7444,7 +8129,7 @@ async function createCoffeeMenuItem(_root, args, context) {
       payload: { actorId, requestFingerprint, menuItemId: String(item.id), ...intent }
     });
     return item;
-  }, TX_OPTIONS8);
+  }, TX_OPTIONS9);
 }
 async function updateCoffeeMenuItem(_root, args, context) {
   requireMenuManager(context);
@@ -7475,7 +8160,7 @@ async function updateCoffeeMenuItem(_root, args, context) {
     assertExpectedRevision(item, expectedUpdatedAt);
     if (typeof changes.categoryId === "string") await scopedCategory(tx, storeId, changes.categoryId);
     const updated = await tx.menuItem.update({ where: { id: args.menuItemId }, data: changes });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_item.updated",
@@ -7484,7 +8169,7 @@ async function updateCoffeeMenuItem(_root, args, context) {
       payload: { actorId, requestFingerprint, menuItemId: args.menuItemId, changes, previousRevision: revision(item.updatedAt) }
     });
     return updated;
-  }, TX_OPTIONS8);
+  }, TX_OPTIONS9);
 }
 function normalizedInventory(args) {
   const inventoryAction = args.inventoryAction || "unreviewed";
@@ -7557,7 +8242,7 @@ async function createCoffeeMenuModifier(_root, args, context) {
     if (await tx.menuItemModifier.findUnique({ where: { idempotencyKey: key } })) throw new Error(REUSED_KEY_MESSAGE);
     await validateInventory(tx, storeId, inventory);
     const modifier = await tx.menuItemModifier.create({ data: { ...rule, ...inventory, inStock, storeId, menuItemId: args.menuItemId, idempotencyKey: key } });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_modifier.created",
@@ -7566,7 +8251,7 @@ async function createCoffeeMenuModifier(_root, args, context) {
       payload: { actorId, requestFingerprint, modifierId: String(modifier.id), menuItemId: args.menuItemId, ...rule, ...inventory, inStock }
     });
     return modifier;
-  }, TX_OPTIONS8);
+  }, TX_OPTIONS9);
 }
 async function updateCoffeeMenuModifier(_root, args, context) {
   requireMenuManager(context);
@@ -7602,7 +8287,7 @@ async function updateCoffeeMenuModifier(_root, args, context) {
     const data = { ...rule, ...requestedInventory || {} };
     if (inventory.inventoryAction === "unreviewed" && modifier.inStock) data.inStock = false;
     const updated = await tx.menuItemModifier.update({ where: { id: args.modifierId }, data });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_modifier.updated",
@@ -7611,7 +8296,7 @@ async function updateCoffeeMenuModifier(_root, args, context) {
       payload: { actorId, requestFingerprint, modifierId: args.modifierId, menuItemId, ...rule, ...inventory, previousRevision: revision(modifier.updatedAt) }
     });
     return updated;
-  }, TX_OPTIONS8);
+  }, TX_OPTIONS9);
 }
 async function updateCoffeeModifierStock(_root, args, context) {
   requireMenuManager(context);
@@ -7633,7 +8318,7 @@ async function updateCoffeeModifierStock(_root, args, context) {
     assertExpectedRevision(modifier, expectedUpdatedAt);
     if (args.inStock && String(modifier.inventoryAction || "unreviewed") === "unreviewed") throw new Error("Choose how this option affects inventory before offering it");
     const updated = await tx.menuItemModifier.update({ where: { id: args.modifierId }, data: { inStock: args.inStock } });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `menu-command:${key}`,
       eventType: "menu_modifier.stock_changed",
@@ -7642,17 +8327,18 @@ async function updateCoffeeModifierStock(_root, args, context) {
       payload: { actorId, requestFingerprint, modifierId: args.modifierId, menuItemId, inStock: args.inStock, previousRevision: revision(modifier.updatedAt) }
     });
     return updated;
-  }, TX_OPTIONS8);
+  }, TX_OPTIONS9);
 }
-var TX_OPTIONS8, STATIONS, MODIFIER_GROUPS, STALE_MESSAGE, REUSED_KEY_MESSAGE;
+var TX_OPTIONS9, STATIONS, MODIFIER_GROUPS, STALE_MESSAGE, REUSED_KEY_MESSAGE;
 var init_manageCoffeeMenu = __esm({
   "features/keystone/mutations/manageCoffeeMenu.ts"() {
     "use strict";
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_coffeeKdsAuthority();
     init_idempotency();
-    TX_OPTIONS8 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    init_menu_temperature();
+    TX_OPTIONS9 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     STATIONS = /* @__PURE__ */ new Set(["espresso_bar", "cold_bar", "brew_bar", "pastry_case", "retail_shelf"]);
     MODIFIER_GROUPS = /* @__PURE__ */ new Set(["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep", "grind"]);
     STALE_MESSAGE = "This menu entry changed since you opened it. Reload to see the latest version before saving.";
@@ -7757,7 +8443,7 @@ async function acceptCafePickupOrder(_root, args, context) {
     if (!order) throw new Error("Cafe order not found");
     const storeId = await getPrimaryCoffeeStoreId(tx);
     assertCoffeeStoreOwnership(String(order.storeId), storeId, "Cafe order");
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
     if (receipt) {
       const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
       if (receipt.storeId !== storeId || receipt.aggregateId !== String(order.id) || payload.acceptedBy !== actorId || payload.requestFingerprint !== requestFingerprint) {
@@ -7783,7 +8469,7 @@ async function acceptCafePickupOrder(_root, args, context) {
       if (requirement.kind === "prep") inventoryRequirementEvidence.push({ kind: requirement.kind, prepBatchId: requirement.prepBatchId, quantity: requirement.quantity });
       else inventoryRequirementEvidence.push({ kind: requirement.kind, inventoryItemId: requirement.inventoryItemId, quantity: requirement.quantity });
     }
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey,
       eventType: "order.accepted",
@@ -7802,7 +8488,7 @@ var init_acceptCafePickupOrder = __esm({
     init_access();
     init_coffeeOrderPolicy();
     init_manageCoffeeMenu();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_coffeeAvailability();
     init_coffeeInventoryConsumption();
     init_idempotency();
@@ -7818,13 +8504,16 @@ var init_acceptCafePickupOrder = __esm({
 async function recordCafePayment(_root, args, context) {
   requireCafeTenderOperator(context.session);
   if (!args.orderId) throw new Error("Order id is required");
-  if (!["cash", "card"].includes(args.method)) throw new Error("Recorded payment method must be cash or card");
+  if (!["cash", "card", "gift_card"].includes(args.method)) throw new Error("Recorded payment method must be cash, card or gift card");
+  const giftCode = args.method === "gift_card" ? normalizeGiftCode(args.giftCardCode || "") : "";
+  if (args.method === "gift_card" && !giftCode) throw cafeCustomerError("Enter the 12-character gift card code.");
+  if (args.method !== "gift_card" && args.giftCardCode) throw new Error("A gift card code applies only to a gift card payment");
   const externalCardReference = args.externalCardReference?.trim() || "";
   if (args.method === "card") {
     if (args.externalCardApproved !== true) throw new Error("Confirm the card terminal approved this exact amount before recording the card payment");
     if (!/^[A-Za-z0-9#._:\/-]{4,64}$/.test(externalCardReference)) throw new Error("Enter the terminal approval or reference code (4-64 letters, numbers or #._:/-)");
   } else if (externalCardReference || args.externalCardApproved) throw new Error("A terminal reference applies only to an external card payment");
-  const providerPaymentId = args.method === "cash" ? `cash_${(0, import_node_crypto9.randomUUID)()}` : `external_terminal:${externalCardReference}`;
+  const providerPaymentId = args.method === "cash" ? `cash_${(0, import_node_crypto11.randomUUID)()}` : args.method === "gift_card" ? giftCardTender.providerPaymentId(giftCode) : `external_terminal:${externalCardReference}`;
   const clientKey = normalizeIdempotencyKey(args.idempotencyKey);
   if (!clientKey) throw new Error("Recorded payment idempotency key is required");
   const scope = context.session?.listKey === "User" ? context.session.itemId : "operator";
@@ -7857,7 +8546,7 @@ async function recordCafePayment(_root, args, context) {
     const payments = Array.isArray(order.payments) ? order.payments : [];
     const replay = payments.find((payment2) => payment2.idempotencyKey === scopedKey5);
     if (replay) {
-      if (replay.status !== "captured" || replay.method !== args.method || args.method === "card" && replay.providerPaymentId !== providerPaymentId) throw new Error("Recorded payment idempotency key conflicts with existing evidence");
+      if (replay.status !== "captured" || replay.method !== args.method || args.method === "card" && replay.providerPaymentId !== providerPaymentId || args.method === "gift_card" && giftCardTender.codeOf(String(replay.providerPaymentId)) !== giftCode) throw new Error("Recorded payment idempotency key conflicts with existing evidence");
       return String(replay.id);
     }
     if (!["open", "accepted", "in_bar_queue", "preparing", "ready"].includes(String(order.status))) throw new Error(`Cannot record settlement for an order with status ${String(order.status)}`);
@@ -7891,6 +8580,7 @@ async function recordCafePayment(_root, args, context) {
       await consumeCafeInventoryRequirements(tx, { storeId, orderId: String(order.id), orderNumber: String(order.orderNumber), requirements, reason: `Pickup settlement ${String(order.orderNumber)}`, createdById: actorId });
     }
     const settledAt = /* @__PURE__ */ new Date();
+    if (args.method === "gift_card") await redeemCafeGiftCardInTransaction(tx, { storeId, code: giftCode, amount, ref: `order:${String(order.orderNumber)}`, now: settledAt });
     const payment = await tx.payment.create({
       data: {
         orderId: order.id,
@@ -7906,7 +8596,7 @@ async function recordCafePayment(_root, args, context) {
         processedAt: settledAt,
         registerShiftId: String(registerShift.id),
         metadata: {
-          tender: args.method === "cash" ? { method: "cash", evidence: "cash_received_at_register" } : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: actorId, attestedAt: settledAt.toISOString(), providerVerified: false }
+          tender: args.method === "cash" ? { method: "cash", evidence: "cash_received_at_register" } : args.method === "gift_card" ? { method: "gift_card", evidence: "gift_card_ledger_debit", giftCardCode: giftCode } : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: actorId, attestedAt: settledAt.toISOString(), providerVerified: false }
         }
       },
       select: { id: true }
@@ -7914,7 +8604,7 @@ async function recordCafePayment(_root, args, context) {
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: ["open", "accepted"].includes(String(order.status)) ? "paid" : order.status, paidAt: settledAt, ...admittedPromisedAt ? { promisedAt: admittedPromisedAt } : {} } });
     const isCash = args.method === "cash";
     const cashSalesCents = Number(registerShift.cashSalesCents || 0) + (isCash ? amount : 0);
-    const cardSalesCents = Number(registerShift.cardSalesCents || 0) + (isCash ? 0 : amount);
+    const cardSalesCents = Number(registerShift.cardSalesCents || 0) + (args.method === "card" ? amount : 0);
     await tx.registerShift.update({
       where: { id: registerShift.id },
       data: {
@@ -7924,7 +8614,7 @@ async function recordCafePayment(_root, args, context) {
         expectedCashCents: Number(registerShift.openingCashCents || 0) + cashSalesCents - Number(registerShift.cashRefundsCents || 0) + Number(registerShift.payInsCents || 0) - Number(registerShift.payOutsCents || 0)
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `payment:${payment.id}:captured:v1`,
       eventType: "payment.captured",
@@ -7934,22 +8624,24 @@ async function recordCafePayment(_root, args, context) {
       payload: { paymentId: payment.id, orderId: String(order.id), orderNumber: String(order.orderNumber), registerShiftId: String(registerShift.id), recordedBy: actorId, method: args.method, amount, currencyCode: String(order.currencyCode || "USD"), externalCardReference: externalCardReference || null, requestFingerprint: fingerprintInput({ orderId: String(order.id), actorId, method: args.method, amount, externalCardReference: externalCardReference || null, externalCardApproved: args.method === "card" }) }
     });
     return payment.id;
-  }, TX_OPTIONS9);
+  }, TX_OPTIONS10);
   return context.sudo().query.Payment.findOne({ where: { id: paymentId }, query: PAYMENT_QUERY });
 }
-var import_node_crypto9, TX_OPTIONS9, PAYMENT_QUERY;
+var import_node_crypto11, TX_OPTIONS10, PAYMENT_QUERY;
 var init_recordCafePayment = __esm({
   "features/keystone/mutations/recordCafePayment.ts"() {
     "use strict";
-    import_node_crypto9 = require("node:crypto");
+    import_node_crypto11 = require("node:crypto");
     init_coffeeOrderPolicy();
     init_onlinePaymentRelease();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_idempotency();
     init_coffeeInventoryConsumption();
     init_acceptCafePickupOrder();
     init_coffeeKdsAuthority();
-    TX_OPTIONS9 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
+    init_giftCards();
+    init_cafeCustomerError();
+    TX_OPTIONS10 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     PAYMENT_QUERY = "id status method amount currencyCode provider providerPaymentId processedAt order { id status }";
   }
 });
@@ -7959,7 +8651,7 @@ function replayKey(providerCode, eventId) {
   return `${providerCode}:${eventId}`;
 }
 function payloadHash(rawBody) {
-  return (0, import_node_crypto10.createHash)("sha256").update(rawBody).digest("hex");
+  return (0, import_node_crypto12.createHash)("sha256").update(rawBody).digest("hex");
 }
 function assertSettlementMatches(payment, providerCode, verified) {
   if (payment.provider !== providerCode) throw new Error("Webhook provider does not match payment");
@@ -7993,6 +8685,13 @@ async function handleCafePaymentWebhook(_root, args, context) {
     args: { rawBody: args.rawBody, headers: args.headers }
   });
   if (!verified.eventId || verified.eventId.length > 255) throw new Error("Verified webhook event id is invalid");
+  if (verified.giftCardId) {
+    if (verified.status === "succeeded" || verified.status === "failed") {
+      const { settleCafeGiftCardFromWebhook: settleCafeGiftCardFromWebhook2 } = await Promise.resolve().then(() => (init_giftCards(), giftCards_exports));
+      await settleCafeGiftCardFromWebhook2(context.prisma, verified.giftCardId);
+    }
+    return { success: true, replayed: false, paymentId: null, orderId: null };
+  }
   const key = replayKey(provider.code, verified.eventId);
   const hash = payloadHash(args.rawBody);
   return context.prisma.$transaction(async (tx) => {
@@ -8020,7 +8719,7 @@ async function handleCafePaymentWebhook(_root, args, context) {
     }
     if (verified.status === "succeeded" && payment) {
       assertSettlementMatches(payment, provider.code, verified);
-      if (payment.status !== "captured") {
+      if (payment.status !== "captured" && canTransition(PAYMENT_TRANSITIONS, String(payment.status), "captured")) {
         const cancelled = Boolean(payment.order && TERMINAL_UNSETTLED_ORDER_STATUSES.has(payment.order.status || ""));
         const settledAt = /* @__PURE__ */ new Date();
         await tx.payment.update({
@@ -8028,9 +8727,9 @@ async function handleCafePaymentWebhook(_root, args, context) {
           data: {
             status: "captured",
             processedAt: settledAt,
-            failureMessage: cancelled ? "Paid after the order was cancelled; refund it" : "",
-            // Refunds go to the payment intent, not the hosted page.
-            ...verified.providerPaymentId.startsWith("pi_") ? { providerPaymentId: verified.providerPaymentId } : {}
+            failureMessage: cancelled ? "Paid after the order was cancelled; refund it" : ""
+            // The hosted page reference (cs_…) stays: the evidence trigger makes it immutable once
+            // assigned, and refunds resolve its payment intent from Stripe.
           }
         });
         if (payment.orderId && !cancelled) {
@@ -8038,7 +8737,7 @@ async function handleCafePaymentWebhook(_root, args, context) {
           await tx.cafeOrder.update({ where: { id: payment.orderId }, data: { paidAt: settledAt, ...status ? { status } : {} } });
         }
       }
-    } else if (verified.status === "failed" && payment && (payment.status === "pending" || payment.status === "authorized")) {
+    } else if (verified.status === "failed" && payment && canTransition(PAYMENT_TRANSITIONS, String(payment.status), "failed") && payment.status !== "failed") {
       await tx.payment.update({
         where: { id: payment.id },
         data: { status: "failed", failureMessage: `Provider event ${verified.eventType}` }
@@ -8059,7 +8758,7 @@ async function handleCafePaymentWebhook(_root, args, context) {
       },
       select: { id: true }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `payment-webhook:${key}:v1`,
       eventType: `payment.${verified.status}`,
@@ -8070,14 +8769,15 @@ async function handleCafePaymentWebhook(_root, args, context) {
     return { success: true, replayed: false, paymentId: payment?.id || null, orderId: payment?.orderId || verified.orderId || null };
   }, { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" });
 }
-var import_node_crypto10, TERMINAL_UNSETTLED_ORDER_STATUSES;
+var import_node_crypto12, TERMINAL_UNSETTLED_ORDER_STATUSES;
 var init_handleCafePaymentWebhook = __esm({
   "features/keystone/mutations/handleCafePaymentWebhook.ts"() {
     "use strict";
-    import_node_crypto10 = require("node:crypto");
+    import_node_crypto12 = require("node:crypto");
     init_payment();
     init_paymentProviderAdapter();
-    init_coffeeDomainOutbox();
+    init_transitionPolicy();
+    init_coffeeCommandReceipt();
     TERMINAL_UNSETTLED_ORDER_STATUSES = /* @__PURE__ */ new Set(["cancelled", "refunded"]);
   }
 });
@@ -8117,9 +8817,9 @@ var init_seed = __esm({
           { name: "Pastries", description: "Fresh bakery favorites.", sortOrder: 2 }
         ],
         menuItems: [
-          { name: "Americano", shortDescription: "Double espresso topped with hot water.", price: 425, prepTimeMinutes: 4, barStation: "espresso_bar", featured: true, popular: true, categoryName: "Espresso", imageUrl: "/images/americano.jpg" },
-          { name: "Vanilla Latte", shortDescription: "Espresso, milk, and house vanilla.", price: 625, prepTimeMinutes: 5, barStation: "espresso_bar", featured: true, popular: true, categoryName: "Espresso", imageUrl: "/images/vanilla-latte.jpg" },
-          { name: "Almond Croissant", shortDescription: "Butter croissant with almond cream.", price: 495, prepTimeMinutes: 2, barStation: "pastry_case", featured: false, popular: true, categoryName: "Pastries", imageUrl: "/images/almond-croissant.jpg" }
+          { name: "Americano", shortDescription: "Double espresso topped with hot water.", price: 425, prepTimeMinutes: 4, barStation: "espresso_bar", temperatureOptions: ["hot"], featured: true, popular: true, categoryName: "Espresso", imageUrl: "/images/americano.jpg" },
+          { name: "Vanilla Latte", shortDescription: "Espresso, milk, and house vanilla.", price: 625, prepTimeMinutes: 5, barStation: "espresso_bar", temperatureOptions: ["hot"], featured: true, popular: true, categoryName: "Espresso", imageUrl: "/images/vanilla-latte.jpg" },
+          { name: "Almond Croissant", shortDescription: "Butter croissant with almond cream.", price: 495, prepTimeMinutes: 2, barStation: "pastry_case", temperatureOptions: [], featured: false, popular: true, categoryName: "Pastries", imageUrl: "/images/almond-croissant.jpg" }
         ],
         modifiers: [
           { menuItemName: "Americano", name: "12 oz", modifierGroup: "size", modifierGroupLabel: "Size", priceAdjustment: 0, defaultSelected: true, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "none" },
@@ -8187,11 +8887,11 @@ var init_seed = __esm({
           { name: "Retail Beans", description: "Whole beans and brew-at-home staples.", sortOrder: 4 }
         ],
         menuItems: [
-          { name: "Americano", shortDescription: "Double espresso topped with hot water.", price: 425, prepTimeMinutes: 4, barStation: "espresso_bar", featured: true, popular: true, categoryName: "Espresso", imageUrl: "/images/americano.jpg" },
-          { name: "Vanilla Latte", shortDescription: "Espresso, milk, and house vanilla.", price: 625, prepTimeMinutes: 5, barStation: "espresso_bar", featured: true, popular: true, categoryName: "Signature Drinks", imageUrl: "/images/vanilla-latte.jpg" },
-          { name: "Cardamom Cold Brew", shortDescription: "Slow-steeped cold brew with sweet spice.", price: 575, prepTimeMinutes: 3, barStation: "cold_bar", featured: true, popular: false, categoryName: "Signature Drinks", imageUrl: "/images/cardamom-cold-brew.jpg" },
-          { name: "Almond Croissant", shortDescription: "Butter croissant with almond cream.", price: 495, prepTimeMinutes: 2, barStation: "pastry_case", featured: false, popular: true, categoryName: "Pastries", imageUrl: "/images/almond-croissant.jpg" },
-          { name: "House Blend Beans", shortDescription: "12 oz whole-bean bag for home brew.", price: 1800, prepTimeMinutes: 0, barStation: "retail_shelf", featured: false, popular: false, categoryName: "Retail Beans", imageUrl: "/images/house-blend-beans.jpg" }
+          { name: "Americano", shortDescription: "Double espresso topped with hot water.", price: 425, prepTimeMinutes: 4, barStation: "espresso_bar", temperatureOptions: ["hot"], featured: true, popular: true, categoryName: "Espresso", imageUrl: "/images/americano.jpg" },
+          { name: "Vanilla Latte", shortDescription: "Espresso, milk, and house vanilla.", price: 625, prepTimeMinutes: 5, barStation: "espresso_bar", temperatureOptions: ["hot"], featured: true, popular: true, categoryName: "Signature Drinks", imageUrl: "/images/vanilla-latte.jpg" },
+          { name: "Cardamom Cold Brew", shortDescription: "Slow-steeped cold brew with sweet spice.", price: 575, prepTimeMinutes: 3, barStation: "cold_bar", temperatureOptions: ["iced"], featured: true, popular: false, categoryName: "Signature Drinks", imageUrl: "/images/cardamom-cold-brew.jpg" },
+          { name: "Almond Croissant", shortDescription: "Butter croissant with almond cream.", price: 495, prepTimeMinutes: 2, barStation: "pastry_case", temperatureOptions: [], featured: false, popular: true, categoryName: "Pastries", imageUrl: "/images/almond-croissant.jpg" },
+          { name: "House Blend Beans", shortDescription: "12 oz bag of our house blend, whole bean or ground to order.", price: 1800, prepTimeMinutes: 0, barStation: "retail_shelf", temperatureOptions: [], featured: false, popular: false, categoryName: "Retail Beans", imageUrl: "/images/house-blend-beans.jpg" }
         ],
         modifiers: [
           { menuItemName: "Americano", name: "12 oz", modifierGroup: "size", modifierGroupLabel: "Size", priceAdjustment: 0, defaultSelected: true, required: true, minSelections: 1, maxSelections: 1, inventoryAction: "none" },
@@ -8323,6 +9023,7 @@ var init_onboardingSchema = __esm({
     init_brand_colors();
     init_sanitize_store_logo();
     init_store_logo();
+    init_menu_temperature();
     BAR_STATIONS = ["espresso_bar", "cold_bar", "brew_bar", "pastry_case", "retail_shelf"];
     MODIFIER_GROUPS2 = ["size", "milk", "espresso", "syrup", "sweetness", "temperature", "ice", "topping", "bakery_prep", "grind"];
     INVENTORY_UNITS = ["each", "lb", "oz", "g", "gal", "l"];
@@ -8367,6 +9068,8 @@ var init_onboardingSchema = __esm({
       price: int2(0, 1e6),
       prepTimeMinutes: int2(0, 240).default(5),
       barStation: import_zod4.z.enum(BAR_STATIONS).default("espresso_bar"),
+      // Omitted = the station default (cold bar iced, pastry and retail none, otherwise hot).
+      temperatureOptions: import_zod4.z.array(import_zod4.z.enum(MENU_TEMPERATURES)).max(3).optional(),
       featured: import_zod4.z.boolean().default(false),
       popular: import_zod4.z.boolean().default(false),
       imageUrl: import_zod4.z.string().trim().max(1e3).regex(/^\/[^/\\]/, "Menu images must be a site path such as /images/latte.jpg").optional(),
@@ -8498,7 +9201,8 @@ function categoryForInventory(name2) {
   return "coffee";
 }
 function selectedData(args) {
-  const source = args.template === "custom" ? args.data : seed_default[args.template];
+  const seed = args.template === "custom" ? null : seed_default[args.template];
+  const source = seed ? { ...seed, storeInfo: { logoIcon: DEFAULT_STORE_LOGO_ICON, logoColor: DEFAULT_STORE_LOGO_COLOR, ...seed.storeInfo } } : args.data;
   const result = parseOnboardingData(source);
   if (!result.success) throw new Error(`Setup data is invalid: ${result.errors.join("; ")}`);
   for (const provider of result.data.paymentProviders) normalizePaymentProviderCode(provider.code);
@@ -8579,8 +9283,7 @@ async function runInTransaction(rawTx, data, userId, session, template) {
       price: item.price,
       prepTimeMinutes: item.prepTimeMinutes,
       barStation: item.barStation,
-      // Pastries and retail goods aren't served at a temperature.
-      ...item.barStation === "retail_shelf" || item.barStation === "pastry_case" ? { temperatureOptions: [] } : {},
+      temperatureOptions: item.temperatureOptions ?? defaultTemperatureOptions(item.barStation),
       featured: item.featured,
       popular: item.popular,
       imageUrl: item.imageUrl || null,
@@ -8693,7 +9396,7 @@ async function runInTransaction(rawTx, data, userId, session, template) {
     }
   }
   await tx.user.update({ where: { id: userId }, data: { onboardingStatus: "completed" }, select: { id: true } });
-  await enqueueCoffeeDomainEvent(tx, {
+  await recordCoffeeCommandReceipt(tx, {
     storeId,
     eventKey: `store:${storeId}:onboarding:${fingerprintInput(data).slice(0, 24)}:completed:v1`,
     eventType: "store.onboarding_completed",
@@ -8726,9 +9429,11 @@ var init_runCoffeeOnboarding = __esm({
     init_idempotency();
     init_seed();
     init_onboardingSchema();
+    init_store_logo();
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_coffeeKdsAuthority();
+    init_menu_temperature();
     INVENTORY_BY_MENU_ITEM = {
       "Almond Croissant": "Almond Croissant",
       "House Blend Beans": "House Blend Beans"
@@ -8738,13 +9443,12 @@ var init_runCoffeeOnboarding = __esm({
 
 // features/keystone/mutations/registerShiftOperations.ts
 function requireRegisterOperator(context) {
-  const canOperate = permissions.canManageOrders({ session: context.session }) && permissions.canManagePayments({ session: context.session });
+  const canOperate = permissions.canManageOrders({ session: context.session });
   if (!canOperate || !context.session?.itemId) throw new Error("Not authorized to operate register shifts");
   return context.session.itemId;
 }
 async function requireCurrentRegisterOperator(tx, context) {
   await requireCurrentCoffeeCapability(tx, context.session, ["canManageOrders"], "Not authorized to operate register shifts");
-  await requireCurrentCoffeeCapability(tx, context.session, ["canManagePayments"], "Not authorized to operate register shifts");
 }
 function cents(value, label, allowZero = true) {
   const parsed = Number(value);
@@ -8759,7 +9463,7 @@ function scopedKey2(context, purpose, value) {
   return buildScopedIdempotencyKey(`${purpose}:${context.session?.itemId}`, normalized);
 }
 function reference(prefix, value) {
-  return `${prefix}-${(0, import_node_crypto11.createHash)("sha256").update(value).digest("hex").slice(0, 12).toUpperCase()}`;
+  return `${prefix}-${(0, import_node_crypto13.createHash)("sha256").update(value).digest("hex").slice(0, 12).toUpperCase()}`;
 }
 function expectedCash(shift) {
   return Number(shift.openingCashCents || 0) + Number(shift.cashSalesCents || 0) - Number(shift.cashRefundsCents || 0) + Number(shift.payInsCents || 0) - Number(shift.payOutsCents || 0);
@@ -8797,7 +9501,7 @@ async function openRegisterShift(_root, args, context) {
         openedAt: /* @__PURE__ */ new Date()
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `register-shift:${String(shift.id)}:opened:v1`,
       eventType: "register_shift.opened",
@@ -8806,7 +9510,7 @@ async function openRegisterShift(_root, args, context) {
       payload: { shiftId: String(shift.id), shiftNumber: String(shift.shiftNumber), registerName, openingCashCents }
     });
     return shift;
-  }, TX_OPTIONS10);
+  }, TX_OPTIONS11);
 }
 async function recordRegisterCashMovement(_root, args, context) {
   const userId = requireRegisterOperator(context);
@@ -8857,7 +9561,7 @@ async function recordRegisterCashMovement(_root, args, context) {
         recordedAt: /* @__PURE__ */ new Date()
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `cash-movement:${String(movement.id)}:recorded:v1`,
       eventType: "register_cash.recorded",
@@ -8866,7 +9570,7 @@ async function recordRegisterCashMovement(_root, args, context) {
       payload: { movementId: String(movement.id), shiftId: args.registerShiftId, type: args.type, amountCents, reason }
     });
     return movement;
-  }, TX_OPTIONS10);
+  }, TX_OPTIONS11);
 }
 async function closeRegisterShift(_root, args, context) {
   const userId = requireRegisterOperator(context);
@@ -8897,7 +9601,7 @@ async function closeRegisterShift(_root, args, context) {
         closedAt: /* @__PURE__ */ new Date()
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `register-shift:${args.registerShiftId}:closed:v1`,
       eventType: "register_shift.closed",
@@ -8906,19 +9610,19 @@ async function closeRegisterShift(_root, args, context) {
       payload: { shiftId: args.registerShiftId, expectedCashCents, countedCashCents, varianceCents: countedCashCents - expectedCashCents }
     });
     return closed;
-  }, TX_OPTIONS10);
+  }, TX_OPTIONS11);
 }
-var import_node_crypto11, TX_OPTIONS10, MOVEMENT_TYPES;
+var import_node_crypto13, TX_OPTIONS11, MOVEMENT_TYPES;
 var init_registerShiftOperations = __esm({
   "features/keystone/mutations/registerShiftOperations.ts"() {
     "use strict";
-    import_node_crypto11 = require("node:crypto");
+    import_node_crypto13 = require("node:crypto");
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_idempotency();
     init_coffeeKdsAuthority();
     init_coffeePricing();
-    TX_OPTIONS10 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
+    TX_OPTIONS11 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "ReadCommitted" };
     MOVEMENT_TYPES = /* @__PURE__ */ new Set(["pay_in", "pay_out", "cash_drop"]);
   }
 });
@@ -8936,7 +9640,7 @@ function scopedKey3(context, purpose, value) {
   return buildScopedIdempotencyKey(`${purpose}:${context.session?.itemId}`, normalized);
 }
 function shiftReference(key) {
-  return `STAFF-${(0, import_node_crypto12.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
+  return `STAFF-${(0, import_node_crypto14.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
 }
 function instant(value, label) {
   if (typeof value !== "string" || !INSTANT.test(value)) throw new Error(`${label} must be a full date and time`);
@@ -8989,7 +9693,7 @@ async function scheduleCoffeeStaffShift(_root, args, context) {
         metadata: { scheduledBy: actorId, requestFingerprint }
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `staff-shift:${String(shift.id)}:scheduled:v1`,
       eventType: "staff_shift.scheduled",
@@ -8998,7 +9702,7 @@ async function scheduleCoffeeStaffShift(_root, args, context) {
       payload: { shiftId: String(shift.id), shiftNumber: String(shift.shiftNumber), staffId: args.staffId, role: args.role, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }
     });
     return shift;
-  }, TX_OPTIONS11);
+  }, TX_OPTIONS12);
 }
 async function updateCoffeeStaffShiftStatus(_root, args, context) {
   requireStaffManager(context);
@@ -9018,7 +9722,7 @@ async function updateCoffeeStaffShiftStatus(_root, args, context) {
     if (!shift) throw new Error("Staff shift not found");
     assertCoffeeStoreOwnership(shift.storeId, storeId, "Staff shift");
     const requestFingerprint = fingerprintInput({ purpose: "staff-shift-transition", storeId, actorId, staffShiftId: args.staffShiftId, status: args.status, expectedStatus });
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
     if (receipt) {
       const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
       if (receipt.storeId !== storeId || receipt.aggregateType !== "staff_shift" || receipt.aggregateId !== args.staffShiftId || payload.actorId !== actorId || payload.requestFingerprint !== requestFingerprint) {
@@ -9039,7 +9743,7 @@ async function updateCoffeeStaffShiftStatus(_root, args, context) {
         ...args.status === "completed" ? { clockOutAt: now } : {}
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey,
       eventType: "staff_shift.status_changed",
@@ -9049,15 +9753,15 @@ async function updateCoffeeStaffShiftStatus(_root, args, context) {
       payload: { shiftId: args.staffShiftId, previousStatus: current, status: args.status, occurredAt: now.toISOString(), actorId, requestFingerprint }
     });
     return updated;
-  }, TX_OPTIONS11);
+  }, TX_OPTIONS12);
 }
-var import_node_crypto12, STAFF_ROLES2, STAFF_TRANSITIONS, INSTANT, TX_OPTIONS11;
+var import_node_crypto14, STAFF_ROLES2, STAFF_TRANSITIONS, INSTANT, TX_OPTIONS12;
 var init_staffShiftOperations = __esm({
   "features/keystone/mutations/staffShiftOperations.ts"() {
     "use strict";
-    import_node_crypto12 = require("node:crypto");
+    import_node_crypto14 = require("node:crypto");
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_coffeeKdsAuthority();
     init_idempotency();
     STAFF_ROLES2 = /* @__PURE__ */ new Set(["barista", "shift_lead", "kitchen", "manager"]);
@@ -9068,7 +9772,7 @@ var init_staffShiftOperations = __esm({
       missed: []
     };
     INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
-    TX_OPTIONS11 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS12 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
   }
 });
 
@@ -9079,7 +9783,7 @@ function conflict2(error) {
 async function serializable2(context, operation) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
-      return await context.prisma.$transaction((rawTx) => operation(rawTx), TX_OPTIONS12);
+      return await context.prisma.$transaction((rawTx) => operation(rawTx), TX_OPTIONS13);
     } catch (error) {
       if (!conflict2(error) || attempt === MAX_RETRIES) throw error;
     }
@@ -9103,7 +9807,7 @@ function scopedKey4(context, purpose, key) {
   return buildScopedIdempotencyKey(`${purpose}:${context.session?.itemId}`, normalized);
 }
 function reference2(prefix, key) {
-  return `${prefix}-${(0, import_node_crypto13.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
+  return `${prefix}-${(0, import_node_crypto15.createHash)("sha256").update(key).digest("hex").slice(0, 12).toUpperCase()}`;
 }
 function notesText(value) {
   const notes = typeof value === "string" ? value.trim() : "";
@@ -9187,7 +9891,7 @@ async function createCoffeePurchaseOrder(_root, args, context) {
         metadata: { requestFingerprint, createdById: actorId, unit, expectedDate }
       }
     });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `purchase-order:${String(order.id)}:submitted:v1`,
       eventType: "purchase_order.submitted",
@@ -9220,7 +9924,7 @@ async function receiveCoffeePurchaseOrder(_root, args, context) {
       if (recordedExpiry !== (expiresAt ? expiresAt.getTime() : null)) throw new Error("This purchase order was already received with a different expiry. Refresh to see the recorded lot.");
       return existingLot;
     }
-    if (order.status !== "submitted" || existingLot) throw new Error(`Cannot receive purchase order with status ${String(order.status)}`);
+    if (!canTransition(PURCHASE_ORDER_TRANSITIONS, String(order.status), "received") || existingLot) throw new Error(`Cannot receive purchase order with status ${String(order.status)}`);
     const inventoryItemId = String(order.inventoryItemId || "");
     if (!inventoryItemId) throw new Error("Purchase order has no inventory item");
     const quantityUnits = storedStockUnits(order.orderedQuantity);
@@ -9252,7 +9956,7 @@ async function receiveCoffeePurchaseOrder(_root, args, context) {
       data: { storeId, inventoryItemId, purchaseOrderId: String(order.id), inventoryLotId: String(lot.id), type: "received", quantity: stockDecimal(quantityUnits), reason: `Received ${String(order.poNumber)}`, createdById: actorId }
     });
     await tx.purchaseOrder.update({ where: { id: String(order.id) }, data: { status: "received", receivedAt: now } });
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `purchase-order:${String(order.id)}:received:v1`,
       eventType: "purchase_order.received",
@@ -9359,7 +10063,7 @@ async function completeCoffeePrepBatch(_root, args, context) {
         data: { storeId, inventoryItemId: item.id, inventoryLotId: allocation.inventoryLotId, prepBatchId: String(batch.id), type: "sale", quantity: stockDecimal(-allocation.units), reason: `Prep batch ${String(batch.batchNumber)}`, createdById: actorId }
       });
     }
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `prep-batch:${String(batch.id)}:completed:v1`,
       eventType: "prep_batch.completed",
@@ -9439,7 +10143,7 @@ async function recordCoffeeWaste(_root, args, context) {
       });
       stockMovementId = String(movement.id);
     }
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey: `waste:${String(waste.id)}:recorded:v1`,
       eventType: "waste.recorded",
@@ -9456,12 +10160,12 @@ async function recordCoffeeStockCount(_root, args, context) {
   const inventoryItemId = requiredId(args.inventoryItemId, "Inventory item");
   const countedUnits = stockUnits(args.countedQuantity, "Counted quantity", { allowZero: true });
   const notes = notesText(args.notes);
-  const eventKey = `stock-count:${(0, import_node_crypto13.createHash)("sha256").update(key).digest("hex")}`;
+  const eventKey = `stock-count:${(0, import_node_crypto15.createHash)("sha256").update(key).digest("hex")}`;
   return serializable2(context, async (tx) => {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", key);
     const { actorId, storeId } = await currentInventoryScope(tx, context);
     const requestFingerprint = fingerprintInput({ purpose: "stock-count", storeId, actorId, inventoryItemId, countedUnits, notes });
-    const receipt = await tx.coffeeDomainEvent.findUnique({ where: { eventKey } });
+    const receipt = await tx.coffeeCommandReceipt.findUnique({ where: { eventKey } });
     if (receipt) {
       const payload = receipt.payload && typeof receipt.payload === "object" ? receipt.payload : {};
       if (receipt.storeId !== storeId || receipt.aggregateId !== inventoryItemId || payload.requestFingerprint !== requestFingerprint) {
@@ -9491,7 +10195,7 @@ async function recordCoffeeStockCount(_root, args, context) {
       }
       await tx.inventoryItem.update({ where: { id: inventoryItemId }, data: { currentStock: stockDecimal(countedUnits) } });
     }
-    await enqueueCoffeeDomainEvent(tx, {
+    await recordCoffeeCommandReceipt(tx, {
       storeId,
       eventKey,
       eventType: "inventory.counted",
@@ -9504,19 +10208,20 @@ async function recordCoffeeStockCount(_root, args, context) {
     return updated;
   });
 }
-var import_node_crypto13, TX_OPTIONS12, MAX_RETRIES, MAX_INT, WASTE_REASONS, WASTE_REASON_SET, COUNTED_OUTPUT_UNITS2, INSTANT2;
+var import_node_crypto15, TX_OPTIONS13, MAX_RETRIES, MAX_INT, WASTE_REASONS, WASTE_REASON_SET, COUNTED_OUTPUT_UNITS2, INSTANT2;
 var init_coffeeInventoryOperations = __esm({
   "features/keystone/mutations/coffeeInventoryOperations.ts"() {
     "use strict";
-    import_node_crypto13 = require("node:crypto");
+    import_node_crypto15 = require("node:crypto");
     init_access();
-    init_coffeeDomainOutbox();
+    init_coffeeCommandReceipt();
     init_store_locale_policy();
     init_businessDate();
+    init_transitionPolicy();
     init_coffeeKdsAuthority();
     init_idempotency();
     init_inventoryLots();
-    TX_OPTIONS12 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
+    TX_OPTIONS13 = { maxWait: 5e3, timeout: 1e4, isolationLevel: "Serializable" };
     MAX_RETRIES = 3;
     MAX_INT = 2147483647;
     WASTE_REASONS = ["expired", "damaged", "overproduction", "quality"];
@@ -9530,9 +10235,13 @@ var init_coffeeInventoryOperations = __esm({
 function extendGraphqlSchema(baseSchema) {
   return (0, import_schema.mergeSchemas)({
     schemas: [baseSchema],
-    typeDefs: [graphql5`
+    typeDefs: [graphql7`
       type Query {
         redirectToInit: Boolean
+        getCafeGiftCardOptions: CafeGiftCardOptions!
+        confirmCafeGiftCardOrder(giftCardId: ID!, token: String!): CafeGiftCardOrder!
+        getCafeGiftCards(search: String): CafeGiftCardList!
+        lookupCafeGiftCard(code: String!): CafeGiftCardView!
         getCafeOrder(orderId: ID!, secretKey: String): CafeOrderProjection
         getCafeLoyaltyAccount(email: String!, orderId: ID, secretKey: String): CafeLoyaltyProjection
         getCoffeeKdsRecoveryScope: CoffeeKdsRecoveryScope
@@ -9545,6 +10254,7 @@ function extendGraphqlSchema(baseSchema) {
       type Mutation {
         registerCoffeeCustomer(name: String!, email: String!, password: String!): Boolean!
         updateCoffeeCustomerProfile(name: String!, phone: String): Boolean!
+        linkCoffeeCustomerLoyalty: Boolean!
         createCafePickupOrder(
           customerName: String!
           customerEmail: String
@@ -9655,7 +10365,21 @@ function extendGraphqlSchema(baseSchema) {
           idempotencyKey: String!
           externalCardReference: String
           externalCardApproved: Boolean
+          giftCardCode: String
         ): CoffeePaymentReceipt
+
+        startCafeGiftCardCheckout(
+          amount: Int!
+          purchaserName: String!
+          purchaserEmail: String!
+          recipientName: String
+          recipientEmail: String
+          message: String
+          returnUrl: String!
+          idempotencyKey: String!
+        ): CafeGiftCardCheckout!
+
+        refundCafeGiftCard(giftCardId: ID!, reason: String): CafeGiftCardView!
 
         handleCafePaymentWebhook(
           providerCode: String!
@@ -9926,6 +10650,15 @@ function extendGraphqlSchema(baseSchema) {
         error: String
       }
 
+      type CafeGiftCardOptions { online: Boolean! amounts: [Int!]! currencyCode: String! }
+      type CafeGiftCardCheckout { success: Boolean! checkoutUrl: String }
+      type CafeGiftCardOrder { status: String! amount: Int! currencyCode: String! recipientName: String recipientEmail: String code: String expiresAt: String }
+      type CafeGiftCardView {
+        id: ID! code: String! status: String! initialValue: Int! balance: Int! currencyCode: String!
+        purchaserName: String recipientName: String recipientEmail: String activatedAt: String expiresAt: String canRefund: Boolean!
+      }
+      type CafeGiftCardList { outstandingCents: Int! activeCount: Int! cards: [CafeGiftCardView!]! }
+
       input CafePickupOrderItemInput {
         menuItemId: ID!
         quantity: Int!
@@ -9936,6 +10669,10 @@ function extendGraphqlSchema(baseSchema) {
     resolvers: {
       Query: {
         redirectToInit: redirectToInit_default,
+        getCafeGiftCardOptions,
+        confirmCafeGiftCardOrder,
+        getCafeGiftCards,
+        lookupCafeGiftCard,
         getCoffeeCustomerOrders,
         getCoffeeCustomerCatering,
         getCafeOrder,
@@ -9955,6 +10692,7 @@ function extendGraphqlSchema(baseSchema) {
       Mutation: {
         registerCoffeeCustomer,
         updateCoffeeCustomerProfile,
+        linkCoffeeCustomerLoyalty,
         createCafePickupOrder,
         updateCafeOrderStatus,
         updateCafeOrderItemStatus,
@@ -9969,6 +10707,8 @@ function extendGraphqlSchema(baseSchema) {
         refundCafePayment,
         acceptCafePickupOrder,
         recordCafePayment,
+        startCafeGiftCardCheckout,
+        refundCafeGiftCard,
         handleCafePaymentWebhook,
         runCoffeeOnboarding,
         createCoffeePurchaseOrder,
@@ -9991,7 +10731,7 @@ function extendGraphqlSchema(baseSchema) {
     }
   });
 }
-var import_schema, graphql5;
+var import_schema, graphql7;
 var init_mutations = __esm({
   "features/keystone/mutations/index.ts"() {
     "use strict";
@@ -10007,6 +10747,7 @@ var init_mutations = __esm({
     init_getCafeOrder();
     init_getCafeLoyaltyAccount();
     init_applyCafeLoyalty();
+    init_linkCoffeeCustomerLoyalty();
     init_initiateCafePaymentSession();
     init_getCoffeeStore();
     init_getCoffeeMenu();
@@ -10019,11 +10760,105 @@ var init_mutations = __esm({
     init_acceptCafePickupOrder();
     init_handleCafePaymentWebhook();
     init_runCoffeeOnboarding();
+    init_giftCards();
     init_registerShiftOperations();
     init_staffShiftOperations();
     init_manageCoffeeMenu();
     init_coffeeInventoryOperations();
-    graphql5 = String.raw;
+    graphql7 = String.raw;
+  }
+});
+
+// features/keystone/lib/email-layout.ts
+function storeNameFromEnv(fallback = "Coffee Shop") {
+  const match = /^\s*"?([^"<]+?)"?\s*</.exec(process.env.SMTP_FROM || "");
+  return match?.[1]?.trim() || fallback;
+}
+function emailButton(label, href) {
+  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:8px 0 24px;">
+<tr><td class="em-btn" align="center" bgcolor="${C.button}" style="border-radius:8px;background:${C.button};">
+<a class="em-btn-a" href="${escapeHtml(href)}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:16px;font-weight:600;line-height:20px;color:${C.buttonText};text-decoration:none;border-radius:8px;">${escapeHtml(label)}</a>
+</td></tr></table>`;
+}
+function emailLayout(input) {
+  const store = escapeHtml(input.storeName || storeNameFromEnv());
+  const support = escapeHtml(input.supportEmail || SUPPORT_EMAIL);
+  return `<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>${escapeHtml(input.title)}</title>
+<style>
+:root { color-scheme: light dark; supported-color-schemes: light dark; }
+body { margin:0; padding:0; -webkit-text-size-adjust:100%; }
+a { color:${C.link}; }
+@media (max-width: 620px) { .em-pad { padding-left:20px !important; padding-right:20px !important; } }
+@media (prefers-color-scheme: dark) {
+  .em-canvas { background:#09090b !important; }
+  .em-card { background:#18181b !important; border-color:#27272a !important; }
+  .em-text { color:#fafafa !important; }
+  .em-muted { color:#a1a1aa !important; }
+  .em-line { border-color:#3f3f46 !important; }
+  .em-panel { background:#27272a !important; border-color:#3f3f46 !important; color:#fafafa !important; }
+  .em-btn { background:#fafafa !important; }
+  .em-btn-a { color:#18181b !important; }
+  .em-link { color:#fafafa !important; }
+}
+[data-ogsc] .em-text { color:#fafafa !important; }
+[data-ogsc] .em-muted { color:#a1a1aa !important; }
+[data-ogsb] .em-canvas { background:#09090b !important; }
+[data-ogsb] .em-card { background:#18181b !important; }
+</style>
+</head>
+<body class="em-canvas" style="margin:0;padding:0;background:${C.canvas};">
+${input.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(input.preheader)}</div>` : ""}
+<table role="presentation" class="em-canvas" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${C.canvas}" style="background:${C.canvas};">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;">
+<tr><td class="em-pad" style="padding:8px 32px 20px;font-family:${FONT};font-size:18px;line-height:24px;font-weight:700;letter-spacing:-0.01em;"><span class="em-text" style="color:${C.text};">${store}</span></td></tr>
+<tr><td class="em-card" bgcolor="${C.card}" style="background:${C.card};border:1px solid ${C.line};border-radius:12px;">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+<tr><td class="em-pad" style="padding:32px 32px 16px;">
+<h1 class="em-text" style="margin:0 0 16px;font-family:${FONT};font-size:24px;line-height:32px;font-weight:700;letter-spacing:-0.02em;color:${C.text};">${escapeHtml(input.title)}</h1>
+${input.body}
+</td></tr>
+</table>
+</td></tr>
+<tr><td class="em-pad" style="padding:20px 32px 8px;font-family:${FONT};font-size:13px;line-height:20px;color:${C.subtle};">
+<span class="em-muted" style="color:${C.subtle};">${input.footerNote ? `${input.footerNote}<br>` : ""}Questions? Email <a class="em-link" href="mailto:${support}" style="color:${C.muted};text-decoration:underline;">${support}</a>.<br>${store}</span>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+var SUPPORT_EMAIL, FONT, C, escapeHtml, p, emailParagraph, emailMuted;
+var init_email_layout = __esm({
+  "features/keystone/lib/email-layout.ts"() {
+    "use strict";
+    SUPPORT_EMAIL = "hello@coffee-shop.openship.org";
+    FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+    C = {
+      canvas: "#f4f4f5",
+      card: "#ffffff",
+      text: "#18181b",
+      muted: "#52525b",
+      subtle: "#71717a",
+      line: "#e4e4e7",
+      panel: "#fafafa",
+      button: "#18181b",
+      buttonText: "#ffffff",
+      link: "#18181b"
+    };
+    escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    p = (html, style = "") => `<p class="em-text" style="margin:0 0 16px;font-family:${FONT};font-size:16px;line-height:24px;color:${C.text};${style}">${html}</p>`;
+    emailParagraph = p;
+    emailMuted = (html) => `<p class="em-muted" style="margin:0 0 16px;font-family:${FONT};font-size:14px;line-height:22px;color:${C.muted};">${html}</p>`;
   }
 });
 
@@ -10040,9 +10875,7 @@ var init_context = __esm({
     init_keystone();
     PrismaModule = __toESM(require("@prisma/client"));
     keystoneContext = globalThis.keystoneContext ?? (0, import_context.getContext)(keystone_default, PrismaModule);
-    if (process.env.NODE_ENV !== "production") {
-      globalThis.keystoneContext = keystoneContext;
-    }
+    globalThis.keystoneContext = keystoneContext;
   }
 });
 
@@ -10055,37 +10888,13 @@ function getBaseUrlForEmails() {
   return "";
 }
 function passwordResetEmail({ url }) {
-  const backgroundColor = "#f9f9f9";
-  const textColor = "#444444";
-  const mainBackgroundColor = "#ffffff";
-  const buttonBackgroundColor = "#346df1";
-  const buttonBorderColor = "#346df1";
-  const buttonTextColor = "#ffffff";
-  return `
-    <body style="background: ${backgroundColor};">
-      <table width="100%" border="0" cellspacing="20" cellpadding="0" style="background: ${mainBackgroundColor}; max-width: 600px; margin: auto; border-radius: 10px;">
-        <tr>
-          <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-            Please click below to reset your password
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding: 20px 0;">
-            <table border="0" cellspacing="0" cellpadding="0">
-              <tr>
-                <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${buttonTextColor}; text-decoration: none; border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBorderColor}; display: inline-block; font-weight: bold;">Reset Password</a></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-            If you did not request this email you can safely ignore it.
-          </td>
-        </tr>
-      </table>
-    </body>
-  `;
+  return emailLayout({
+    preheader: "Use this link to choose a new password.",
+    title: "Reset your password",
+    body: `${emailParagraph("We received a request to reset the password for your account. Use the button below to choose a new one.")}
+${emailButton("Reset password", url)}
+${emailMuted("If you did not request this, you can safely ignore this email. Your password will not change.")}`
+  });
 }
 async function sendPasswordResetEmail(resetToken, to, baseUrl) {
   const frontendUrl = baseUrl || getBaseUrlForEmails();
@@ -10112,6 +10921,7 @@ var init_mail = __esm({
   "features/keystone/lib/mail.ts"() {
     "use strict";
     import_nodemailer = require("nodemailer");
+    init_email_layout();
     transport = (0, import_nodemailer.createTransport)({
       // @ts-ignore
       host: process.env.SMTP_HOST,
@@ -10139,6 +10949,98 @@ var init_s3_storage = __esm({
   }
 });
 
+// features/keystone/database-url.ts
+function pooledDatabaseUrl(url, role = "web") {
+  if (!url || !/^postgres(ql)?:\/\//.test(url)) return url;
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  if (parsed.searchParams.has("connection_limit")) return url;
+  const override = Number(process.env[OVERRIDE_ENV[role]]);
+  parsed.searchParams.set("connection_limit", String(Number.isInteger(override) && override > 0 ? override : POOL_SIZES[role]));
+  return parsed.toString();
+}
+var POOL_SIZES, OVERRIDE_ENV;
+var init_database_url = __esm({
+  "features/keystone/database-url.ts"() {
+    "use strict";
+    POOL_SIZES = { web: 15, worker: 5 };
+    OVERRIDE_ENV = {
+      web: "DATABASE_CONNECTION_LIMIT",
+      worker: "DATABASE_CONNECTION_LIMIT_WORKER"
+    };
+  }
+});
+
+// features/keystone/lib/keystonePrismaErrors.ts
+function isKeystonePrismaError(value) {
+  return value instanceof Error && value.extensions?.code === "KS_PRISMA_ERROR";
+}
+function rethrowKeystonePrismaError(value) {
+  if (!isKeystonePrismaError(value)) return value;
+  const prisma = value.extensions.prisma ?? {};
+  throw Object.assign(value, { code: prisma.code, meta: prisma.meta, clientVersion: prisma.clientVersion });
+}
+function throwing(result) {
+  if (!result || typeof result.then !== "function") return rethrowKeystonePrismaError(result);
+  const settled = () => result.then(rethrowKeystonePrismaError);
+  return new Proxy(result, {
+    get(target, key) {
+      if (key === "then") return (ok, fail) => settled().then(ok, fail);
+      if (key === "catch") return (fail) => settled().catch(fail);
+      if (key === "finally") return (done) => settled().finally(done);
+      const value = Reflect.get(target, key, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
+}
+function throwingDelegate(delegate) {
+  const cached = delegates.get(delegate);
+  if (cached) return cached;
+  const wrapped = new Proxy(delegate, {
+    get(target, key) {
+      const value = Reflect.get(target, key, target);
+      return typeof value === "function" ? (...args) => throwing(value.apply(target, args)) : value;
+    }
+  });
+  delegates.set(delegate, wrapped);
+  return wrapped;
+}
+function throwKeystonePrismaErrors(client) {
+  const cached = clients.get(client);
+  if (cached) return cached;
+  const wrapped = new Proxy(client, {
+    get(target, key) {
+      const value = Reflect.get(target, key, target);
+      if (key === "$transaction" && typeof value === "function") {
+        return (work, ...options) => {
+          if (typeof work === "function") return value.call(target, (tx) => work(throwKeystonePrismaErrors(tx)), ...options);
+          return Promise.resolve(value.call(target, work, ...options)).then((results) => Array.isArray(results) ? results.map(rethrowKeystonePrismaError) : results);
+        };
+      }
+      if (key === "$extends" && typeof value === "function") return (...args) => throwKeystonePrismaErrors(value.apply(target, args));
+      if (typeof key === "string" && RAW_METHOD.test(key) && typeof value === "function") return (...args) => throwing(value.apply(target, args));
+      if (typeof value === "function") return value.bind(target);
+      if (typeof key === "string" && !key.startsWith("$") && value && typeof value === "object" && typeof value.findFirst === "function") return throwingDelegate(value);
+      return value;
+    }
+  });
+  clients.set(client, wrapped);
+  return wrapped;
+}
+var RAW_METHOD, clients, delegates;
+var init_keystonePrismaErrors = __esm({
+  "features/keystone/lib/keystonePrismaErrors.ts"() {
+    "use strict";
+    RAW_METHOD = /^\$(queryRaw|executeRaw|queryRawUnsafe|executeRawUnsafe|queryRawTyped|runCommandRaw)$/;
+    clients = /* @__PURE__ */ new WeakMap();
+    delegates = /* @__PURE__ */ new WeakMap();
+  }
+});
+
 // features/keystone/index.ts
 function productionEnv(name2, developmentFallback) {
   if (process.env[name2]) return process.env[name2];
@@ -10147,18 +11049,20 @@ function productionEnv(name2, developmentFallback) {
   }
   return developmentFallback;
 }
-var import_auth, import_core33, import_config, databaseURL, sessionSecret, sessionConfig, bucketName, region, accessKeyId, secretAccessKey, endpoint, withAuth, keystone_default;
+var import_auth, import_core34, import_config, databaseURL, sessionSecret, sessionConfig, bucketName, region, accessKeyId, secretAccessKey, endpoint, withAuth, keystone_default;
 var init_keystone = __esm({
   "features/keystone/index.ts"() {
     "use strict";
     import_auth = require("@keystone-6/auth");
-    import_core33 = require("@keystone-6/core");
+    import_core34 = require("@keystone-6/core");
     import_config = require("dotenv/config");
     init_models();
     init_revocableSession();
     init_mutations();
     init_mail();
     init_s3_storage();
+    init_database_url();
+    init_keystonePrismaErrors();
     databaseURL = process.env.DATABASE_URL;
     if (!databaseURL) {
       throw new Error("DATABASE_URL is required");
@@ -10241,10 +11145,12 @@ var init_keystone = __esm({
   `
     }));
     keystone_default = withAuth(
-      (0, import_core33.config)({
+      (0, import_core34.config)({
         db: {
           provider: "postgresql",
-          url: databaseURL,
+          url: pooledDatabaseUrl(databaseURL),
+          // Keystone returns failed queries as values; this makes them throw so transactions roll back.
+          extendPrismaClient: throwKeystonePrismaErrors,
           extendPrismaSchema: (schema) => `${schema}
 
 model GraphQLRateLimitBucket {
