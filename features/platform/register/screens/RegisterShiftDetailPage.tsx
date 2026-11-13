@@ -5,6 +5,8 @@ import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { getAuthenticatedUser } from "@/features/dashboard/actions/auth";
+import { canOpenPlatformPage } from "@/features/dashboard/lib/sidebarAccess";
 import { formatStoreDateTime } from "@/lib/date-time";
 import { PlatformEmpty, PlatformHeader, PlatformSection, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
 import { StatusDot } from "@/features/platform/components/StatusTitle";
@@ -115,6 +117,8 @@ const stackTable = "max-md:border-0 max-md:bg-transparent max-md:[&_table]:block
 
 export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages: ShiftDetailPages }) {
   const skip = (page: number) => (page - 1) * REGISTER_PAGE_SIZE;
+  const userResponse = await getAuthenticatedUser();
+  const canPos = userResponse.success && canOpenPlatformPage(userResponse.data?.authenticatedItem?.role, "pos");
   const response = await keystoneClient<DetailResult>(
     DETAIL_QUERY,
     {
@@ -165,7 +169,7 @@ export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages
         <span>Opened {formatStoreDateTime(shift.openedAt, timezone)}{shift.openedBy?.name ? ` · ${shift.openedBy.name}` : ""}</span>
         {shift.closedAt ? <span>Closed {formatStoreDateTime(shift.closedAt, timezone)}{shift.closedBy?.name ? ` · ${shift.closedBy.name}` : ""}</span> : null}
       </>}
-      actions={status === "open" ? (
+      actions={status === "open" && canPos ? (
         <>
           <Button asChild className="min-h-10 rounded-[6px] active:scale-[0.97]">
             <Link href="/dashboard/platform/pos#drawer">Close shift</Link>

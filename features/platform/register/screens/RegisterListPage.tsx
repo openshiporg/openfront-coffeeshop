@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageContainer } from "@/features/dashboard/components/PageContainer";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
+import { getAuthenticatedUser } from "@/features/dashboard/actions/auth";
+import { canOpenPlatformPage } from "@/features/dashboard/lib/sidebarAccess";
 import { formatStoreDateTime } from "@/lib/date-time";
 import { PillLink, PillTrack } from "@/features/platform/components/PillTabs";
 import { PlatformEmpty, PlatformHeader, PlatformTable, platformTd } from "@/features/platform/components/PlatformPage";
@@ -144,7 +146,7 @@ function Pages({ state, total }: { state: RegisterListState; total: number }) {
   );
 }
 
-function CurrentShift({ current, failed, timezone, currency }: { current: CurrentResult | null; failed: boolean; timezone: string | null; currency: string }) {
+function CurrentShift({ current, failed, timezone, currency, canPos }: { current: CurrentResult | null; failed: boolean; timezone: string | null; currency: string; canPos: boolean }) {
   if (failed || !current) return <ErrorNote>Current shift unavailable.</ErrorNote>;
   const open = current.open?.[0] ?? null;
   const last = current.lastClosed?.[0] ?? null;
@@ -171,11 +173,11 @@ function CurrentShift({ current, failed, timezone, currency }: { current: Curren
         <div className="flex flex-wrap gap-2">
           {open ? (
             <>
-              <Link href="/dashboard/platform/pos#drawer" className={primaryLink}>Close shift</Link>
+              {canPos ? <Link href="/dashboard/platform/pos#drawer" className={primaryLink}>Close shift</Link> : null}
               <Link href={`/dashboard/platform/register/${open.id}`} className={outlineLink}>Shift detail</Link>
             </>
           ) : (
-            <Link href="/dashboard/platform/pos" className={primaryLink}>Open shift</Link>
+            canPos ? <Link href="/dashboard/platform/pos" className={primaryLink}>Open shift</Link> : null
           )}
         </div>
       </div>
@@ -280,10 +282,12 @@ function PaymentsTable({ rows, timezone, currency }: { rows: PaymentRow[]; timez
 }
 
 export async function RegisterListPage({ state }: { state: RegisterListState }) {
-  const [storeResponse, currentResponse] = await Promise.all([
+  const [storeResponse, currentResponse, userResponse] = await Promise.all([
     keystoneClient<{ getCoffeeStore: { timezone: string; currencyCode: string } | null }>(STORE_QUERY, {}, { cache: "no-store" }),
     keystoneClient<CurrentResult>(CURRENT_QUERY, {}, { cache: "no-store" }),
+    getAuthenticatedUser(),
   ]);
+  const canPos = userResponse.success && canOpenPlatformPage(userResponse.data?.authenticatedItem?.role, "pos");
   const store = storeResponse.success ? storeResponse.data.getCoffeeStore : null;
   const current = currentResponse.success ? currentResponse.data : null;
   const timezone = store?.timezone ?? null;
@@ -317,7 +321,7 @@ export async function RegisterListPage({ state }: { state: RegisterListState }) 
     <PlatformHeader
       title="Register"
       meta={current ? <span className="inline-flex items-center gap-1.5"><StatusDot tone={openShift ? "green" : "zinc"} />{openShift ? "Shift open" : "Closed"}</span> : null}
-      actions={<Link href="/dashboard/platform/pos" className={outlineLink}>POS<ArrowUpRight className="size-4" aria-hidden="true" /></Link>}
+      actions={canPos ? <Link href="/dashboard/platform/pos" className={outlineLink}>POS<ArrowUpRight className="size-4" aria-hidden="true" /></Link> : null}
     />
   );
 
@@ -328,7 +332,7 @@ export async function RegisterListPage({ state }: { state: RegisterListState }) 
       breadcrumbs={[{ type: "link", label: "Dashboard", href: "/dashboard" }, { type: "page", label: "Platform" }, { type: "page", label: "Register" }]}
     >
       <div className="space-y-6 px-4 pb-24 md:px-6">
-        <CurrentShift current={current} failed={!currentResponse.success} timezone={timezone} currency={currency} />
+        <CurrentShift current={current} failed={!currentResponse.success} timezone={timezone} currency={currency} canPos={canPos} />
 
         <div className="space-y-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">

@@ -149,8 +149,8 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
   // The quote gives the earliest pickup (the next opening when the cafe is closed); later windows are optional.
   const slots = React.useMemo(() => {
     if (!quote || !quotedAt) return [];
-    // Whole minute, so the time shown here is the minute the receipt shows.
-    const earliest = new Date(Math.ceil((quotedAt + quote.estimatedPickupMinutes * 60_000) / 60_000) * 60_000);
+    // Whole minute, rounded down like the order does, so this is the minute the receipt shows.
+    const earliest = new Date(Math.floor((quotedAt + quote.estimatedPickupMinutes * 60_000) / 60_000) * 60_000);
     return hours ? pickupSlots(hours.weeklyHours, hours.timezone, earliest, PICKUP_STEP_MINUTES) : [earliest];
   }, [quote, quotedAt, hours]);
   const chosenSlot = slots.find((slot) => slot.getTime() === pickupChoice) || slots[0] || null;
