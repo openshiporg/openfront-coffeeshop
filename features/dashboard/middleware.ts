@@ -4,6 +4,7 @@ import { getServerGraphQLTarget } from "@/features/dashboard/lib/getBaseUrl";
 import { GraphQLClient } from 'graphql-request';
 import { safeErrorSummary, sanitizeDashboardRedirect } from './lib/security';
 import { isDashboardRoute, publicSignUpsAllowed } from './lib/authFlow';
+import { canOpenPlatformPage } from './lib/sidebarAccess';
 
 const basePath = "/dashboard";
 
@@ -51,7 +52,9 @@ export async function getAuthenticatedUser(request: NextRequest) {
         ... on User {
           id
           role {
-            canAccessDashboard
+            canAccessDashboard canReadOrders canManageOrders canReadPayments canManagePayments
+            canReadProducts canManageProducts canReadInventory canManageInventory
+            canReadLoyalty canManageLoyalty canManageSettings
           }
         }
       }
@@ -134,6 +137,12 @@ export async function handleDashboardRoutes(
   // Check role permissions
   if (user && !isNoAccessRoute && !user.role?.canAccessDashboard) {
     return NextResponse.redirect(new URL(`${basePath}/no-access`, request.url));
+  }
+
+  // A platform page the role cannot use is a 404, the same as a page that does not exist.
+  const platformSlug = pathname.startsWith(`${basePath}/platform/`) ? pathname.slice(`${basePath}/platform/`.length).split("/")[0] : "";
+  if (user && platformSlug && !canOpenPlatformPage(user.role, platformSlug)) {
+    return NextResponse.rewrite(new URL(`${basePath}/not-found-page`, request.url));
   }
 
   return NextResponse.next();

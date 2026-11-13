@@ -555,7 +555,7 @@ const posMenuItemSelect = {
 };
 
 export async function getCoffeePosRegister(_root: unknown, args: { search?: string | null; categoryId?: string | null; cursor?: string | null; limit?: number | null }, context: Context) {
-  requirePermission(permissions.canManageOrders({ session: context.session }) && permissions.canManagePayments({ session: context.session }), "Not authorized to operate POS");
+  requirePermission(permissions.canManageOrders({ session: context.session }), "Not authorized to operate POS");
   const store = await primaryStore(context);
   const search = (args?.search || "").trim().slice(0, 200);
   const categoryId = (args?.categoryId || "").trim().slice(0, 255);

@@ -16,6 +16,12 @@ export function requireCafeTenderOperator(session?: Session) {
   }
 }
 
+/** The register sells over the counter: whoever runs orders may ring up and tender a sale.
+ * Refunds and recording payment on an existing ticket stay on requireCafeTenderOperator. */
+export function requireCafeRegisterOperator(session?: Session) {
+  if (!permissions.canManageOrders({ session })) throw new Error("Not authorized to operate the register");
+}
+
 export type SettlementEvidence = { id?: string; status?: string | null; amount?: number | null; refundIdempotencyKey?: string | null };
 export function hasCafeSettlement(payments: readonly SettlementEvidence[], payableAmount: number) {
   const captured = payments.filter((payment) => payment.status === "captured");

@@ -22,7 +22,8 @@ export async function getListByPath(path: string) {
     // Find the list by path
     const rawList = adminMeta.lists.find((l: any) => l.path === path)
     
-    if (!rawList) {
+    // A list this session cannot see is a missing page, not an empty one.
+    if (!rawList || rawList.isHidden) {
       return undefined
     }
 

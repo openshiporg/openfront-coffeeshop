@@ -29,14 +29,13 @@ const TX_OPTIONS = { maxWait: 5000, timeout: 10000, isolationLevel: "ReadCommitt
 const MOVEMENT_TYPES = new Set(["pay_in", "pay_out", "cash_drop"]);
 
 function requireRegisterOperator(context: Context) {
-  const canOperate = permissions.canManageOrders({ session: context.session }) && permissions.canManagePayments({ session: context.session });
+  const canOperate = permissions.canManageOrders({ session: context.session });
   if (!canOperate || !context.session?.itemId) throw new Error("Not authorized to operate register shifts");
   return context.session.itemId;
 }
 /** Current operator authority inside the effect transaction, before any private read or replay. */
 async function requireCurrentRegisterOperator(tx: unknown, context: Context) {
   await requireCurrentCoffeeCapability(tx as never, context.session, ["canManageOrders"], "Not authorized to operate register shifts");
-  await requireCurrentCoffeeCapability(tx as never, context.session, ["canManagePayments"], "Not authorized to operate register shifts");
 }
 function cents(value: unknown, label: string, allowZero = true) {
   const parsed = Number(value);

@@ -199,9 +199,15 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
             </section>
 
             <aside className="sf-panel sf-sticky-panel sf-handoff-panel" aria-labelledby="handoff-title">
-              <h2 id="handoff-title" className="sf-box-label">Handoff code</h2>
-              <p className="sf-handoff sf-marker [overflow-wrap:anywhere]">{order.handoffCode || "—"}</p>
-              <p className="sf-muted">Show this at the counter</p>
+              {order.status === "refunded" || order.status === "cancelled" ? (
+                <h2 id="handoff-title" className="sf-box-label">{order.status === "refunded" ? "Order refunded" : "Order cancelled"}</h2>
+              ) : (
+                <>
+                  <h2 id="handoff-title" className="sf-box-label">Handoff code</h2>
+                  <p className="sf-handoff sf-marker [overflow-wrap:anywhere]">{order.handoffCode || "—"}</p>
+                  <p className="sf-muted">Show this at the counter</p>
+                </>
+              )}
               <div className="sf-handoff-refresh">
                 <ReceiptRefreshButton />
                 <p className="sf-fine">Status as of {loadedAt}</p>

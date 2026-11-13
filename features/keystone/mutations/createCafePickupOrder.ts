@@ -6,7 +6,7 @@ import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } 
 import { COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { assertCafeMoneyCents, cafeQuoteFingerprint, calculateCafeTotals } from "./coffeePricing";
-import { PICKUP_SETTINGS_CHANGED_MESSAGE, readLockedPickupSettings, requireCafeTenderOperator, validateCafeModifierSelections, validateCafeOrderLines } from "./coffeeOrderPolicy";
+import { PICKUP_SETTINGS_CHANGED_MESSAGE, readLockedPickupSettings, requireCafeRegisterOperator, validateCafeModifierSelections, validateCafeOrderLines } from "./coffeeOrderPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeRequirementsInStock, cafeEarliestPickupMinutes, cafeMenuItemImageReference, cafeReceiptKeyMatches, isPublishedMenuItem, normalizeCafeReceiptKey } from "./cafeStorefrontPolicy";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
@@ -207,12 +207,11 @@ async function createOrderTransaction({
   const isImmediateTender = isStaff && ["cash", "manual_card"].includes(paymentMethod);
   let registerShift: Record<string, unknown> | null = null;
   if (isImmediateTender) {
-    requireCafeTenderOperator(session);
+    requireCafeRegisterOperator(session);
     if (!args.registerShiftId) throw new Error("Immediate tender requires an open register shift");
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-register-shift:${args.registerShiftId}`);
     // Current tender authority, sealed until commit (same fence as the KDS).
-    await requireCurrentCoffeeCapability(tx as never, session, ["canManageOrders"], "Not authorized to record cafe payments");
-    await requireCurrentCoffeeCapability(tx as never, session, ["canManagePayments"], "Not authorized to record cafe payments");
+    await requireCurrentCoffeeCapability(tx as never, session, ["canManageOrders"], "Not authorized to operate the register");
     registerShift = await tx.registerShift.findUnique({ where: { id: args.registerShiftId } });
     if (!registerShift || registerShift.status !== "open") throw new Error("POS orders require an open register shift");
   }
@@ -535,7 +534,7 @@ export default async function createCafePickupOrder(
   if (!["pickup", "counter", "dine_in"].includes(fulfillmentType)) throw new Error("Unsupported fulfillment type");
   if (orderSource === "online" && fulfillmentType !== "pickup") throw new Error("Online orders require pickup fulfillment");
   if (["cash", "manual_card"].includes(paymentMethod)) {
-    requireCafeTenderOperator(context.session);
+    requireCafeRegisterOperator(context.session);
     if (!args.registerShiftId) throw new Error("Immediate tender requires an open register shift");
   } else if (args.registerShiftId) throw new Error("A register may only be attached when recording immediate tender");
   const tipCents = Number(args.tipCents || 0);

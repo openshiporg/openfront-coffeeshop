@@ -155,7 +155,7 @@ test('reset says plainly when no mail transport is configured, without calling K
 test('sidebar shows only lists and platform pages the session can see', () => {
   const access = sandbox().load('features/dashboard/lib/sidebarAccess.ts');
   const lists = [{ path: 'orders', isHidden: false }, { path: 'roles', isHidden: true }, { path: 'users', isHidden: true }];
-  const staff = { role: { canAccessDashboard: true } };
+  const staff = { role: { canAccessDashboard: true, canManageOrders: true } };
   assert.deepEqual(plain(access.visibleSidebarLists(lists, staff)).map(list => list.path), ['orders']);
   const items = [{ href: '/dashboard/platform/orders' }, { href: '/dashboard/platform/users' },
     { href: '/dashboard/platform/analytics' }, { href: '/platform/users?tab=1' }];
@@ -165,6 +165,28 @@ test('sidebar shows only lists and platform pages the session can see', () => {
   assert.equal(access.visibleSidebarLists(lists, customer).length, 0);
   assert.equal(access.visiblePlatformItems(items, lists, customer).length, 0);
   assert.equal(access.visibleSidebarLists(lists, null).length, 1);
+});
+
+test('platform pages follow the role: sidebar and direct URL use one check', () => {
+  const access = sandbox().load('features/dashboard/lib/sidebarAccess.ts');
+  const base = { canAccessDashboard: true };
+  const barista = { ...base, canReadOrders: true, canManageOrders: true, canReadProducts: true, canReadLoyalty: true };
+  const clerk = { ...base, canReadProducts: true, canReadInventory: true, canManageInventory: true };
+  const accountant = { ...base, canReadOrders: true, canReadPayments: true, canManagePayments: true };
+  assert.equal(access.canOpenPlatformPage(barista, 'pos'), true);
+  assert.equal(access.canOpenPlatformPage(barista, 'inventory'), false);
+  assert.equal(access.canOpenPlatformPage(barista, 'store-settings'), false);
+  assert.equal(access.canOpenPlatformPage(barista, 'gift-cards'), false);
+  assert.equal(access.canOpenPlatformPage(clerk, 'orders'), false);
+  assert.equal(access.canOpenPlatformPage(clerk, 'kds'), false);
+  assert.equal(access.canOpenPlatformPage(clerk, 'inventory'), true);
+  assert.equal(access.canOpenPlatformPage(accountant, 'menu'), false);
+  assert.equal(access.canOpenPlatformPage(accountant, 'pos'), false);
+  assert.equal(access.canOpenPlatformPage(accountant, 'gift-cards'), true);
+  assert.equal(access.canOpenPlatformPage(null, 'orders'), false);
+  const items = ['pos', 'inventory', 'orders'].map(slug => ({ href: `/dashboard/platform/${slug}` }));
+  assert.deepEqual(plain(access.visiblePlatformItems(items, [], { role: barista })).map(i => i.href),
+    ['/dashboard/platform/pos', '/dashboard/platform/orders']);
 });
 
 test('formatInZone: viewer zone by default, explicit zone when given, labelled', () => {
