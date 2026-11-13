@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ArrowLeft } from "lucide-react";
 import { formatModifierAdjustment, formatMoney, formatPickupTime } from "@/features/storefront/lib/format";
@@ -64,6 +65,7 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
   const store = storeResult.kind === "ok" ? storeResult.store : null;
   const loadedAt = formatPickupTime(new Date().toISOString(), store?.timezone);
   const confirmation = resolveOrderConfirmation(id, response);
+  if (confirmation.kind === "not-found") notFound();
   const order = confirmation.kind === "found" ? confirmation.order : null;
   const statusCopy = order ? getCustomerOrderStatusCopy(order.status) : null;
   const failureCopy = confirmation.kind === "found" ? null : getOrderConfirmationFailureCopy(confirmation.kind);

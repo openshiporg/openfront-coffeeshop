@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { type Session } from "../access";
 import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
@@ -15,6 +16,7 @@ type Tx = {
   $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
   storeSetting: Model; payment: Model; cafeOrder: Model; registerShift: Model; loyaltyAccount: Model; loyaltyEvent: Model;
   posOrder: { updateMany(args: Record<string, unknown>): Promise<unknown> };
+  paymentEvent: { create(args: Record<string, unknown>): Promise<unknown> };
   coffeeCommandReceipt: { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null> };
 };
 type Context = {
@@ -158,6 +160,8 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
     await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
+    // The refund lands in the same event ledger as the captures, in the same transaction.
+    await tx.paymentEvent.create({ data: { replayKey: `refund:${args.paymentId}`, storeId, providerCode: String(payment.provider || "manual"), providerEventId: providerRefundId || `refund:${args.paymentId}`, eventType: "payment.refunded", payloadHash: createHash("sha256").update(requestFingerprint).digest("hex"), status: "processed", paymentId: payment.id, orderId: order.id, processedAt: now }, select: { id: true } });
     await recordCoffeeCommandReceipt(tx as never, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });
   }, { maxWait: 5000, timeout: 20000, isolationLevel: "ReadCommitted" });
   return context.sudo().query.Payment.findOne({ where: { id: args.paymentId }, query });

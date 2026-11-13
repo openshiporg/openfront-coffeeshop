@@ -301,7 +301,9 @@ async function createOrderTransaction({
     leadMinutes = args.requestedPickupMinutes ?? firstOpen;
     if (leadMinutes < earliest) throw cafeCustomerError("The requested pickup time is earlier than the cafe can prepare this order. Review the pickup estimate and submit again.");
   }
-  const promisedAt = new Date(Date.now() + leadMinutes * 60_000);
+  // A chosen pickup slot sits on a minute boundary; the minutes-from-now request would otherwise land seconds past it and show 7:01 for a 7:00 slot.
+  const rawPromisedAt = Date.now() + leadMinutes * 60_000;
+  const promisedAt = new Date(!isStaff && args.requestedPickupMinutes != null ? Math.floor(rawPromisedAt / 60_000) * 60_000 : rawPromisedAt);
   if (!isStaff) {
     // A closed cafe takes requests for a pickup inside its hours (order ahead); the pickup time itself must be open.
     for (const item of normalizedItems) assertCoffeeOrderingAvailable(settings, promisedAt, item.menuItem.serviceWindows);

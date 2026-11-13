@@ -1646,6 +1646,7 @@ type CafeOrder {
   tip: Int
   discount: Int
   total: Int
+  displayTotal: String
   currencyCode: String
   paidAt: DateTime
   promisedAt: DateTime

@@ -52,7 +52,8 @@ function quantity(value?: number | null) {
 }
 
 function label(value?: string | null) {
-  return (value || '').replaceAll('_', ' ');
+  const text = (value || '').replaceAll('_', ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 const GOOD = new Set(['active', 'completed', 'received', 'paid', 'approved', 'confirmed', 'in_stock']);

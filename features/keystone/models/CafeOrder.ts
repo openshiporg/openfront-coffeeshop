@@ -24,7 +24,7 @@ export const CafeOrder = list({
     hideDelete: true,
     itemView: { defaultFieldMode: "read" },
     listView: {
-      initialColumns: ["orderNumber", "status", "fulfillmentType", "customerName", "promisedAt", "total"],
+      initialColumns: ["orderNumber", "status", "fulfillmentType", "customerName", "promisedAt", "displayTotal"],
     },
   },
   fields: {
@@ -88,7 +88,19 @@ export const CafeOrder = list({
     tax: integer({ defaultValue: 0, validation: { min: 0 } }),
     tip: integer({ defaultValue: 0, validation: { min: 0 } }),
     discount: integer({ defaultValue: 0, validation: { min: 0 } }),
-    total: integer({ defaultValue: 0, validation: { min: 0 } }),
+    total: integer({ defaultValue: 0, validation: { min: 0 }, ui: { description: "Total in cents" } }),
+    // The total as staff read it ($4.63), for the list column next to the stored cents.
+    displayTotal: virtual({
+      label: "Total",
+      field: graphql.field({
+        type: graphql.String,
+        resolve(item: BaseItem) {
+          const cents = typeof item.total === "number" ? item.total : 0;
+          const currency = typeof item.currencyCode === "string" && /^[A-Z]{3}$/.test(item.currencyCode) ? item.currencyCode : "USD";
+          return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+        },
+      }),
+    }),
     currencyCode: text({ defaultValue: "USD" }),
     paidAt: timestamp(),
     promisedAt: timestamp({ ui: { description: "Quoted pickup time" } }),
