@@ -212,6 +212,7 @@ html:has(.sf-root) body {
 .sf-brand-side .sf-mark { width: 2.5rem; height: 2.5rem; }
 .sf-brand-side strong { font-size: 1.375rem; line-height: 1.15; letter-spacing: -0.01em; }
 .sf-brand-bar strong { font-size: 1.125rem; line-height: 1.2; }
+.sf-topbar .sf-brand { min-height: 2.75rem; }
 .sf-brand-small .sf-mark { width: 1.75rem; height: 1.75rem; }
 
 /* Phone top bar */
@@ -893,6 +894,7 @@ a.sf-pickbar-where:hover { background: oklch(98.6% 0.002 250); }
 .sf-row-body { display: flex; flex-direction: column; min-width: 0; padding-top: 0.125rem; }
 .sf-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .sf-row-name { font-size: 1.0625rem; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
+.sf-row-name, .sf-bean-name { display: inline-flex; align-items: center; min-height: 2.75rem; }
 .sf-row-name:hover { color: var(--sf-accent-ink); }
 .sf-row-desc { color: var(--sf-ink-faint); font-size: 0.875rem; line-height: 1.35; margin-top: 0.125rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sf-row-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.625rem; margin-top: auto; padding-top: 0.5rem; }

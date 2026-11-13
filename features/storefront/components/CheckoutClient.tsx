@@ -442,7 +442,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
           ) : null}
 
           <form className="sf-form-stack" onSubmit={submit}>
-            <fieldset disabled={frozen} className="grid gap-4">
+            <fieldset disabled={frozen} className="grid grid-cols-[minmax(0,1fr)] gap-4">
               <label htmlFor="checkout-name" className="sf-form-label">
                 Name on the cup
                 <input id="checkout-name" name="name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} autoComplete="name" required maxLength={200} className="sf-field sf-field-written sf-namebox" />
