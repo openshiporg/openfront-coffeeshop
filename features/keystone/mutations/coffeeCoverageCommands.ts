@@ -176,14 +176,14 @@ export async function requestCafeCatering(_root: unknown, args: Row, context: Co
   return cateringReceipt(row);
 }
 
-/** The signed-in customer's catering requests, matched on their own account email. */
+/**
+ * The signed-in customer's catering requests: only those made while signed in to this account. Account email is
+ * not verified, so a request made as a guest with the same email is never shown to whoever registers that email.
+ */
 export async function getCoffeeCustomerCatering(_root: unknown, _args: Row, context: Context) {
   const customerId = context.session?.listKey === "User" ? context.session.itemId : null;
   if (!customerId) throw new Error("Sign in to view catering requests");
-  const user = await context.prisma.user.findUnique({ where: { id: customerId }, select: { email: true } });
-  const email = String(user?.email || "").trim().toLowerCase();
-  if (!email) return [];
-  const rows = await context.prisma.cateringOrder.findMany({ where: { customerEmail: email }, orderBy: [{ eventAt: "desc" }, { id: "desc" }], take: 20 });
+  const rows = await context.prisma.cateringOrder.findMany({ where: { metadata: { path: ["customerId"], equals: customerId } }, orderBy: [{ eventAt: "desc" }, { id: "desc" }], take: 20 });
   return rows.map(cateringReceipt);
 }
 
