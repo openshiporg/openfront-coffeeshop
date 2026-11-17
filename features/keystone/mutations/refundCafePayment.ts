@@ -91,11 +91,18 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     });
     if (!order) throw new Error("Payment order not found");
     assertCoffeeStoreOwnership(order.storeId, storeId, "Payment order");
-    // Same lifecycle map as every other order writer: a refunded order cannot be refunded again.
-    evaluateTransition(CAFE_ORDER_TRANSITIONS, String(order.status), "refunded");
     const orderPayments = Array.isArray(order.payments) ? order.payments as SettlementEvidence[] : [];
-    assertCafeSettlement(orderPayments, Number(order.total || 0) - Number(order.discount || 0));
-    if (!orderPayments.some((candidate) => candidate.id === payment.id && candidate.status === "captured")) throw new Error("Refund payment does not match the order's full settlement");
+    // An order paid twice (cash at the counter and a card page paid too) refunds the extra payment on its own:
+    // the order, its stock and its rewards stay as they are, and the one payment left settles the order.
+    const duplicate = orderPayments.filter((candidate) => candidate.status === "captured").length > 1;
+    if (duplicate) {
+      if (!orderPayments.some((candidate) => candidate.id === payment.id && candidate.status === "captured")) throw new Error("Refund payment does not match the order's full settlement");
+    } else {
+      // Same lifecycle map as every other order writer: a refunded order cannot be refunded again.
+      evaluateTransition(CAFE_ORDER_TRANSITIONS, String(order.status), "refunded");
+      assertCafeSettlement(orderPayments, Number(order.total || 0) - Number(order.discount || 0));
+      if (!orderPayments.some((candidate) => candidate.id === payment.id && candidate.status === "captured")) throw new Error("Refund payment does not match the order's full settlement");
+    }
 
     // Online refunds go back to the card through the provider; only counter refunds pay out of a drawer.
     let shiftId: string | null = null;
@@ -115,7 +122,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
       }
     }
 
-    if (order.loyaltyAccountId) {
+    if (order.loyaltyAccountId && !duplicate) {
       const account = await tx.loyaltyAccount.findUnique({ where: { id: order.loyaltyAccountId } });
       if (!account) throw new Error("Loyalty account requires reconciliation before refund");
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `loyalty-account:${String(account.customerEmail)}`);
@@ -160,11 +167,13 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     const refundNote = isGiftCard ? `${reason}; returned to gift card` : isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     // Nothing was made yet: the refunded order gives its stock and prepped portions back, the same as a cancel.
-    if (order.orderItems.every((item: { barStatus: string | null }) => ["new", "queued", null].includes(item.barStatus))) {
+    if (!duplicate && order.orderItems.every((item: { barStatus: string | null }) => ["new", "queued", null].includes(item.barStatus))) {
       await releaseOrderReservations(tx as never, { id: String(order.id), orderNumber: String(order.orderNumber) }, storeId, actorId, now, "Refunded");
     }
-    await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
-    await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
+    if (!duplicate) {
+      await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
+      await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
+    }
     // The refund lands in the same event ledger as the captures, in the same transaction.
     await tx.paymentEvent.create({ data: { replayKey: `refund:${args.paymentId}`, storeId, providerCode: String(payment.provider || "manual"), providerEventId: providerRefundId || `refund:${args.paymentId}`, eventType: "payment.refunded", payloadHash: createHash("sha256").update(requestFingerprint).digest("hex"), status: "processed", paymentId: payment.id, orderId: order.id, processedAt: now }, select: { id: true } });
     await recordCoffeeCommandReceipt(tx as never, { storeId, eventKey: `payment:${args.paymentId}:refunded:v1`, eventType: "payment.refunded", aggregateType: "payment", aggregateId: args.paymentId, occurredAt: now, payload: { paymentId: args.paymentId, orderId: String(order.id), originalRegisterShiftId: String(payment.registerShiftId || "") || null, refundRegisterShiftId: shiftId, refundedBy: actorId, requestFingerprint, method: String(payment.method), amount, currencyCode: String(payment.currencyCode), reason, externalRefundReference: externalReference || null } });

@@ -196,8 +196,10 @@ export default async function initiateCafePaymentSession(_root: unknown, args: I
     adapterResult = { success: false, provider: providerCode, status: "failed", error: error instanceof Error ? error.message : "Payment provider request failed" };
   }
 
-  await sudo.db.Payment.updateOne({
-    where: { id: payment.id },
+  // Only a row still pending is moved: if staff took payment at the counter meanwhile, the attempt was already
+  // closed, and it must not come back as a live card page.
+  const recorded = await context.prisma.payment.updateMany({
+    where: { id: payment.id, status: "pending" },
     data: {
       status: adapterResult.success ? "pending" : "failed",
       providerPaymentId: adapterResult.providerPaymentId || "",
@@ -205,6 +207,7 @@ export default async function initiateCafePaymentSession(_root: unknown, args: I
       failureMessage: adapterResult.success ? "" : String(adapterResult.error || "Payment provider request failed").slice(0, 500),
     },
   });
+  if (recorded.count !== 1) throw cafeCustomerError("This order was paid at the counter. There's nothing to pay online.");
   if (!adapterResult.success) throw cafeCustomerError("Online payment couldn't start. Try again or pay at pickup.");
   return {
     success: true,
