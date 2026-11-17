@@ -198,7 +198,7 @@ export default async function initiateCafePaymentSession(_root: unknown, args: I
 
   // Only a row still pending is moved: if staff took payment at the counter meanwhile, the attempt was already
   // closed, and it must not come back as a live card page.
-  const recorded = await context.prisma.payment.updateMany({
+  const recorded = await (context.prisma as unknown as { payment: { updateMany(args: unknown): Promise<{ count: number }> } }).payment.updateMany({
     where: { id: payment.id, status: "pending" },
     data: {
       status: adapterResult.success ? "pending" : "failed",

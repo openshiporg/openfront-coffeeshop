@@ -167,7 +167,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     const refundNote = isGiftCard ? `${reason}; returned to gift card` : isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
     // Nothing was made yet: the refunded order gives its stock and prepped portions back, the same as a cancel.
-    if (!duplicate && order.orderItems.every((item: { barStatus: string | null }) => ["new", "queued", null].includes(item.barStatus))) {
+    if (!duplicate && (order.orderItems as Array<{ barStatus: string | null }>).every((item) => ["new", "queued", null].includes(item.barStatus))) {
       await releaseOrderReservations(tx as never, { id: String(order.id), orderNumber: String(order.orderNumber) }, storeId, actorId, now, "Refunded");
     }
     if (!duplicate) {
