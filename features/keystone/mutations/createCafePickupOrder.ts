@@ -247,9 +247,11 @@ async function createOrderTransaction({
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-public-intake:${storeId}`);
     // An order whose every payment attempt failed or was closed is abandoned; it must not block new requests.
     const stillLive = { OR: [{ payments: { none: {} } }, { payments: { some: { status: { notIn: ["failed", "cancelled"] } } } }] };
+    // Both counts cover the last hour only: requests left open longer (a quiet night, stale spam) never pause intake.
+    const lastHour = { gte: new Date(Date.now() - 60 * 60_000) };
     const [recentForContact, totalOpenRequests] = await Promise.all([
-      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", ...stillLive, customerEmail, createdAt: { gte: new Date(Date.now() - 60 * 60_000) } } }),
-      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", ...stillLive } }),
+      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", ...stillLive, customerEmail, createdAt: lastHour } }),
+      tx.cafeOrder.count({ where: { storeId, orderSource: "online", status: "open", ...stillLive, createdAt: lastHour } }),
     ]);
     if (recentForContact >= 3) throw cafeCustomerError("This email already has the maximum number of open pickup requests");
     if (totalOpenRequests >= Math.max(50, Number(settings.pickupCapacityPerWindow || 20) * 3)) throw cafeCustomerError("Online pickup requests are temporarily paused while the cafe catches up");
