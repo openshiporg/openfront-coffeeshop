@@ -235,6 +235,10 @@ export async function adjustCoffeeLoyaltyAccount(
     const requestFingerprint = fingerprintInput({ accountId: args.accountId, pointsDelta, drinkCreditsDelta, status, tier, note });
     const replay = await replayReceipt(tx, eventKey, storeId, requestFingerprint, "This adjustment was already recorded with different details. Refresh and try again.");
     if (replay) return replay;
+    const found = await tx.loyaltyAccount.findUnique({ where: { id: args.accountId }, select: { customerEmail: true } });
+    if (!found) throw new Error("Rewards account not found");
+    // The same lock earning, refund reversal and linking take, so their balance writes never overwrite this one.
+    await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `loyalty-account:${String(found.customerEmail)}`);
     const account = await tx.loyaltyAccount.findUnique({ where: { id: args.accountId } });
     if (!account) throw new Error("Rewards account not found");
     assertCoffeeStoreOwnership(account.storeId, storeId, "Rewards account");
