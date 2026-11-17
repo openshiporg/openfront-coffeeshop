@@ -247,9 +247,11 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
       customerEmail: customerEmail.trim(),
       customerPhone: customerPhone.trim() || undefined,
       pickupName: customerName.trim(),
+      // A later slot is sent as minutes from now to it. The first slot ("as soon as possible", or the opening time when
+      // closed) is left to the server, which works it out from the submit time, never from when the quote arrived.
       requestedPickupMinutes: chosenSlot && chosenSlot !== slots[0]
         ? Math.max(quote.estimatedPickupMinutes, Math.ceil((chosenSlot.getTime() - Date.now()) / 60_000))
-        : quote.estimatedPickupMinutes,
+        : undefined,
       specialInstructions: notes.trim() || undefined,
       paymentMethod: "manual",
       ...(quote.tip > 0 ? { tipCents: quote.tip } : {}),
