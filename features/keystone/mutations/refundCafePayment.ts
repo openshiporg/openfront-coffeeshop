@@ -9,6 +9,7 @@ import { creditCafeGiftCardInTransaction, giftCardTender } from "./giftCards";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
 import { reverseLoyaltyEarning } from "./loyaltyReversal";
 import { CAFE_ORDER_TRANSITIONS, PAYMENT_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
+import { releaseOrderReservations } from "./updateCafeOrderStatus";
 
 type Args = { paymentId: string; amount?: number | null; reason?: string | null; externalRefundReference?: string | null; idempotencyKey?: string | null };
 type Model = { findUnique(args: Record<string, unknown>): Promise<Record<string, unknown> | null>; findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>>; update(args: Record<string, unknown>): Promise<unknown>; create(args: Record<string, unknown>): Promise<unknown> };
@@ -86,7 +87,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     if (payment.refundIdempotencyKey && payment.refundIdempotencyKey !== key) throw new Error("A different refund request already owns this payment");
     const order = await tx.cafeOrder.findUnique({
       where: { id: payment.orderId },
-      select: { id: true, storeId: true, status: true, total: true, discount: true, loyaltyAccountId: true, payments: { select: { id: true, status: true, amount: true, refundIdempotencyKey: true } } },
+      select: { id: true, orderNumber: true, storeId: true, status: true, total: true, discount: true, loyaltyAccountId: true, orderItems: { select: { barStatus: true } }, payments: { select: { id: true, status: true, amount: true, refundIdempotencyKey: true } } },
     });
     if (!order) throw new Error("Payment order not found");
     assertCoffeeStoreOwnership(order.storeId, storeId, "Payment order");
@@ -158,6 +159,10 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     }
     const refundNote = isGiftCard ? `${reason}; returned to gift card` : isOnline ? `${reason}; card refund ${providerRefundId || "issued"}` : externalReference ? `${reason}; external terminal refund ${externalReference}` : reason;
     await tx.payment.update({ where: { id: payment.id }, data: { status: "refunded", refundIdempotencyKey: key, refundedAmount: amount, refundReason: refundNote, refundedAt: now, refundRegisterShiftId: shiftId, failureMessage: "" } });
+    // Nothing was made yet: the refunded order gives its stock and prepped portions back, the same as a cancel.
+    if (order.orderItems.every((item: { barStatus: string | null }) => ["new", "queued", null].includes(item.barStatus))) {
+      await releaseOrderReservations(tx as never, { id: String(order.id), orderNumber: String(order.orderNumber) }, storeId, actorId, now, "Refunded");
+    }
     await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
     await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
     // The refund lands in the same event ledger as the captures, in the same transaction.

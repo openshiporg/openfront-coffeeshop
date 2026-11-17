@@ -61,7 +61,7 @@ const itemTimestampMap: Partial<Record<OrderItemBarStatus, OrderItemTimestampFie
 };
 
 /** Puts back the stock and prepared batches an unprepared order reserved (cancel and end-of-day close). */
-export async function releaseOrderReservations(tx: TransactionClient, order: { id: string; orderNumber: string }, storeId: string, actorId: string | null, now: Date) {
+export async function releaseOrderReservations(tx: TransactionClient, order: { id: string; orderNumber: string }, storeId: string, actorId: string | null, now: Date, why = "Cancelled") {
     const reservations = await tx.stockMovement.findMany({
       where: { orderId: order.id, type: "sale" },
       orderBy: { id: "asc" },
@@ -98,7 +98,7 @@ export async function releaseOrderReservations(tx: TransactionClient, order: { i
           orderId: order.id,
           type: "return",
           quantity,
-          reason: `Cancelled pickup order ${order.orderNumber}`,
+          reason: `${why} pickup order ${order.orderNumber}`,
           notes: `Released unprepared order reservation; ${lotDisposition}`,
           createdById: actorId,
         },
@@ -115,7 +115,7 @@ export async function releaseOrderReservations(tx: TransactionClient, order: { i
       const batch = await tx.prepBatch.findUnique({ where: { id: consumption.prepBatchId }, select: { id: true, storeId: true, quantityRemaining: true } });
       if (!batch || String(batch.storeId) !== storeId || !Number.isFinite(quantity) || quantity <= 0) throw new Error("Prepared batch reservation evidence is invalid");
       await tx.prepBatch.update({ where: { id: consumption.prepBatchId }, data: { quantityRemaining: { increment: quantity } } });
-      await tx.prepBatchConsumption.create({ data: { idempotencyKey: `cancel:${order.id}:${consumption.id}`, storeId, orderId: order.id, prepBatchId: consumption.prepBatchId, quantity: -quantity } });
+      await tx.prepBatchConsumption.create({ data: { idempotencyKey: `${why === "Cancelled" ? "cancel" : why.toLowerCase()}:${order.id}:${consumption.id}`, storeId, orderId: order.id, prepBatchId: consumption.prepBatchId, quantity: -quantity } });
     }
 }
 
