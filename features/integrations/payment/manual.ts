@@ -33,7 +33,7 @@ export async function refundPaymentFunction(input: RefundPaymentInput): Promise<
     providerPaymentId: input.providerPaymentId,
     status: "refunded",
     amount: input.amount,
-    data: { reason: input.reason || "operator_refund", boundary: "Cafe cash-ledger refund only. External card refunds require separately recorded terminal evidence." },
+    data: { reason: input.reason || "Refunded by staff", boundary: "Cafe cash-ledger refund only. External card refunds require separately recorded terminal evidence." },
   };
 }
 

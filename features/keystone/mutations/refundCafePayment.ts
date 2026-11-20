@@ -40,7 +40,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
   if (!locator?.order?.id) throw new Error("Payment order not found");
   // The refund key belongs to one operator and one payment; another operator cannot replay it.
   const key = buildScopedIdempotencyKey(`refund:${args.paymentId}:${context.session?.itemId || "operator"}`, clientKey);
-  const reason = args.reason?.trim() || "operator_refund";
+  const reason = args.reason?.trim() || "Refunded by staff";
   const externalReference = args.externalRefundReference?.trim() || "";
   if (reason.length > 500 || externalReference.length > 200) throw new Error("Refund reason or terminal reference is too long");
 

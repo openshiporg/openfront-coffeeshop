@@ -276,7 +276,7 @@ export async function RegisterShiftDetailPage({ id, pages }: { id: string; pages
                     ) : null}
                   </td>
                   <td className={platformTd}>{PAYMENT_METHOD_LABELS[refund.method || ""] || refund.method}</td>
-                  <td className={`${platformTd} min-w-[12rem] text-muted-foreground max-md:order-last max-md:col-span-2 max-md:min-w-0 [overflow-wrap:anywhere]`}>{refund.refundReason || "—"}</td>
+                  <td className={`${platformTd} min-w-[12rem] text-muted-foreground max-md:order-last max-md:col-span-2 max-md:min-w-0 [overflow-wrap:anywhere]`}>{(refund.refundReason || "—").replace(/^operator_refund/, "Refunded by staff")}</td>
                   <td className={`${platformTd} text-right tabular-nums`}>
                     <span className="font-semibold text-rose-600 dark:text-rose-400">{formatSignedMoney(-Number(refund.refundedAmount || 0), currency)}</span>
                     <span className="block text-xs text-muted-foreground">of {money(refund.amount)}</span>
