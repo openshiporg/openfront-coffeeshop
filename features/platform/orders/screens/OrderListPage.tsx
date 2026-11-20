@@ -73,7 +73,7 @@ function DayCloseNotice({ report, storeTimezone }: { report: DayCloseReport; sto
       <p className="font-medium">End-of-day close · {formatStoreDateTime(report.closedAt, storeTimezone)}</p>
       <p className="mt-1 text-muted-foreground">
         Orders from earlier days that were never closed: {parts.join(", ") || "none"}. Paid ones are in History and can still be refunded.
-        {report.skipped ? ` ${report.skipped} left for staff (payment still settling).` : ""}
+        {report.skipped ? ` ${report.skipped} left for staff (paid but never accepted, or payment still settling).` : ""}
       </p>
       {report.orderNumbers.length ? (
         <details className="mt-1">
@@ -343,7 +343,7 @@ export async function OrderListPage({
                 title="Past pickups not closed"
                 meta={queue.staleCount}
               >
-                <p className="mb-3 text-sm text-muted-foreground">Pickup time passed more than 12 hours ago, so these are off the live queue and the bar screen. End-of-day close settles them automatically after the store day ends (paid ones complete, unpaid ones cancel), or close one now.</p>
+                <p className="mb-3 text-sm text-muted-foreground">Pickup time passed more than 12 hours ago, so these are off the live queue and the bar screen. End-of-day close settles them automatically after the store day ends (paid ones complete, unpaid ones cancel; paid requests the cafe never accepted stay here to make or refund), or close one now.</p>
                 <ol className="divide-y rounded-[6px] border bg-background">
                   {staleTickets.map((order) => <LiveOrderRow key={order.id} order={order} capabilities={capabilities} storeTimezone={queue.storeTimezone} />)}
                 </ol>

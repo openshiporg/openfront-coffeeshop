@@ -23,4 +23,7 @@ test("paid tickets complete, unpaid ones cancel, no-shows are told apart, money 
   assert.equal(dayCloseOutcome(order, [], ["ready"]), "no_show");
   assert.equal(dayCloseOutcome(order, [{ status: "pending", amount: 650 }], ["queued"]), null);
   assert.equal(dayCloseOutcome(order, [{ status: "captured", amount: 300 }], ["queued"]), null);
+  // Paid online, never accepted by the cafe: left for staff to make or refund, never marked handed off.
+  assert.equal(dayCloseOutcome({ ...order, status: "open" }, [{ status: "captured", amount: 650 }], ["queued"]), null);
+  assert.equal(dayCloseOutcome({ ...order, status: "open" }, [], ["queued"]), "cancelled");
 });

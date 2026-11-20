@@ -7,6 +7,7 @@ import { releaseOrderReservations, type TransactionClient } from "./updateCafeOr
  * End-of-day close (Toast / Square "close out the business day"): once the store's calendar day has moved on,
  * tickets from an earlier day that were never closed are settled so the live queue only holds today's work.
  *  - paid in full        → completed (the guest paid; the ticket moves to history and stays refundable there)
+ *  - paid, never accepted → left for staff (nothing was made; make it or refund it)
  *  - unpaid, not started → cancelled, stock and prepared batches released
  *  - unpaid, bar made it → cancelled as a no-show; what the bar used stays used
  * A ticket whose online card page is still open is skipped (the page is expired first; if the guest just paid,
@@ -46,6 +47,8 @@ export function isPastDayTicket(ticket: { promisedAt: Date | null; createdAt: Da
 /** What closing does to one ticket. Pure. */
 export function dayCloseOutcome(order: { status: string; total: number; discount: number }, payments: Payment[], itemStatuses: string[]): DayCloseOutcome | null {
   if (payments.some((payment) => payment.status === "pending" || payment.status === "authorized")) return null;
+  // Paid online but the cafe never accepted it: nothing was made, so it stays with staff to make or refund.
+  if (order.status === "open" && payments.some((payment) => payment.status === "captured")) return null;
   if (hasCafeSettlement(payments, Number(order.total) - Number(order.discount || 0)) && payments.some((payment) => payment.status === "captured")) return "completed";
   if (payments.some((payment) => payment.status === "captured")) return null; // partly paid or refunded mid-way: leave for staff
   const started = itemStatuses.some((status) => ["preparing", "ready", "handed_off"].includes(status));
