@@ -9,7 +9,7 @@ import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 /**
  * Online gift cards (Toast / Square): pick an amount, pay on Stripe's hosted page, and the card is
  * activated only after Stripe confirms the payment (return-page read-back or the signed webhook,
- * whichever comes first). The code is emailed to the recipient once and shown to the buyer. At the
+ * whichever comes first). The code is shown to the buyer on the return page (no email is sent). At the
  * counter a code is taken as tender; every debit and credit is appended to the card's ledger.
  */
 

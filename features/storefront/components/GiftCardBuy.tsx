@@ -99,7 +99,7 @@ export function GiftCardBuy({ amounts, currencyCode, customer }: { amounts: numb
         <span>{pending ? "Opening secure payment…" : "Buy gift card"}</span>
         <span className="sf-btn-price">{formatMoney(amount, currencyCode)}</span>
       </button>
-      <p className="sf-fine">You pay on Stripe’s secure page. {forSomeoneElse ? "We email the code to them as soon as the payment clears." : "We email you the code as soon as the payment clears."}</p>
+      <p className="sf-fine">You pay on Stripe’s secure page. {forSomeoneElse ? "The code shows on the next page as soon as the payment clears; copy it and pass it on." : "The code shows on the next page as soon as the payment clears; copy it."}</p>
       {error ? <div ref={errorRef} tabIndex={-1} className="sf-alert-error" role="alert">{error}</div> : null}
     </form>
   );
