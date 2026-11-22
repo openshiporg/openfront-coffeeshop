@@ -8,12 +8,11 @@ import { StorefrontShell } from "@/features/storefront/components/StorefrontShel
 import { StorefrontMedia } from "@/features/storefront/components/StorefrontMedia";
 import { getCoffeeStoreResult } from "@/features/storefront/lib/data/store";
 import { ReceiptRefreshButton } from "@/features/storefront/components/ReceiptRefreshButton";
-import { ReceiptAutoRefresh } from "@/features/storefront/components/ReceiptAutoRefresh";
 import { ReceiptRewardsPanel } from "@/features/storefront/components/ReceiptRewardsPanel";
 import { ReceiptPayOnline } from "@/features/storefront/components/ReceiptPayOnline";
 import { MarkerTick } from "@/features/storefront/components/MarkerTick";
 import type { CafeOrderItemSnapshot, CafePickupOrder } from "@/features/storefront/lib/data/orders";
-import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, isFinalCustomerOrderStatus, resolveOrderConfirmation } from "@/features/storefront/lib/orderConfirmation";
+import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, resolveOrderConfirmation } from "@/features/storefront/lib/orderConfirmation";
 
 const ORDER_QUERY = `
   query ConfirmedCafeOrder($id: ID!, $secretKey: String) {
@@ -68,7 +67,7 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
   const confirmation = resolveOrderConfirmation(id, response);
   if (confirmation.kind === "not-found") notFound();
   const order = confirmation.kind === "found" ? confirmation.order : null;
-  const statusCopy = order ? getCustomerOrderStatusCopy(order.status, Boolean(order.paidAt)) : null;
+  const statusCopy = order ? getCustomerOrderStatusCopy(order.status) : null;
   const failureCopy = confirmation.kind === "found" ? null : getOrderConfirmationFailureCopy(confirmation.kind);
   const payment = order ? paymentLine(order) : null;
   const stepIndex = order ? PROGRESS.findIndex((step) => step.statuses.includes(order.status)) : -1;
@@ -212,7 +211,6 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                 </>
               )}
               <div className="sf-handoff-refresh">
-                {isFinalCustomerOrderStatus(order.status) ? null : <ReceiptAutoRefresh />}
                 <ReceiptRefreshButton />
                 <p className="sf-fine">Status as of {loadedAt}</p>
               </div>

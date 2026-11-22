@@ -5,10 +5,8 @@ import { StorefrontCartLink, StorefrontDock } from "./StorefrontCartLink";
 import { OrderPanel } from "./OrderPanel";
 import { ScrollEdge } from "./ScrollEdge";
 import { PickupNow } from "./PickupNow";
-import { StorefrontMenu } from "./StorefrontMenu";
 import { StoreBrand, StoreMark } from "./StoreBrand";
 import { getCoffeeStoreResult, type CoffeeStorefrontStore } from "@/features/storefront/lib/data/store";
-import { openState } from "@/features/storefront/lib/hours";
 import { getStorefrontMenu } from "@/features/storefront/lib/data/menu";
 
 export function UnconfiguredStorefront() {
@@ -82,20 +80,6 @@ export async function StorefrontShell({
   const hours = { weeklyHours: store.weeklyHours, timezone: store.timezone, pickupLeadTimeMinutes: store.pickupLeadTimeMinutes ?? null };
   const current = (key: typeof active) => (active === key ? "page" : undefined);
 
-  const open = openState(store.weeklyHours, store.timezone);
-  const openLabel = open.kind === "unknown" ? null : open.label;
-  // The phone menu: everything the desktop sidebar offers, in the same order.
-  const menuLinks = [
-    { href: "/#menu", label: "Order", icon: ShoppingBag, current: active === "menu" },
-    { href: "/account#orders", label: "Your orders", icon: ClipboardList, current: active === "orders" },
-    { href: "/account#rewards", label: "Rewards", icon: Gift, current: active === "rewards" },
-    ...(beansHref ? [{ href: beansHref, label: "Shop beans", icon: Store, current: active === "beans" }] : []),
-    { href: "/catering", label: "Catering", icon: UtensilsCrossed, current: active === "catering" },
-    { href: "/gift-cards", label: "Gift cards", icon: CreditCard, current: active === "giftcards" },
-    { href: "/#visit", label: "Hours & location", icon: MapPin, current: active === "visit" },
-    { href: "/account", label: "Account", icon: UserRound, current: active === "account" },
-  ];
-
   return (
     <div className={`sf-app ${rail ? "has-rail" : ""} ${tabbar ? "has-tabbar" : ""}`}>
       <aside className="sf-side" aria-label="Store">
@@ -121,8 +105,10 @@ export async function StorefrontShell({
       <header className="sf-topbar">
         <StoreBrand store={store} size="bar" sub="Order Ahead · Pick Up" />
         <div className="sf-topbar-actions">
+          <Link href="/account" className="sf-icon-btn sf-avatar" aria-label="Your account: orders and rewards">
+            <UserRound className="size-5" aria-hidden="true" />
+          </Link>
           <StorefrontCartLink />
-          <StorefrontMenu storeName={store.name} status={openLabel} links={menuLinks} />
         </div>
       </header>
 
@@ -157,7 +143,7 @@ export async function StorefrontShell({
         ) : (
           <Link href="/#visit" aria-current={current("visit")}><MapPin aria-hidden="true" /><span>Visit</span></Link>
         )}
-        <Link href="/account" aria-current={current("account")}><UserRound aria-hidden="true" /><span>Account</span></Link>
+        <Link href="/account#profile" aria-current={current("account")}><UserRound aria-hidden="true" /><span>Profile</span></Link>
       </nav> : null}</StorefrontDock> : null}
     </div>
   );
