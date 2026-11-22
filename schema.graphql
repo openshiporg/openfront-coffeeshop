@@ -4580,7 +4580,7 @@ type Mutation {
   registerCoffeeCustomer(name: String!, email: String!, password: String!): Boolean!
   updateCoffeeCustomerProfile(name: String!, phone: String): Boolean!
   linkCoffeeCustomerLoyalty: Boolean!
-  createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, idempotencyKey: String, receiptKey: String, registerShiftId: ID, tipCents: Int, quoteFingerprint: String, externalCardReference: String, externalCardApproved: Boolean, cashTenderedCents: Int, items: [CafePickupOrderItemInput!]!): CafeOrderReceipt!
+  createCafePickupOrder(customerName: String!, customerEmail: String, customerPhone: String, pickupName: String, requestedPickupMinutes: Int, specialInstructions: String, paymentMethod: String, orderSource: String, fulfillmentType: String, idempotencyKey: String, receiptKey: String, registerShiftId: ID, tipCents: Int, quoteFingerprint: String, externalCardReference: String, externalCardApproved: Boolean, cashTenderedCents: Int, redeemDrinkCredit: Boolean, items: [CafePickupOrderItemInput!]!): CafeOrderReceipt!
   updateCafeOrderStatus(orderId: ID!, status: String!): CoffeeOrderStatusReceipt
   updateCafeOrderItemStatus(orderItemId: ID!, status: String!, expectedStatus: String!, idempotencyKey: String!): CoffeeKdsCommandReceipt!
   updateCateringOrderStatus(cateringOrderId: ID!, status: String!): CateringOrder
@@ -4761,7 +4761,7 @@ type Query {
   getCoffeeMenuManager(search: String, categoryId: ID, cursor: String, limit: Int = 50): CoffeeManagedMenuProjection!
   getCoffeeMenuInventoryOptions(search: String, limit: Int = 25): CoffeeMenuInventoryOptions!
   getCoffeePosRegister(search: String, categoryId: ID, cursor: String, limit: Int = 48): CoffeePosProjection!
-  quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int, requestedPickupMinutes: Int): CafeOrderQuote!
+  quoteCafeOrder(items: [CafePickupOrderItemInput!]!, tipCents: Int, requestedPickupMinutes: Int, redeemDrinkCredit: Boolean): CafeOrderQuote!
   getCoffeeReports(period: String, startDate: String, endDate: String, lowStockPage: Int): CoffeeReportsProjection!
   getCoffeeOperations(receiptCursor: String, purchaseSupplierSearch: String, purchaseSupplierCursor: String, purchaseInventorySearch: String, purchaseInventoryCursor: String, inventoryWasteSearch: String, inventoryWasteCursor: String, prepBatchSearch: String, prepBatchCursor: String, recipeSearch: String, recipeCursor: String, staffSearch: String, staffCursor: String, shiftCursor: String): CoffeeOperationsProjection!
 }
@@ -5056,6 +5056,7 @@ type CafeGiftCardOrder {
   recipientEmail: String
   code: String
   expiresAt: String
+  emailedTo: String
 }
 
 type CafeGiftCardView {
@@ -5242,6 +5243,7 @@ type CafeOrderProjection {
   subtotal: Int!
   tax: Int!
   tip: Int
+  discount: Int
   total: Int!
   currencyCode: String!
   specialInstructions: String
@@ -5273,6 +5275,7 @@ type CafeOrderReceipt {
   subtotal: Int!
   tax: Int!
   tip: Int
+  discount: Int
   total: Int!
   currencyCode: String!
   secretKey: String!
@@ -5450,6 +5453,9 @@ type CafeOrderQuote {
   tax: Int!
   tip: Int!
   total: Int!
+  discount: Int!
+  drinkCredits: Int!
+  drinkCreditValue: Int!
   currencyCode: String!
   quoteFingerprint: String!
   estimatedPickupMinutes: Int!

@@ -5,11 +5,12 @@ import { assertCoffeeStoreOwnership } from "../lib/coffeeCommandReceipt";
 import { KDS_ITEM_TRANSITIONS, type KdsItemStatus } from "./kdsPolicy";
 import { CAFE_ORDER_TRANSITIONS } from "./transitionPolicy";
 import { COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
-import { cafeQuoteFingerprint, calculateCafeTotals } from "./coffeePricing";
+import { cafeQuoteFingerprint, calculateCafeTotals, drinkCreditDiscount } from "./coffeePricing";
 import { validateCafeOrderLines, hasCafeSettlement } from "./coffeeOrderPolicy";
 import { getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
 import { assertCafeRequirementsInStock, cafeEarliestPickupMinutes, isPublishedMenuItem } from "./cafeStorefrontPolicy";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
+import { ownRewardsAccount } from "./drinkCreditRedemption";
 import { MENU_STOCK_ITEM_SELECT, MENU_STOCK_MODIFIER_SELECT, cafeMenuStock, type MenuStockItem } from "./cafeMenuStock";
 
 type ListRow = Record<string, unknown> & { id: string };
@@ -62,6 +63,7 @@ type MenuRecord = {
   id: string;
   storeId: string;
   name: string;
+  barStation?: string | null;
   price: number;
   available: boolean;
   prepTimeMinutes?: number | null;
@@ -310,7 +312,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
       const paymentEvidence = Array.isArray(payments) ? payments as Array<{ id?: string; status?: string | null; method?: string | null; amount?: number | null; refundedAmount?: number | null; refundIdempotencyKey?: string | null }> : [];
       const activeEvidence = paymentEvidence.filter((payment) => ["captured", "pending", "authorized"].includes(String(payment.status)));
       const unresolved = activeEvidence.some((payment) => payment.status === "pending" || payment.status === "authorized");
-      const settled = hasCafeSettlement(paymentEvidence, number(ticket.total) - number(ticket.discount));
+      const settled = hasCafeSettlement(paymentEvidence, number(ticket.total));
       const status = String(ticket.status);
       const paymentState = unresolved ? "pending" : activeEvidence.some((payment) => payment.status === "captured") ? "paid" : paymentEvidence.some((payment) => payment.status === "refunded") ? "refunded" : "unpaid";
       return {
@@ -603,7 +605,7 @@ export async function getCoffeePosRegister(_root: unknown, args: { search?: stri
   return { operatorId: String(context.session?.itemId || ""), storeId: store.id, items, hasMore, nextCursor, categories, openShift: shifts[0] || null };
 }
 
-export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[] | null; tipCents?: number | null; requestedPickupMinutes?: number | null }, context: Context) {
+export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[] | null; tipCents?: number | null; requestedPickupMinutes?: number | null; redeemDrinkCredit?: boolean | null }, context: Context) {
   const items = validateCafeOrderLines(args.items || []);
   const isStaff = permissions.canManageOrders({ session: context.session });
   // Online customers may tip when they pay by card (Toast/Square order-ahead), capped at the order subtotal.
@@ -611,7 +613,7 @@ export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[]
   if (!Number.isSafeInteger(tipCents) || tipCents < 0 || tipCents > 100_000_000) throw new Error("Tip must be a non-negative integer amount in cents");
   const store = await primaryStore(context);
   const ids = [...new Set(items.map((item) => item.menuItemId))];
-  const menuItems = await context.prisma.menuItem.findMany({ where: { id: { in: ids }, storeId: store.id }, select: { id: true, storeId: true, name: true, price: true, available: true, prepTimeMinutes: true, serviceWindows: true, category: { select: { active: true } }, inventoryItem: { select: { id: true } }, modifiers: { select: { id: true, menuItemId: true, name: true, priceAdjustment: true, inStock: true, modifierGroup: true, modifierGroupLabel: true, required: true, minSelections: true, maxSelections: true } } } }) as MenuRecord[];
+  const menuItems = await context.prisma.menuItem.findMany({ where: { id: { in: ids }, storeId: store.id }, select: { id: true, storeId: true, name: true, price: true, available: true, barStation: true, prepTimeMinutes: true, serviceWindows: true, category: { select: { active: true } }, inventoryItem: { select: { id: true } }, modifiers: { select: { id: true, menuItemId: true, name: true, priceAdjustment: true, inStock: true, modifierGroup: true, modifierGroupLabel: true, required: true, minSelections: true, maxSelections: true } } } }) as MenuRecord[];
   const byId = new Map(menuItems.map((item) => [item.id, item]));
   const lines = items.map((item, index) => {
     const menuItem = byId.get(item.menuItemId);
@@ -629,12 +631,19 @@ export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[]
     validateModifierSelections(menuItem, selected);
     const unitPrice = menuItem.price + selected.reduce((sum, modifier) => sum + number(modifier.priceAdjustment), 0);
     if (!Number.isSafeInteger(unitPrice) || unitPrice < 0) throw new Error(`${menuItem.name} has an invalid calculated price`);
-    return { index, menuItemId: menuItem.id, name: menuItem.name, quantity: item.quantity, unitPrice, modifierIds };
+    return { index, menuItemId: menuItem.id, name: menuItem.name, quantity: item.quantity, unitPrice, modifierIds, barStation: menuItem.barStation ?? null };
   });
   const taxRateBasisPoints = Number(store.taxRateBasisPoints ?? 875);
   const lineSubtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   if (!isStaff && tipCents > lineSubtotal) throw cafeCustomerError("The tip can't be more than the order itself");
-  const totals = calculateCafeTotals(lines, taxRateBasisPoints, tipCents);
+  // The signed-in customer's free drinks: shown at checkout, and taken off when they choose to use one.
+  const rewards = !isStaff ? await ownRewardsAccount(context.prisma as never, context.session as never, store.id) : null;
+  const drinkCredits = rewards && (rewards.status || "active") === "active" ? Math.max(0, Number(rewards.drinkCredits || 0)) : 0;
+  const creditValue = drinkCreditDiscount(lines);
+  // A quote applies the credit only when it can be spent (signed in, a credit left, a drink on the ticket);
+  // checkout then sends redeemDrinkCredit with this quote's fingerprint and createCafePickupOrder spends it.
+  const applyCredit = Boolean(args.redeemDrinkCredit) && drinkCredits > 0 && creditValue > 0;
+  const totals = calculateCafeTotals(lines, taxRateBasisPoints, tipCents, applyCredit ? creditValue : 0);
   const currency = await context.prisma.storeSetting.findUnique({ where: { singletonKey: "primary" }, select: { currencyCode: true } });
   const currencyCode = String(currency?.currencyCode || "USD");
   if (!isStaff) {
@@ -665,8 +674,11 @@ export async function quoteCafeOrder(_root: unknown, args: { items?: QuoteItem[]
     tax: totals.tax,
     tip: totals.tip,
     total: totals.total,
+    discount: totals.discount,
+    drinkCredits,
+    drinkCreditValue: creditValue,
     currencyCode,
-    quoteFingerprint: cafeQuoteFingerprint({ storeId: store.id, currencyCode, taxRateBasisPoints, lines, subtotal: totals.subtotal, tax: totals.tax, tip: totals.tip, total: totals.total }),
+    quoteFingerprint: cafeQuoteFingerprint({ storeId: store.id, currencyCode, taxRateBasisPoints, lines, subtotal: totals.subtotal, tax: totals.tax, tip: totals.tip, total: totals.total, discount: totals.discount }),
     estimatedPickupMinutes,
     lines: lines.map((line, index) => ({ index: line.index, menuItemId: line.menuItemId, name: line.name, quantity: line.quantity, unitPrice: line.unitPrice, lineTotal: totals.lineTotals[index] })),
   };

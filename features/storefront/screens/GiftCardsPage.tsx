@@ -19,7 +19,7 @@ function OrderResult({ order, cancelled }: { order: GiftCardOrder; cancelled: bo
         <h2 id="gift-done-title" className="sf-display sf-panel-title">Your {amount} gift card is ready</h2>
         <p className="sf-gift-code" aria-label={`Gift card code ${order.code.split("").join(" ")}`}>{order.code}</p>
         <p>
-          Copy this code now; it is not sent by email.{order.recipientEmail ? <> Pass it on to {order.recipientName || order.recipientEmail} yourself.</> : null}{" "}
+          {order.emailedTo ? <>We emailed the code to {order.emailedTo}. </> : <>Copy this code now and keep it safe. </>}
           Show it at the counter or read it out at pickup.{until ? ` Good until ${until}.` : ""}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -38,7 +38,7 @@ function OrderResult({ order, cancelled }: { order: GiftCardOrder; cancelled: bo
   }
   return (
     <div className="sf-alert-success" role="status">
-      <p>Waiting for Stripe to confirm your {amount} payment. Refresh in a moment; the code appears on this page.</p>
+      <p>Waiting for Stripe to confirm your {amount} payment. Refresh in a moment; the code appears on this page and goes out by email.</p>
     </div>
   );
 }
@@ -55,7 +55,7 @@ export default async function GiftCardsPage({ card, token, result }: { card?: st
     <StorefrontShell cartBar={false} active="giftcards">
       <main className="sf-container sf-page">
         <h1 className="sf-display sf-page-title">Gift cards</h1>
-        <p className="sf-page-lead">Coffee for someone else. Pick an amount, pay, and you get a code to give them, to spend at {store?.name || "the café"}.</p>
+        <p className="sf-page-lead">Coffee for someone else. Pick an amount, pay, and we email them a code to spend at {store?.name || "the café"}.</p>
         {confirmation ? (
           <div className="mb-6">
             {confirmation.order ? <OrderResult order={confirmation.order} cancelled={result === "cancelled"} /> : <div className="sf-alert-error" role="alert">{confirmation.error}</div>}
@@ -71,7 +71,7 @@ export default async function GiftCardsPage({ card, token, result }: { card?: st
               <dl className="sf-rules">
                 <div>
                   <dt>Delivery</dt>
-                  <dd>The code shows on this page as soon as the payment clears; copy it and pass it on</dd>
+                  <dd>By email as soon as the payment clears, and on this page</dd>
                 </div>
                 <div>
                   <dt>Spending it</dt>

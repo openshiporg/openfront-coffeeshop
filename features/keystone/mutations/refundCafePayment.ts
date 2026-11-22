@@ -9,6 +9,7 @@ import { creditCafeGiftCardInTransaction, giftCardTender } from "./giftCards";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
 import { reverseLoyaltyEarning } from "./loyaltyReversal";
 import { CAFE_ORDER_TRANSITIONS, PAYMENT_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
+import { restoreDrinkCreditInTx } from "./drinkCreditRedemption";
 import { releaseOrderReservations } from "./updateCafeOrderStatus";
 
 type Args = { paymentId: string; amount?: number | null; reason?: string | null; externalRefundReference?: string | null; idempotencyKey?: string | null };
@@ -100,7 +101,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
     } else {
       // Same lifecycle map as every other order writer: a refunded order cannot be refunded again.
       evaluateTransition(CAFE_ORDER_TRANSITIONS, String(order.status), "refunded");
-      assertCafeSettlement(orderPayments, Number(order.total || 0) - Number(order.discount || 0));
+      assertCafeSettlement(orderPayments, Number(order.total || 0));
       if (!orderPayments.some((candidate) => candidate.id === payment.id && candidate.status === "captured")) throw new Error("Refund payment does not match the order's full settlement");
     }
 
@@ -171,6 +172,7 @@ export default async function refundCafePayment(_root: unknown, args: Args, cont
       await releaseOrderReservations(tx as never, { id: String(order.id), orderNumber: String(order.orderNumber) }, storeId, actorId, now, "Refunded");
     }
     if (!duplicate) {
+      await restoreDrinkCreditInTx(tx as never, { id: String(order.id), orderNumber: String(order.orderNumber) }, "refunded");
       await tx.cafeOrder.update({ where: { id: order.id }, data: { status: "refunded" } });
       await tx.posOrder.updateMany({ where: { cafeOrderId: order.id, status: "paid" }, data: { status: "refunded" } });
     }

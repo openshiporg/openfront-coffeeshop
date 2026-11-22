@@ -18,7 +18,7 @@ import { getCustomerOrderStatusCopy, getOrderConfirmationFailureCopy, isFinalCus
 const ORDER_QUERY = `
   query ConfirmedCafeOrder($id: ID!, $secretKey: String) {
     getCafeOrder(orderId: $id, secretKey: $secretKey) {
-      id orderNumber status handoffCode pickupName promisedAt subtotal tax tip total currencyCode specialInstructions paidAt customerEmail rewardsLinked rewardsEligible
+      id orderNumber status handoffCode pickupName promisedAt subtotal tax tip discount total currencyCode specialInstructions paidAt customerEmail rewardsLinked rewardsEligible
       orderItems {
         id quantity itemNameSnapshot imagePathSnapshot customizationsSummary specialInstructions price
         modifierSnapshot { id name group groupLabel priceAdjustment }
@@ -179,6 +179,12 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                     <dt>Subtotal</dt>
                     <dd className="sf-mono">{formatMoney(order.subtotal, order.currencyCode)}</dd>
                   </div>
+                  {order.discount ? (
+                    <div>
+                      <dt>Free drink (rewards)</dt>
+                      <dd className="sf-mono">−{formatMoney(order.discount, order.currencyCode)}</dd>
+                    </div>
+                  ) : null}
                   <div>
                     <dt>Tax</dt>
                     <dd className="sf-mono">{formatMoney(order.tax, order.currencyCode)}</dd>

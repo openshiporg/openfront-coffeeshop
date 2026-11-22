@@ -5,11 +5,13 @@ import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt } from "../lib/c
 import { buildScopedIdempotencyKey, fingerprintInput, normalizeIdempotencyKey } from "./idempotency";
 import { COFFEE_PICKUP_SCHEDULE_MAX_MINUTES, assertCoffeeOrderingAvailable, coffeeFirstPickupMinutes } from "./coffeeAvailability";
 import { consumeCafeInventoryRequirements, getCafeInventoryRequirements } from "./coffeeInventoryConsumption";
-import { assertCafeMoneyCents, cafeQuoteFingerprint, calculateCafeTotals } from "./coffeePricing";
+import { assertCafeMoneyCents, cafeQuoteFingerprint, calculateCafeTotals, drinkCreditDiscount } from "./coffeePricing";
 import { PICKUP_SETTINGS_CHANGED_MESSAGE, readLockedPickupSettings, requireCafeRegisterOperator, validateCafeModifierSelections, validateCafeOrderLines } from "./coffeeOrderPolicy";
 import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 import { assertCafeRequirementsInStock, cafeEarliestPickupMinutes, cafeMenuItemImageReference, cafeReceiptKeyMatches, isPublishedMenuItem, normalizeCafeReceiptKey } from "./cafeStorefrontPolicy";
 import { cafeCustomerError } from "../lib/cafeCustomerError";
+import { redeemDrinkCreditInTx } from "./drinkCreditRedemption";
+import { sendOrderConfirmation } from "../lib/orderConfirmation";
 
 interface CafePickupOrderItemInput {
   menuItemId: string;
@@ -67,6 +69,8 @@ interface CreateCafePickupOrderArgs {
   externalCardReference?: string | null;
   externalCardApproved?: boolean | null;
   cashTenderedCents?: number | null;
+  /** Storefront: spend one of the signed-in customer's drink credits on this order (drinkCreditRedemption). */
+  redeemDrinkCredit?: boolean | null;
   items: CafePickupOrderItemInput[];
 }
 type CafePickupOrderResult = {
@@ -137,7 +141,8 @@ type CreateCafePickupOrderContext = {
 };
 
 const ORDER_RETURN_QUERY = `
-  id orderNumber status handoffCode customerName pickupName promisedAt subtotal tax tip total currencyCode secretKey requestFingerprint
+  id orderNumber status handoffCode customerName customerEmail pickupName promisedAt subtotal tax tip discount total currencyCode secretKey requestFingerprint
+  store { name timezone }
   orderItems { id quantity itemNameSnapshot imagePathSnapshot customizationsSummary modifierSnapshot specialInstructions price }
 `;
 const MAX_TRANSACTION_RETRIES = 3;
@@ -174,7 +179,9 @@ async function createOrderTransaction({
   orderSource,
   fulfillmentType,
   session,
+  outcome,
 }: {
+  outcome: { created: boolean };
   rawTx: unknown;
   args: CreateCafePickupOrderArgs;
   items: CafePickupOrderItemInput[];
@@ -186,6 +193,7 @@ async function createOrderTransaction({
   fulfillmentType: string;
   session?: Session;
 }) {
+  outcome.created = false;
   const tx = rawTx as TransactionClient;
   if (scopedKey) {
     await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1))", `coffee-order:${scopedKey}`);
@@ -348,11 +356,14 @@ async function createOrderTransaction({
   if (!isStaff) await assertCafeRequirementsInStock(tx, storeId, inventoryRequirements);
 
   const taxRateBasisPoints = Number(settings.taxRateBasisPoints ?? 875);
-  const pricedLines = normalizedItems.map((item) => ({ menuItemId: item.menuItem.id, quantity: item.quantity, modifierIds: item.modifierSnapshot.map((modifier) => modifier.id), unitPrice: item.unitPrice }));
-  const { subtotal, tax, tip, total } = calculateCafeTotals(pricedLines, taxRateBasisPoints, Number(args.tipCents || 0));
+  const pricedLines = normalizedItems.map((item) => ({ menuItemId: item.menuItem.id, quantity: item.quantity, modifierIds: item.modifierSnapshot.map((modifier) => modifier.id), unitPrice: item.unitPrice, barStation: item.menuItem.barStation }));
+  const redeem = !isStaff && args.redeemDrinkCredit === true;
+  const creditValue = redeem ? drinkCreditDiscount(pricedLines) : 0;
+  if (redeem && !creditValue) throw cafeCustomerError("A free drink covers a drink; add one to use it");
+  const { subtotal, tax, tip, total, discount } = calculateCafeTotals(pricedLines, taxRateBasisPoints, Number(args.tipCents || 0), creditValue);
   if (!isStaff && tip > subtotal) throw cafeCustomerError("The tip can't be more than the order itself");
   if (args.quoteFingerprint) {
-    const current = cafeQuoteFingerprint({ storeId, currencyCode: settings.currencyCode, taxRateBasisPoints, lines: pricedLines, subtotal, tax, tip, total });
+    const current = cafeQuoteFingerprint({ storeId, currencyCode: settings.currencyCode, taxRateBasisPoints, lines: pricedLines, subtotal, tax, discount, tip, total });
     if (current !== args.quoteFingerprint) throw cafeCustomerError("Prices or tax changed since this ticket was reviewed. Review the updated total and submit again.");
   }
   // A zero-total ticket needs no tender: no payment row, no card or cash movement.
@@ -374,6 +385,7 @@ async function createOrderTransaction({
       subtotal,
       tax,
       tip,
+      discount,
       total,
       paidAt: isImmediateTender ? now : null,
       promisedAt,
@@ -408,6 +420,8 @@ async function createOrderTransaction({
       },
     });
   }
+
+  if (redeem) await redeemDrinkCreditInTx(tx as never, { session, storeId, orderId: order.id, orderNumber, discount });
 
   if (isImmediateTender) {
     await consumeCafeInventoryRequirements(tx, {
@@ -508,6 +522,7 @@ async function createOrderTransaction({
         tax,
         tip,
         total,
+        ...(discount ? { discount, drinkCreditRedeemed: true } : {}),
         paymentMethod,
         lines: normalizedItems.map((item) => ({
           menuItemId: item.menuItem.id,
@@ -520,6 +535,7 @@ async function createOrderTransaction({
       },
     },
   });
+  outcome.created = true;
   return order.id;
 }
 
@@ -557,6 +573,8 @@ export default async function createCafePickupOrder(
   if (args.cashTenderedCents != null && (paymentMethod !== "cash" || !Number.isSafeInteger(args.cashTenderedCents) || args.cashTenderedCents < 0 || args.cashTenderedCents > 100_000_000)) {
     throw cafeCustomerError("Cash received applies only to a cash sale, as a whole number of cents");
   }
+  if (isStaff && args.redeemDrinkCredit) throw cafeCustomerError("Free drinks are used by the customer at checkout");
+  if (args.redeemDrinkCredit && !(context.session?.listKey === "User" && context.session.itemId)) throw cafeCustomerError("Sign in to the account that holds your rewards to use a free drink");
   if (!isStaff && (paymentMethod === "cash" || paymentMethod === "manual_card")) throw new Error("Immediate-tender payment methods are only available to staff");
   if (!isStaff && orderSource !== "online") throw new Error("Only staff may create non-online orders");
   if (!isStaff && fulfillmentType !== "pickup") throw new Error("Only staff may create non-pickup orders");
@@ -590,6 +608,7 @@ export default async function createCafePickupOrder(
     fulfillmentType,
     registerShiftId: args.registerShiftId || null,
     tipCents,
+    ...(args.redeemDrinkCredit ? { redeemDrinkCredit: true } : {}),
     ...(quoteFingerprint ? { quoteFingerprint } : {}),
     ...(paymentMethod === "manual_card" ? { externalCardReference, externalCardApproved: true } : {}),
     ...(args.cashTenderedCents != null ? { cashTenderedCents: args.cashTenderedCents } : {}),
@@ -601,6 +620,7 @@ export default async function createCafePickupOrder(
     })),
   }) : null;
 
+  const outcome = { created: false };
   for (let attempt = 1; attempt <= MAX_TRANSACTION_RETRIES; attempt += 1) {
     try {
       const orderId = await context.prisma.$transaction(
@@ -615,11 +635,14 @@ export default async function createCafePickupOrder(
           orderSource,
           fulfillmentType,
           session: context.session,
+          outcome,
         }),
         { maxWait: 5000, timeout: 10000, isolationLevel: "ReadCommitted" },
       );
       const persisted = await context.sudo().query.CafeOrder.findOne({ where: { id: orderId }, query: ORDER_RETURN_QUERY });
       if (persisted) {
+        // Storefront orders get one confirmation email, after commit; a replay finds it already claimed.
+        if (!isStaff && outcome.created) await sendOrderConfirmation(persisted as never);
         return persisted;
       }
       if (attempt === MAX_TRANSACTION_RETRIES) throw new Error("Pickup order transaction did not commit");

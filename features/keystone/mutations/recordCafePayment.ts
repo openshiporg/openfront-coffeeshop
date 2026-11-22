@@ -101,7 +101,7 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
     if (payments.some((payment) => ["pending", "authorized", "captured"].includes(String(payment.status)))) {
       throw new Error("Order already has an active payment attempt");
     }
-    const amount = Number(order.total || 0) - Number(order.discount || 0);
+    const amount = Number(order.total || 0);
     if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("Order payable amount is invalid");
     if (args.method === "card") {
       const duplicate = await tx.payment.findFirst({ where: { storeId, method: "card", providerPaymentId }, select: { id: true } });

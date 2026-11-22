@@ -48,6 +48,8 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
   // Tip is a percent of the subtotal (Toast/Square order-ahead), offered with online card payment.
   const [tipPercent, setTipPercent] = React.useState(0);
   const [subtotalHint, setSubtotalHint] = React.useState(0);
+  // Rewards: a signed-in customer with a free drink chooses to use it on this order.
+  const [useFreeDrink, setUseFreeDrink] = React.useState(false);
   const [lines, setLines] = React.useState<CartLine[]>([]);
   const [cartLoaded, setCartLoaded] = React.useState(false);
   const [customerName, setCustomerName] = React.useState(customer?.name || "");
@@ -108,11 +110,11 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     setQuotePending(true);
     const timer = window.setTimeout(async () => {
       try {
-        let result = await quoteCafePickupOrder(quoteItems(lines));
+        let result = await quoteCafePickupOrder(quoteItems(lines), { redeemDrinkCredit: useFreeDrink });
         if (requestId !== quoteRequest.current) return;
         if (result.success && result.quote) setSubtotalHint(result.quote.subtotal);
         if (result.success && result.quote && tipCentsFor(result.quote.subtotal) > 0) {
-          result = await quoteCafePickupOrder(quoteItems(lines), { tipCents: tipCentsFor(result.quote.subtotal) });
+          result = await quoteCafePickupOrder(quoteItems(lines), { tipCents: tipCentsFor(result.quote.subtotal), redeemDrinkCredit: useFreeDrink });
           if (requestId !== quoteRequest.current) return;
         }
         if (result.success && result.quote) {
@@ -132,7 +134,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
       }
     }, 150);
     return () => window.clearTimeout(timer);
-  }, [lines, quoteRetry, tipPercent, payOnline]);
+  }, [lines, quoteRetry, tipPercent, payOnline, useFreeDrink]);
 
   React.useEffect(() => {
     if (error) errorRef.current?.focus();
@@ -179,7 +181,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     }
     removeCartLines(current.cartIds);
     if (storage) clearCheckoutAttempt(storage);
-    if (onlinePayment && payOnline) {
+    if (onlinePayment && payOnline && current.total > 0) {
       // The order exists either way; if the card page can't open, the receipt offers it again.
       void startOnlinePayment(orderId, current.receiptKey, crypto.randomUUID())
         .then((result) => {
@@ -227,7 +229,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
     setPending(false);
     // If the current price/tax/pickup terms moved, retrying the old request cannot succeed.
     try {
-      const fresh = await quoteCafePickupOrder(current.request.items, { tipCents: current.request.tipCents });
+      const fresh = await quoteCafePickupOrder(current.request.items, { tipCents: current.request.tipCents, redeemDrinkCredit: current.request.redeemDrinkCredit });
       if (fresh.success && fresh.quote && fresh.quote.quoteFingerprint !== current.request.quoteFingerprint) {
         setError("Prices, tax or availability changed since you reviewed this ticket. If the cafe hasn’t contacted you, discard this request and review the updated total.");
         return;
@@ -255,6 +257,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
       specialInstructions: notes.trim() || undefined,
       paymentMethod: "manual",
       ...(quote.tip > 0 ? { tipCents: quote.tip } : {}),
+      ...(quote.discount > 0 ? { redeemDrinkCredit: true } : {}),
       quoteFingerprint: quote.quoteFingerprint,
       items: quoteItems(lines),
     };
@@ -389,6 +392,12 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                     <dt>Subtotal</dt>
                     <dd>{quote ? formatMoney(quote.subtotal, currency) : "—"}</dd>
                   </div>
+                  {quote && quote.discount > 0 ? (
+                    <div>
+                      <dt>Free drink (rewards)</dt>
+                      <dd>−{formatMoney(quote.discount, currency)}</dd>
+                    </div>
+                  ) : null}
                   <div>
                     <dt>Tax</dt>
                     <dd>{quote ? formatMoney(quote.tax, currency) : "—"}</dd>
@@ -404,7 +413,7 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
                     <dd>{quote ? formatMoney(quote.total, currency) : "—"}</dd>
                   </div>
                 </dl>
-                <p className="sf-pay-note">{onlinePayment && payOnline ? "Pay online by card" : "Pay at pickup"}</p>
+                <p className="sf-pay-note">{quote && quote.total === 0 ? "Nothing to pay" : onlinePayment && payOnline ? "Pay online by card" : "Pay at pickup"}</p>
               </div>
             </>
           ) : null}
@@ -459,6 +468,16 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
               </label>
               {slots.length > 1 ? (
                 <PickupTimePicker slots={slots} value={chosenSlot} onChange={setPickupChoice} timeZone={hours?.timezone} disabled={frozen} />
+              ) : null}
+              {quote && quote.drinkCredits > 0 && quote.drinkCreditValue > 0 ? (
+                <div className="sf-form-label">
+                  <span id="checkout-rewards-label">Rewards <span className="sf-optional">{quote.drinkCredits === 1 ? "1 free drink" : `${quote.drinkCredits} free drinks`}</span></span>
+                  <div className="sf-track sf-track-fill" role="group" aria-labelledby="checkout-rewards-label">
+                    <button type="button" className="sf-track-item" aria-pressed={!useFreeDrink} disabled={frozen} onClick={() => setUseFreeDrink(false)}>Save it</button>
+                    <button type="button" className="sf-track-item" aria-pressed={useFreeDrink} disabled={frozen} onClick={() => setUseFreeDrink(true)}>Use free drink</button>
+                  </div>
+                  {useFreeDrink && quote.discount > 0 ? <span className="sf-fine">Takes {formatMoney(quote.discount, currency)} off your priciest drink. Cancel the order and the drink goes back to your rewards.</span> : null}
+                </div>
               ) : null}
               {onlinePayment ? (
                 <div className="sf-form-label">

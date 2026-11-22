@@ -92,6 +92,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
           externalCardReference: String
           externalCardApproved: Boolean
           cashTenderedCents: Int
+          redeemDrinkCredit: Boolean
           items: [CafePickupOrderItemInput!]!
         ): CafeOrderReceipt!
 
@@ -471,7 +472,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
 
       type CafeGiftCardOptions { online: Boolean! amounts: [Int!]! currencyCode: String! }
       type CafeGiftCardCheckout { success: Boolean! checkoutUrl: String }
-      type CafeGiftCardOrder { status: String! amount: Int! currencyCode: String! recipientName: String recipientEmail: String code: String expiresAt: String }
+      type CafeGiftCardOrder { status: String! amount: Int! currencyCode: String! recipientName: String recipientEmail: String code: String expiresAt: String emailedTo: String }
       type CafeGiftCardView {
         id: ID! code: String! status: String! initialValue: Int! balance: Int! currencyCode: String!
         purchaserName: String recipientName: String recipientEmail: String activatedAt: String expiresAt: String canRefund: Boolean!

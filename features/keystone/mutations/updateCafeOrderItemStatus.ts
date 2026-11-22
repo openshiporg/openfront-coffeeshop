@@ -105,7 +105,7 @@ export default async function updateCafeOrderItemStatus(
     assertCoffeeStoreOwnership(order.storeId, storeId, "Cafe order");
     assertCoffeeStoreOwnership(item.storeId, storeId, "KDS order item");
     if (order.status === "open") throw new Error("Cannot bump an item before the pickup request is accepted");
-    if (status === "handed_off") assertCafeSettlement(order.payments || [], Number(order.total) - Number(order.discount || 0));
+    if (status === "handed_off") assertCafeSettlement(order.payments || [], Number(order.total));
     if (["cancelled", "refunded"].includes(order.status)) throw new Error(`Cannot bump an item on a ${order.status} order`);
     if (!["accepted", "paid", "in_bar_queue", "preparing", "ready", "completed"].includes(order.status)) throw new Error("KDS cafe order state is invalid");
 

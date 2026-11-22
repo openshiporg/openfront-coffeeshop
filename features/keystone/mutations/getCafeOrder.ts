@@ -103,6 +103,7 @@ export default async function getCafeOrder(
     subtotal: order.subtotal,
     tax: order.tax,
     tip: order.tip || 0,
+    discount: order.discount || 0,
     total: order.total,
     currencyCode: order.currencyCode || "USD",
     specialInstructions: order.specialInstructions || null,
@@ -111,7 +112,7 @@ export default async function getCafeOrder(
     customerEmail: order.customerEmail || null,
     rewardsLinked: Boolean(order.loyaltyAccount?.id),
     rewardsEligible: (() => {
-      const payable = Number(order.total || 0) - Number(order.discount || 0);
+      const payable = Number(order.total || 0);
       return payable > 0 && hasCafeSettlement(Array.isArray(order.payments) ? order.payments : [], payable);
     })(),
     orderItems: await Promise.all((order.orderItems || []).map(async (item) => ({

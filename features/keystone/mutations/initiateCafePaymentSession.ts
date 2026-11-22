@@ -96,7 +96,7 @@ export default async function initiateCafePaymentSession(_root: unknown, args: I
   if (!isStaff && !isOwner && !hasValidSecret) throw cafeCustomerError("This order could not be verified");
   if (TERMINAL_ORDER_STATUSES.has(order.status)) throw cafeCustomerError("This order can no longer be paid online");
 
-  const payableAmount = Math.max(0, Number(order.total || 0) - Number(order.discount || 0));
+  const payableAmount = Math.max(0, Number(order.total || 0));
   if (!Number.isSafeInteger(payableAmount) || payableAmount <= 0) throw cafeCustomerError("This order has nothing to pay");
   const payments = order.payments || [];
   if (payments.some((payment) => payment.status === "captured")) throw cafeCustomerError("This order is already paid");

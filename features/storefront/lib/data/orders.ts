@@ -18,6 +18,7 @@ export type PickupOrderRequest = {
   specialInstructions?: string;
   paymentMethod?: string;
   tipCents?: number;
+  redeemDrinkCredit?: boolean;
   quoteFingerprint: string;
   items: PickupOrderItemInput[];
 };
@@ -56,6 +57,7 @@ export type CafePickupOrder = {
   subtotal: number;
   tax: number;
   tip?: number;
+  discount?: number;
   total: number;
   currencyCode: string;
   secretKey?: string | null;
@@ -71,6 +73,10 @@ export type CafeOrderQuote = {
   subtotal: number;
   tax: number;
   tip: number;
+  discount: number;
+  /** The signed-in customer's free drinks, and what one would take off this ticket. */
+  drinkCredits: number;
+  drinkCreditValue: number;
   total: number;
   currencyCode: string;
   quoteFingerprint: string;
@@ -79,9 +85,9 @@ export type CafeOrderQuote = {
 };
 
 const QUOTE_CAFE_ORDER_QUERY = `
-  query QuoteCafeOrder($items: [CafePickupOrderItemInput!]!, $tipCents: Int, $requestedPickupMinutes: Int) {
-    quoteCafeOrder(items: $items, tipCents: $tipCents, requestedPickupMinutes: $requestedPickupMinutes) {
-      subtotal tax tip total currencyCode quoteFingerprint estimatedPickupMinutes
+  query QuoteCafeOrder($items: [CafePickupOrderItemInput!]!, $tipCents: Int, $requestedPickupMinutes: Int, $redeemDrinkCredit: Boolean) {
+    quoteCafeOrder(items: $items, tipCents: $tipCents, requestedPickupMinutes: $requestedPickupMinutes, redeemDrinkCredit: $redeemDrinkCredit) {
+      subtotal tax tip discount drinkCredits drinkCreditValue total currencyCode quoteFingerprint estimatedPickupMinutes
       lines { index menuItemId name quantity unitPrice lineTotal }
     }
   }
@@ -100,6 +106,7 @@ const CREATE_PICKUP_ORDER_MUTATION = `
     $specialInstructions: String
     $paymentMethod: String
     $tipCents: Int
+    $redeemDrinkCredit: Boolean
     $items: [CafePickupOrderItemInput!]!
   ) {
     createCafePickupOrder(
@@ -114,6 +121,7 @@ const CREATE_PICKUP_ORDER_MUTATION = `
       specialInstructions: $specialInstructions
       paymentMethod: $paymentMethod
       tipCents: $tipCents
+      redeemDrinkCredit: $redeemDrinkCredit
       items: $items
     ) {
       id
@@ -142,9 +150,9 @@ const CREATE_PICKUP_ORDER_MUTATION = `
   }
 `;
 
-export async function quoteCafePickupOrder(items: PickupOrderItemInput[], options: { requestedPickupMinutes?: number; tipCents?: number } = {}) {
+export async function quoteCafePickupOrder(items: PickupOrderItemInput[], options: { requestedPickupMinutes?: number; tipCents?: number; redeemDrinkCredit?: boolean } = {}) {
   if (!items.length) return { success: true as const, quote: null };
-  const response = await cafeRequest<{ quoteCafeOrder: CafeOrderQuote }>(QUOTE_CAFE_ORDER_QUERY, { items, tipCents: options.tipCents ?? 0, requestedPickupMinutes: options.requestedPickupMinutes ?? null });
+  const response = await cafeRequest<{ quoteCafeOrder: CafeOrderQuote }>(QUOTE_CAFE_ORDER_QUERY, { items, tipCents: options.tipCents ?? 0, requestedPickupMinutes: options.requestedPickupMinutes ?? null, redeemDrinkCredit: options.redeemDrinkCredit || null });
   if (!response.success) return { success: false as const, error: response.error, customerMessage: response.customerMessage };
   return { success: true as const, quote: response.data.quoteCafeOrder };
 }

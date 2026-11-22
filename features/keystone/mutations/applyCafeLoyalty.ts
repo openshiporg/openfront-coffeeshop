@@ -87,7 +87,8 @@ export default async function applyCafeLoyalty(
   if (!args.orderId) throw new Error("Order id is required");
   if (!email) throw new Error("Customer email is required to apply loyalty");
   if (args.redeemDrinkCredit) {
-    throw new Error("Drink-credit redemption is unavailable until it is integrated with tender authorization");
+    // A credit is spent at checkout, priced into the order (createCafePickupOrder redeemDrinkCredit).
+    throw cafeCustomerError("Use a free drink at checkout, when you place the order");
   }
 
   const customerName = args.customerName?.trim() || null;
@@ -132,7 +133,7 @@ export default async function applyCafeLoyalty(
       throw cafeCustomerError("Use the email this order was placed with");
     }
     const payments = Array.isArray(order.payments) ? order.payments as SettlementEvidence[] : [];
-    const payableAmount = Number(order.total || 0) - Number(order.discount || 0);
+    const payableAmount = Number(order.total || 0);
     if (payableAmount <= 0 || !hasCafeSettlement(payments, payableAmount)) throw cafeCustomerError("Rewards apply once the order is paid in full");
     if (order.loyaltyAccountId) {
       // Replay returns the original earning only for the same request; changed details conflict.
@@ -150,7 +151,8 @@ export default async function applyCafeLoyalty(
     }
 
     const now = new Date();
-    const earnedPoints = pointsForSubtotal(Number(order.subtotal || 0));
+    // Points are earned on what was paid for: a free drink earns none.
+    const earnedPoints = pointsForSubtotal(Number(order.subtotal || 0) - Number(order.discount || 0));
     const existing = await tx.loyaltyAccount.findFirst({ where: { customerEmail: email } });
     // The signed-in customer who placed this order, when their sign-in email is the rewards email.
     const signedInUser = isOrderCustomer

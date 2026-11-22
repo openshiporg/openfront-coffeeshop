@@ -9,7 +9,8 @@ import { requireCurrentCoffeeCapability } from "./coffeeKdsAuthority";
 /**
  * Online gift cards (Toast / Square): pick an amount, pay on Stripe's hosted page, and the card is
  * activated only after Stripe confirms the payment (return-page read-back or the signed webhook,
- * whichever comes first). The code is shown to the buyer on the return page (no email is sent). At the
+ * whichever comes first). The code is shown to the buyer on the return page and emailed once to the
+ * recipient (the buyer when it is for them), right after activation. At the
  * counter a code is taken as tender; every debit and credit is appended to the card's ledger.
  */
 
@@ -133,8 +134,37 @@ export async function settleCafeGiftCard(prisma: Prisma, giftCardId: string) {
       });
     }
   }
-  return prisma.giftCard.findUnique({ where: { id: card.id } });
+  const fresh = await prisma.giftCard.findUnique({ where: { id: card.id } });
+  if (fresh?.status === "active" && await emailGiftCardOnce(prisma, fresh)) return { ...fresh, emailedAt: new Date() };
+  return fresh;
 }
+
+/**
+ * The code reaches the recipient once, whichever reader activates the card first (return page or
+ * webhook). emailedAt is claimed before sending; a failed send releases it so the next read of this
+ * card (the buyer's return page, the webhook retry, the staff list) sends it. No queue or worker.
+ */
+export async function emailGiftCardOnce(prisma: Prisma, card: Record<string, any>): Promise<boolean> {
+  const to = String(card.recipientEmail || card.purchaserEmail || "").trim();
+  if (!to || card.emailedAt) return false;
+  // Only fresh purchases: cards sold before the code was emailed were told to copy it from the page.
+  if (!card.activatedAt || Date.now() - new Date(card.activatedAt).getTime() > EMAIL_WINDOW_MS) return false;
+  const { mailConfigured, sendGiftCardEmail, storeLink } = await import("../lib/orderMail");
+  if (!mailConfigured()) return false;
+  const claimed = await prisma.giftCard.updateMany({ where: { id: card.id, emailedAt: null, status: "active" }, data: { emailedAt: new Date() } });
+  if (!claimed.count) return false;
+  const store = await prisma.storeSetting.findUnique({ where: { id: card.storeId }, select: { name: true, timezone: true } });
+  const forSelf = !card.recipientEmail || String(card.recipientEmail).toLowerCase() === String(card.purchaserEmail || "").toLowerCase();
+  const result = await sendGiftCardEmail({
+    to, storeName: store?.name || "the café", amount: usd(card.initialValue), code: card.code, forSelf,
+    recipientName: card.recipientName || "there", purchaserName: card.purchaserName || "A friend", message: card.message || "",
+    expires: card.expiresAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: store?.timezone || "UTC" }).format(new Date(card.expiresAt)) : "it is used up",
+    link: storeLink("/#menu"),
+  });
+  if (!result.sent) await prisma.giftCard.updateMany({ where: { id: card.id }, data: { emailedAt: null } }).catch(() => undefined);
+  return result.sent;
+}
+const EMAIL_WINDOW_MS = 2 * 86_400_000;
 
 export async function confirmCafeGiftCardOrder(_root: unknown, args: { giftCardId: string; token: string }, context: Context) {
   if (!tokenOk(args.giftCardId, args.token)) throw cafeCustomerError("We couldn't find that gift card order.");
@@ -143,6 +173,7 @@ export async function confirmCafeGiftCardOrder(_root: unknown, args: { giftCardI
   return {
     status: card.status, amount: card.initialValue, currencyCode: card.currencyCode, recipientName: card.recipientName, recipientEmail: card.recipientEmail,
     code: live ? card.code : null, expiresAt: card.expiresAt ? new Date(card.expiresAt).toISOString() : null,
+    emailedTo: live && card.emailedAt ? String(card.recipientEmail || card.purchaserEmail || "") || null : null,
   };
 }
 

@@ -1,3 +1,4 @@
+import { restoreDrinkCreditInTx } from "./drinkCreditRedemption";
 import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership, recordCoffeeCommandReceipt, getPrimaryCoffeeStoreId } from "../lib/coffeeCommandReceipt";
 import { CAFE_ORDER_TRANSITIONS, evaluateTransition } from "./transitionPolicy";
@@ -147,11 +148,14 @@ export default async function updateCafeOrderStatus(
     const transition = evaluateTransition(CAFE_ORDER_TRANSITIONS, existing.status, status);
     if (transition.replay) return existing.id;
     if (status === "ready" || status === "completed") assertCafeOrderItemsReadyForHandoff(existing.orderItems);
-    if (status === "completed") assertCafeSettlement(existing.payments, Number(existing.total) - Number(existing.discount || 0));
+    if (status === "completed") assertCafeSettlement(existing.payments, Number(existing.total));
     if (status === "cancelled" && existing.payments.some((payment) => ["pending", "authorized", "captured"].includes(String(payment.status)))) throw new Error("Resolve the payment attempt or refund before cancelling this order");
 
     const now = new Date();
-    if (status === "cancelled") await releaseOrderReservations(tx, existing, storeId, actorId, now);
+    if (status === "cancelled") {
+      await releaseOrderReservations(tx, existing, storeId, actorId, now);
+      await restoreDrinkCreditInTx(tx as never, existing, "cancelled");
+    }
     const timestampField = statusTimestampMap[status];
     await tx.cafeOrder.update({
       where: { id: existing.id },

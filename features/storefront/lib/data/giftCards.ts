@@ -4,7 +4,7 @@ import { getBaseUrl } from "@/features/dashboard/lib/getBaseUrl";
 import { cafeRequest } from "./cafeRequest";
 
 export type GiftCardOptions = { online: boolean; amounts: number[]; currencyCode: string };
-export type GiftCardOrder = { status: string; amount: number; currencyCode: string; recipientName?: string | null; recipientEmail?: string | null; code?: string | null; expiresAt?: string | null };
+export type GiftCardOrder = { status: string; amount: number; currencyCode: string; recipientName?: string | null; recipientEmail?: string | null; emailedTo?: string | null; code?: string | null; expiresAt?: string | null };
 export type GiftCardPurchase = { amount: number; purchaserName: string; purchaserEmail: string; recipientName?: string; recipientEmail?: string; message?: string; idempotencyKey: string };
 
 export async function getGiftCardOptions(): Promise<GiftCardOptions> {
@@ -39,7 +39,7 @@ export async function startGiftCardCheckout(input: GiftCardPurchase) {
 export async function confirmGiftCardOrder(giftCardId: string, token: string) {
   const response = await cafeRequest<{ confirmCafeGiftCardOrder: GiftCardOrder }>(`
     query ConfirmGiftCard($giftCardId: ID!, $token: String!) {
-      confirmCafeGiftCardOrder(giftCardId: $giftCardId, token: $token) { status amount currencyCode recipientName recipientEmail code expiresAt }
+      confirmCafeGiftCardOrder(giftCardId: $giftCardId, token: $token) { status amount currencyCode recipientName recipientEmail code expiresAt emailedTo }
     }
   `, { giftCardId, token });
   return response.success ? { order: response.data.confirmCafeGiftCardOrder, error: null } : { order: null, error: response.customerMessage || "We couldn't check this gift card yet." };

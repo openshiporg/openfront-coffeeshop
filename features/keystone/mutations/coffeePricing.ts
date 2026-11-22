@@ -28,17 +28,33 @@ export function calculateCafeTax(subtotalCents: number, basisPoints = DEFAULT_CA
 
 export type CafeQuoteLineEvidence = { menuItemId: string; quantity: number; modifierIds: readonly string[]; unitPrice: number };
 
-/** Checked line/subtotal/tax/tip/total arithmetic shared by quote and order creation. */
-export function calculateCafeTotals(lines: readonly CafeQuoteLineEvidence[], taxRateBasisPoints: number, tipCents: number) {
+/** Checked line/subtotal/tax/tip/total arithmetic shared by quote and order creation.
+ * A discount (a redeemed drink credit) comes off before tax, and total = subtotal - discount + tax + tip
+ * (the CafeOrder_total_sum_check invariant), so the total is what the customer pays.
+ */
+export function calculateCafeTotals(lines: readonly CafeQuoteLineEvidence[], taxRateBasisPoints: number, tipCents: number, discountCents = 0) {
   const lineTotals = lines.map((line) => {
     assertCafeMoneyCents(line.unitPrice, "Item price");
     return assertCafeMoneyCents(line.unitPrice * line.quantity, "Line total");
   });
   const subtotal = assertCafeMoneyCents(lineTotals.reduce((sum, value) => sum + value, 0), "Order subtotal");
-  const tax = assertCafeMoneyCents(calculateCafeTax(subtotal, taxRateBasisPoints), "Order tax");
+  const discount = assertCafeMoneyCents(discountCents, "Discount");
+  if (discount > subtotal) throw new Error("Discount cannot exceed the order subtotal");
+  const tax = assertCafeMoneyCents(calculateCafeTax(subtotal - discount, taxRateBasisPoints), "Order tax");
   const tip = assertCafeMoneyCents(tipCents, "Tip");
-  const total = assertCafeMoneyCents(subtotal + tax + tip, "Order total");
-  return { lineTotals, subtotal, tax, tip, total };
+  const total = assertCafeMoneyCents(subtotal - discount + tax + tip, "Order total");
+  return { lineTotals, subtotal, discount, tax, tip, total };
+}
+
+/** Bar stations that make drinks; a drink credit covers one of these, never a pastry or a bag of beans. */
+export const DRINK_STATIONS = ["espresso_bar", "cold_bar", "brew_bar"] as const;
+export const POINTS_PER_DRINK_CREDIT = 100;
+
+/** A drink credit takes one drink off: the dearest single drink on the ticket, options included. */
+export function drinkCreditDiscount(lines: readonly { unitPrice: number; barStation?: string | null }[]) {
+  const drinks = lines.filter((line) => (DRINK_STATIONS as readonly string[]).includes(String(line.barStation || "espresso_bar")));
+  if (!drinks.length) return 0;
+  return Math.max(...drinks.map((line) => line.unitPrice));
 }
 
 /** Identity of the exact priced ticket an operator reviewed. Tender is rejected when the
@@ -53,6 +69,7 @@ export function cafeQuoteFingerprint(input: {
   tax: number;
   tip: number;
   total: number;
+  discount?: number;
 }) {
   return fingerprintInput({
     kind: "cafe-quote:v1",
@@ -64,5 +81,7 @@ export function cafeQuoteFingerprint(input: {
     tax: input.tax,
     tip: input.tip,
     total: input.total,
+    // Only a redeemed credit adds the field, so tickets without one keep their reviewed fingerprint.
+    ...(input.discount ? { discount: input.discount } : {}),
   });
 }

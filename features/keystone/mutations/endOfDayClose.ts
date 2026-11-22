@@ -1,6 +1,7 @@
 import { recordCoffeeCommandReceipt } from "../lib/coffeeCommandReceipt";
 import { hasCafeSettlement, lockCoffeeOrder } from "./coffeeOrderPolicy";
 import { releaseAbandonedOnlinePayments } from "./onlinePaymentRelease";
+import { restoreDrinkCreditInTx } from "./drinkCreditRedemption";
 import { releaseOrderReservations, type TransactionClient } from "./updateCafeOrderStatus";
 
 /**
@@ -49,7 +50,7 @@ export function dayCloseOutcome(order: { status: string; total: number; discount
   if (payments.some((payment) => payment.status === "pending" || payment.status === "authorized")) return null;
   // Paid online but the cafe never accepted it: nothing was made, so it stays with staff to make or refund.
   if (order.status === "open" && payments.some((payment) => payment.status === "captured")) return null;
-  if (hasCafeSettlement(payments, Number(order.total) - Number(order.discount || 0)) && payments.some((payment) => payment.status === "captured")) return "completed";
+  if (hasCafeSettlement(payments, Number(order.total)) && payments.some((payment) => payment.status === "captured")) return "completed";
   if (payments.some((payment) => payment.status === "captured")) return null; // partly paid or refunded mid-way: leave for staff
   const started = itemStatuses.some((status) => ["preparing", "ready", "handed_off"].includes(status));
   return started ? "no_show" : "cancelled";
@@ -87,7 +88,10 @@ export async function closePastDayOrders(prisma: Prisma, now = new Date()): Prom
         const result = dayCloseOutcome(order, order.payments, order.orderItems.map((item: { barStatus: string }) => String(item.barStatus)));
         if (!result) return null;
         const status = result === "completed" ? "completed" : "cancelled";
-        if (result === "cancelled") await releaseOrderReservations(tx, order, store.id, null, now);
+        if (result === "cancelled") {
+          await releaseOrderReservations(tx, order, store.id, null, now);
+          await restoreDrinkCreditInTx(tx as never, order, "closed at end of day");
+        }
         await tx.cafeOrder.update({ where: { id: order.id }, data: { status, ...(status === "completed" ? { completedAt: now } : { cancelledAt: now }) } });
         if (order.orderItems.length) {
           await tx.orderItem.updateMany({
