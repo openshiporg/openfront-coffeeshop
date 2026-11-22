@@ -52,6 +52,8 @@ export async function sendPasswordResetEmail(resetToken: string, to: string, bas
       url: `${frontendUrl}${resetPath}?token=${encodeURIComponent(resetToken)}`,
     }),
   });
+  // The provider's message id, so a delivery can be traced in the mail provider (no address or token logged).
+  console.log(`password reset email sent: ${(info as { messageId?: string }).messageId || "no message id"}`);
   if (process.env.SMTP_USER?.includes("ethereal.email")) {
     console.log(`📧 Message Sent!  Preview it at ${getTestMessageUrl(info as any)}`);
   }
