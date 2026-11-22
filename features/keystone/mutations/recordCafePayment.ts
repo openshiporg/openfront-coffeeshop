@@ -147,13 +147,7 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
         providerPaymentId,
         processedAt: settledAt,
         registerShiftId: String(registerShift.id),
-        metadata: {
-          tender: args.method === "cash"
-            ? { method: "cash", evidence: "cash_received_at_register" }
-            : args.method === "gift_card"
-            ? { method: "gift_card", evidence: "gift_card_ledger_debit", giftCardCode: giftCode }
-            : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: actorId, attestedAt: settledAt.toISOString(), providerVerified: false },
-        },
+        // Payment has no metadata column; the tender evidence is kept on the command receipt below.
       },
       select: { id: true },
     });
@@ -178,7 +172,11 @@ export default async function recordCafePayment(_root: unknown, args: Args, cont
       aggregateType: "payment",
       aggregateId: payment.id,
       occurredAt: settledAt,
-      payload: { paymentId: payment.id, orderId: String(order.id), orderNumber: String(order.orderNumber), registerShiftId: String(registerShift.id), recordedBy: actorId, method: args.method, amount, currencyCode: String(order.currencyCode || "USD"), externalCardReference: externalCardReference || null, requestFingerprint: fingerprintInput({ orderId: String(order.id), actorId, method: args.method, amount, externalCardReference: externalCardReference || null, externalCardApproved: args.method === "card" }) },
+      payload: { paymentId: payment.id, orderId: String(order.id), orderNumber: String(order.orderNumber), registerShiftId: String(registerShift.id), recordedBy: actorId, method: args.method, amount, currencyCode: String(order.currencyCode || "USD"), externalCardReference: externalCardReference || null, tender: args.method === "cash"
+            ? { method: "cash", evidence: "cash_received_at_register" }
+            : args.method === "gift_card"
+            ? { method: "gift_card", evidence: "gift_card_ledger_debit", giftCardCode: giftCode }
+            : { method: "external_card", evidence: "operator_attested_terminal_approval", terminalReference: externalCardReference, attestedById: actorId, attestedAt: settledAt.toISOString(), providerVerified: false }, requestFingerprint: fingerprintInput({ orderId: String(order.id), actorId, method: args.method, amount, externalCardReference: externalCardReference || null, externalCardApproved: args.method === "card" }) },
     });
     return payment.id;
   }, TX_OPTIONS);
