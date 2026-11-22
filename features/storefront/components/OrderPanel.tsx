@@ -72,7 +72,7 @@ export function OrderPanel({ hours }: { hours: Hours }) {
       <div className="sf-rail-body">
         {loaded && !count ? (
           <div className="sf-rail-empty">
-            <p className="sf-script">Nothing In Here Yet</p>
+            <p className="sf-script">Nothing in here yet</p>
             <span>Tap add when you find something you love</span>
           </div>
         ) : (
