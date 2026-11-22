@@ -357,7 +357,7 @@ function PriceEditor({ item, busy, onSave }: { item: MenuManagerItem; busy: bool
       <div className="flex items-center gap-1.5">
         <div className="relative">
           <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">$</span>
-          <Input id={id} inputMode="decimal" className="h-9 w-24 rounded-[6px] pl-5 text-right font-medium tabular-nums" value={draft.value} aria-invalid={cents == null} onChange={(event) => { const next = event.target.value; draft.set(() => next); }} />
+          <Input id={id} inputMode="decimal" enterKeyHint="done" onKeyDown={(event) => { if (event.key === "Enter" && draft.dirty && !busy) { event.preventDefault(); void save(); } }} className="h-9 w-24 rounded-[6px] pl-5 text-right font-medium tabular-nums" value={draft.value} aria-invalid={cents == null} onChange={(event) => { const next = event.target.value; draft.set(() => next); }} />
         </div>
         {draft.dirty && <Button type="button" size="sm" className="h-9 rounded-[6px] active:scale-[0.97]" disabled={cents == null || busy} onClick={save}>{busy ? "Saving…" : "Save"}</Button>}
       </div>
