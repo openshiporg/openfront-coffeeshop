@@ -20,12 +20,22 @@ const flatButtons = [
   "[&_[data-slot=button][class*=from-destructive]]:bg-none",
   "[&_[data-slot=button][class*=from-destructive]]:bg-destructive",
   "[&_[data-slot=button][class*=from-destructive]]:border-transparent",
+  // Outline buttons lose the shared bevel ring above, so they get a plain full hairline instead of reading as bare text.
+  "[&_[data-slot=button][class*=ring-zinc-300]]:border",
+  "[&_[data-slot=button][class*=ring-zinc-300]]:border-border",
+].join(" ");
+
+// Phones: fields at 16px so iOS does not zoom the page when one is focused.
+const phoneFields = [
+  "max-md:[&_input:not([type=checkbox]):not([type=radio]):not([type=range])]:text-base",
+  "max-md:[&_textarea]:text-base",
+  "max-md:[&_select]:text-base",
 ].join(" ");
 
 // Each platform screen renders its own PageBreadcrumbs header ending in its page label.
 export function PlatformLayout({ children }: { children: ReactNode }) {
   return (
-    <section className={`flex min-h-0 min-w-0 flex-1 flex-col ${flatButtons}`}>
+    <section className={`flex min-h-0 min-w-0 flex-1 flex-col ${flatButtons} ${phoneFields}`}>
       <div className="min-h-0 min-w-0 flex-1">{children}</div>
     </section>
   );

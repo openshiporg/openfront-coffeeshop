@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 export function PillTrack({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
   return (
     <div className={cn("relative min-w-0 max-w-full", className)}>
-      <div role="group" aria-label={label} className="flex flex-wrap items-end gap-x-5 border-b">
+      <div role="group" aria-label={label} className="flex flex-wrap items-end gap-x-4 border-b md:gap-x-5">
         {children}
       </div>
     </div>
@@ -22,7 +22,8 @@ export function PillTrack({ label, className, children }: { label: string; class
 const tabClass = (active: boolean, size: "sm" | "md") =>
   cn(
     "-mb-px inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-b-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
-    size === "md" ? "h-10" : "h-9",
+    // 44px tall on phones (tap target), compact from md up.
+    size === "md" ? "h-11 md:h-10" : "h-11 md:h-9",
     active ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
   );
 

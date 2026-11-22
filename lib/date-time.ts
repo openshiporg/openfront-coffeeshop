@@ -12,7 +12,8 @@ function validatedStoreTimeZone(value?: string | null): StoreTimeZone {
   return { timeZone: "UTC", storeZone: null };
 }
 
-function formatInStoreTimeZone(instant: Date, storeTimeZone: StoreTimeZone, options: Intl.DateTimeFormatOptions, zoneName = true) {
+// The short zone ("EST") already names the time; the IANA name in brackets is added only when the store zone is missing.
+function formatInStoreTimeZone(instant: Date, storeTimeZone: StoreTimeZone, options: Intl.DateTimeFormatOptions, zoneName = false) {
   const formatted = new Intl.DateTimeFormat("en-US", {
     ...options,
     timeZone: storeTimeZone.timeZone,
