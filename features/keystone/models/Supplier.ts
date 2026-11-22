@@ -32,7 +32,9 @@ export const Supplier = list({
       }
     },
   },
-  ui: { listView: { initialColumns: ['name', 'status', 'contactName'] } },
+  ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageInventory(args), listView: { initialColumns: ['name', 'status', 'contactName'] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     store: requiredStoreRelationship('StoreSetting.suppliers'),

@@ -15,6 +15,8 @@ export const MenuCategory = list({
     },
   },
   ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageProducts(args),
     listView: {
       initialColumns: ["name", "active", "sortOrder", "menuItems"],
     },

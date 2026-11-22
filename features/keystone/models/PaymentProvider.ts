@@ -17,7 +17,9 @@ export const PaymentProvider = list({
       delete: permissions.canManagePayments,
     },
   },
-  ui: { listView: { initialColumns: ["name", "code", "isInstalled"] } },
+  ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManagePayments(args), listView: { initialColumns: ["name", "code", "isInstalled"] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     code: text({

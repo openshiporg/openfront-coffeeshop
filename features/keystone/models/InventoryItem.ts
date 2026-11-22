@@ -33,7 +33,9 @@ export const InventoryItem = list({
       }
     },
   },
-  ui: { listView: { initialColumns: ["name", "category", "currentStock", "unit", "reorderPoint"] } },
+  ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageInventory(args), listView: { initialColumns: ["name", "category", "currentStock", "unit", "reorderPoint"] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     store: requiredStoreRelationship("StoreSetting.inventoryItems"),

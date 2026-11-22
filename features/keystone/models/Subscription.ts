@@ -15,7 +15,9 @@ const commandOnlyUi = { createView: { fieldMode: 'hidden' as const }, itemView: 
 
 export const Subscription = list({
   access: { operation: { query: permissions.canReadLoyalty, create: permissions.canManageLoyalty, update: permissions.canManageLoyalty, delete: denyAll } },
-  ui: { listView: { initialColumns: ['subscriptionNumber', 'loyaltyAccount', 'status', 'planName'] } },
+  ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageLoyalty(args), listView: { initialColumns: ['subscriptionNumber', 'loyaltyAccount', 'status', 'planName'] } },
   fields: {
     subscriptionNumber: text({ isIndexed: 'unique', validation: { isRequired: true }, access: fixedAfterCreate, ui: readOnlyInItemView }),
     store: requiredStoreRelationship('StoreSetting.subscriptions', fixedAfterCreate),

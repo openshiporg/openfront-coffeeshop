@@ -21,7 +21,9 @@ export const Recipe = list({
       // Prep batches freeze the yield unit they were made with; a serving or each yield is sold one per item.
     },
   },
-  ui: { listView: { initialColumns: ['name', 'menuItem', 'status', 'active'] } },
+  ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageProducts(args), listView: { initialColumns: ['name', 'menuItem', 'status', 'active'] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     store: requiredStoreRelationship('StoreSetting.recipes'),

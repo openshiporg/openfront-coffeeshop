@@ -37,7 +37,9 @@ export const Ingredient = list({
       if (storeId && ((inventory && inventory.storeId !== storeId) || (recipe && recipe.storeId !== storeId))) addValidationError('Ingredient, recipe and inventory item must belong to the same store');
     },
   },
-  ui: { listView: { initialColumns: ['name', 'recipe', 'inventoryItem', 'quantity'] } },
+  ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageProducts(args), listView: { initialColumns: ['name', 'recipe', 'inventoryItem', 'quantity'] } },
   fields: {
     name: text({ validation: { isRequired: true } }),
     store: requiredStoreRelationship('StoreSetting.ingredients'),

@@ -20,7 +20,9 @@ const eventFact = { access: { update: eventFactsEditable }, ui: fieldModeFor(eve
 
 export const CateringOrder = list({
   access: { operation: { query: permissions.canReadOrders, create: permissions.canManageOrders, update: permissions.canManageOrders, delete: denyAll } },
-  ui: { listView: { initialColumns: ['cateringNumber', 'customerName', 'status', 'eventAt'] } },
+  ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageOrders(args), listView: { initialColumns: ['cateringNumber', 'customerName', 'status', 'eventAt'] } },
   fields: {
     cateringNumber: text({ isIndexed: 'unique', validation: { isRequired: true }, access: { update: () => false }, ui: { itemView: { fieldMode: 'read' } } }),
     store: requiredStoreRelationship('StoreSetting.cateringOrders', { update: () => false }),

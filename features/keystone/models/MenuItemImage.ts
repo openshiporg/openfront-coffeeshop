@@ -14,6 +14,8 @@ export const MenuItemImage = list({
     },
   },
   ui: {
+    // Create shows only to roles the server lets create (no dead-end form).
+    hideCreate: (args) => !permissions.canManageProducts(args),
     listView: {
       initialColumns: ["image", "imagePath", "altText", "menuItems"],
     },
