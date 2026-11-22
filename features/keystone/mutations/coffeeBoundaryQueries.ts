@@ -1,4 +1,5 @@
 import { latestDayClose, triggerEndOfDayClose } from "./endOfDayClose";
+import { storeBusinessDate, storeDayStart } from "../../platform/reports/lib/businessDate";
 import { permissions, type Session } from "../access";
 import { assertCoffeeStoreOwnership } from "../lib/coffeeCommandReceipt";
 import { KDS_ITEM_TRANSITIONS, type KdsItemStatus } from "./kdsPolicy";
@@ -117,6 +118,8 @@ async function primaryStore(context: Context) {
 }
 
 const ORDER_QUEUE_ACTIVE_PAGE_SIZE = 100;
+/** History is a reference list, not live work: a phone-sized page. */
+const ORDER_QUEUE_HISTORY_PAGE_SIZE = 25;
 /** A ticket whose pickup (or creation, when unscheduled) is this far gone is a past pickup, not live work. */
 const STALE_TICKET_HOURS = 12;
 function staleCutoff() { return new Date(Date.now() - STALE_TICKET_HOURS * 3_600_000); }
@@ -195,12 +198,15 @@ function encodeHistoryOrderCursor(order: Record<string, unknown>, search: string
   return Buffer.from(JSON.stringify({ kind: "history", createdAt: createdAt.toISOString(), id, search, filter, storeId }), "utf8").toString("base64url");
 }
 
-export async function getCoffeeOrderQueue(_root: unknown, args: { search?: string | null; status?: string | null; fulfillment?: string | null; includeCompleted?: boolean | null; activeCursor?: string | null; historyCursor?: string | null }, context: Context) {
+export async function getCoffeeOrderQueue(_root: unknown, args: { search?: string | null; status?: string | null; fulfillment?: string | null; includeCompleted?: boolean | null; includeActive?: boolean | null; todayOnly?: boolean | null; activeCursor?: string | null; historyCursor?: string | null }, context: Context) {
   requirePermission(permissions.canReadOrders({ session: context.session }), "Not authorized to read the order queue");
   const search = args.search?.trim().slice(0, 200) || "";
   const statusFilter = allowlisted(args.status, ORDER_QUEUE_STATUS_FILTERS, "order status");
   const fulfillmentFilter = allowlisted(args.fulfillment, ORDER_QUEUE_FULFILLMENT_FILTERS, "fulfillment");
-  const filterKey = `${statusFilter}|${fulfillmentFilter}`;
+  const todayOnly = args.todayOnly === true;
+  const includeActive = args.includeActive !== false;
+  // The tab is part of the cursor's view: a History cursor never pages the Today tab.
+  const filterKey = `${statusFilter}|${fulfillmentFilter}${todayOnly ? "|today" : ""}${includeActive ? "" : "|history"}`;
   const activeCursor = decodeActiveOrderCursor(args.activeCursor, search, filterKey);
   const historyCursor = decodeHistoryOrderCursor(args.historyCursor, search, filterKey);
   const includeHistory = args.includeCompleted !== false;
@@ -211,10 +217,11 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
   const allActiveStatuses = ["open", "accepted", "paid", "in_bar_queue", "preparing", "ready"];
   const allHistoryStatuses = ["completed", "refunded", "cancelled"];
   // Filters apply before paging and counting, so every matching ticket stays reachable.
-  const activeStatuses = statusFilter === "all" ? allActiveStatuses : allActiveStatuses.filter((status) => status === statusFilter);
+  const activeStatuses = !includeActive ? [] : statusFilter === "all" ? allActiveStatuses : allActiveStatuses.filter((status) => status === statusFilter);
   const historyStatuses = !includeHistory ? [] : statusFilter === "all" ? allHistoryStatuses : allHistoryStatuses.filter((status) => status === statusFilter);
   const matchingOrders = {
     storeId: store.id,
+    ...(todayOnly ? { createdAt: { gte: storeDayStart(storeBusinessDate(store.timezone), store.timezone) } } : {}),
     ...(fulfillmentFilter !== "all" ? { fulfillmentType: fulfillmentFilter } : {}),
     ...(search ? { OR: ["orderNumber", "customerName", "customerEmail", "pickupName"].map((field) => ({ [field]: { contains: search, mode: "insensitive" } })) } : {}),
   };
@@ -248,7 +255,7 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
       ? context.prisma.cafeOrder.findMany({ where: activePageWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE + 1, select: orderSelect })
       : Promise.resolve([]),
     historyStatuses.length
-      ? context.prisma.cafeOrder.findMany({ where: historyPageWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: ORDER_QUEUE_ACTIVE_PAGE_SIZE + 1, select: orderSelect })
+      ? context.prisma.cafeOrder.findMany({ where: historyPageWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: ORDER_QUEUE_HISTORY_PAGE_SIZE + 1, select: orderSelect })
       : Promise.resolve([]),
     context.prisma.cafeOrder.groupBy({ by: ["status"], where: countedOrdersWhere, _count: { _all: true } }),
     // Past pickups never collected or closed: shown apart so staff can close them out, oldest first.
@@ -264,8 +271,8 @@ export async function getCoffeeOrderQueue(_root: unknown, args: { search?: strin
   const activeItems = activeTickets.slice(0, ORDER_QUEUE_ACTIVE_PAGE_SIZE);
   const activeHasMore = activeTickets.length > ORDER_QUEUE_ACTIVE_PAGE_SIZE;
   const activeNextCursor = activeHasMore && activeItems.length ? encodeActiveOrderCursor(activeItems[activeItems.length - 1]!, search, filterKey, store.id) : null;
-  const historyItems = historyTickets.slice(0, ORDER_QUEUE_ACTIVE_PAGE_SIZE);
-  const historyHasMore = historyTickets.length > ORDER_QUEUE_ACTIVE_PAGE_SIZE;
+  const historyItems = historyTickets.slice(0, ORDER_QUEUE_HISTORY_PAGE_SIZE);
+  const historyHasMore = historyTickets.length > ORDER_QUEUE_HISTORY_PAGE_SIZE;
   const historyNextCursor = historyHasMore && historyItems.length ? encodeHistoryOrderCursor(historyItems[historyItems.length - 1]!, search, filterKey, store.id) : null;
   const historyCount = historyStatuses.reduce((total, status) => total + count(status), 0);
   const staleIds = new Set((staleTickets as Array<{ id: string }>).map((ticket) => ticket.id));

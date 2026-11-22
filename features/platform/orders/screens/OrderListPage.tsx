@@ -15,8 +15,8 @@ import { formatStoreDateTime } from "@/lib/date-time";
 import type { CafeOrderQueueItem, OrderFulfillmentFilter, OrderStatusFilter } from "../types";
 
 const ORDER_QUERY = `
-  query CoffeeOrderQueue($search: String, $status: String, $fulfillment: String, $activeCursor: String, $historyCursor: String) {
-    getCoffeeOrderQueue(search: $search, status: $status, fulfillment: $fulfillment, activeCursor: $activeCursor, historyCursor: $historyCursor, includeCompleted: true) {
+  query CoffeeOrderQueue($search: String, $status: String, $fulfillment: String, $activeCursor: String, $historyCursor: String, $includeActive: Boolean, $includeCompleted: Boolean, $todayOnly: Boolean) {
+    getCoffeeOrderQueue(search: $search, status: $status, fulfillment: $fulfillment, activeCursor: $activeCursor, historyCursor: $historyCursor, includeActive: $includeActive, includeCompleted: $includeCompleted, todayOnly: $todayOnly) {
       summary { allCount activeCount openCount acceptedCount paidCount queuedCount preparingCount readyCount completedCount cancelledCount refundedCount }
       capabilities { canManageOrders canManagePayments canManageLoyalty }
       storeTimezone
@@ -72,8 +72,7 @@ function DayCloseNotice({ report, storeTimezone }: { report: DayCloseReport; sto
     <section aria-label="End-of-day close" className="rounded-[6px] border bg-background px-4 py-3 text-sm">
       <p className="font-medium">End-of-day close · {formatStoreDateTime(report.closedAt, storeTimezone)}</p>
       <p className="mt-1 text-muted-foreground">
-        Orders from earlier days that were never closed: {parts.join(", ") || "none"}. Paid ones are in History and can still be refunded.
-        {report.skipped ? ` ${report.skipped} left for staff (paid but never accepted, or payment still settling).` : ""}
+        {parts.join(", ") || "Nothing to close"}{report.skipped ? ` · ${report.skipped} left for staff` : ""}
       </p>
       {report.orderNumbers.length ? (
         <details className="mt-1">
@@ -85,7 +84,13 @@ function DayCloseNotice({ report, storeTimezone }: { report: DayCloseReport; sto
   );
 }
 
-type QueueView = { search: string; status: OrderStatusFilter; fulfillment: OrderFulfillmentFilter };
+export type OrderTab = "active" | "today" | "history";
+export const ORDER_TABS: Array<{ value: OrderTab; label: string }> = [
+  { value: "active", label: "Active" },
+  { value: "today", label: "Today" },
+  { value: "history", label: "History" },
+];
+type QueueView = { search: string; status: OrderStatusFilter; fulfillment: OrderFulfillmentFilter; tab: OrderTab };
 
 const ACTIVE_ORDER_STATUSES = new Set(["open", "accepted", "paid", "in_bar_queue", "preparing", "ready"]);
 const HISTORY_ORDER_STATUSES = new Set(["completed", "refunded", "cancelled"]);
@@ -129,6 +134,7 @@ const FULFILLMENT_TABS: Array<{ value: OrderFulfillmentFilter; label: string }> 
 
 function orderQueueHref(view: QueueView, cursors: { activeCursor?: string | null; historyCursor?: string | null } = {}) {
   const params = new URLSearchParams();
+  if (view.tab !== "active") params.set("tab", view.tab);
   if (view.search) params.set("search", view.search);
   if (view.status !== "all") params.set("status", view.status);
   if (view.fulfillment !== "all") params.set("fulfillment", view.fulfillment);
@@ -233,17 +239,25 @@ export async function OrderListPage({
   fulfillment = "all",
   activeCursor = null,
   historyCursor = null,
+  tab = "active",
 }: {
   search?: string;
   status?: OrderStatusFilter;
   fulfillment?: OrderFulfillmentFilter;
   activeCursor?: string | null;
   historyCursor?: string | null;
+  tab?: OrderTab;
 }) {
-  const view: QueueView = { search, status, fulfillment };
+  const view: QueueView = { search, status, fulfillment, tab };
   const response = await keystoneClient<{ getCoffeeOrderQueue: OrderQueueResult }>(
     ORDER_QUERY,
-    { search: search || null, status, fulfillment, activeCursor, historyCursor },
+    {
+      search: search || null, status, fulfillment, activeCursor, historyCursor,
+      // Active: live work only. Today: everything since the store day began. History: finished orders, 25 a page.
+      includeActive: tab !== "history",
+      includeCompleted: tab !== "active",
+      todayOnly: tab === "today",
+    },
     { cache: "no-store" },
   );
   const queue = response.success ? response.data.getCoffeeOrderQueue : null;
@@ -252,8 +266,9 @@ export async function OrderListPage({
   const activeTickets = tickets.filter((order) => ACTIVE_ORDER_STATUSES.has(order.status) && !order.isStale);
   const staleTickets = tickets.filter((order) => ACTIVE_ORDER_STATUSES.has(order.status) && order.isStale);
   const historyTickets = tickets.filter((order) => HISTORY_ORDER_STATUSES.has(order.status));
-  const showActive = status === "all" || ACTIVE_ORDER_STATUSES.has(status);
-  const showHistory = status === "all" || HISTORY_ORDER_STATUSES.has(status);
+  const showActive = tab !== "history" && (status === "all" || ACTIVE_ORDER_STATUSES.has(status));
+  const showHistory = tab !== "active" && (status === "all" || HISTORY_ORDER_STATUSES.has(status));
+  const statusTabs = STATUS_TABS.filter((option) => option.value === "all" || (tab === "active" ? ACTIVE_ORDER_STATUSES.has(option.value) : tab === "history" ? HISTORY_ORDER_STATUSES.has(option.value) : true));
   const nothingMatches = Boolean(queue) && !tickets.length && !activeCursor && !historyCursor;
   const pageLink = "inline-flex h-8 items-center rounded-[6px] border px-3 text-sm font-medium transition-[background-color,transform] duration-150 ease-out hover:bg-muted active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -278,17 +293,30 @@ export async function OrderListPage({
     >
       <OrderQueueAutoRefresh />
       {/* Bottom padding lets the last tickets scroll clear of the floating assistant button. */}
-      <div className="space-y-8 px-4 pb-24 md:px-6">
+      <div className="space-y-6 px-4 pb-24 md:px-6">
+        <nav aria-label="Order views" className="inline-flex rounded-[8px] border bg-muted/40 p-1">
+          {ORDER_TABS.map((option) => (
+            <Link
+              key={option.value}
+              href={orderQueueHref({ search, status: "all", fulfillment, tab: option.value })}
+              aria-current={tab === option.value ? "page" : undefined}
+              className="inline-flex min-h-10 items-center rounded-[6px] px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:bg-background aria-[current=page]:text-foreground aria-[current=page]:shadow-sm"
+            >
+              {option.label}
+            </Link>
+          ))}
+        </nav>
         <form method="get" role="search" aria-label="Filter orders" className="relative flex flex-wrap items-center gap-2 [overflow-x:clip] [overflow-clip-margin:4px]">
           <div className="relative min-w-0 flex-[1_1_16rem] sm:max-w-sm">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <label htmlFor="order-search" className="sr-only">Search orders</label>
             <Input id="order-search" type="search" name="search" defaultValue={search} placeholder="Order #, name or email" className="h-9 rounded-[6px] pl-8" />
           </div>
+          {tab !== "active" ? <input type="hidden" name="tab" value={tab} /> : null}
           <label htmlFor="order-status" className="sr-only">Status</label>
           <FilterSelect id="order-status" name="status" defaultValue={status} className="flex-1 sm:flex-none">
-            {STATUS_TABS.map((tab) => (
-              <option key={tab.value} value={tab.value}>{tab.value === "all" ? "All statuses" : tab.label}{queue ? ` (${tab.count(queue.summary)})` : ""}</option>
+            {statusTabs.map((option) => (
+              <option key={option.value} value={option.value}>{option.value === "all" ? "All statuses" : option.label}{queue ? ` (${option.count(queue.summary)})` : ""}</option>
             ))}
           </FilterSelect>
           <label htmlFor="order-fulfillment" className="sr-only">Fulfillment</label>
@@ -296,7 +324,7 @@ export async function OrderListPage({
             {FULFILLMENT_TABS.map((tab) => <option key={tab.value} value={tab.value}>{tab.value === "all" ? "All channels" : tab.label}</option>)}
           </FilterSelect>
           <Button type="submit" variant="outline" size="icon" className="size-9 rounded-[6px]" aria-label="Apply filters"><Search className="size-4" aria-hidden="true" /></Button>
-          {search || status !== "all" || fulfillment !== "all" ? <Link href={orderQueueHref({ search: "", status: "all", fulfillment: "all" })} className="px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</Link> : null}
+          {search || status !== "all" || fulfillment !== "all" ? <Link href={orderQueueHref({ search: "", status: "all", fulfillment: "all", tab })} className="px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</Link> : null}
         </form>
 
         {!response.success ? (
@@ -310,7 +338,7 @@ export async function OrderListPage({
             </AlertDescription>
           </Alert>
         ) : nothingMatches ? (
-          <PlatformEmpty>{search ? `No orders match "${search}".` : "No orders in this view."}</PlatformEmpty>
+          <PlatformEmpty>{search ? `No orders match "${search}".` : tab === "active" ? "No active orders." : tab === "today" ? "No orders today." : "No finished orders."}</PlatformEmpty>
         ) : queue ? (
           <>
             {showActive ? (
@@ -335,15 +363,14 @@ export async function OrderListPage({
               </PlatformSection>
             ) : null}
 
-            {showActive && queue.lastDayClose && Date.now() - new Date(queue.lastDayClose.closedAt).getTime() < 7 * 86_400_000 ? <DayCloseNotice report={queue.lastDayClose} storeTimezone={queue.storeTimezone} /> : null}
+            {tab === "history" && !historyCursor && queue.lastDayClose && Date.now() - new Date(queue.lastDayClose.closedAt).getTime() < 7 * 86_400_000 ? <DayCloseNotice report={queue.lastDayClose} storeTimezone={queue.storeTimezone} /> : null}
 
             {showActive && staleTickets.length ? (
               <PlatformSection
                 id="past-pickups-heading"
-                title="Past pickups not closed"
+                title="Past pickups to close"
                 meta={queue.staleCount}
               >
-                <p className="mb-3 text-sm text-muted-foreground">Pickup time passed more than 12 hours ago, so these are off the live queue and the bar screen. End-of-day close settles them automatically after the store day ends (paid ones complete, unpaid ones cancel; paid requests the cafe never accepted stay here to make or refund), or close one now.</p>
                 <ol className="divide-y rounded-[6px] border bg-background">
                   {staleTickets.map((order) => <LiveOrderRow key={order.id} order={order} capabilities={capabilities} storeTimezone={queue.storeTimezone} />)}
                 </ol>
@@ -353,12 +380,12 @@ export async function OrderListPage({
             {showHistory ? (
               <PlatformSection
                 id="order-history-heading"
-                title="History"
+                title={tab === "today" ? "Finished today" : "History"}
                 meta={queue.historyCount}
                 actions={(
                   <nav aria-label="Order history pages" className="flex flex-wrap items-center gap-2">
                     {historyCursor ? <Link className={pageLink} href={orderQueueHref(view, { activeCursor })}>Newest first</Link> : null}
-                    {queue.historyHasMore && queue.historyNextCursor ? <Link className={pageLink} href={orderQueueHref(view, { activeCursor, historyCursor: queue.historyNextCursor })}>Next 100</Link> : null}
+                    {queue.historyHasMore && queue.historyNextCursor ? <Link className={pageLink} href={orderQueueHref(view, { activeCursor, historyCursor: queue.historyNextCursor })}>Next 25</Link> : null}
                   </nav>
                 )}
               >

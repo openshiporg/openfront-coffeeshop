@@ -436,7 +436,7 @@ export const coffeeBoundaryTypeDefs = String.raw`
   }
 
   extend type Query {
-    getCoffeeOrderQueue(search: String, status: String, fulfillment: String, includeCompleted: Boolean = true, activeCursor: String, historyCursor: String): CoffeeOrderQueueProjection!
+    getCoffeeOrderQueue(search: String, status: String, fulfillment: String, includeCompleted: Boolean = true, includeActive: Boolean = true, todayOnly: Boolean = false, activeCursor: String, historyCursor: String): CoffeeOrderQueueProjection!
     getCoffeeKdsBoard(cursor: String, limit: Int = 100): CoffeeKdsProjection!
     getCoffeeMenuManager(search: String, categoryId: ID, cursor: String, limit: Int = 50): CoffeeManagedMenuProjection!
     getCoffeeMenuInventoryOptions(search: String, limit: Int = 25): CoffeeMenuInventoryOptions!
