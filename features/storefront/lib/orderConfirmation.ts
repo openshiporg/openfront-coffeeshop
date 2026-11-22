@@ -15,12 +15,12 @@ export type CustomerOrderStatusCopy = {
 const CUSTOMER_ORDER_STATUS_COPY: Readonly<Record<string, CustomerOrderStatusCopy>> = {
   open: {
     label: "Pickup request received",
-    message: "The cafe has received this request; it is waiting for acceptance.",
+    message: "The cafe has your order and will accept it shortly. This page updates on its own.",
     showPickupEstimate: true,
   },
   accepted: {
     label: "Accepted",
-    message: "The cafe accepted this pickup request. Acceptance does not indicate payment.",
+    message: "The cafe accepted your order.",
     showPickupEstimate: true,
   },
   paid: {
@@ -66,8 +66,21 @@ export const UNKNOWN_CUSTOMER_ORDER_STATUS: CustomerOrderStatusCopy = {
   showPickupEstimate: false,
 };
 
-export function getCustomerOrderStatusCopy(status: string): CustomerOrderStatusCopy {
+const PAID_WAITING: CustomerOrderStatusCopy = {
+  label: "Paid · being made",
+  message: "Payment received. The cafe is making your order; this page updates when it is ready.",
+  showPickupEstimate: true,
+};
+
+/** Before the bar starts it, a paid order says so: the guest's question is "did my payment go through". */
+export function getCustomerOrderStatusCopy(status: string, paid = false): CustomerOrderStatusCopy {
+  if (paid && (status === "open" || status === "accepted" || status === "paid")) return PAID_WAITING;
   return CUSTOMER_ORDER_STATUS_COPY[status] || UNKNOWN_CUSTOMER_ORDER_STATUS;
+}
+
+/** Statuses that will not change again; the receipt stops re-reading at these. */
+export function isFinalCustomerOrderStatus(status: string) {
+  return status === "completed" || status === "cancelled" || status === "refunded";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

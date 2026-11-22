@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bean, ChevronRight, Coffee, Croissant, CupSoda, LayoutGrid, Leaf, Search, Sparkles, type LucideIcon } from "lucide-react";
+import { Bean, ChevronRight, Coffee, Croissant, CupSoda, Filter, LayoutGrid, Leaf, Search, Sparkles, type LucideIcon } from "lucide-react";
 import type { StorefrontMenuCategory, StorefrontMenuItem } from "@/features/storefront/lib/data/menu";
 import { loadMoreStorefrontMenu } from "@/features/storefront/lib/data/menuActions";
 import { formatMoney } from "@/features/storefront/lib/format";
@@ -18,6 +18,7 @@ function categoryIcon(name: string): LucideIcon {
   if (/(bean|retail|bag|shop)/.test(value)) return Bean;
   if (/(cold|iced|ice)/.test(value)) return CupSoda;
   if (/(tea|matcha)/.test(value)) return Leaf;
+  if (/(pour|filter|drip|batch)/.test(value)) return Filter;
   if (/(signature|special|season)/.test(value)) return Sparkles;
   return Coffee;
 }
