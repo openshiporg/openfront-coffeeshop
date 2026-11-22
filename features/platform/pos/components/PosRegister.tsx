@@ -654,7 +654,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
           <div className="flex items-end gap-2">
             <div className="min-w-0 flex-1 space-y-1.5">
               <Label htmlFor="pos-opening-cash">Opening cash</Label>
-              <Input id="pos-opening-cash" className={cn(fieldClass, "text-base tabular-nums")} value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked}={!editingRegister} />
+              <Input id="pos-opening-cash" className={cn(fieldClass, "text-base tabular-nums")} value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked}  />
             </div>
             <Button type="submit" className="h-10 rounded-[6px] px-5 active:scale-[0.97]" disabled={writesBlocked || openingParse.kind !== "valid" || !registerName.trim()}>
               {inFlight && pending?.kind === "open" ? "Opening…" : "Open shift"}
