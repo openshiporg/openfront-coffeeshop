@@ -10,7 +10,9 @@ import type { ReactNode } from "react";
 const flatButtons = [
   "[&_[data-slot=button]]:shadow-none",
   "[&_[data-slot=button]]:inset-shadow-none",
-  "[&_[data-slot=button]]:border-b",
+  // Only drawn buttons get a border; a ghost button stays a borderless text button.
+  "[&_[data-slot=button][class*=from-primary]]:border-b",
+  "[&_[data-slot=button][class*=from-destructive]]:border-b",
   "[&_[data-slot=button]:not(:focus-visible)]:ring-0",
   "[&_[data-slot=button]]:rounded-[6px]",
   "[&_[data-slot=button][class*=from-primary]]:bg-none",

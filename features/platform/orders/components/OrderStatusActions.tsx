@@ -51,8 +51,8 @@ export function OrderStatusActions({ orderId, actions }: { orderId: string; acti
           <Button
             key={action.status}
             type="button"
-            variant={action.tone === "danger" ? "ghost" : "default"}
-            className={action.tone === "danger" ? "min-h-10 rounded-[6px] text-destructive hover:text-destructive active:scale-[0.97]" : "min-h-10 flex-1 rounded-[6px] active:scale-[0.97] sm:flex-none"}
+            variant={action.tone === "danger" ? "outline" : "default"}
+            className={action.tone === "danger" ? "min-h-10 rounded-[6px] bg-background text-destructive hover:text-destructive active:scale-[0.97]" : "min-h-10 flex-1 rounded-[6px] active:scale-[0.97] sm:flex-none"}
             disabled={Boolean(pendingStatus)}
             onClick={() => run(action.status)}
           >
@@ -273,7 +273,7 @@ export function ApplyLoyaltyAction({ orderId, customerEmail, customerName }: { o
   }
   return (
     <div className="space-y-2">
-      <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" disabled={pending} onClick={apply}>{pending ? "Applying…" : "Apply purchase to rewards"}</Button>
+      <Button type="button" variant="outline" className="min-h-10 rounded-[6px] bg-background" disabled={pending} onClick={apply}>{pending ? "Applying…" : "Apply purchase to rewards"}</Button>
       <p role="status" aria-live="polite" className={message ? "text-sm text-muted-foreground" : "sr-only"}>{message || ""}</p>
       <ActionError message={error} />
     </div>
@@ -349,7 +349,7 @@ export function RefundPaymentActions({ payments }: { payments: RefundablePayment
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {payments.map((payment) => (
-          <Button key={payment.id} type="button" size="sm" variant="ghost" className="h-auto min-h-8 whitespace-normal rounded-[6px] text-left text-destructive hover:text-destructive" onClick={() => open(payment)}>
+          <Button key={payment.id} type="button" variant="outline" className="h-auto min-h-10 whitespace-normal rounded-[6px] bg-background text-left text-destructive hover:text-destructive" onClick={() => open(payment)}>
             {`${payment.provider === "pp_stripe_stripe" ? "Refund to card" : payment.method === "gift_card" ? "Refund to gift card" : payment.method === "card" ? "Record external card refund" : "Refund cash"} · ${money(payment.amount)}`}
           </Button>
         ))}
