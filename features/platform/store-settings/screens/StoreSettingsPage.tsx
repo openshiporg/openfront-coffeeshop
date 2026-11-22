@@ -1,4 +1,4 @@
-import { PageBreadcrumbs } from "@/features/dashboard/components/PageBreadcrumbs";
+import { PlatformBreadcrumbs } from "@/features/platform/components/PlatformBreadcrumbs";
 import { PlatformHeader } from "@/features/platform/components/PlatformPage";
 import { getCoffeeStoreSettingsAction } from "../actions/store-settings";
 import { getOnlinePaymentSetting } from "../actions/online-payment";
@@ -10,7 +10,7 @@ export async function StoreSettingsPage() {
 
   return (
     <section className="flex min-h-0 flex-1 flex-col bg-background">
-      <PageBreadcrumbs
+      <PlatformBreadcrumbs
         items={[
           { type: "link", label: "Dashboard", href: "" },
           { type: "page", label: "Platform" },

@@ -59,7 +59,7 @@ export function SearchPicker<T extends { id: string; name: string | null }>({
           {detail ? <p className="truncate text-xs text-muted-foreground">{detail}</p> : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          {!disabled ? <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" onClick={() => setOpen(true)}>Change</Button> : null}
+          {!disabled ? <Button type="button" size="sm" variant="outline" className="rounded-[6px] bg-background" onClick={() => setOpen(true)}>Change</Button> : null}
           {clearable && !disabled ? (
             <Button type="button" size="icon" variant="ghost" className="size-8 rounded-[6px]" aria-label="Clear" onClick={() => { onSelect(null); setOpen(true); }}>
               <X className="size-4" aria-hidden="true" />

@@ -1,0 +1,10 @@
+[
+  {
+    "date": "2026-11-22",
+    "scope": "storefront + platform launch-ready pass",
+    "changes": ["phone menu sheet", "16px fields", "44px tap targets", "desktop category track wraps instead of clipping", "receipt tracker shows Paid at step two", "outline secondary buttons on platform", "phone breadcrumb on KDS and Store Settings"],
+    "macrostructure": "existing",
+    "tone": "quiet",
+    "anchorHue": "merchant accent"
+  }
+]

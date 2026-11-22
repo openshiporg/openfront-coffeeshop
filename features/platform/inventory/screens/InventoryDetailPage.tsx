@@ -100,7 +100,7 @@ export async function InventoryDetailPage({ id, movementPage }: { id: string; mo
           {canManage ? <InventoryItemDrawer item={item} supplierNames={supplierNames} unitLocked={hasHistory} /> : null}
           <Button asChild variant={state.tone === "green" ? "outline" : "default"} className="rounded-[6px] active:scale-[0.97]"><Link href={`${OPERATIONS_PATH}?purchaseInventorySearch=${encodeURIComponent(item.name || "")}`}>Order stock</Link></Button>
           <Button asChild variant="outline" className="rounded-[6px] active:scale-[0.97]"><Link href={OPERATIONS_PATH}>Count stock</Link></Button>
-          <Button asChild variant="ghost" className="rounded-[6px] active:scale-[0.97]"><Link href={`${OPERATIONS_PATH}?inventoryWasteSearch=${encodeURIComponent(item.name || "")}`}>Log waste</Link></Button>
+          <Button asChild variant="outline" className="rounded-[6px] active:scale-[0.97]"><Link href={`${OPERATIONS_PATH}?inventoryWasteSearch=${encodeURIComponent(item.name || "")}`}>Log waste</Link></Button>
         </>
       )}
     />

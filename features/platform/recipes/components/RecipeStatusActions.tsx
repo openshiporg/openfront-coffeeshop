@@ -85,7 +85,7 @@ export function RecipeStatusActions({
           </Button>
         ) : null}
         {status !== "archived" ? (
-          <Button type="button" variant="ghost" className="rounded-[6px] text-destructive" disabled={busy} onClick={() => move("archived")}>
+          <Button type="button" variant="outline" className="rounded-[6px] bg-background text-destructive hover:text-destructive" disabled={busy} onClick={() => move("archived")}>
             <Archive className="size-4" aria-hidden="true" />
             {pending === "archived" ? "Archiving…" : "Archive"}
           </Button>

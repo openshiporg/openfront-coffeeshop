@@ -577,7 +577,7 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" className="rounded-[6px] active:scale-[0.97]" disabled={inFlight} onClick={() => void dispatch(pending)}>{inFlight ? "Checking…" : "Retry"}</Button>
         <Button type="button" size="sm" variant="outline" className="rounded-[6px]" disabled={inFlight} onClick={discardPending}>Discard</Button>
-        <Button asChild size="sm" variant="ghost" className="rounded-[6px]"><Link href="/dashboard/platform/orders">Orders<ArrowUpRight aria-hidden /></Link></Button>
+        <Button asChild size="sm" variant="outline" className="rounded-[6px] bg-background"><Link href="/dashboard/platform/orders">Orders<ArrowUpRight aria-hidden /></Link></Button>
       </div>
     </div>
   ) : null;
@@ -648,13 +648,13 @@ export function PosRegister({ initial }: { initial: PosRegisterData }) {
           {editingRegister ? (
             <div className="space-y-1.5">
               <Label htmlFor="pos-register-name">Register name</Label>
-              <Input id="pos-register-name" className={fieldClass} value={registerName} maxLength={100} autoFocus onChange={(event) => setRegisterName(event.target.value)} disabled={writesBlocked} />
+              <Input id="pos-register-name" className={fieldClass} value={registerName} maxLength={100} onChange={(event) => setRegisterName(event.target.value)} disabled={writesBlocked} />
             </div>
           ) : null}
           <div className="flex items-end gap-2">
             <div className="min-w-0 flex-1 space-y-1.5">
               <Label htmlFor="pos-opening-cash">Opening cash</Label>
-              <Input id="pos-opening-cash" className={cn(fieldClass, "text-base tabular-nums")} value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked} autoFocus={!editingRegister} />
+              <Input id="pos-opening-cash" className={cn(fieldClass, "text-base tabular-nums")} value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} inputMode="decimal" placeholder="0.00" aria-invalid={openingParse.kind === "invalid"} aria-describedby="pos-opening-cash-error" disabled={writesBlocked}={!editingRegister} />
             </div>
             <Button type="submit" className="h-10 rounded-[6px] px-5 active:scale-[0.97]" disabled={writesBlocked || openingParse.kind !== "valid" || !registerName.trim()}>
               {inFlight && pending?.kind === "open" ? "Opening…" : "Open shift"}

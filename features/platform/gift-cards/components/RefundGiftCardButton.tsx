@@ -23,7 +23,7 @@ export function RefundGiftCardButton({ giftCardId, code, amountLabel }: { giftCa
   }
   return (
     <>
-      <Button type="button" size="sm" variant="ghost" className="h-8 rounded-[6px] text-destructive hover:text-destructive" onClick={() => { setError(null); setOpen(true); }}>Refund</Button>
+      <Button type="button" size="sm" variant="outline" className="h-9 rounded-[6px] bg-background text-destructive hover:text-destructive" onClick={() => { setError(null); setOpen(true); }}>Refund</Button>
       <Dialog open={open} onOpenChange={(next) => { if (!pending) setOpen(next); }}>
         <DialogContent className="rounded-[6px]">
           <DialogHeader>

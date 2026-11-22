@@ -28,6 +28,7 @@ const ORDER_QUERY = `
 `;
 
 // Customer-facing progress. "paid" sits with "accepted": payment doesn't move the drink along.
+// A guest who paid online reaches step two at once: it reads "Paid" (see progressIndex).
 const PROGRESS = [
   { label: "Received", statuses: ["open"] },
   { label: "Accepted", statuses: ["accepted", "paid"] },
@@ -71,7 +72,10 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
   const statusCopy = order ? getCustomerOrderStatusCopy(order.status, Boolean(order.paidAt)) : null;
   const failureCopy = confirmation.kind === "found" ? null : getOrderConfirmationFailureCopy(confirmation.kind);
   const payment = order ? paymentLine(order) : null;
-  const stepIndex = order ? PROGRESS.findIndex((step) => step.statuses.includes(order.status)) : -1;
+  const paidOnline = Boolean(order && (order.paidAt || order.status === "paid"));
+  const rawStep = order ? PROGRESS.findIndex((step) => step.statuses.includes(order.status)) : -1;
+  // Paid but not yet accepted: the money is in, so the tracker shows step two done rather than stalling on "Received".
+  const stepIndex = rawStep === 0 && paidOnline ? 1 : rawStep;
 
   return (
     <StorefrontShell active="orders">
@@ -118,7 +122,7 @@ export async function OrderConfirmedPage({ id, secretKey, payment: returnedFromP
                         aria-current={index === stepIndex ? "step" : undefined}
                       >
                         <span className="sf-step-box" aria-hidden="true">{index <= stepIndex ? <MarkerTick /> : null}</span>
-                        {step.label}
+                        {index === 1 && paidOnline && order?.status !== "accepted" ? "Paid" : step.label}
                       </li>
                     ))}
                   </ol>

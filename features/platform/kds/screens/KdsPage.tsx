@@ -1,5 +1,5 @@
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import { PageBreadcrumbs } from "@/features/dashboard/components/PageBreadcrumbs";
+import { PlatformBreadcrumbs } from "@/features/platform/components/PlatformBreadcrumbs";
 import { PlatformHeader } from "@/features/platform/components/PlatformPage";
 import { StatusDot } from "@/features/platform/components/StatusTitle";
 import { KdsBoard } from "../components/KdsBoard";
@@ -39,7 +39,7 @@ export async function KdsPage({ searchParams }: { searchParams: Promise<{ cursor
 
   return (
     <>
-    <PageBreadcrumbs items={[{ type: "link", label: "Dashboard", href: "" }, { type: "page", label: "Platform" }, { type: "page", label: "KDS" }]} />
+    <PlatformBreadcrumbs items={[{ type: "link", label: "Dashboard", href: "" }, { type: "page", label: "Platform" }, { type: "page", label: "KDS" }]} />
     <div className="space-y-5 p-4 pb-24 md:p-6 md:pb-24">
       <PlatformHeader
         title="KDS"

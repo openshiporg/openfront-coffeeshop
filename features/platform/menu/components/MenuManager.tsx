@@ -225,7 +225,7 @@ function ConflictNotice({ subject, onKeep, onDiscard }: { subject: string; onKee
       <span>{subject} changed while you were editing.</span>
       <span className="flex gap-2">
         <Button type="button" size="sm" variant="outline" className="rounded-[6px]" onClick={onDiscard}>Use saved</Button>
-        <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" onClick={onKeep}>Keep mine</Button>
+        <Button type="button" size="sm" variant="outline" className="rounded-[6px] bg-background" onClick={onKeep}>Keep mine</Button>
       </span>
     </div>
   );
@@ -280,28 +280,29 @@ function MenuItemCard({ item, categories, canManage, commands, notify }: { item:
               <span className="sr-only">Available</span>
               <span aria-hidden="true" className="w-7 text-muted-foreground">{item.available ? "On" : "Off"}</span>
             </label>
-          ) : <span className="text-muted-foreground">{item.available ? "On" : "Off"}</span>}
+          ) : <span className="text-muted-foreground max-md:hidden">{item.available ? "On" : "Off"}</span>}
         </td>
-        <td className={`${td} whitespace-nowrap`}>
-          <Button
+        <td className={`${td} whitespace-nowrap ${!canManage && item.modifiers.length === 0 ? "max-md:hidden" : ""}`}>
+          {/* With no options there is nothing to open, and staff who can't add one get no empty toggle. */}
+          {item.modifiers.length > 0 || canManage ? <Button
             type="button"
             size="sm"
             variant="ghost"
-            className="-ml-2 h-9 rounded-[6px] max-md:ml-0 max-md:px-2"
+            className="-ml-2 h-9 rounded-[6px] max-md:ml-0 max-md:border max-md:border-border max-md:bg-background max-md:px-2.5"
             aria-expanded={optionsOpen}
             aria-controls={optionsId}
             onClick={() => setOptionsOpen((open) => !open)}
           >
             <ChevronDown aria-hidden="true" className={`transition-transform duration-150 ${optionsOpen ? "rotate-180" : ""}`} />
             <span className="tabular-nums">{item.modifiers.length}</span>
-            <span className="sr-only">options</span>
+            <span className="md:sr-only">{item.modifiers.length === 1 ? "option" : "options"}</span>
             {outCount > 0 ? <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400"><StatusDot tone="amber" />{outCount} out</span> : null}
-          </Button>
+          </Button> : null}
         </td>
-        <td className={`${td} whitespace-nowrap text-right max-md:justify-self-end`}>
+        <td className={`${td} whitespace-nowrap text-right max-md:justify-self-end ${canManage ? "" : "max-md:hidden"}`}>
           {canManage ? (
             <span className="inline-flex items-center gap-1">
-              <Button type="button" size="sm" variant="ghost" className="h-9 rounded-[6px]" disabled={busy} onClick={() => setDetailsOpen(true)}>Edit</Button>
+              <Button type="button" size="sm" variant="outline" className="h-9 rounded-[6px] bg-background" disabled={busy} onClick={() => setDetailsOpen(true)}>Edit</Button>
               <Button asChild size="icon" variant="ghost" className="size-9 rounded-[6px] text-muted-foreground"><Link href={`/dashboard/menu-items/${item.id}`} aria-label={`Full record for ${item.name}`} title="Full record"><ArrowUpRight aria-hidden="true" /></Link></Button>
               {/* Portaled dialog; mounted here so its draft survives the options row opening and closing. */}
               <ItemDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} item={item} categories={categories} busy={busy} onSave={update} />
@@ -726,7 +727,7 @@ function ModifierEditor({ modifier, commands, notify }: { modifier: MenuModifier
             onChange={(next) => { if ((next === "in") !== modifier.inStock) void toggleStock(); }}
           />
           {!dirty && !draft.conflict && !reviewConflict && !unreviewed && (
-            <Button type="button" size="sm" variant="ghost" className="rounded-[6px]" aria-expanded={editing} onClick={() => setEditing((open) => !open)}>
+            <Button type="button" size="sm" variant="outline" className="rounded-[6px] bg-background" aria-expanded={editing} onClick={() => setEditing((open) => !open)}>
               {editing ? "Close" : "Edit"}
             </Button>
           )}
