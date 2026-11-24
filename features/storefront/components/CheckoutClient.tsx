@@ -419,7 +419,8 @@ export function CheckoutClient({ customer = null, hours = null, onlinePayment = 
           ) : null}
         </section>
 
-        <aside className="sf-panel sf-sticky-panel" aria-labelledby="pickup-details-title">
+        {/* Pickup details appear once there is something to pick up. */}
+        <aside className="sf-panel sf-sticky-panel" aria-labelledby="pickup-details-title" hidden={cartLoaded && !lines.length && !attempt}>
           <h2 id="pickup-details-title" className="sf-display sf-panel-title">Pickup</h2>
           <p className="sf-pickup-time" role="status" aria-live="polite">
             <span className={`sf-dot ${!lines.length || !cartLoaded ? "" : quotePending ? "sf-dot-active" : quote ? "sf-dot-open" : "sf-dot-closed"}`} aria-hidden="true" />

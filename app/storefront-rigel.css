@@ -1654,3 +1654,40 @@ ul.sf-line-mods { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
 @keyframes sf-sheet-in { from { transform: translateX(100%); } }
 @keyframes sf-fade { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sf-sheet, .sf-sheet-scrim { animation: none; } }
+
+/* ---------- Phone polish (402 pass) ---------- */
+/* A full-width button with one label centres it; with a price, label left and price right. */
+.sf-btn-block:not(:has(.sf-btn-price)) { justify-content: center; }
+.sf-panel[hidden] { display: none; }
+@media (max-width: 1023px) {
+  /* The item name starts level with its photo; the link keeps its 44px tap height. */
+  .sf-row-body { padding-top: 0; }
+  .sf-row-name { margin-top: -0.75rem; margin-bottom: -0.625rem; }
+  /* Option chips flow as one wrapping line instead of one line per group. */
+  .sf-opt-group { display: contents; }
+  .sf-opts { column-gap: 0.25rem; }
+  .sf-section-title { font-size: 1.25rem; margin-bottom: 0.75rem; }
+  .sf-panel-title { margin-bottom: 0.875rem; }
+}
+
+/* Catering: event day and time rows (no browser date box). */
+.sf-when { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 0.5rem; }
+.sf-when[aria-invalid="true"] .sf-pickpick-row { border-color: var(--sf-closed); }
+.sf-when-empty { color: var(--sf-ink-faint); }
+.sf-when-pop { width: min(20rem, calc(100vw - 1.5rem)); padding: 0.75rem; }
+.sf-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; }
+.sf-cal-month { font-weight: 500; font-size: 0.9375rem; }
+.sf-cal-nav { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 999px; color: var(--sf-ink-soft); cursor: pointer; }
+.sf-cal-nav:hover:not(:disabled) { background: var(--sf-wash); }
+.sf-cal-nav:disabled { opacity: 0.3; cursor: default; }
+.sf-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.sf-cal-weekday { text-align: center; font-size: 0.75rem; color: var(--sf-ink-faint); padding: 0.25rem 0; }
+.sf-cal-day { display: grid; place-items: center; min-height: 2.5rem; border-radius: 999px; font-size: 0.875rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+.sf-cal-day:hover:not(:disabled) { background: var(--sf-wash); }
+.sf-cal-day:disabled { color: var(--sf-ink-faint); opacity: 0.45; cursor: default; }
+.sf-cal-day[aria-selected="true"] { background: var(--sf-accent); color: var(--sf-on-accent, #fff); }
+.sf-cal-day:focus-visible, .sf-cal-nav:focus-visible { outline: 2px solid var(--sf-accent); outline-offset: 1px; }
+.sf-when-times { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* A page title that heads a form inside a panel keeps the same gap as on the sign-in panel. */
+.sf-panel > .sf-page-title + * { margin-top: 1rem; }
+.sf-auth.sf-panel > .sf-page-title + * { margin-top: 0; }

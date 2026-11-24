@@ -15,6 +15,7 @@ import {
   type CateringDraft,
   type CateringFieldErrors,
 } from "@/features/storefront/lib/catering";
+import { EventWhenPicker } from "./EventWhenPicker";
 
 const UNCONFIRMED = "Request not confirmed. Try again; it won’t be sent twice.";
 
@@ -186,11 +187,11 @@ export function CateringForm({ customer = null, timeZone, zoneLabel }: { custome
             {fieldError("customerPhone")}
           </label>
           <div className="sf-catering-row">
-            <label htmlFor="catering-event" className="sf-form-label">
-              <span>Event date and time{zoneLabel ? <span className="sf-optional"> ({zoneLabel})</span> : null}</span>
-              <input id="catering-event" type="datetime-local" step={900} value={draft.eventLocal} min={bounds?.min} max={bounds?.max} onChange={(e) => update("eventLocal", e.target.value)} required className="sf-field" {...invalid("eventLocal")} />
+            <div className="sf-form-label">
+              <label htmlFor="catering-event">Event date and time{zoneLabel ? <span className="sf-optional"> ({zoneLabel})</span> : null}</label>
+              <EventWhenPicker value={draft.eventLocal} min={bounds?.min} max={bounds?.max} onChange={(value) => update("eventLocal", value)} invalid={Boolean(fieldErrors.eventLocal)} describedBy={fieldErrors.eventLocal ? "catering-eventLocal-error" : undefined} />
               {fieldError("eventLocal")}
-            </label>
+            </div>
             <label htmlFor="catering-guests" className="sf-form-label">
               Guests
               <input id="catering-guests" type="number" inputMode="numeric" min={1} max={CATERING_MAX_GUESTS} step={1} value={draft.guestCount} onChange={(e) => update("guestCount", e.target.value)} required className="sf-field" {...invalid("guestCount")} />
