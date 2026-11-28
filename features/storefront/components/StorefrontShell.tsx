@@ -100,19 +100,19 @@ export async function StorefrontShell({
     <div className={`sf-app ${rail ? "has-rail" : ""} ${tabbar ? "has-tabbar" : ""}`}>
       <aside className="sf-side" aria-label="Store">
         <StoreBrand store={store} size="side" />
-        <Link href="/#menu" className="sf-btn sf-btn-primary sf-side-cta">Order Online</Link>
+        <Link href="/#menu" className="sf-btn sf-btn-primary sf-side-cta">Order online</Link>
         <nav className="sf-side-nav" aria-label="Storefront">
           <Link href="/#menu" aria-current={current("menu")}><ShoppingBag aria-hidden="true" />Order</Link>
           <Link href="/account#rewards" aria-current={current("rewards")}><Gift aria-hidden="true" />Rewards</Link>
-          <Link href="/account#orders" aria-current={current("orders")}><ClipboardList aria-hidden="true" />Your Orders</Link>
+          <Link href="/account#orders" aria-current={current("orders")}><ClipboardList aria-hidden="true" />Your orders</Link>
           {beansHref ? <Link href={beansHref} aria-current={current("beans")}><Store aria-hidden="true" />Shop</Link> : null}
           <Link href="/catering" aria-current={current("catering")}><UtensilsCrossed aria-hidden="true" />Catering</Link>
-          <Link href="/gift-cards" aria-current={current("giftcards")}><CreditCard aria-hidden="true" />Gift Cards</Link>
-          <Link href="/#visit" aria-current={current("visit")}><Coffee aria-hidden="true" />Our Café</Link>
+          <Link href="/gift-cards" aria-current={current("giftcards")}><CreditCard aria-hidden="true" />Gift cards</Link>
+          <Link href="/#visit" aria-current={current("visit")}><Coffee aria-hidden="true" />Our café</Link>
           <Link href="/account" aria-current={current("account")}><UserRound aria-hidden="true" />Account</Link>
         </nav>
         <div className="sf-side-foot">
-          <p className="sf-side-label"><Clock3 aria-hidden="true" />Pickup Time</p>
+          <p className="sf-side-label"><Clock3 aria-hidden="true" />Pickup time</p>
           <PickupNow hours={hours} />
         </div>
       </aside>

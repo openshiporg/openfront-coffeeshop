@@ -104,7 +104,7 @@ export function OrderPanel({ hours }: { hours: Hours }) {
 
       <div className="sf-rail-foot">
         <div className="sf-rail-actions">
-          <button type="button" className="sf-rail-clear" disabled={!count} onClick={() => clearCartLines()}>Clear Bag</button>
+          <button type="button" className="sf-rail-clear" disabled={!count} onClick={() => clearCartLines()}>Clear bag</button>
           <span className="sf-pill sf-pill-outline">Pickup</span>
         </div>
         <Link href="/checkout" className={`sf-rail-checkout ${count ? "" : "is-empty"}`} aria-disabled={!count || undefined}>

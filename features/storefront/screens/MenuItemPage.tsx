@@ -33,13 +33,13 @@ export async function MenuItemPage({ id }: { id: string }) {
   const dietary = (item.dietaryFlags || []).map(lower);
   // Plain sentences from the item's own data, in place of system chips.
   const facts = [
-    item.availability === "later" ? "We’re closed right now. Order ahead and pick it up after we open." : null,
-    item.availability === "sold_out" ? "Sold out for now." : null,
     item.prepTimeMinutes && !retail ? `Takes about ${item.prepTimeMinutes} ${item.prepTimeMinutes === 1 ? "minute" : "minutes"} to make.` : null,
     temperatures.length ? `Served ${temperatures.join(" or ")}.` : null,
     item.caffeineMg != null ? `${item.caffeineMg} mg caffeine.` : null,
     dietary.length ? `${dietary.join(", ").replace(/^./, (c) => c.toUpperCase())} as standard. Options can change ingredients.` : null,
   ].filter((fact): fact is string => Boolean(fact));
+  // What decides whether this can be ordered now stands apart from the facts about the drink.
+  const notice = item.availability === "later" ? "We’re closed right now. Order ahead and pick it up after we open." : item.availability === "sold_out" ? "Sold out for now." : null;
 
   return (
     <StorefrontShell cartBar={false} rail tabbar={false} active="menu">
@@ -55,6 +55,7 @@ export async function MenuItemPage({ id }: { id: string }) {
             </div>
             <h1 id="item-title" className="sf-item-title">{item.name}</h1>
             {item.shortDescription ? <p className="sf-item-lead">{item.shortDescription}</p> : null}
+            {notice ? <p className="sf-item-notice" role="status">{notice}</p> : null}
             {facts.length ? (
               <ul className="sf-facts">
                 {facts.map((fact) => <li key={fact}>{fact}</li>)}
